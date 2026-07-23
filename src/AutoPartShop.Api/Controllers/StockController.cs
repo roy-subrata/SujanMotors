@@ -28,6 +28,7 @@ public class StockController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitConversionService _unitConversionService;
     private readonly StockAdjustmentApplier _adjustmentApplier;
+    private readonly ICodeGenerateService _codeGenerateService;
     private readonly ILogger<StockController> _logger;
 
     public StockController(
@@ -39,6 +40,7 @@ public class StockController : ControllerBase
         ICurrentUserService currentUserService,
         IUnitConversionService unitConversionService,
         StockAdjustmentApplier adjustmentApplier,
+        ICodeGenerateService codeGenerateService,
         ILogger<StockController> logger)
     {
         _stockLevelRepository = stockLevelRepository;
@@ -49,6 +51,7 @@ public class StockController : ControllerBase
         _currentUserService = currentUserService;
         _unitConversionService = unitConversionService;
         _adjustmentApplier = adjustmentApplier;
+        _codeGenerateService = codeGenerateService;
         _logger = logger;
     }
 
@@ -469,72 +472,157 @@ public class StockController : ControllerBase
             if (sourceStockLevel.QuantityAvailableInBaseUnit < quantityInBaseUnit)
                 return BadRequest(new { message = $"Insufficient stock. Available: {sourceStockLevel.QuantityAvailableInBaseUnit}, Requested: {quantityInBaseUnit}" });
 
-            // Get or create destination stock level
-            var destStockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
-                request.PartId, request.VariantId, request.ToWarehouseId, cancellationToken);
-
-            if (destStockLevel == null)
-            {
-                destStockLevel = StockLevel.Create(
-                    request.PartId,
-                    request.ToWarehouseId,
-                    0,
-                    0,
-                    variantId: request.VariantId
-                );
-                destStockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
-                destStockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
-                await _stockLevelRepository.AddAsync(destStockLevel, cancellationToken);
-            }
-
-            // Create stock movements for both warehouses
             var transferReference = string.IsNullOrEmpty(request.Reference)
                 ? $"TRANSFER-{DateTime.UtcNow:yyyyMMddHHmmss}"
                 : request.Reference;
+            var currentUser = _currentUserService.GetCurrentUsername();
 
-            // OUT movement from source warehouse
-            var outMovement = StockMovement.Create(
-                sourceStockLevel.Id,
-                "TRANSFER",
-                -request.Quantity,
-                transferReference,
-                $"Transfer to {toWarehouse.Name}",
-                unitId: request.UnitId,
-                quantityInBaseUnit: -quantityInBaseUnit
-            );
-            outMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-            outMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-            outMovement.Approve("System");
-            await _stockMovementRepository.AddAsync(outMovement, cancellationToken);
+            // Everything below mutates stock — level buckets, movements AND lots — so it must be
+            // atomic. Without a transaction a mid-way failure could remove from the source but never
+            // add to the destination (stock destroyed), or move levels without moving lots (making the
+            // transferred stock unsellable at the destination, since sales deduct FIFO from lots).
+            Guid outMovementId = Guid.Empty;
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                _dbContext.ChangeTracker.Clear();
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // Re-fetch tracked entities inside the transaction so a retry works on clean state
+                    // and the RowVersion check reflects the latest committed values.
+                    var source = await _dbContext.StockLevels
+                        .FirstOrDefaultAsync(sl => sl.Id == sourceStockLevel.Id, cancellationToken)
+                        ?? throw new InvalidOperationException("Source stock level not found");
 
-            // IN movement to destination warehouse
-            var inMovement = StockMovement.Create(
-                destStockLevel.Id,
-                "TRANSFER",
-                request.Quantity,
-                transferReference,
-                $"Transfer from {fromWarehouse.Name}",
-                unitId: request.UnitId,
-                quantityInBaseUnit: quantityInBaseUnit
-            );
-            inMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-            inMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-            inMovement.Approve("System");
-            await _stockMovementRepository.AddAsync(inMovement, cancellationToken);
+                    if (source.QuantityAvailableInBaseUnit < quantityInBaseUnit)
+                        throw new InvalidOperationException(
+                            $"Insufficient stock. Available: {source.QuantityAvailableInBaseUnit}, Requested: {quantityInBaseUnit}");
 
-            // Update stock levels with correct display and base quantities
-            sourceStockLevel.RemoveStock(request.Quantity, quantityInBaseUnit, "Transfer");
-            sourceStockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
-            await _stockLevelRepository.UpdateAsync(sourceStockLevel, cancellationToken);
+                    var dest = await _dbContext.StockLevels
+                        .FirstOrDefaultAsync(sl => sl.PartId == request.PartId && sl.VariantId == request.VariantId
+                                                && sl.WarehouseId == request.ToWarehouseId, cancellationToken);
+                    if (dest == null)
+                    {
+                        dest = StockLevel.Create(request.PartId, request.ToWarehouseId, 0, 0, variantId: request.VariantId);
+                        dest.CreatedBy = currentUser;
+                        dest.ModifiedBy = currentUser;
+                        _dbContext.StockLevels.Add(dest);
+                    }
 
-            destStockLevel.AddStock(request.Quantity, quantityInBaseUnit, "Transfer");
-            destStockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
-            await _stockLevelRepository.UpdateAsync(destStockLevel, cancellationToken);
+                    // ── Move stock LOTS (FIFO), preserving each cost layer ──────────────────────────
+                    // Draw down source lots oldest-first and create matching destination lots with the
+                    // same cost/expiry/batch/warranty/provenance, so the destination is sellable and
+                    // FIFO cost integrity is preserved on both ends.
+                    var sourceLots = await _dbContext.StockLots
+                        .Where(l => l.PartId == request.PartId
+                                 && l.VariantId == request.VariantId
+                                 && l.WarehouseId == request.FromWarehouseId
+                                 && l.Status == "AVAILABLE"
+                                 && l.QuantityAvailableInBaseUnit > 0
+                                 && !l.Isdeleted)
+                        .OrderBy(l => l.ExpiryDate)
+                        .ThenBy(l => l.CreatedDate)
+                        .ToListAsync(cancellationToken);
+
+                    int remainingBase = quantityInBaseUnit;
+                    foreach (var srcLot in sourceLots)
+                    {
+                        if (remainingBase <= 0) break;
+                        int drawBase = Math.Min(srcLot.QuantityAvailableInBaseUnit, remainingBase);
+
+                        srcLot.RemoveStock(drawBase, drawBase, $"Transfer to {toWarehouse.Name}");
+                        srcLot.ModifiedBy = currentUser;
+
+                        var srcLotMovement = StockLotMovement.Create(
+                            srcLot.Id, drawBase, "TRANSFER", null, "StockTransfer",
+                            DateTime.UtcNow, srcLot.CostPrice, $"Transfer to {toWarehouse.Name}",
+                            transferReference, srcLot.UnitId, drawBase, srcLot.CostPriceInBaseUnit);
+                        srcLotMovement.CreatedBy = currentUser;
+                        srcLotMovement.ModifiedBy = currentUser;
+                        _dbContext.StockLotMovements.Add(srcLotMovement);
+
+                        var destLotNumber = await _codeGenerateService.GenerateAsync("LOT", cancellationToken);
+                        var destLot = StockLot.Create(
+                            lotNumber: destLotNumber,
+                            partId: srcLot.PartId,
+                            warehouseId: request.ToWarehouseId,
+                            supplierId: srcLot.SupplierId,
+                            goodsReceiptLineId: srcLot.GoodsReceiptLineId,
+                            quantityReceived: drawBase,
+                            costPrice: srcLot.CostPrice,
+                            receivingDate: srcLot.ReceivingDate,
+                            manufacturerLotNumber: srcLot.ManufacturerLotNumber,
+                            expiryDate: srcLot.ExpiryDate,
+                            currency: srcLot.Currency,
+                            notes: $"Transferred from {fromWarehouse.Name} lot {srcLot.LotNumber} ({transferReference})",
+                            unitId: srcLot.UnitId,
+                            quantityReceivedInBaseUnit: drawBase,
+                            costPriceInBaseUnit: srcLot.CostPriceInBaseUnit,
+                            hasWarranty: srcLot.HasWarranty,
+                            warrantyPeriodMonths: srcLot.WarrantyPeriodMonths,
+                            warrantyType: srcLot.WarrantyType,
+                            warrantyTerms: srcLot.WarrantyTerms,
+                            variantId: srcLot.VariantId,
+                            status: "AVAILABLE");
+                        destLot.CreatedBy = currentUser;
+                        destLot.ModifiedBy = currentUser;
+                        _dbContext.StockLots.Add(destLot);
+
+                        var destLotMovement = StockLotMovement.Create(
+                            destLot.Id, drawBase, "TRANSFER", null, "StockTransfer",
+                            DateTime.UtcNow, destLot.CostPrice, $"Transfer from {fromWarehouse.Name}",
+                            transferReference, destLot.UnitId, drawBase, destLot.CostPriceInBaseUnit);
+                        destLotMovement.CreatedBy = currentUser;
+                        destLotMovement.ModifiedBy = currentUser;
+                        _dbContext.StockLotMovements.Add(destLotMovement);
+
+                        remainingBase -= drawBase;
+                    }
+
+                    if (remainingBase > 0)
+                        throw new InvalidOperationException(
+                            $"Insufficient lot stock in source warehouse: on-hand level is sufficient but lot records are short by {remainingBase} base units. Run a stock reconciliation.");
+
+                    // ── Level bucket movements (audit) ─────────────────────────────────────────────
+                    var outMovement = StockMovement.Create(
+                        source.Id, "TRANSFER", -request.Quantity, transferReference,
+                        $"Transfer to {toWarehouse.Name}", unitId: request.UnitId, quantityInBaseUnit: -quantityInBaseUnit);
+                    outMovement.CreatedBy = currentUser;
+                    outMovement.ModifiedBy = currentUser;
+                    outMovement.Approve("System");
+                    _dbContext.StockMovements.Add(outMovement);
+                    outMovementId = outMovement.Id;
+
+                    var inMovement = StockMovement.Create(
+                        dest.Id, "TRANSFER", request.Quantity, transferReference,
+                        $"Transfer from {fromWarehouse.Name}", unitId: request.UnitId, quantityInBaseUnit: quantityInBaseUnit);
+                    inMovement.CreatedBy = currentUser;
+                    inMovement.ModifiedBy = currentUser;
+                    inMovement.Approve("System");
+                    _dbContext.StockMovements.Add(inMovement);
+
+                    // ── Aggregate level buckets ────────────────────────────────────────────────────
+                    source.RemoveStock(request.Quantity, quantityInBaseUnit, "Transfer");
+                    source.ModifiedBy = currentUser;
+
+                    dest.AddStock(request.Quantity, quantityInBaseUnit, "Transfer");
+                    dest.ModifiedBy = currentUser;
+
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             // Return transfer response
             var response = new StockTransferResponse
             {
-                Id = outMovement.Id,
+                Id = outMovementId,
                 PartId = part.Id,
                 PartName = part.Name,
                 PartCode = part.PartNumber?.Value ?? part.SKU,
@@ -558,6 +646,11 @@ public class StockController : ControllerBase
         }
         catch (ArgumentException ex)
         {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Business-rule failures raised inside the transaction (insufficient stock, lot shortfall).
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)

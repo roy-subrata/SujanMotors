@@ -172,4 +172,19 @@ public class GoodsReceiptLine : AuditableEntity
         WarrantyType = warrantyType?.Trim();
         WarrantyTerms = warrantyTerms?.Trim();
     }
+
+    /// <summary>
+    /// Corrects the unit cost after receipt (e.g. once the supplier invoice arrives). Cost is
+    /// lot-driven, so a zero/blank cost would create zero-cost stock — this enforces a positive cost.
+    /// <paramref name="unitCostInBaseUnit"/> should be the per-base-unit cost (falls back to unitCost
+    /// when the received unit already is the base unit).
+    /// </summary>
+    public void UpdateCost(decimal unitCost, decimal unitCostInBaseUnit)
+    {
+        if (unitCost <= 0)
+            throw new ArgumentException("UnitCost must be greater than zero", nameof(unitCost));
+
+        UnitCost = unitCost;
+        UnitCostInBaseUnit = unitCostInBaseUnit > 0 ? unitCostInBaseUnit : unitCost;
+    }
 }
