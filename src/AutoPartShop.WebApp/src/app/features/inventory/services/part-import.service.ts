@@ -25,9 +25,6 @@ export interface ProductImportRow {
     warrantyPeriodMonths?: number | null;
     warrantyType?: string | null;
     weightKg?: number | null;
-    widthCm?: number | null;
-    heightCm?: number | null;
-    depthCm?: number | null;
 }
 
 export interface ProductImportRowResult {

@@ -105,18 +105,6 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Product>
                .HasColumnType("decimal(10,4)")
                .IsRequired(false);
 
-        builder.Property(p => p.WidthCm)
-               .HasColumnType("decimal(10,2)")
-               .IsRequired(false);
-
-        builder.Property(p => p.HeightCm)
-               .HasColumnType("decimal(10,2)")
-               .IsRequired(false);
-
-        builder.Property(p => p.DepthCm)
-               .HasColumnType("decimal(10,2)")
-               .IsRequired(false);
-
         builder.Property(p => p.IsPerishable)
                .IsRequired()
                .HasDefaultValue(false);

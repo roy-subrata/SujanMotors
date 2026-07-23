@@ -25,7 +25,6 @@ import { BrandService, BrandResponse } from '../../services/brand.service';
 import { VehicleService, VehicleResponse, CreatePartCompatibilityRequest } from '../../services/vehicle.service';
 import { CatalogEntryService, CatalogEntryResponse, UpsertCatalogEntryRequest } from '../../services/catalog-entry.service';
 import { ProductVariantManagerComponent } from '../product-variant-manager/product-variant-manager.component';
-import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 
 import { forkJoin, of, tap } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -68,7 +67,6 @@ export class PartFormComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly formBuilder = inject(FormBuilder);
-    private readonly codeGenerationService = inject(CodeGenerationService);
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
 
@@ -150,8 +148,6 @@ export class PartFormComponent implements OnInit {
                 this.loadPart(this.partId);
                 this.loadCompatibleVehicles();
                 this.loadCatalogEntry(this.partId);
-            } else {
-                this.generateCode();
             }
 
             if (this.isViewMode) {
@@ -160,21 +156,6 @@ export class PartFormComponent implements OnInit {
                 this.compatibilityForm.disable();
             }
         });
-    }
-
-    private generateCode(): void {
-        this.codeGenerationService.getCode('Part')
-            .pipe(
-                tap({
-                    next: (code) => {
-                        if (code) {
-                            this.partForm.patchValue({ partNumber: code });
-                        }
-                    },
-                    error: (err) => console.error('Error generating code:', err)
-                })
-            )
-            .subscribe();
     }
 
     private loadPart(id: string): void {
@@ -226,6 +207,7 @@ export class PartFormComponent implements OnInit {
             brandId: part.brandId,
             baseUnitId: part.baseUnitId,
             unitId: part.unitId,
+            costPrice: part.costPrice ?? 0,
             sellingPrice: part.sellingPrice ?? 0,
             minimumStock: part.minimumStock,
             isActive: part.isActive,
@@ -249,13 +231,14 @@ export class PartFormComponent implements OnInit {
             name: ['', [Validators.required, Validators.maxLength(200)]],
             description: [''],
             richDescription: [''],
-            partNumber: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(20), Validators.pattern(/^[A-Za-z]/)]],
+            partNumber: ['', [Validators.required, Validators.maxLength(30)]],
             oemNumber: [null, [Validators.maxLength(100)]],
             localName: [null, [Validators.maxLength(200)]],
             categoryId: ['', [Validators.required]],
             brandId: [null],
             baseUnitId: [null],
             unitId: [null],
+            costPrice: [0, [Validators.required, Validators.min(0)]],
             sellingPrice: [0, [Validators.required, Validators.min(0)]],
             minimumStock: [0, [Validators.required, Validators.min(0)]],
             isActive: [true],
@@ -592,9 +575,6 @@ export class PartFormComponent implements OnInit {
             productType: v.productType || 'PHYSICAL',
             isPerishable: v.isPerishable || false,
             weightKg: v.weightKg ?? null,
-            widthCm: null,
-            heightCm: null,
-            depthCm: null,
             taxCode: v.taxCode?.trim() || null,
             hasWarranty: v.hasWarranty || false,
             warrantyPeriodMonths: v.hasWarranty ? v.warrantyPeriodMonths : null,
@@ -650,9 +630,6 @@ export class PartFormComponent implements OnInit {
             productType: v.productType || 'PHYSICAL',
             isPerishable: v.isPerishable || false,
             weightKg: v.weightKg ?? null,
-            widthCm: null,
-            heightCm: null,
-            depthCm: null,
             taxCode: v.taxCode?.trim() || null,
             hasWarranty: v.hasWarranty || false,
             warrantyPeriodMonths: v.hasWarranty ? v.warrantyPeriodMonths : null,

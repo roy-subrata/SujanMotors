@@ -79,20 +79,7 @@ export class PartsFormDialogComponent implements OnInit {
     }
 
     onCreateDialogShow(): void {
-        this.CodeGenerationService.getCode('Part')
-            .pipe(
-                tap({
-                    next: (code) => {
-                        if (code) {
-                            this.createForm.get('partNumber')?.setValue(code);
-                        }
-                    },
-                    error: () => {
-                        console.log('Error generating part number code');
-                    }
-                })
-            )
-            .subscribe();
+        // PartNumber is now user-entered — no auto-generation needed
     }
 
     /**

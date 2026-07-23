@@ -29,9 +29,6 @@ export interface ProductVariantResponse {
   currency: string;
   isActive: boolean;
   weightKg?: number | null;
-  widthCm?: number | null;
-  heightCm?: number | null;
-  depthCm?: number | null;
   attributeValues: VariantAttributeValue[];
 }
 
@@ -53,9 +50,6 @@ export interface CreateVariantRequest {
   currency?: string;
   isActive?: boolean;
   weightKg?: number | null;
-  widthCm?: number | null;
-  heightCm?: number | null;
-  depthCm?: number | null;
   attributeValues: VariantAttributeValueRequest[];
 }
 
