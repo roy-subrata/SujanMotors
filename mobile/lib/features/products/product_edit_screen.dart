@@ -142,6 +142,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     final raw = _raw!;
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
+    final s = S.of(context);
 
     setState(() => _saving = true);
     final dimensions = _m(raw['dimensions']);
@@ -184,7 +185,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
       ref.invalidate(productDetailProvider(widget.productId));
       ref.invalidate(lowStockCountProvider);
       messenger.showSnackBar(SnackBar(
-        content: Text(S.of(context).productUpdated),
+        content: Text(s.productUpdated),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ));
