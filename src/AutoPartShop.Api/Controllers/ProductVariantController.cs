@@ -88,7 +88,7 @@ public class ProductVariantController : ControllerBase
             req.CostPrice, req.SellingPrice,
             req.SKU?.Trim(), req.Barcode?.Trim(),
             req.Currency ?? "BDT", req.IsActive,
-            req.WeightKg, req.WidthCm, req.HeightCm, req.DepthCm);
+            req.WeightKg);
 
         var user = _currentUserService.GetCurrentUsername();
         variant.CreatedBy = user;
@@ -138,7 +138,7 @@ public class ProductVariantController : ControllerBase
             req.CostPrice, req.SellingPrice,
             req.SKU?.Trim(), req.Barcode?.Trim(),
             req.Currency ?? "BDT", req.IsActive,
-            req.WeightKg, req.WidthCm, req.HeightCm, req.DepthCm);
+            req.WeightKg);
         variant.ModifiedBy = user;
 
         _db.VariantAttributeValues.RemoveRange(variant.Attributes);
@@ -290,9 +290,6 @@ public class ProductVariantController : ControllerBase
         v.Currency,
         v.IsActive,
         v.WeightKg,
-        v.WidthCm,
-        v.HeightCm,
-        v.DepthCm,
         attributeValues = v.Attributes.Select(av => new
         {
             av.Id,
@@ -322,9 +319,6 @@ public class CreateVariantRequest
     public string? Currency { get; set; } = "BDT";
     public bool IsActive { get; set; } = true;
     public decimal? WeightKg { get; set; }
-    public decimal? WidthCm { get; set; }
-    public decimal? HeightCm { get; set; }
-    public decimal? DepthCm { get; set; }
     public List<VariantAttributeValueRequest> AttributeValues { get; set; } = new();
 }
 

@@ -100,17 +100,17 @@
           </p-autoComplete>
         </div>
         <div class="pf-field">
-          <label>Part Number</label>
-          <input pInputText formControlName="partNumber" [readonly]="true" [disabled]="isViewMode" />
-          <small class="pf-hint"><i class="pi pi-lock"></i> Auto-generated, read-only</small>
+          <label>Part Number <span class="req">*</span></label>
+          <input pInputText formControlName="partNumber" placeholder="e.g. BP-1234, D2345" [disabled]="isViewMode" />
+          <small class="pf-hint">Manufacturer's catalog code for this part</small>
         </div>
       </div>
 
       <div class="pf-row">
         <div class="pf-field">
-          <label>OEM Number</label>
-          <input pInputText formControlName="oemNumber" placeholder="Manufacturer OEM part number (optional)" [disabled]="isViewMode" />
-          <small class="pf-hint">Optional — manufacturer reference number</small>
+          <label>OEM Cross-Ref</label>
+          <input pInputText formControlName="oemNumber" placeholder="Vehicle manufacturer's part number (optional)" [disabled]="isViewMode" />
+          <small class="pf-hint">Optional — vehicle maker's cross-reference number</small>
         </div>
         <div class="pf-field">
           <label>Barcode <span class="pf-tag">UPC / EAN / QR</span></label>

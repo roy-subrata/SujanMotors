@@ -71,9 +71,6 @@ public sealed class ProductPricingSummary
 public sealed class ProductDimensionsSummary
 {
     public decimal? WeightKg { get; init; }
-    public decimal? WidthCm { get; init; }
-    public decimal? HeightCm { get; init; }
-    public decimal? DepthCm { get; init; }
 }
 
 public sealed class ProductWarrantySummary

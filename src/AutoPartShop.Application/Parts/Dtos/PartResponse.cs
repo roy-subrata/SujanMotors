@@ -37,9 +37,6 @@
         public string ProductType { get; set; } = "PHYSICAL";
         public bool IsPerishable { get; set; }
         public decimal? WeightKg { get; set; }
-        public decimal? WidthCm { get; set; }
-        public decimal? HeightCm { get; set; }
-        public decimal? DepthCm { get; set; }
         public string? TaxCode { get; set; }
 
         // Variant fields — populated when FlattenVariants=true

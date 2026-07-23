@@ -30,18 +30,6 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
             .HasColumnType("decimal(10,4)")
             .IsRequired(false);
 
-        builder.Property(x => x.WidthCm)
-            .HasColumnType("decimal(10,2)")
-            .IsRequired(false);
-
-        builder.Property(x => x.HeightCm)
-            .HasColumnType("decimal(10,2)")
-            .IsRequired(false);
-
-        builder.Property(x => x.DepthCm)
-            .HasColumnType("decimal(10,2)")
-            .IsRequired(false);
-
         builder.Property(x => x.PricingMode)
             .HasMaxLength(10)
             .IsRequired()

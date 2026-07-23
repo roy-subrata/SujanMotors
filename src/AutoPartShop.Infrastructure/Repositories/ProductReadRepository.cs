@@ -70,9 +70,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 ProductType = x.Product.ProductType,
                 IsPerishable = x.Product.IsPerishable,
                 WeightKg = x.Product.WeightKg,
-                WidthCm = x.Product.WidthCm,
-                HeightCm = x.Product.HeightCm,
-                DepthCm = x.Product.DepthCm,
                 TaxCode = x.Product.TaxCode,
                 CreatedBy = x.Product.CreatedBy,
                 ModifiedBy = x.Product.ModifiedBy,
@@ -167,9 +164,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 ProductType = part.ProductType,
                 IsPerishable = part.IsPerishable,
                 WeightKg = part.WeightKg,
-                WidthCm = part.WidthCm,
-                HeightCm = part.HeightCm,
-                DepthCm = part.DepthCm,
                 TaxCode = part.TaxCode,
                 CreatedBy = part.CreatedBy,
                 ModifiedBy = part.ModifiedBy
@@ -285,9 +279,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 ProductType = part.ProductType,
                 IsPerishable = part.IsPerishable,
                 WeightKg = part.WeightKg,
-                WidthCm = part.WidthCm,
-                HeightCm = part.HeightCm,
-                DepthCm = part.DepthCm,
                 TaxCode = part.TaxCode,
                 CreatedBy = part.CreatedBy,
                 ModifiedBy = part.ModifiedBy
@@ -350,9 +341,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 ProductType = v.Part.ProductType,
                 IsPerishable = v.Part.IsPerishable,
                 WeightKg = v.WeightKg ?? v.Part.WeightKg,
-                WidthCm = v.WidthCm ?? v.Part.WidthCm,
-                HeightCm = v.HeightCm ?? v.Part.HeightCm,
-                DepthCm = v.DepthCm ?? v.Part.DepthCm,
                 TaxCode = v.Part.TaxCode,
                 CreatedBy = v.Part.CreatedBy,
                 ModifiedBy = v.Part.ModifiedBy
@@ -444,9 +432,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 ProductType = part.ProductType,
                 IsPerishable = part.IsPerishable,
                 WeightKg = part.WeightKg,
-                WidthCm = part.WidthCm,
-                HeightCm = part.HeightCm,
-                DepthCm = part.DepthCm,
                 TaxCode = part.TaxCode
             })
             .ToListAsync(cancellationToken);
@@ -505,9 +490,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 ProductType = part.ProductType,
                 IsPerishable = part.IsPerishable,
                 WeightKg = part.WeightKg,
-                WidthCm = part.WidthCm,
-                HeightCm = part.HeightCm,
-                DepthCm = part.DepthCm,
                 TaxCode = part.TaxCode
             })
             .ToListAsync(cancellationToken);
@@ -565,9 +547,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 ProductType = v.Part.ProductType,
                 IsPerishable = v.Part.IsPerishable,
                 WeightKg = v.WeightKg ?? v.Part.WeightKg,
-                WidthCm = v.WidthCm ?? v.Part.WidthCm,
-                HeightCm = v.HeightCm ?? v.Part.HeightCm,
-                DepthCm = v.DepthCm ?? v.Part.DepthCm,
                 TaxCode = v.Part.TaxCode
             })
             .ToListAsync(cancellationToken);

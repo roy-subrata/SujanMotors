@@ -33,20 +33,19 @@
         pInputText
         type="text"
         formControlName="partNumber"
-        placeholder="Auto-generated"
-        [readonly]="true"
+        placeholder="e.g. BP-1234, D2345"
         [class.error]="hasError(createForm, 'partNumber')"
         [class.success]="isFieldValid(createForm, 'partNumber')"
         class="form-input" />
       <small class="error-message" *ngIf="hasError(createForm, 'partNumber')">
         {{ getErrorMessage(createForm, 'partNumber') }}
       </small>
-      <small class="hint-message">Code is auto-generated and cannot be changed</small>
+      <small class="hint-message">Manufacturer's catalog code for this part</small>
     </div>
 
     <!-- OEM Number Field -->
     <div class="form-group">
-      <label for="create-oem-number" class="form-label">OEM Number</label>
+      <label for="create-oem-number" class="form-label">OEM Cross-Ref</label>
       <input
         id="create-oem-number"
         pInputText
@@ -364,7 +363,7 @@
 
     <!-- OEM Number Field -->
     <div class="form-group">
-      <label for="update-oem-number" class="form-label">OEM Number</label>
+      <label for="update-oem-number" class="form-label">OEM Cross-Ref</label>
       <input
         id="update-oem-number"
         pInputText

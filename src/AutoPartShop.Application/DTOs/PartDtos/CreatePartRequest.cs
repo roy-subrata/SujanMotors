@@ -29,8 +29,5 @@ public class CreatePartRequest
     public string ProductType { get; set; } = "PHYSICAL";     // PHYSICAL, DIGITAL, SERVICE
     public bool IsPerishable { get; set; } = false;           // Grocery / pharmacy expiry tracking
     public decimal? WeightKg { get; set; }
-    public decimal? WidthCm { get; set; }
-    public decimal? HeightCm { get; set; }
-    public decimal? DepthCm { get; set; }
     public string? TaxCode { get; set; }                      // e.g. STANDARD, FOOD, MEDICINE, EXEMPT
 }

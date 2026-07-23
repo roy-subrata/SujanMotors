@@ -209,7 +209,7 @@ public sealed class ProductImportService(
             row.Barcode?.Trim(), row.Tags?.Trim(),
             string.IsNullOrWhiteSpace(row.ProductType) ? "PHYSICAL" : row.ProductType.Trim().ToUpperInvariant(),
             isPerishable: false,
-            row.WeightKg, row.WidthCm, row.HeightCm, row.DepthCm,
+            row.WeightKg,
             row.TaxCode?.Trim(), row.OemNumber?.Trim());
 
         part.CreatedBy = user;
@@ -374,10 +374,7 @@ public sealed class ProductImportService(
                 HasWarranty = Bool(xlRow, Col("Has Warranty"), "Has Warranty", parseErrors),
                 WarrantyPeriodMonths = Int(xlRow, Col("Warranty Period (months)"), "Warranty Period (months)", parseErrors),
                 WarrantyType = Str(xlRow, Col("Warranty Type")),
-                WeightKg = Dec(xlRow, Col("Weight (kg)"), "Weight (kg)", parseErrors),
-                WidthCm = Dec(xlRow, Col("Width (cm)"), "Width (cm)", parseErrors),
-                HeightCm = Dec(xlRow, Col("Height (cm)"), "Height (cm)", parseErrors),
-                DepthCm = Dec(xlRow, Col("Depth (cm)"), "Depth (cm)", parseErrors)
+                WeightKg = Dec(xlRow, Col("Weight (kg)"), "Weight (kg)", parseErrors)
             };
 
             rows.Add((row, parseErrors));
