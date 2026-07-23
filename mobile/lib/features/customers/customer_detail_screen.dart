@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
@@ -26,7 +27,7 @@ class CustomerDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Customer',
+          S.of(context).customer,
           style: GoogleFonts.instrumentSans(
             fontSize: 16,
             fontWeight: FontWeight.w700
@@ -34,7 +35,7 @@ class CustomerDetailScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Edit customer',
+            tooltip: S.of(context).editCustomer,
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => context.push('/customers/$customerId/edit'),
           ),
@@ -45,8 +46,9 @@ class CustomerDetailScreen extends ConsumerWidget {
         error: (e, _) => ListView(children: [
           const SizedBox(height: 120),
           ErrorView(
-            message:
-                e is AppException ? e.message : 'Failed to load customer.',
+            message: e is AppException
+                ? e.message
+                : S.of(context).failedToLoadCustomer,
             onRetry: () =>
                 ref.invalidate(customerDetailProvider(customerId)),
           ),
@@ -284,7 +286,8 @@ class _BodyState extends ConsumerState<_Body> {
                                   .isNotEmpty)
                                 widget.customer.customerType!,
                               if (widget.customer.lastPurchaseDate != null)
-                                'since ${formatDate(widget.customer.lastPurchaseDate!)}',
+                                S.of(context).sinceDate(formatDate(
+                                    widget.customer.lastPurchaseDate!)),
                             ].join(' · '),
                             style: GoogleFonts.instrumentSans(
                               fontSize: 12
@@ -304,14 +307,14 @@ class _BodyState extends ConsumerState<_Body> {
                       Row(
                         children: [
                           _StatBox(
-                            label: 'Due',
+                            label: S.of(context).due,
                             value: formatCurrency(s.amountDue),
                             valueColor: context.colors.red,
                             bg: context.colors.redBg,
                           ),
                           const SizedBox(width: 8),
                           _StatBox(
-                            label: 'Advance',
+                            label: S.of(context).advance,
                             value: formatCurrency(
                                 widget.customer.advanceAmount),
                             valueColor: context.colors.green,
@@ -319,7 +322,7 @@ class _BodyState extends ConsumerState<_Body> {
                           ),
                           const SizedBox(width: 8),
                           _StatBox(
-                            label: 'Invoices',
+                            label: S.of(context).invoices,
                             value: '${s.totalInvoices}',
                           ),
                         ],
@@ -352,27 +355,27 @@ class _BodyState extends ConsumerState<_Body> {
                   childAspectRatio: 3.2,
                   children: [
                     _ActionButton(
-                      label: 'Receive payment',
+                      label: S.of(context).receivePayment,
                       icon: Icons.payments_outlined,
                       filled: true,
                       onTap: () => context
                           .push('/customers/${widget.customer.id}/pay'),
                     ),
                     _ActionButton(
-                      label: 'Send reminder',
+                      label: S.of(context).sendReminder,
                       icon: Icons.notifications_active_outlined,
                       filled: false,
                       onTap: () => _showReminderSheet(context),
                     ),
                     _ActionButton(
-                      label: 'Statement',
+                      label: S.of(context).statement,
                       icon: Icons.description_outlined,
                       filled: false,
                       onTap: () => context.push(
                           '/customers/${widget.customer.id}/statement'),
                     ),
                     _ActionButton(
-                      label: 'New sale',
+                      label: S.of(context).newSale,
                       icon: Icons.add_shopping_cart_outlined,
                       filled: false,
                       onTap: () => context.push('/quick-sale'),
@@ -388,10 +391,10 @@ class _BodyState extends ConsumerState<_Body> {
           FilterChipRow(
             selected: _tabIndex,
             onSelect: _onTabSelect,
-            chips: const [
-              FilterChipData(label: 'Invoices'),
-              FilterChipData(label: 'Payments'),
-              FilterChipData(label: 'Returns'),
+            chips: [
+              FilterChipData(label: S.of(context).invoices),
+              FilterChipData(label: S.of(context).payments),
+              FilterChipData(label: S.of(context).returns),
             ],
           ),
           const SizedBox(height: 12),
@@ -403,7 +406,7 @@ class _BodyState extends ConsumerState<_Body> {
               const LoadingView()
             else if (_invoices.isEmpty && _invoiceError != null)
               ErrorView(
-                message: 'Failed to load invoices.',
+                message: S.of(context).failedToLoadInvoices,
                 onRetry: () {
                   setState(() {
                     _invoiceError = null;
@@ -413,8 +416,8 @@ class _BodyState extends ConsumerState<_Body> {
                 },
               )
             else if (_invoices.isEmpty)
-              const EmptyView(
-                  message: 'No invoices yet.',
+              EmptyView(
+                  message: S.of(context).noInvoicesYet,
                   icon: Icons.receipt_long_outlined)
             else
               _InvoiceList(
@@ -431,7 +434,7 @@ class _BodyState extends ConsumerState<_Body> {
               const LoadingView()
             else if (_payments.isEmpty && _paymentError != null)
               ErrorView(
-                message: 'Failed to load payments.',
+                message: S.of(context).failedToLoadPayments,
                 onRetry: () {
                   setState(() {
                     _paymentError = null;
@@ -441,8 +444,8 @@ class _BodyState extends ConsumerState<_Body> {
                 },
               )
             else if (_payments.isEmpty)
-              const EmptyView(
-                  message: 'No payments yet.',
+              EmptyView(
+                  message: S.of(context).noPaymentsYet,
                   icon: Icons.payments_outlined)
             else
               _PaymentList(
@@ -459,7 +462,7 @@ class _BodyState extends ConsumerState<_Body> {
               const LoadingView()
             else if (_returns.isEmpty && _returnError != null)
               ErrorView(
-                message: 'Failed to load returns.',
+                message: S.of(context).failedToLoadReturns,
                 onRetry: () {
                   setState(() {
                     _returnError = null;
@@ -470,8 +473,8 @@ class _BodyState extends ConsumerState<_Body> {
               )
             else if (_returns.isEmpty)
               Column(children: [
-                const EmptyView(
-                  message: 'No returns recorded.',
+                EmptyView(
+                  message: S.of(context).noReturnsRecorded,
                   icon: Icons.assignment_return_outlined,
                 ),
                 const SizedBox(height: 12),
@@ -597,7 +600,7 @@ class _InvoiceRow extends StatelessWidget {
                 const SizedBox(height: 4),
                 if (hasBalance)
                   Text(
-                    'Due ${formatCurrency(invoice.outstandingAmount)}',
+                    '${S.of(context).due} ${formatCurrency(invoice.outstandingAmount)}',
                     style: GoogleFonts.instrumentSans(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
@@ -876,7 +879,7 @@ class _InitiateReturnButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: () => context.push('/sales/return'),
         icon: const Icon(Icons.assignment_return_outlined, size: 16),
-        label: const Text('Initiate return'),
+        label: Text(S.of(context).initiateReturn),
         style: OutlinedButton.styleFrom(
           foregroundColor: context.colors.ink,
           side: BorderSide(color: Theme.of(context).colorScheme.outline),
@@ -919,7 +922,7 @@ class _PaginationFooter extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Center(
           child: Text(
-            'All records loaded',
+            S.of(context).allRecordsLoaded,
             style: GoogleFonts.instrumentSans(
                 fontSize: 12, color: context.colors.muted),
           ),
@@ -953,7 +956,7 @@ class _NetRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(owes ? 'Net owed' : 'Net credit',
+          Text(owes ? S.of(context).netOwed : S.of(context).netCredit,
               style: GoogleFonts.instrumentSans(
                   fontSize: 12, fontWeight: FontWeight.w600, color: color)),
           Text(formatCurrency(net.abs()),
@@ -1144,7 +1147,7 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Send payment reminder',
+                S.of(context).sendPaymentReminder,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 17,
                   fontWeight: FontWeight.w700
@@ -1152,7 +1155,7 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${widget.customer.fullName} · due ${formatCurrency(widget.customer.dueAmount)}',
+                '${widget.customer.fullName} · ${S.of(context).dueLower} ${formatCurrency(widget.customer.dueAmount)}',
                 style: GoogleFonts.instrumentSans(
                     fontSize: 12.5, color: context.colors.muted),
               ),
@@ -1184,7 +1187,7 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2.5, color: context.colors.onInk),
                         )
-                      : const Text('Send reminder'),
+                      : Text(S.of(context).sendReminder),
                 ),
               ),
             ],

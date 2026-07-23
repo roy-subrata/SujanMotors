@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../models/paged_response.dart';
 import 'state_views.dart';
@@ -122,7 +123,7 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
     } catch (e) {
       if (!mounted || gen != _generation) return;
       setState(() {
-        _error = e is AppException ? e.message : 'Failed to load.';
+        _error = e is AppException ? e.message : S.of(context).failedToLoadLabel;
         _loading = false;
         _initialDone = true;
       });
@@ -147,7 +148,7 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
           children: [
             const SizedBox(height: 100),
             widget.emptyBuilder?.call(context) ??
-                const EmptyView(message: 'Nothing to show.'),
+                EmptyView(message: S.of(context).nothingToShow),
           ],
         ),
       );

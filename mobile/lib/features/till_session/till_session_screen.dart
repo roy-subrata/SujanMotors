@@ -88,7 +88,7 @@ class _TillSessionScreenState extends ConsumerState<TillSessionScreen> {
               backgroundColor: context.colors.ink,
               foregroundColor: context.colors.onInk,
               icon: const Icon(Icons.payments_outlined),
-              label: const Text('Cash drop'),
+              label: Text(S.of(context).cashDrop),
             )
           : null,
       body: RefreshIndicator(
@@ -98,8 +98,9 @@ class _TillSessionScreenState extends ConsumerState<TillSessionScreen> {
           error: (e, _) => ListView(children: [
             const SizedBox(height: 120),
             ErrorView(
-              message:
-                  e is AppException ? e.message : 'Failed to load till session.',
+              message: e is AppException
+                  ? e.message
+                  : S.of(context).failedToLoadTillSession,
               onRetry: () => ref.invalidate(currentTillSessionProvider),
             ),
           ]),
@@ -210,11 +211,12 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
   }
 
   Future<void> _open() async {
+    final s = S.of(context);
     final terminal = _terminalCtrl.text.trim();
     final openingFloat = double.tryParse(_floatCtrl.text.trim()) ?? -1;
     String? problem;
-    if (terminal.isEmpty) problem = 'Enter a terminal label.';
-    if (openingFloat < 0) problem = 'Enter a valid opening float.';
+    if (terminal.isEmpty) problem = s.enterTerminalLabel;
+    if (openingFloat < 0) problem = s.enterValidOpeningFloat;
     if (problem != null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(problem)));
@@ -256,7 +258,7 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
                       size: 20, color: context.colors.ink),
                   const SizedBox(width: 8),
                   Text(
-                    'Open a till session',
+                    S.of(context).openATillSession,
                     style: GoogleFonts.instrumentSans(
                         fontSize: 15, fontWeight: FontWeight.w700),
                   ),
@@ -264,7 +266,7 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Count the cash drawer and start a shift before taking any cash sales.',
+                S.of(context).openTillSubtitle,
                 style: GoogleFonts.instrumentSans(
                   fontSize: 12,
                   color: context.colors.secondary,
@@ -285,8 +287,8 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
                   return TextField(
                     controller: textController,
                     focusNode: focusNode,
-                    decoration:
-                        const InputDecoration(labelText: 'Terminal label'),
+                    decoration: InputDecoration(
+                        labelText: S.of(context).terminalLabel),
                   );
                 },
                 optionsViewBuilder: (context, onSelected, options) {
@@ -334,9 +336,9 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
                     const TextInputType.numberWithOptions(decimal: true),
                 style: GoogleFonts.instrumentSans(
                     fontSize: 19, fontWeight: FontWeight.w700),
-                decoration: const InputDecoration(
-                  labelText: 'Opening float',
-                  prefixText: '৳ ',
+                decoration: InputDecoration(
+                  labelText: S.of(context).openingFloat,
+                  prefixText: kCurrencyPrefix,
                 ),
                 onChanged: (_) {
                   if (_suggestedFloatFromCashier != null) {
@@ -348,7 +350,9 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    "Suggested from this terminal's last closed session (counted by $_suggestedFloatFromCashier) — edit if the count differs.",
+                    S
+                        .of(context)
+                        .suggestedFloatHint(_suggestedFloatFromCashier!),
                     style: GoogleFonts.instrumentSans(
                       fontSize: 11,
                       color: context.colors.secondary,
@@ -358,8 +362,8 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
               const SizedBox(height: 10),
               TextField(
                 controller: _shiftCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Shift label (optional)',
+                decoration: InputDecoration(
+                  labelText: S.of(context).shiftLabelOptional,
                 ),
                 onChanged: (_) {
                   if (_suggestedShiftHours != null) {
@@ -371,7 +375,7 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    'From your assigned shift ($_suggestedShiftHours) — edit if this shift differs.',
+                    S.of(context).suggestedShiftHint(_suggestedShiftHours!),
                     style: GoogleFonts.instrumentSans(
                       fontSize: 11,
                       color: context.colors.secondary,
@@ -381,8 +385,8 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
               const SizedBox(height: 10),
               TextField(
                 controller: _notesCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Notes (optional)',
+                decoration: InputDecoration(
+                  labelText: S.of(context).notesOptional,
                 ),
               ),
               const SizedBox(height: 16),
@@ -401,7 +405,7 @@ class _OpenTillFormCardState extends ConsumerState<_OpenTillFormCard> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: context.colors.onInk),
                       )
-                    : const Text('Open Till'),
+                    : Text(S.of(context).openTill),
               ),
             ],
           ),
@@ -426,13 +430,14 @@ class _OpenSessionBody extends StatelessWidget {
       children: [
         _SessionSummaryCard(session: session),
         const SizedBox(height: 16),
-        _SectionLabel('Cash drops (${session.cashDrops.length})'),
+        _SectionLabel(
+            S.of(context).cashDropsCount(session.cashDrops.length)),
         const SizedBox(height: 8),
         if (session.cashDrops.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 8, bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 8),
             child: EmptyView(
-              message: 'No cash drops recorded yet.',
+              message: S.of(context).noCashDropsYet,
               icon: Icons.payments_outlined,
             ),
           )
@@ -445,7 +450,8 @@ class _OpenSessionBody extends StatelessWidget {
             children: [
               const Spacer(),
               Text(
-                'Running total: ${formatCurrency(session.cashDropsRunningTotal)}',
+                S.of(context).runningTotal(
+                    formatCurrency(session.cashDropsRunningTotal)),
                 style: GoogleFonts.instrumentSans(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
@@ -459,7 +465,7 @@ class _OpenSessionBody extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: onCloseTill,
           icon: Icon(Icons.lock_outline, size: 16, color: context.colors.red),
-          label: const Text('Close Till'),
+          label: Text(S.of(context).closeTill),
           style: OutlinedButton.styleFrom(
             foregroundColor: context.colors.red,
             side: BorderSide(color: context.colors.redBorder),
@@ -516,7 +522,7 @@ class _SessionSummaryCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
-                        'OPEN',
+                        S.of(context).openBadge,
                         style: GoogleFonts.instrumentSans(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
@@ -528,7 +534,7 @@ class _SessionSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Opening float',
+                  S.of(context).openingFloat,
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: Colors.white70),
                 ),
@@ -538,7 +544,9 @@ class _SessionSummaryCard extends StatelessWidget {
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  'Opened ${formatDayLong(session.openedAt)}, ${formatTime(session.openedAt)}',
+                  S.of(context).openedAtLine(
+                      formatDayLong(session.openedAt),
+                      formatTime(session.openedAt)),
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: Colors.white70),
                 ),
@@ -551,7 +559,7 @@ class _SessionSummaryCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _InfoMetric(
-                    label: 'Cashier',
+                    label: S.of(context).cashier,
                     value: session.cashierName,
                   ),
                 ),
@@ -559,7 +567,7 @@ class _SessionSummaryCard extends StatelessWidget {
                     width: 1, height: 34, color: scheme.outlineVariant),
                 Expanded(
                   child: _InfoMetric(
-                    label: 'Cash drops',
+                    label: S.of(context).cashDrops,
                     value: formatCurrency(session.cashDropsRunningTotal),
                   ),
                 ),
@@ -632,7 +640,7 @@ class _CashDropTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    drop.notes.isEmpty ? 'Cash drop' : drop.notes,
+                    drop.notes.isEmpty ? S.of(context).cashDrop : drop.notes,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w600),
@@ -699,8 +707,8 @@ class _CashDropSheetState extends ConsumerState<_CashDropSheet> {
   Future<void> _save() async {
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter an amount.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(S.of(context).enterAnAmount)));
       return;
     }
 
@@ -732,13 +740,13 @@ class _CashDropSheetState extends ConsumerState<_CashDropSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Record cash drop',
+              S.of(context).recordCashDrop,
               style: GoogleFonts.instrumentSans(
                   fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
-              'Removes cash from the drawer (e.g. a safe drop) without closing the till.',
+              S.of(context).cashDropSubtitle,
               style: GoogleFonts.instrumentSans(
                 fontSize: 12,
                 color: context.colors.secondary,
@@ -752,16 +760,16 @@ class _CashDropSheetState extends ConsumerState<_CashDropSheet> {
                   const TextInputType.numberWithOptions(decimal: true),
               style: GoogleFonts.instrumentSans(
                   fontSize: 19, fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                prefixText: '৳ ',
+              decoration: InputDecoration(
+                labelText: S.of(context).amount,
+                prefixText: kCurrencyPrefix,
               ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _notesCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Notes (optional)',
+              decoration: InputDecoration(
+                labelText: S.of(context).notesOptional,
               ),
             ),
             const SizedBox(height: 16),
@@ -780,7 +788,7 @@ class _CashDropSheetState extends ConsumerState<_CashDropSheet> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: context.colors.onInk),
                     )
-                  : const Text('Save cash drop'),
+                  : Text(S.of(context).saveCashDrop),
             ),
           ],
         ),
@@ -816,27 +824,24 @@ class _CloseTillSheetState extends ConsumerState<_CloseTillSheet> {
     final counted = double.tryParse(_countedCtrl.text.trim()) ?? -1;
     if (counted < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter the counted drawer amount.')));
+          SnackBar(content: Text(S.of(context).enterCountedAmount)));
       return;
     }
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Close this till session?'),
-        content: const Text(
-          'This freezes cash reconciliation for the shift and cannot be undone. '
-          'Make sure the counted amount is accurate before continuing.',
-        ),
+        title: Text(S.of(ctx).closeTillQuestion),
+        content: Text(S.of(ctx).closeTillWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(S.of(ctx).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(backgroundColor: context.colors.red),
-            child: const Text('Close Till'),
+            child: Text(S.of(ctx).closeTill),
           ),
         ],
       ),
@@ -871,7 +876,7 @@ class _CloseTillSheetState extends ConsumerState<_CloseTillSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Close till · ${widget.session.terminalLabel}',
+              S.of(context).closeTillTitled(widget.session.terminalLabel),
               style: GoogleFonts.instrumentSans(
                   fontSize: 16, fontWeight: FontWeight.w700),
             ),
@@ -890,7 +895,7 @@ class _CloseTillSheetState extends ConsumerState<_CloseTillSheet> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Count the drawer cash carefully — this cannot be reopened once closed.',
+                      S.of(context).countDrawerWarning,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 11.5, color: context.colors.amber),
                     ),
@@ -906,16 +911,16 @@ class _CloseTillSheetState extends ConsumerState<_CloseTillSheet> {
                   const TextInputType.numberWithOptions(decimal: true),
               style: GoogleFonts.instrumentSans(
                   fontSize: 19, fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(
-                labelText: 'Counted drawer amount',
-                prefixText: '৳ ',
+              decoration: InputDecoration(
+                labelText: S.of(context).countedDrawerAmount,
+                prefixText: kCurrencyPrefix,
               ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _notesCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Notes (optional)',
+              decoration: InputDecoration(
+                labelText: S.of(context).notesOptional,
               ),
             ),
             const SizedBox(height: 16),
@@ -934,7 +939,7 @@ class _CloseTillSheetState extends ConsumerState<_CloseTillSheet> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: context.colors.onInk),
                     )
-                  : const Text('Review & close'),
+                  : Text(S.of(context).reviewAndClose),
             ),
           ],
         ),
@@ -976,7 +981,7 @@ class _ClosedSummaryBodyState extends ConsumerState<_ClosedSummaryBody> {
           XFile(path,
               mimeType: 'application/pdf', name: 'shift_report_$timestamp.pdf')
         ],
-        subject: 'Shift Report',
+        subject: S.of(context).shiftReport,
       );
     } on AppException catch (e) {
       if (mounted) {
@@ -1000,13 +1005,13 @@ class _ClosedSummaryBodyState extends ConsumerState<_ClosedSummaryBody> {
     final String reconLabel;
     if (overShort == 0) {
       reconColor = context.colors.green;
-      reconLabel = 'Balanced';
+      reconLabel = S.of(context).balanced;
     } else if (overShort < 0) {
       reconColor = context.colors.red;
-      reconLabel = 'Short';
+      reconLabel = S.of(context).shortLabel;
     } else {
       reconColor = context.colors.amber;
-      reconLabel = 'Over';
+      reconLabel = S.of(context).overLabel;
     }
 
     return ListView(
@@ -1023,7 +1028,7 @@ class _ClosedSummaryBodyState extends ConsumerState<_ClosedSummaryBody> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Till closed · ${session.terminalLabel}',
+                      S.of(context).tillClosedTitled(session.terminalLabel),
                       style: GoogleFonts.instrumentSans(
                           fontSize: 15, fontWeight: FontWeight.w700),
                     ),
@@ -1039,18 +1044,25 @@ class _ClosedSummaryBodyState extends ConsumerState<_ClosedSummaryBody> {
                     fontSize: 12, color: context.colors.secondary),
               ),
               const SizedBox(height: 16),
-              _ReconRow(label: 'Opening float', value: session.openingFloat),
-              _ReconRow(label: 'Cash sales', value: session.cashSalesTotal),
               _ReconRow(
-                  label: 'Cash refunds', value: -session.cashRefundsTotal),
-              _ReconRow(label: 'Cash drops', value: -session.cashDropsTotal),
+                  label: S.of(context).openingFloat,
+                  value: session.openingFloat),
+              _ReconRow(
+                  label: S.of(context).cashSales,
+                  value: session.cashSalesTotal),
+              _ReconRow(
+                  label: S.of(context).cashRefunds,
+                  value: -session.cashRefundsTotal),
+              _ReconRow(
+                  label: S.of(context).cashDrops,
+                  value: -session.cashDropsTotal),
               const Divider(height: 20),
               _ReconRow(
-                  label: 'Expected in drawer',
+                  label: S.of(context).expectedInDrawer,
                   value: session.expectedAmount,
                   bold: true),
               _ReconRow(
-                  label: 'Counted amount',
+                  label: S.of(context).countedAmount,
                   value: session.closingCountedAmount ?? 0,
                   bold: true),
               const SizedBox(height: 12),
@@ -1099,7 +1111,7 @@ class _ClosedSummaryBodyState extends ConsumerState<_ClosedSummaryBody> {
                       strokeWidth: 2, color: context.colors.onInk),
                 )
               : const Icon(Icons.ios_share, size: 16),
-          label: const Text('Share Shift Report PDF'),
+          label: Text(S.of(context).shareShiftReportPdf),
           style: FilledButton.styleFrom(
             backgroundColor: context.colors.ink,
             foregroundColor: context.colors.onInk,
@@ -1116,7 +1128,7 @@ class _ClosedSummaryBodyState extends ConsumerState<_ClosedSummaryBody> {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
-          child: const Text('Open New Till'),
+          child: Text(S.of(context).openNewTill),
         ),
       ],
     );

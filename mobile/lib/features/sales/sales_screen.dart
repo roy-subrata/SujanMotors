@@ -85,7 +85,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SearchInput(
               controller: _searchCtrl,
-              hintText: 'Search invoice, customer...',
+              hintText: S.of(context).searchInvoiceCustomerHint,
               onChanged: _onSearchChanged,
             ),
           ),
@@ -107,11 +107,11 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                   child: FilterDropdown<_SalesFilter>(
                     value: _filter,
                     leadingIcon: Icons.filter_list_rounded,
-                    options: const [
-                      (_SalesFilter.all, 'All statuses'),
-                      (_SalesFilter.paid, 'Paid'),
-                      (_SalesFilter.due, 'Due'),
-                      (_SalesFilter.returns, 'Returns'),
+                    options: [
+                      (_SalesFilter.all, S.of(context).allStatuses),
+                      (_SalesFilter.paid, S.of(context).statusPaid),
+                      (_SalesFilter.due, S.of(context).due),
+                      (_SalesFilter.returns, S.of(context).returns),
                     ],
                     onChanged: (f) => setState(() => _filter = f),
                   ),
@@ -154,9 +154,9 @@ class _DateRangeButton extends StatelessWidget {
   final DateTimeRange? range;
   final ValueChanged<DateTimeRange?> onChanged;
 
-  String get _label {
+  String _label(BuildContext context) {
     final r = range;
-    if (r == null) return 'All time';
+    if (r == null) return S.of(context).allTime;
     final fmt = DateFormat('d MMM');
     if (_sameDay(r.start, r.end)) return fmt.format(r.start);
     return '${fmt.format(r.start)} – ${fmt.format(r.end)}';
@@ -198,16 +198,16 @@ class _DateRangeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<_RangePreset>(
-      tooltip: 'Filter by date range',
+      tooltip: S.of(context).filterByDateRange,
       onSelected: (p) => _onPreset(context, p),
       itemBuilder: (context) => [
-        for (final (preset, label) in const [
-          (_RangePreset.allTime, 'All time'),
-          (_RangePreset.today, 'Today'),
-          (_RangePreset.last7, 'Last 7 days'),
-          (_RangePreset.thisMonth, 'This month'),
-          (_RangePreset.lastMonth, 'Last month'),
-          (_RangePreset.custom, 'Custom range…'),
+        for (final (preset, label) in [
+          (_RangePreset.allTime, S.of(context).allTime),
+          (_RangePreset.today, S.of(context).today),
+          (_RangePreset.last7, S.of(context).last7Days),
+          (_RangePreset.thisMonth, S.of(context).thisMonth),
+          (_RangePreset.lastMonth, S.of(context).lastMonth),
+          (_RangePreset.custom, S.of(context).customRange),
         ])
           PopupMenuItem(
             value: preset,
@@ -230,7 +230,7 @@ class _DateRangeButton extends StatelessWidget {
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                _label,
+                _label(context),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.instrumentSans(
@@ -279,8 +279,8 @@ class _InvoiceList extends ConsumerWidget {
             toDate: range?.end,
             page: page,
           ),
-      emptyBuilder: (context) => const EmptyView(
-        message: 'No sales found.',
+      emptyBuilder: (context) => EmptyView(
+        message: S.of(context).noSalesFound,
         icon: Icons.receipt_long_outlined,
       ),
       indexedItemBuilder: (context, index, items) {
@@ -323,9 +323,9 @@ class _DayHeader extends StatelessWidget {
     final thatDay = DateTime(day.year, day.month, day.day);
     final diff = today.difference(thatDay).inDays;
     final label = diff == 0
-        ? 'Today'
+        ? S.of(context).today
         : diff == 1
-            ? 'Yesterday'
+            ? S.of(context).yesterday
             : DateFormat('d MMM').format(day);
 
     return Padding(
@@ -341,16 +341,17 @@ class _InvoiceRow extends StatelessWidget {
   final Invoice invoice;
 
   /// Maps backend invoice statuses onto the design's pill labels.
-  static String _pillLabel(Invoice inv) {
+  static String _pillLabel(BuildContext context, Invoice inv) {
+    final s = S.of(context);
     switch (inv.status?.toUpperCase()) {
       case 'PAID':
-        return 'Paid';
+        return s.statusPaid;
       case 'PARTIALLY_PAID':
-        return 'Partial';
+        return s.statusPartial;
       case 'CANCELLED':
-        return 'Cancelled';
+        return s.statusCancelled;
       default:
-        return inv.outstandingAmount > 0 ? 'Due' : (inv.status ?? '');
+        return inv.outstandingAmount > 0 ? s.due : (inv.status ?? '');
     }
   }
 
@@ -415,7 +416,7 @@ class _InvoiceRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    StatusPill(label: _pillLabel(invoice)),
+                    StatusPill(label: _pillLabel(context, invoice)),
                   ],
                 ),
               ],
@@ -451,8 +452,8 @@ class _ReturnsList extends ConsumerWidget {
             toDate: range?.end,
             page: page,
           ),
-      emptyBuilder: (context) => const EmptyView(
-        message: 'No returns found.',
+      emptyBuilder: (context) => EmptyView(
+        message: S.of(context).noReturnsFound,
         icon: Icons.assignment_return_outlined,
       ),
       indexedItemBuilder: (context, index, items) {
@@ -488,7 +489,8 @@ class _ReturnRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtitle = [
       formatTime(ret.createdAt),
-      if ((ret.salesOrderNumber ?? '').isNotEmpty) 'from ${ret.salesOrderNumber}',
+      if ((ret.salesOrderNumber ?? '').isNotEmpty)
+        S.of(context).fromOrder(ret.salesOrderNumber!),
     ].join(' · ');
 
     return Padding(
@@ -539,7 +541,7 @@ class _ReturnRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const StatusPill(label: 'Return'),
+                StatusPill(label: S.of(context).returnLabel),
               ],
             ),
           ],

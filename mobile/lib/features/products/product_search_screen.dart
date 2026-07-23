@@ -88,7 +88,9 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       actions: [
         if (priceCode != null && priceCode.isConfigured)
           IconButton(
-            tooltip: showActualPrice ? 'Hide cost prices' : 'Reveal cost prices',
+            tooltip: showActualPrice
+                ? S.of(context).hideCostPrices
+                : S.of(context).revealCostPrices,
             icon: Icon(showActualPrice
                 ? Icons.visibility_off_outlined
                 : Icons.visibility_outlined),
@@ -103,7 +105,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SearchInput(
               controller: _searchCtrl,
-              hintText: 'Search name, SKU, brand...',
+              hintText: S.of(context).searchProductsHint,
               onChanged: controller.search,
               onScan: () => context.push('/scan'),
             ),
@@ -158,8 +160,8 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
       );
     }
     if (state.items.isEmpty) {
-      return const EmptyView(
-          message: 'No products found.', icon: Icons.search_off);
+      return EmptyView(
+          message: S.of(context).noProductsFound, icon: Icons.search_off);
     }
 
     return RefreshIndicator(
@@ -216,7 +218,7 @@ class _CategoryTabRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           _Tab(
-            label: 'All',
+            label: S.of(context).all,
             isSelected: selectedId == null && !lowStockOnly,
             onTap: () => onSelect(null, null),
           ),
@@ -233,7 +235,7 @@ class _CategoryTabRow extends StatelessWidget {
             ),
           ),
           _Tab(
-            label: 'More',
+            label: S.of(context).more,
             icon: Icons.expand_more_rounded,
             isSelected: false,
             onTap: onMore,
@@ -259,7 +261,9 @@ class _LowStockTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = count != null && count! > 0 ? 'Low stock · $count' : 'Low stock';
+    final label = count != null && count! > 0
+        ? '${S.of(context).lowStock} · $count'
+        : S.of(context).lowStock;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -368,7 +372,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
             children: [
               Expanded(
                 child: Text(
-                  'All Categories',
+                  S.of(context).allCategories,
                   style: GoogleFonts.instrumentSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700
@@ -386,7 +390,7 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: SearchInput(
             controller: _searchCtrl,
-            hintText: 'Search categories...',
+            hintText: S.of(context).searchCategoriesHint,
             onChanged: (v) => setState(() => _query = v),
           ),
         ),
@@ -408,8 +412,8 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
                 hasMore: res.pagination.hasNextPage,
               );
             },
-            emptyBuilder: (context) => const EmptyView(
-              message: 'No categories found.',
+            emptyBuilder: (context) => EmptyView(
+              message: S.of(context).noCategoriesFound,
               icon: Icons.category_outlined,
             ),
             itemBuilder: (context, cat) => ListTile(
@@ -458,10 +462,10 @@ class _ProductCard extends ConsumerWidget {
     final stockLabel = stock == null
         ? null
         : stock <= 0
-            ? 'Out of stock'
+            ? S.of(context).outOfStock
             : stock <= 5
-                ? '$stock left'
-                : '$stock in stock';
+                ? S.of(context).stockLeft(stock)
+                : S.of(context).inStock(stock);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),

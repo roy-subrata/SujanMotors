@@ -69,8 +69,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                         ),
                         Text(
                           supplier.hasPayable
-                              ? 'We owe ${formatCurrency(supplier.currentBalance)}'
-                              : 'No outstanding payable',
+                              ? S.of(context).weOweAmount(
+                                  formatCurrency(supplier.currentBalance))
+                              : S.of(context).noOutstandingPayable,
                           style: GoogleFonts.instrumentSans(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -88,7 +89,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
             const SizedBox(height: 4),
             ListTile(
               leading: const Icon(Icons.payments_outlined),
-              title: Text('Pay supplier',
+              title: Text(S.of(context).paySupplier,
                   style: GoogleFonts.instrumentSans(fontSize: 14)),
               onTap: () {
                 Navigator.of(sheetContext).pop();
@@ -97,7 +98,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.receipt_long_outlined),
-              title: Text('Statement',
+              title: Text(S.of(context).statement,
                   style: GoogleFonts.instrumentSans(fontSize: 14)),
               onTap: () {
                 Navigator.of(sheetContext).pop();
@@ -122,7 +123,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SearchInput(
               controller: _searchCtrl,
-              hintText: 'Search supplier...',
+              hintText: S.of(context).searchSupplierHint,
               onChanged: _onSearchChanged,
             ),
           ),
@@ -133,9 +134,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
             selected: _filterIndex,
             onSelect: (i) => setState(() => _filterIndex = i),
             chips: [
-              FilterChipData(label: 'All'),
+              FilterChipData(label: S.of(context).all),
               FilterChipData(
-                label: 'We owe',
+                label: S.of(context).weOwe,
                 inactiveColor: context.colors.amber,
                 inactiveBg: context.colors.amberBg,
                 inactiveBorder: context.colors.amberBorder,
@@ -161,8 +162,8 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                   hasMore: res.hasMore,
                 );
               },
-              emptyBuilder: (context) => const EmptyView(
-                message: 'No suppliers found.',
+              emptyBuilder: (context) => EmptyView(
+                message: S.of(context).noSuppliersFound,
                 icon: Icons.store_outlined,
               ),
               itemBuilder: (context, supplier) => _SupplierCard(
@@ -239,7 +240,9 @@ class _SupplierCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                supplier.hasPayable ? 'we owe' : 'clear',
+                supplier.hasPayable
+                    ? S.of(context).weOweLower
+                    : S.of(context).clearLabel,
                 style: GoogleFonts.instrumentSans(
                     fontSize: 10.5, color: context.colors.muted),
               ),

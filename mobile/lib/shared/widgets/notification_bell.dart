@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../features/notifications/notifications_controller.dart';
 
 /// AppBar action: a bell with an unread badge and a tiny live-connection dot.
@@ -16,7 +17,7 @@ class NotificationBell extends ConsumerWidget {
     final connected = state.status == HubStatus.connected;
 
     return IconButton(
-      tooltip: 'Notifications',
+      tooltip: S.of(context).notifications,
       onPressed: () => context.push('/notifications'),
       icon: Badge(
         isLabelVisible: unread > 0,

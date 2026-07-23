@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
@@ -40,7 +41,7 @@ class _CustomerPaymentHistoryScreenState
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: const AppBarGradient(),
-        title: const Text('Payment history'),
+        title: Text(S.of(context).paymentHistory),
       ),
       body: Column(
         children: [
@@ -53,7 +54,9 @@ class _CustomerPaymentHistoryScreenState
                 children: [
                   for (final entry in _filters.entries)
                     ChoiceChip(
-                      label: Text(entry.value),
+                      label: Text(entry.key == null
+                          ? S.of(context).all
+                          : S.of(context).statusName(entry.key!)),
                       selected: _status == entry.key,
                       onSelected: (_) => setState(() => _status = entry.key),
                     ),
@@ -66,7 +69,7 @@ class _CustomerPaymentHistoryScreenState
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('$_total payment(s)',
+                child: Text(S.of(context).paymentsCount(_total!),
                     style: Theme.of(context).textTheme.bodySmall),
               ),
             ),
@@ -89,8 +92,9 @@ class _CustomerPaymentHistoryScreenState
               separatorBuilder: (_, _) => Divider(height: 1),
               emptyBuilder: (_) => EmptyView(
                 message: _status == null
-                    ? 'No payments recorded.'
-                    : 'No ${_filters[_status]!.toLowerCase()} payments.',
+                    ? S.of(context).noPaymentsRecorded
+                    : S.of(context).noStatusPayments(
+                        S.of(context).statusName(_status!).toLowerCase()),
                 icon: Icons.receipt_long_outlined,
               ),
               itemBuilder: (_, item) => _PaymentTile(item: item),
@@ -140,7 +144,7 @@ class _PaymentTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          item.status ?? '—',
+          item.status == null ? '—' : S.of(context).statusName(item.status!),
           style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w600),
         ),
       ),

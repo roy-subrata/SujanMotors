@@ -302,7 +302,7 @@ class _AppDrawer extends ConsumerWidget {
                         Text(
                           session?.displayName ??
                               session?.username ??
-                              'Staff',
+                              s.staffLabel,
                           style: GoogleFonts.instrumentSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,

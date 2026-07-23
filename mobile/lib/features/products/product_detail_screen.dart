@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/pricing/price_code.dart';
@@ -39,7 +40,7 @@ class ProductDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          product?.name ?? 'Product Detail',
+          product?.name ?? S.of(context).productDetail,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.instrumentSans(
@@ -50,7 +51,9 @@ class ProductDetailScreen extends ConsumerWidget {
         actions: [
           if (codeConfigured)
             IconButton(
-              tooltip: showActual ? 'Hide cost prices' : 'Reveal cost prices',
+              tooltip: showActual
+                  ? S.of(context).hideCostPrices
+                  : S.of(context).revealCostPrices,
               icon: Icon(
                 showActual
                     ? Icons.visibility_off_outlined
@@ -61,7 +64,7 @@ class ProductDetailScreen extends ConsumerWidget {
                   ref.read(showActualPriceProvider.notifier).toggle(),
             ),
           IconButton(
-            tooltip: 'Edit product',
+            tooltip: S.of(context).editProduct,
             icon: const Icon(Icons.edit_outlined, size: 20),
             onPressed: () => context.push('/product/$productId/edit'),
           ),
@@ -72,8 +75,9 @@ class ProductDetailScreen extends ConsumerWidget {
         error: (e, _) => ListView(children: [
           const SizedBox(height: 120),
           ErrorView(
-            message:
-                e is AppException ? e.message : 'Failed to load product.',
+            message: e is AppException
+                ? e.message
+                : S.of(context).failedToLoadProduct,
             onRetry: () =>
                 ref.invalidate(productDetailProvider(productId)),
           ),
@@ -220,8 +224,7 @@ class _BodyState extends ConsumerState<_Body> {
                       lotsByWarehouse: lotsByWarehouse,
                     )
                   else if (_activeSection == 3)
-                    const _EmptyHintCard(
-                        message: 'No stock lots for this product yet.'),
+                    _EmptyHintCard(message: S.of(context).noStockLotsYet),
 
                   // ── Storage locations ────────────────────────────────────
                   _LocationsCard(partId: product.id),
@@ -277,6 +280,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
 
   Future<void> _pickAndUpload(ImageSource source) async {
     final messenger = ScaffoldMessenger.of(context);
+    final s = S.of(context);
     final errorColor = context.colors.red;
     final XFile? picked;
     try {
@@ -289,8 +293,8 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
     } catch (_) {
       messenger.showSnackBar(SnackBar(
         content: Text(source == ImageSource.camera
-            ? 'Could not open the camera.'
-            : 'Could not open the photo gallery.'),
+            ? s.couldNotOpenCamera
+            : s.couldNotOpenGallery),
         backgroundColor: errorColor,
         behavior: SnackBarBehavior.floating,
       ));
@@ -306,9 +310,9 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
             fileName: picked.name,
           );
       ref.invalidate(productMediaProvider(widget.productId));
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Image added'),
-        duration: Duration(seconds: 2),
+      messenger.showSnackBar(SnackBar(
+        content: Text(s.imageAdded),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ));
     } on AppException catch (e) {
@@ -332,7 +336,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: Text('Take photo',
+              title: Text(S.of(context).takePhoto,
                   style: GoogleFonts.instrumentSans(fontSize: 14)),
               onTap: () {
                 Navigator.of(sheetContext).pop();
@@ -341,7 +345,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: Text('Choose from gallery',
+              title: Text(S.of(context).chooseFromGallery,
                   style: GoogleFonts.instrumentSans(fontSize: 14)),
               onTap: () {
                 Navigator.of(sheetContext).pop();
@@ -384,7 +388,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
             if (!media.isPrimary)
               ListTile(
                 leading: const Icon(Icons.star_outline_rounded),
-                title: Text('Set as primary',
+                title: Text(S.of(context).setAsPrimary,
                     style: GoogleFonts.instrumentSans(fontSize: 14)),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
@@ -395,7 +399,7 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
             ListTile(
               leading: Icon(Icons.delete_outline_rounded,
                   color: context.colors.red),
-              title: Text('Delete image',
+              title: Text(S.of(context).deleteImage,
                   style: GoogleFonts.instrumentSans(
                       fontSize: 14, color: context.colors.red)),
               onTap: () async {
@@ -403,18 +407,17 @@ class _MediaGalleryState extends ConsumerState<_MediaGallery> {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (dialogContext) => AlertDialog(
-                    title: const Text('Delete image?'),
-                    content:
-                        const Text('This removes the image from the product.'),
+                    title: Text(S.of(context).deleteImageQuestion),
+                    content: Text(S.of(context).deleteImageBody),
                     actions: [
                       TextButton(
                         onPressed: () =>
                             Navigator.of(dialogContext).pop(false),
-                        child: const Text('Cancel'),
+                        child: Text(S.of(context).cancel),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(dialogContext).pop(true),
-                        child: Text('Delete',
+                        child: Text(S.of(context).delete,
                             style: TextStyle(color: context.colors.red)),
                       ),
                     ],
@@ -614,10 +617,10 @@ class _StockBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, label) = qty <= 0
-        ? (context.colors.red, 'Out of stock')
+        ? (context.colors.red, S.of(context).outOfStock)
         : qty <= 5
-            ? (const Color(0xFFCB8600), '$qty left')
-            : (context.colors.green, '$qty in stock');
+            ? (const Color(0xFFCB8600), S.of(context).stockLeft(qty))
+            : (context.colors.green, S.of(context).inStock(qty));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
@@ -657,18 +660,20 @@ class _TitleCard extends ConsumerWidget {
     final showActual = ref.watch(showActualPriceProvider);
     final price = product.pricing?.sellingPrice;
 
+    final s = S.of(context);
     String? marginText;
     if (price != null && price > 0 && costPrice != null && costPrice! > 0) {
       final costFormatted = formatCostMasked(
           priceCode, showActual, costPrice!, currency: costCurrency);
       if (showActual || priceCode == null || !priceCode.isConfigured) {
         final margin = ((price - costPrice!) / price * 100).round();
-        marginText = 'cost $costFormatted · margin $margin%';
+        marginText =
+            '${s.costLabel} $costFormatted · ${s.marginLabel} $margin%';
       } else {
-        marginText = 'cost $costFormatted';
+        marginText = '${s.costLabel} $costFormatted';
       }
     } else if (costPrice != null) {
-      marginText = 'cost ${formatCostMasked(
+      marginText = '${s.costLabel} ${formatCostMasked(
           priceCode, showActual, costPrice!, currency: costCurrency)}';
     }
 
@@ -739,7 +744,7 @@ class _TitleCard extends ConsumerWidget {
               children: [
                 for (final label in chipLabels) _TagChip(label: label),
                 if (hasWarranty)
-                  const _TagChip(label: 'Warranty', green: true),
+                  _TagChip(label: s.warranty, green: true),
               ],
             ),
           ],
@@ -798,15 +803,17 @@ class _StatsGrid extends StatelessWidget {
     return Row(
       children: [
         _StatCell(
-            label: 'Total stock',
-            value: totalQty != null ? '$totalQty pcs' : '—'),
+            label: S.of(context).totalStock,
+            value: totalQty != null
+                ? '$totalQty ${S.of(context).pcs}'
+                : '—'),
         const SizedBox(width: 8),
         _StatCell(
-            label: 'Reserved',
+            label: S.of(context).reserved,
             value: reserved != null ? '$reserved' : '—'),
         const SizedBox(width: 8),
         _StatCell(
-            label: 'Reorder at',
+            label: S.of(context).reorderAt,
             value: reorderAt != null ? '$reorderAt' : '—'),
       ],
     );
@@ -853,24 +860,23 @@ class _StatCell extends StatelessWidget {
 class _SectionPillNav extends StatelessWidget {
   const _SectionPillNav({required this.active, required this.onSelect});
 
-  static const _labels = [
-    'Overview',
-    'Specifications',
-    'Compatibility',
-    'Stock & lots',
-  ];
-
   final int active;
   final ValueChanged<int> onSelect;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final labels = [
+      S.of(context).overview,
+      S.of(context).specifications,
+      S.of(context).compatibility,
+      S.of(context).stockAndLots,
+    ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          for (final (i, label) in _labels.indexed) ...[
+          for (final (i, label) in labels.indexed) ...[
             if (i > 0) const SizedBox(width: 6),
             GestureDetector(
               onTap: () => onSelect(i),
@@ -913,16 +919,17 @@ class _DetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final pairs = <(String, String)>[
-      if (product.brand != null) ('Brand', product.brand!.name),
-      if (product.category != null) ('Category', product.category!.name),
-      ('Part no.', product.partNumber),
+      if (product.brand != null) (s.brand, product.brand!.name),
+      if (product.category != null) (s.category, product.category!.name),
+      (s.partNo, product.partNumber),
       if ((product.oemNumber ?? '').isNotEmpty)
-        ('OEM no.', product.oemNumber!),
-      if ((product.barcode ?? '').isNotEmpty) ('Barcode', product.barcode!),
+        (s.oemNo, product.oemNumber!),
+      if ((product.barcode ?? '').isNotEmpty) (s.barcode, product.barcode!),
       if ((product.productType ?? '').isNotEmpty)
-        ('Type', product.productType!),
-      if (product.hasVariants) ('Variants', 'Yes'),
+        (s.type, product.productType!),
+      if (product.hasVariants) (s.variants, s.yes),
     ];
     final notes = product.description ?? '';
 
@@ -936,7 +943,7 @@ class _DetailsCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Details',
+              Text(s.details,
                   style: GoogleFonts.instrumentSans(
                       fontSize: 14, fontWeight: FontWeight.w600)),
               const SizedBox(height: 9),
@@ -957,7 +964,7 @@ class _DetailsCard extends StatelessWidget {
               ],
               if (notes.isNotEmpty) ...[
                 const SizedBox(height: 9),
-                Text('Notes',
+                Text(s.notes,
                     style: GoogleFonts.instrumentSans(
                         fontSize: 10.5, color: context.colors.muted)),
                 const SizedBox(height: 1),
@@ -1026,7 +1033,7 @@ class _ProductSpecsCard extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text('Specifications',
+                      child: Text(S.of(context).specifications,
                           style: GoogleFonts.instrumentSans(
                               fontSize: 14, fontWeight: FontWeight.w600)),
                     ),
@@ -1036,7 +1043,9 @@ class _ProductSpecsCard extends ConsumerWidget {
                       icon: Icon(specs.isEmpty
                           ? Icons.add
                           : Icons.edit_outlined, size: 16),
-                      label: Text(specs.isEmpty ? 'Add' : 'Edit'),
+                      label: Text(specs.isEmpty
+                          ? S.of(context).add
+                          : S.of(context).edit),
                       style: TextButton.styleFrom(
                         foregroundColor: context.colors.ink,
                         textStyle: GoogleFonts.instrumentSans(
@@ -1049,7 +1058,7 @@ class _ProductSpecsCard extends ConsumerWidget {
               if (specs.isEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
-                  child: Text('No specifications yet.',
+                  child: Text(S.of(context).noSpecificationsYet,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 12.5, color: context.colors.muted)),
                 )
@@ -1109,7 +1118,7 @@ class _TechSpecCard extends ConsumerWidget {
           children: [
             const SizedBox(height: 12),
             _SectionCard(
-              title: 'Technical specification',
+              title: S.of(context).technicalSpecification,
               child: Column(
                 children: [
                   for (final attr in attrs)
@@ -1180,7 +1189,7 @@ class _CompatibilityCard extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text('Compatible vehicles',
+                      child: Text(S.of(context).compatibleVehicles,
                           style: GoogleFonts.instrumentSans(
                               fontSize: 14, fontWeight: FontWeight.w600)),
                     ),
@@ -1190,7 +1199,9 @@ class _CompatibilityCard extends ConsumerWidget {
                       icon: Icon(
                           items.isEmpty ? Icons.add : Icons.edit_outlined,
                           size: 16),
-                      label: Text(items.isEmpty ? 'Add' : 'Edit'),
+                      label: Text(items.isEmpty
+                          ? S.of(context).add
+                          : S.of(context).edit),
                       style: TextButton.styleFrom(
                         foregroundColor: context.colors.ink,
                         textStyle: GoogleFonts.instrumentSans(
@@ -1203,7 +1214,7 @@ class _CompatibilityCard extends ConsumerWidget {
               if (items.isEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
-                  child: Text('No compatible vehicles yet.',
+                  child: Text(S.of(context).noCompatibleVehiclesYet,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 12.5, color: context.colors.muted)),
                 )
@@ -1265,7 +1276,7 @@ class _CompatRow extends StatelessWidget {
                       style: GoogleFonts.instrumentSans(
                           fontSize: 11, color: context.colors.secondary)),
                 if (!ok)
-                  Text('Not compatible',
+                  Text(S.of(context).notCompatible,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 11, color: context.colors.red)),
               ],
@@ -1313,7 +1324,7 @@ class _WarehouseLotCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text('Stock by warehouse · lots',
+                  child: Text(S.of(context).stockByWarehouseLots,
                       style: GoogleFonts.instrumentSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w600)),
@@ -1347,7 +1358,7 @@ class _WarehouseSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = level?.warehouseName ??
         lots.firstOrNull?.warehouseName ??
-        'Warehouse';
+        S.of(context).warehouse;
     final unit =
         level?.unitSymbol ?? level?.unitName ?? '';
     final qty = level?.availableQuantity ??
@@ -1379,7 +1390,7 @@ class _WarehouseSection extends StatelessWidget {
                         fontWeight: FontWeight.w600)),
               ),
               Text(
-                '$qty${unit.isNotEmpty ? ' $unit' : ' pcs'}',
+                '$qty ${unit.isNotEmpty ? unit : S.of(context).pcs}',
                 style: GoogleFonts.instrumentSans(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700),
@@ -1406,10 +1417,12 @@ class _LotRow extends ConsumerWidget {
     final costLabel = formatCostMasked(
         priceCode, showActual, lot.costPrice,
         currency: lot.currency);
+    final s = S.of(context);
     final meta = [
-      'Recv ${formatDate(lot.receivingDate)}',
-      'cost $costLabel',
-      if (lot.expiryDate != null) 'exp ${formatDate(lot.expiryDate!)}',
+      '${s.recvShort} ${formatDate(lot.receivingDate)}',
+      '${s.costLabel} $costLabel',
+      if (lot.expiryDate != null)
+        '${s.expShort} ${formatDate(lot.expiryDate!)}',
     ].join(' · ');
 
     return Column(
@@ -1440,8 +1453,8 @@ class _LotRow extends ConsumerWidget {
                 ),
               ),
               Text(
-                '${lot.quantityAvailable}'
-                '${unit.isNotEmpty ? ' $unit' : ' pcs'}',
+                '${lot.quantityAvailable} '
+                '${unit.isNotEmpty ? unit : s.pcs}',
                 style: GoogleFonts.instrumentSans(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600),
@@ -1473,7 +1486,7 @@ class _LocationsCard extends ConsumerWidget {
           children: [
             const SizedBox(height: 12),
             _SectionCard(
-              title: 'Storage locations',
+              title: S.of(context).storageLocations,
               child: Column(
                 children: locations.indexed.map((entry) {
                   final (idx, loc) = entry;
@@ -1548,7 +1561,7 @@ class _LocationRow extends StatelessWidget {
                           borderRadius:
                               BorderRadius.circular(99),
                         ),
-                        child: Text('Primary',
+                        child: Text(S.of(context).primary,
                             style: GoogleFonts.instrumentSans(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w600
@@ -1558,7 +1571,7 @@ class _LocationRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Section ${location.section} · Shelf ${location.shelf}',
+                  S.of(context).sectionShelf(location.section, location.shelf),
                   style: GoogleFonts.instrumentSans(
                       fontSize: 11.5, color: context.colors.muted),
                 ),
@@ -1710,7 +1723,7 @@ class _BottomBar extends ConsumerWidget {
                     const Icon(Icons.file_upload_outlined, size: 16),
                     const SizedBox(width: 6),
                     Text(
-                      'Stock In',
+                      S.of(context).stockIn,
                       style: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
@@ -1735,7 +1748,7 @@ class _BottomBar extends ConsumerWidget {
                 if (!added) {
                   messenger.showSnackBar(SnackBar(
                     content:
-                        Text('${product.name} is out of stock'),
+                        Text(S.of(context).isOutOfStock(product.name)),
                     backgroundColor: context.colors.red,
                     duration: const Duration(seconds: 2),
                     behavior: SnackBarBehavior.floating,
@@ -1744,11 +1757,11 @@ class _BottomBar extends ConsumerWidget {
                 }
                 messenger.showSnackBar(SnackBar(
                   content:
-                      Text('${product.name} added to sale'),
+                      Text(S.of(context).addedToSale(product.name)),
                   duration: const Duration(seconds: 2),
                   behavior: SnackBarBehavior.floating,
                   action: SnackBarAction(
-                    label: 'Go to Sale',
+                    label: S.of(context).goToSale,
                     onPressed: () {
                       messenger.hideCurrentSnackBar();
                       router.push('/quick-sale');
@@ -1771,7 +1784,7 @@ class _BottomBar extends ConsumerWidget {
                         size: 16, color: scheme.onPrimary),
                     const SizedBox(width: 6),
                     Text(
-                      'Add to cart',
+                      S.of(context).addToCart,
                       style: GoogleFonts.instrumentSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
