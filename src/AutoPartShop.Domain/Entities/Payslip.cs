@@ -83,10 +83,17 @@ public class Payslip : AuditableEntity
     public void ApplyGeneratedFigures(decimal advanceDeduction, decimal taxDeduction,
         decimal monthlySalesTotal, decimal commissionRate)
     {
-        AdvanceDeduction = advanceDeduction;
         TaxDeduction = taxDeduction;
         MonthlySalesTotal = monthlySalesTotal;
         CommissionAmount = Math.Round(monthlySalesTotal * commissionRate / 100m, 2);
+
+        // Recover the advance in installments: deduct only what this month's pay can absorb after the
+        // other deductions, so net pay never goes negative. The unrecovered remainder stays outstanding
+        // and is pulled into the next run. (Manual UpdateAdjustments can still override the amount.)
+        AdvanceDeduction = 0m;
+        Recalculate();
+        var recoverable = Math.Max(0m, GrossPay - AbsenceDeduction - TaxDeduction - OtherDeduction);
+        AdvanceDeduction = Math.Min(Math.Max(0m, advanceDeduction), recoverable);
         Recalculate();
     }
 
