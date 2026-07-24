@@ -311,13 +311,15 @@ var app = builder.Build();
 await DatabaseSeeder.SeedAsync(app.Services);
 
 // Swagger exposes the full API surface; keep it out of production to avoid information disclosure.
-
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
-    c.RoutePrefix = "docs"; // set swagger path to /docs
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoPart Shop API V1");
+        c.RoutePrefix = "docs"; // set swagger path to /docs
+    });
+}
 
 await app.ApplyMigration();
 // Enable CORS

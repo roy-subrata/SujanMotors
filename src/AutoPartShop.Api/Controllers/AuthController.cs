@@ -92,8 +92,12 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Register a new user (typically used for first-time setup or self-registration)
+    /// Register a new user. Admin-only: staff accounts are provisioned by an administrator.
+    /// The very first admin is created by the database seeder, not through this endpoint.
+    /// Anonymous access here would allow anyone to self-provision an account — and, via
+    /// DefaultRole, grant themselves Admin — so it must stay behind an Admin authorization check.
     /// </summary>
+    [Authorize(Roles = "Admin")]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {

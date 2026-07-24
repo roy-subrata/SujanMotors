@@ -211,6 +211,11 @@ public class WarehousesController(
             await _warehouseRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
+        catch (InvalidOperationException ex)
+        {
+            // Warehouse is still referenced by stock or transactions — surface a clean 409.
+            return Conflict(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting warehouse: {WarehouseId}", id);

@@ -496,8 +496,12 @@ public class SalesOrderController : ControllerBase
                     if (order is null)
                         throw new InvalidOperationException("Sales order not found");
 
-                    // If CONFIRMED, restore any stock that was deducted at confirmation
-                    if (order.Status == "CONFIRMED")
+                    // Restore any stock that was deducted at confirmation. Stock is deducted once at
+                    // Confirm, then the order moves through READY_FOR_DELIVERY → PAID → PACKED → SHIPPED —
+                    // all of which are cancellable and still hold the deducted stock. Restoring only for
+                    // "CONFIRMED" would leak inventory when a later-stage order is cancelled.
+                    var stockDeductedStatuses = new[] { "CONFIRMED", "READY_FOR_DELIVERY", "PAID", "PACKED", "SHIPPED" };
+                    if (stockDeductedStatuses.Contains(order.Status))
                     {
                         var lineIds = order.LineItems.Select(l => (Guid?)l.Id).ToList();
                         var lotMovements = await _dbContext.StockLotMovements

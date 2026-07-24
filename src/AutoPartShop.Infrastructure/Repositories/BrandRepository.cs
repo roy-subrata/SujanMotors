@@ -62,6 +62,11 @@ public class BrandRepository : IBrandRepository
 
         if (entity != null)
         {
+            // In-use guard — a brand assigned to products would otherwise be silently unlinked
+            // (Product.BrandId FK is SetNull) or leave products pointing at a soft-deleted brand.
+            if (await _dbContext.Parts.AnyAsync(p => p.BrandId == id && !p.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a brand that is assigned to products. Reassign or remove those products first.");
+
             entity.Isdeleted = true;
             await _dbContext.SaveChangesAsync(cancellationToken);
         }

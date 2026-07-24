@@ -267,14 +267,11 @@ public class EcommerceController(
                     foreach (var (pId, vId, qty, _) in lineRequests)
                         await ConsumeStockForLineAsync(pId, vId, qty, soNumber, warehouse!.Id, cancellationToken);
 
+                    // Return every session reservation's stock to available (not just mark the record
+                    // released) — otherwise reserved units for cart items that weren't purchased, or
+                    // quantities reduced before checkout, would be stranded and silently shrink availability.
                     if (!string.IsNullOrWhiteSpace(request.SessionId))
-                    {
-                        var sessionReservations = await _dbContext.CartReservations
-                            .Where(r => r.SessionId == request.SessionId && !r.IsReleased)
-                            .ToListAsync(cancellationToken);
-                        foreach (var r in sessionReservations) r.Release();
-                        await _dbContext.SaveChangesAsync(cancellationToken);
-                    }
+                        await ReleaseSessionReservationsAsync(request.SessionId, cancellationToken);
 
                     // Create and issue invoice using the pre-generated number
                     var invoice = Invoice.Create(invoiceNumber, salesOrder.Id, salesOrder.SubTotal,
@@ -721,14 +718,11 @@ public class EcommerceController(
                     foreach (var (pId, vId, qty, _) in lineRequests)
                         await ConsumeStockForLineAsync(pId, vId, qty, soNumber, warehouse!.Id, cancellationToken);
 
+                    // Return every session reservation's stock to available (not just mark the record
+                    // released) — otherwise reserved units for cart items that weren't purchased, or
+                    // quantities reduced before checkout, would be stranded and silently shrink availability.
                     if (!string.IsNullOrWhiteSpace(request.SessionId))
-                    {
-                        var sessionReservations = await _dbContext.CartReservations
-                            .Where(r => r.SessionId == request.SessionId && !r.IsReleased)
-                            .ToListAsync(cancellationToken);
-                        foreach (var r in sessionReservations) r.Release();
-                        await _dbContext.SaveChangesAsync(cancellationToken);
-                    }
+                        await ReleaseSessionReservationsAsync(request.SessionId, cancellationToken);
 
                     var invoice = Invoice.Create(invoiceNumber, salesOrder.Id, salesOrder.SubTotal,
                         salesOrder.TaxAmount, DateTime.UtcNow.AddDays(30),
@@ -926,7 +920,15 @@ public class EcommerceController(
 
                         if (delta > 0)
                         {
-                            stockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(delta);
+                            // Spread across levels — availability was summed across all of them, so a
+                            // single level may not hold the whole delta even when the total does.
+                            var toReserve = delta;
+                            foreach (var sl in stockLevels.OrderByDescending(s => s.QuantityAvailable))
+                            {
+                                if (toReserve <= 0) break;
+                                var canReserve = Math.Min(sl.QuantityAvailable, toReserve);
+                                if (canReserve > 0) { sl.ReserveStock(canReserve); toReserve -= canReserve; }
+                            }
                         }
                         else if (delta < 0)
                         {
@@ -948,7 +950,15 @@ public class EcommerceController(
                             request.SessionId, request.PartId, request.Quantity,
                             productVariantId: request.VariantId);
 
-                        stockLevels.OrderByDescending(sl => sl.QuantityAvailable).First().ReserveStock(request.Quantity);
+                        // Spread across levels — availability was summed across all of them, so a single
+                        // level may not hold the whole quantity even when the total does.
+                        var toReserve = request.Quantity;
+                        foreach (var sl in stockLevels.OrderByDescending(s => s.QuantityAvailable))
+                        {
+                            if (toReserve <= 0) break;
+                            var canReserve = Math.Min(sl.QuantityAvailable, toReserve);
+                            if (canReserve > 0) { sl.ReserveStock(canReserve); toReserve -= canReserve; }
+                        }
 
                         await _dbContext.CartReservations.AddAsync(reservation, cancellationToken);
                     }
@@ -1081,6 +1091,42 @@ public class EcommerceController(
             var qtyToRelease = reservation.Quantity;
 
             foreach (var sl in stockLevels.Where(s => s.VariantId == reservation.ProductVariantId))
+            {
+                if (qtyToRelease <= 0) break;
+                var canRelease = Math.Min(sl.QuantityReserved, qtyToRelease);
+                if (canRelease > 0) { sl.ReleaseReservedStock(canRelease); qtyToRelease -= canRelease; }
+            }
+
+            reservation.Release();
+        }
+
+        await _dbContext.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Releases every active cart reservation for a session back to stock, then marks the records released.
+    /// Whatever the order actually consumed was already drawn down in ConsumeStockForLineAsync, so the
+    /// Math.Min(reserved, qty) below only returns the *leftover* reserved units — this prevents reserved
+    /// stock from being stranded when the order lines don't exactly match the session's reservations
+    /// (item removed from cart, quantity reduced, etc.).
+    /// </summary>
+    private async Task ReleaseSessionReservationsAsync(string sessionId, CancellationToken ct)
+    {
+        var reservations = await _dbContext.CartReservations
+            .Where(r => r.SessionId == sessionId && !r.IsReleased)
+            .ToListAsync(ct);
+
+        if (!reservations.Any()) return;
+
+        foreach (var reservation in reservations)
+        {
+            var qtyToRelease = reservation.Quantity;
+
+            var stockLevels = await _dbContext.StockLevels
+                .Where(sl => sl.PartId == reservation.PartId && sl.VariantId == reservation.ProductVariantId && sl.IsActive && !sl.Isdeleted)
+                .ToListAsync(ct);
+
+            foreach (var sl in stockLevels)
             {
                 if (qtyToRelease <= 0) break;
                 var canRelease = Math.Min(sl.QuantityReserved, qtyToRelease);

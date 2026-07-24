@@ -656,43 +656,48 @@ public class PurchaseReturnController : ControllerBase
             );
 
             // All writes in one transaction â€” if the SupplierPayment insert fails, the
-            // credit note and return status update are rolled back together.
-            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            // credit note and return status update are rolled back together. Runs under the EF
+            // execution strategy (EnableRetryOnFailure is on) or BeginTransaction would throw.
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                purchaseReturn.IssueCreditNote(creditAmount);
-                purchaseReturn.ModifiedBy = currentUser;
-                await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
-
-                await _creditNoteRepository.AddAsync(creditNote, cancellationToken);
-
-                purchaseReturn.SetCreditNote(creditNote.Id);
-                await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
-
-                if (defaultProvider != null)
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    var supplierPayment = SupplierPayment.Create(
-                        supplierId: purchaseReturn.SupplierId,
-                        paymentProviderId: defaultProvider.Id,
-                        amount: creditAmount,
-                        paymentMethod: "CREDIT_NOTE",
-                        transactionNumber: creditNoteNumber,
-                        referenceNumber: purchaseReturn.ReturnNumber,
-                        paymentDate: DateTime.UtcNow
-                    );
-                    supplierPayment.MarkAsAdvance();
-                    supplierPayment.MarkAsProcessed(currentUser);
-                    supplierPayment.ConfirmReceipt(currentUser); // advance to COMPLETED so it surfaces in GetAvailableAdvanceCreditAsync
-                    await _supplierPaymentRepository.AddAsync(supplierPayment, cancellationToken);
-                }
+                    purchaseReturn.IssueCreditNote(creditAmount);
+                    purchaseReturn.ModifiedBy = currentUser;
+                    await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
 
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await tx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                    await _creditNoteRepository.AddAsync(creditNote, cancellationToken);
+
+                    purchaseReturn.SetCreditNote(creditNote.Id);
+                    await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
+
+                    if (defaultProvider != null)
+                    {
+                        var supplierPayment = SupplierPayment.Create(
+                            supplierId: purchaseReturn.SupplierId,
+                            paymentProviderId: defaultProvider.Id,
+                            amount: creditAmount,
+                            paymentMethod: "CREDIT_NOTE",
+                            transactionNumber: creditNoteNumber,
+                            referenceNumber: purchaseReturn.ReturnNumber,
+                            paymentDate: DateTime.UtcNow
+                        );
+                        supplierPayment.MarkAsAdvance();
+                        supplierPayment.MarkAsProcessed(currentUser);
+                        supplierPayment.ConfirmReceipt(currentUser); // advance to COMPLETED so it surfaces in GetAvailableAdvanceCreditAsync
+                        await _supplierPaymentRepository.AddAsync(supplierPayment, cancellationToken);
+                    }
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             _logger.LogInformation(
                 "Credit note {CreditNoteNumber} issued for return {ReturnId}, amount: {Amount}, supplier: {SupplierId}",

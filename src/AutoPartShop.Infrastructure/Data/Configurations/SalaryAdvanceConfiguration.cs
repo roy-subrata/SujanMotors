@@ -17,6 +17,11 @@ public class SalaryAdvanceConfiguration : IEntityTypeConfiguration<SalaryAdvance
         builder.Property(a => a.Amount)
             .HasPrecision(18, 2);
 
+        builder.Property(a => a.RecoveredAmount)
+            .HasPrecision(18, 2);
+
+        builder.Ignore(a => a.RemainingAmount);
+
         builder.Property(a => a.PaymentMethod)
             .IsRequired()
             .HasMaxLength(30);

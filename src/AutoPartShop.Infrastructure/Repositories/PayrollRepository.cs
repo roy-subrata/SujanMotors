@@ -111,14 +111,33 @@ public class PayrollRepository : IPayrollRepository
 
             if (settleIds.Count > 0)
             {
-                var outstanding = await _dbContext.SalaryAdvances
-                    .Where(a => settleIds.Contains(a.EmployeeId) && a.Status == "OUTSTANDING" && !a.Isdeleted)
-                    .ToListAsync(cancellationToken);
+                var advancesByEmployee = (await _dbContext.SalaryAdvances
+                        .Where(a => settleIds.Contains(a.EmployeeId) && a.Status == "OUTSTANDING" && !a.Isdeleted)
+                        .ToListAsync(cancellationToken))
+                    .GroupBy(a => a.EmployeeId)
+                    .ToDictionary(g => g.Key, g => g.OrderBy(a => a.AdvanceDate).ToList());
 
-                foreach (var advance in outstanding)
+                foreach (var empId in settleIds)
                 {
-                    advance.Settle(run.Id);
-                    advance.ModifiedBy = paidBy;
+                    if (!advancesByEmployee.TryGetValue(empId, out var advances))
+                        continue;
+
+                    // Recover exactly what was deducted on this employee's payslip, oldest advance
+                    // first. Each advance is only marked SETTLED once fully recovered; any shortfall
+                    // (the deduction was capped so net pay stayed ≥ 0) rolls over to the next run.
+                    var toRecover = run.Payslips
+                        .Where(p => p.EmployeeId == empId && !p.Isdeleted)
+                        .Sum(p => p.AdvanceDeduction);
+
+                    foreach (var advance in advances)
+                    {
+                        if (toRecover <= 0) break;
+                        var take = Math.Min(advance.RemainingAmount, toRecover);
+                        if (take <= 0) continue;
+                        advance.Recover(take, run.Id);
+                        advance.ModifiedBy = paidBy;
+                        toRecover -= take;
+                    }
                 }
             }
 

@@ -38,10 +38,22 @@ public class UnitRepository(AutoPartDbContext dbContext) : IUnitRepository
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var unit = await dbContext.Units.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+        var unit = await dbContext.Units.FirstOrDefaultAsync(u => u.Id == id && !u.Isdeleted, cancellationToken);
         if (unit != null)
         {
-            dbContext.Units.Remove(unit);
+            // In-use guards — a unit referenced by products, stock or conversions can't be removed
+            // without corrupting quantity/cost math that is expressed in that unit.
+            if (await dbContext.Parts.AnyAsync(p => (p.BaseUnitId == id || p.UnitId == id) && !p.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a unit that is assigned to products.");
+
+            if (await dbContext.StockLevels.AnyAsync(sl => sl.UnitId == id && !sl.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a unit that is used by stock levels.");
+
+            if (await dbContext.UnitConversions.AnyAsync(c => (c.FromUnitId == id || c.ToUnitId == id) && !c.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a unit that is used by unit conversions.");
+
+            // Soft delete, consistent with the rest of the model.
+            unit.Isdeleted = true;
         }
         await dbContext.SaveChangesAsync(cancellationToken);
     }
