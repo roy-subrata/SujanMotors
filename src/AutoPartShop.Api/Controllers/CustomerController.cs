@@ -518,6 +518,11 @@ public class CustomerController : ControllerBase
             await _customerRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
+        catch (InvalidOperationException ex)
+        {
+            // Repository-level in-use guard (defense in depth) — surface a clean 409.
+            return Conflict(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting customer: {CustomerId}", id);

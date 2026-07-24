@@ -595,7 +595,15 @@ public class ProductsController : ControllerBase
         if (!await _productRepository.ExistsAsync(id, cancellationToken))
             return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
 
-        await _productRepository.DeleteAsync(id, cancellationToken);
+        try
+        {
+            await _productRepository.DeleteAsync(id, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiError.BusinessRule(ex.Message, Request.Path));
+        }
+
         return NoContent();
     }
 

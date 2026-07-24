@@ -267,6 +267,11 @@ public class SuppliersController : ControllerBase
             await _supplierRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
+        catch (InvalidOperationException ex)
+        {
+            // Supplier is still referenced by procurement/stock records — surface a clean 409.
+            return Conflict(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting supplier: {SupplierId}", id);

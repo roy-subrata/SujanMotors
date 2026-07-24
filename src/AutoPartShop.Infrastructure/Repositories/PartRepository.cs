@@ -67,10 +67,20 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var part = await _db.Parts.FirstOrDefaultAsync(p => p.Id == id);
+        var part = await _db.Parts.FirstOrDefaultAsync(p => p.Id == id && !p.Isdeleted, cancellationToken);
         if (part != null)
         {
-            _db.Parts.Remove(part);
+            // In-use guards — a product still holding physical stock or cost layers can't be removed
+            // without orphaning inventory/valuation. (Past sales keep pointing at the soft-deleted
+            // product, which is fine for history.)
+            if (await _db.StockLevels.AnyAsync(sl => sl.PartId == id && !sl.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a product that has stock records. Remove its stock first.");
+
+            if (await _db.StockLots.AnyAsync(l => l.PartId == id && !l.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a product that has stock lots (purchase/cost history).");
+
+            // Soft delete, consistent with the rest of the model.
+            part.Isdeleted = true;
         }
         await _db.SaveChangesAsync(cancellationToken);
     }

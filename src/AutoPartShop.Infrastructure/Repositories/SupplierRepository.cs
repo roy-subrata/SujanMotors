@@ -44,12 +44,23 @@ public class SupplierRepository(AutoPartDbContext _db) : ISupplierRepository
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var supplier = await _db.Suppliers.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        var supplier = await _db.Suppliers.FirstOrDefaultAsync(s => s.Id == id && !s.Isdeleted, cancellationToken);
         if (supplier != null)
         {
-            _db.Suppliers.Remove(supplier);
+            // In-use guards — a supplier's procurement/payment history must be retained.
+            if (await _db.PurchaseOrders.AnyAsync(po => po.SupplierId == id && !po.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a supplier that has purchase orders.");
+
+            if (await _db.StockLots.AnyAsync(l => l.SupplierId == id && !l.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a supplier that has stock lots.");
+
+            if (await _db.SupplierPayments.AnyAsync(p => p.SupplierId == id && !p.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a supplier that has payment records.");
+
+            // Soft delete + persist (the previous Remove without SaveChanges never took effect).
+            supplier.Isdeleted = true;
+            await _db.SaveChangesAsync(cancellationToken);
         }
-        await Task.CompletedTask;
     }
 
     public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
