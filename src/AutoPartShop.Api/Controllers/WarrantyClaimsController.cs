@@ -619,19 +619,43 @@ public class WarrantyClaimsController : ControllerBase
             if (stockLevel.QuantityReserved < 1)
                 return BadRequest(new { message = "No reserved defective quantity available for this claim location" });
 
-            stockLevel.ReleaseReservedStock(1);
-            stockLevel.RemoveStock(1);
-            await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+            // Stock mutation + audit movement must commit together (under the retry strategy). Otherwise a
+            // partial failure would deduct stock without the movement the idempotency guard above relies on,
+            // breaking that guard and risking a double deduction on retry. RowVersion also serialises
+            // concurrent sends so only one deduction can win.
+            var sendLevelId = defectiveReturnMovement.StockLevelId;
+            var sendStrategy = _dbContext.Database.CreateExecutionStrategy();
+            await sendStrategy.ExecuteAsync(async () =>
+            {
+                _dbContext.ChangeTracker.Clear();
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    var level = await _stockLevelRepository.GetByIdAsync(sendLevelId, cancellationToken)
+                        ?? throw new InvalidOperationException("Quarantined stock location is not available for this claim");
 
-            var outMovement = StockMovement.Create(
-                stockLevelId: stockLevel.Id,
-                movementType: "OUT",
-                quantity: 1,
-                reason: WarrantyDefectiveSentToVendorReason,
-                referenceNumber: claim.ClaimNumber);
-            outMovement.Approve(request.ResponsibleBy);
-            outMovement.AddNotes($"Sent defective item for claim {claim.ClaimNumber} to {request.Destination}. Responsible: {request.ResponsibleBy}. Ref: {request.ReferenceNumber}. {request.Notes}".Trim());
-            await _stockMovementRepository.AddAsync(outMovement, cancellationToken);
+                    level.ReleaseReservedStock(1);
+                    level.RemoveStock(1);
+                    await _stockLevelRepository.UpdateAsync(level, cancellationToken);
+
+                    var outMovement = StockMovement.Create(
+                        stockLevelId: level.Id,
+                        movementType: "OUT",
+                        quantity: 1,
+                        reason: WarrantyDefectiveSentToVendorReason,
+                        referenceNumber: claim.ClaimNumber);
+                    outMovement.Approve(request.ResponsibleBy);
+                    outMovement.AddNotes($"Sent defective item for claim {claim.ClaimNumber} to {request.Destination}. Responsible: {request.ResponsibleBy}. Ref: {request.ReferenceNumber}. {request.Notes}".Trim());
+                    await _stockMovementRepository.AddAsync(outMovement, cancellationToken);
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(new
             {
@@ -695,18 +719,41 @@ public class WarrantyClaimsController : ControllerBase
             if (stockLevel == null || !stockLevel.IsActive)
                 return BadRequest(new { message = "Original claim stock location is not available for receiving replacement" });
 
-            stockLevel.AddStock(1);
-            await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+            // Stock add + audit movement must commit together (under the retry strategy) so the
+            // movement-based "already received" guard above can't be bypassed by a partial failure,
+            // and RowVersion serialises concurrent receives to a single +1.
+            var receiveLevelId = sentMovement.StockLevelId;
+            var receiveStrategy = _dbContext.Database.CreateExecutionStrategy();
+            await receiveStrategy.ExecuteAsync(async () =>
+            {
+                _dbContext.ChangeTracker.Clear();
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    var level = await _stockLevelRepository.GetByIdAsync(receiveLevelId, cancellationToken)
+                        ?? throw new InvalidOperationException("Original claim stock location is not available for receiving replacement");
 
-            var inMovement = StockMovement.Create(
-                stockLevelId: stockLevel.Id,
-                movementType: "IN",
-                quantity: 1,
-                reason: WarrantyReplacementReceivedFromVendorReason,
-                referenceNumber: claim.ClaimNumber);
-            inMovement.Approve(request.ResponsibleBy);
-            inMovement.AddNotes($"Replacement item received for claim {claim.ClaimNumber} from {request.Source}. Responsible: {request.ResponsibleBy}. Ref: {request.ReferenceNumber}. {request.Notes}".Trim());
-            await _stockMovementRepository.AddAsync(inMovement, cancellationToken);
+                    level.AddStock(1);
+                    await _stockLevelRepository.UpdateAsync(level, cancellationToken);
+
+                    var inMovement = StockMovement.Create(
+                        stockLevelId: level.Id,
+                        movementType: "IN",
+                        quantity: 1,
+                        reason: WarrantyReplacementReceivedFromVendorReason,
+                        referenceNumber: claim.ClaimNumber);
+                    inMovement.Approve(request.ResponsibleBy);
+                    inMovement.AddNotes($"Replacement item received for claim {claim.ClaimNumber} from {request.Source}. Responsible: {request.ResponsibleBy}. Ref: {request.ReferenceNumber}. {request.Notes}".Trim());
+                    await _stockMovementRepository.AddAsync(inMovement, cancellationToken);
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return Ok(new
             {
