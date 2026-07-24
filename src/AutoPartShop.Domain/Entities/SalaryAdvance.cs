@@ -13,8 +13,10 @@ public class SalaryAdvance : AuditableEntity
     public string PaymentMethod { get; private set; } = "CASH";
     public string Notes { get; private set; } = string.Empty;
     public string Status { get; private set; } = "OUTSTANDING";  // OUTSTANDING, SETTLED
+    public decimal RecoveredAmount { get; private set; } = 0;    // Recovered so far via payroll (installments)
+    public decimal RemainingAmount => Amount - RecoveredAmount;   // Still owed by the employee
     public Guid? ExpenseId { get; private set; }             // DailyExpense posted when given
-    public Guid? SettledPayrollRunId { get; private set; }   // Run whose payment settled this advance
+    public Guid? SettledPayrollRunId { get; private set; }   // Run whose payment fully settled this advance
     public DateTime? SettledAt { get; private set; }
 
     private SalaryAdvance() { }
@@ -53,7 +55,31 @@ public class SalaryAdvance : AuditableEntity
             throw new InvalidOperationException($"Cannot settle a {Status} advance");
 
         Status = "SETTLED";
+        RecoveredAmount = Amount;
         SettledPayrollRunId = payrollRunId;
         SettledAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Recovers part (or all) of the outstanding balance from a payroll run. The advance is only
+    /// marked SETTLED once fully recovered; otherwise it stays OUTSTANDING for the next run
+    /// (installment recovery). The amount is capped at what is still owed.
+    /// </summary>
+    public void Recover(decimal amount, Guid payrollRunId)
+    {
+        if (Status != "OUTSTANDING")
+            throw new InvalidOperationException($"Cannot recover a {Status} advance");
+        if (amount <= 0)
+            throw new ArgumentException("Recovery amount must be greater than zero", nameof(amount));
+
+        var take = Math.Min(amount, RemainingAmount);
+        RecoveredAmount += take;
+
+        if (RemainingAmount <= 0)
+        {
+            Status = "SETTLED";
+            SettledPayrollRunId = payrollRunId;
+            SettledAt = DateTime.UtcNow;
+        }
     }
 }

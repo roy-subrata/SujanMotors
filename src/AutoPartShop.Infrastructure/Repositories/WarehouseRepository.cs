@@ -30,10 +30,25 @@ public class WarehouseRepository(AutoPartDbContext dbContext) : IWarehouseReposi
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var warehouse = await dbContext.Warehouses.FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
+        var warehouse = await dbContext.Warehouses.FirstOrDefaultAsync(w => w.Id == id && !w.Isdeleted, cancellationToken);
         if (warehouse is null) return;
 
-        dbContext.Warehouses.Remove(warehouse);
+        // In-use guards — refuse to delete a warehouse still referenced by stock or transactions.
+        // (A hard delete would either fail the Restrict FKs with a raw 500 or orphan the data.)
+        if (await dbContext.StockLevels.AnyAsync(sl => sl.WarehouseId == id && !sl.Isdeleted, cancellationToken))
+            throw new InvalidOperationException("Cannot delete a warehouse that has stock levels. Transfer or remove its stock first.");
+
+        if (await dbContext.StockLots.AnyAsync(l => l.WarehouseId == id && !l.Isdeleted, cancellationToken))
+            throw new InvalidOperationException("Cannot delete a warehouse that has stock lots. Transfer or remove its stock first.");
+
+        if (await dbContext.SalesOrders.AnyAsync(so => so.WarehouseId == id && !so.Isdeleted, cancellationToken))
+            throw new InvalidOperationException("Cannot delete a warehouse referenced by sales orders.");
+
+        if (await dbContext.GoodsReceipts.AnyAsync(g => g.WarehouseId == id && !g.Isdeleted, cancellationToken))
+            throw new InvalidOperationException("Cannot delete a warehouse referenced by goods receipts.");
+
+        // Soft delete, consistent with the rest of the model (GetById/GetAll filter !Isdeleted).
+        warehouse.Isdeleted = true;
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 

@@ -8,6 +8,8 @@ public class UpdateGRNPricingRequest
 public class UpdateGRNLinePricingRequest
 {
     public Guid LineId { get; set; }
+    /// <summary>Per-received-unit cost. When provided (> 0), corrects the line's cost before accept.</summary>
+    public decimal? UnitCost { get; set; }
     public bool? HasWarranty { get; set; }
     public int? WarrantyPeriodMonths { get; set; }
     public string? WarrantyType { get; set; }

@@ -1025,7 +1025,10 @@ public class PurchaseOrderController : ControllerBase
             if (poForVerify is null || poForVerify.Status is not ("CONFIRMED" or "PARTIAL"))
                 return BadRequest(new { message = $"Cannot verify a goods receipt for a {poForVerify?.Status ?? "missing"} purchase order." });
 
-            grn.Verify(verifiedBy);
+            // Record the actual authenticated user as the verifier — never a client-supplied name,
+            // so the "who verified this receipt" audit trail can't be spoofed.
+            var verifier = _currentUserService.GetCurrentUsername();
+            grn.Verify(string.IsNullOrWhiteSpace(verifier) ? verifiedBy : verifier);
             grn.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _goodsReceiptRepository.UpdateAsync(grn, cancellationToken);
 
@@ -1074,6 +1077,13 @@ public class PurchaseOrderController : ControllerBase
                     if (poForAccept.Status is not ("CONFIRMED" or "PARTIAL"))
                         throw new InvalidOperationException($"Cannot accept a goods receipt for a {poForAccept.Status} purchase order.");
 
+                    // Cost is lot-driven and permanent once posted. Refuse to create zero-cost stock —
+                    // require a unit cost on every line first (set it via Update Pricing before accepting).
+                    var uncostedLine = grn.LineItems.FirstOrDefault(l => l.UnitCost <= 0);
+                    if (uncostedLine is not null)
+                        throw new InvalidOperationException(
+                            $"Cannot accept: a unit cost is required for every line before posting to stock. Set the cost for part {uncostedLine.PartId} (Update Pricing) first.");
+
                     // Stock levels (Good->Available, Damaged->Damaged, Wrong->Quarantine) + PO receipt
                     // status; when createReturn is true, a draft Purchase Return is raised for damaged/wrong lines.
                     await _stockManagementService.ProcessGoodsReceiptAsync(grn, createReturn, cancellationToken);
@@ -1119,14 +1129,43 @@ public class PurchaseOrderController : ControllerBase
             foreach (var linePricing in request.Lines)
             {
                 var line = grn.LineItems.FirstOrDefault(l => l.Id == linePricing.LineId);
-                if (line is not null)
+                if (line is null)
+                    continue;
+
+                line.UpdateWarranty(
+                    linePricing.HasWarranty,
+                    linePricing.WarrantyPeriodMonths,
+                    linePricing.WarrantyType,
+                    linePricing.WarrantyTerms
+                );
+
+                // Correct the unit cost (e.g. once the supplier invoice arrives). Stock is tracked in
+                // base units, so convert the received-unit cost to a per-base-unit cost the same way
+                // CreateGRN does before storing it.
+                if (linePricing.UnitCost.HasValue)
                 {
-                    line.UpdateWarranty(
-                        linePricing.HasWarranty,
-                        linePricing.WarrantyPeriodMonths,
-                        linePricing.WarrantyType,
-                        linePricing.WarrantyTerms
-                    );
+                    var part = await _productRepository.GetByIdAsync(line.PartId, cancellationToken);
+                    decimal unitCostInBaseUnit = linePricing.UnitCost.Value;
+
+                    if (part?.BaseUnitId is Guid baseUnitId && line.UnitId is Guid lineUnitId && lineUnitId != baseUnitId)
+                    {
+                        decimal conversionFactor;
+                        try
+                        {
+                            conversionFactor = await _unitConversionService.GetConversionFactorAsync(lineUnitId, baseUnitId);
+                        }
+                        catch (Exception ex)
+                        {
+                            return BadRequest(new { message = $"Unit conversion not configured for part '{part?.Name}': {ex.Message}" });
+                        }
+
+                        if (conversionFactor <= 0)
+                            return BadRequest(new { message = $"Unit conversion not configured for part '{part?.Name}'." });
+
+                        unitCostInBaseUnit = linePricing.UnitCost.Value / conversionFactor;
+                    }
+
+                    line.UpdateCost(linePricing.UnitCost.Value, unitCostInBaseUnit);
                 }
             }
 

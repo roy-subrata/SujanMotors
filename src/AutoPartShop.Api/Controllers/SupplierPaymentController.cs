@@ -9,6 +9,7 @@ using AutoPartShop.Application.SupplierPayment.Dtos;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -304,27 +305,32 @@ public class SupplierPaymentController : ControllerBase
                 if (request.PaymentType == PaymentType.REGULAR)
                 {
                     // Wrap PO update + payment insert in a single transaction so a partial failure
-                    // cannot leave one written without the other.
-                    await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-                    try
+                    // cannot leave one written without the other. The transaction must run under the
+                    // EF execution strategy (EnableRetryOnFailure is on) or BeginTransaction throws.
+                    var strategy = _dbContext.Database.CreateExecutionStrategy();
+                    await strategy.ExecuteAsync(async () =>
                     {
-                        var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId!.Value, cancellationToken);
-                        if (purchaseOrder != null)
+                        await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                        try
                         {
-                            purchaseOrder.RecordPayment(payment.Amount);
-                            purchaseOrder.ModifiedBy = currentUser;
-                            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
-                            _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
-                        }
+                            var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId!.Value, cancellationToken);
+                            if (purchaseOrder != null)
+                            {
+                                purchaseOrder.RecordPayment(payment.Amount);
+                                purchaseOrder.ModifiedBy = currentUser;
+                                await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                                _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                            }
 
-                        await _repository.AddAsync(payment, cancellationToken);
-                        await tx.CommitAsync(cancellationToken);
-                    }
-                    catch
-                    {
-                        await tx.RollbackAsync(cancellationToken);
-                        throw;
-                    }
+                            await _repository.AddAsync(payment, cancellationToken);
+                            await tx.CommitAsync(cancellationToken);
+                        }
+                        catch
+                        {
+                            await tx.RollbackAsync(cancellationToken);
+                            throw;
+                        }
+                    });
 
                     _logger.LogInformation("Payment {TxnNumber} completed for supplier. Amount: {Amount}. Balance calculated from transactions.",
                         payment.TransactionNumber, payment.Amount);
@@ -364,35 +370,39 @@ public class SupplierPaymentController : ControllerBase
             payment.MarkAsProcessed(currentUser);
             payment.ModifiedBy = currentUser;
 
-            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                await _repository.UpdateAsync(payment, cancellationToken);
-
-                if (payment.PaymentType == PaymentType.REGULAR && payment.PurchaseOrderId.HasValue)
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
-                    if (purchaseOrder != null)
+                    await _repository.UpdateAsync(payment, cancellationToken);
+
+                    if (payment.PaymentType == PaymentType.REGULAR && payment.PurchaseOrderId.HasValue)
                     {
-                        purchaseOrder.RecordPayment(payment.Amount);
-                        purchaseOrder.ModifiedBy = currentUser;
-                        await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
-                        _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                        var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
+                        if (purchaseOrder != null)
+                        {
+                            purchaseOrder.RecordPayment(payment.Amount);
+                            purchaseOrder.ModifiedBy = currentUser;
+                            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                            _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                        }
                     }
-                }
-                else
-                {
-                    _logger.LogInformation("ADVANCE payment {TransactionNumber} processed. Balance calculated from transactions.",
-                        payment.TransactionNumber);
-                }
+                    else
+                    {
+                        _logger.LogInformation("ADVANCE payment {TransactionNumber} processed. Balance calculated from transactions.",
+                            payment.TransactionNumber);
+                    }
 
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await tx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             _logger.LogInformation("Payment {TxnNumber} marked as processed. Amount: {Amount}.", payment.TransactionNumber, payment.Amount);
             return Ok(MapResponse(payment));
@@ -469,31 +479,35 @@ public class SupplierPaymentController : ControllerBase
             payment.ConfirmReceipt(currentUser);
             payment.ModifiedBy = currentUser;
 
-            await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                await _repository.UpdateAsync(payment, cancellationToken);
-
-                // Only apply RecordPayment once — skip if mark-processed already did it
-                if (payment.PaymentType == PaymentType.REGULAR && !alreadyProcessed && payment.PurchaseOrderId.HasValue)
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
-                    if (purchaseOrder != null)
-                    {
-                        purchaseOrder.RecordPayment(payment.Amount);
-                        purchaseOrder.ModifiedBy = currentUser;
-                        await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
-                        _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
-                    }
-                }
+                    await _repository.UpdateAsync(payment, cancellationToken);
 
-                await tx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await tx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                    // Only apply RecordPayment once — skip if mark-processed already did it
+                    if (payment.PaymentType == PaymentType.REGULAR && !alreadyProcessed && payment.PurchaseOrderId.HasValue)
+                    {
+                        var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
+                        if (purchaseOrder != null)
+                        {
+                            purchaseOrder.RecordPayment(payment.Amount);
+                            purchaseOrder.ModifiedBy = currentUser;
+                            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                            _logger.LogInformation("Updated purchase order {PONumber} paid amount by {Amount}", purchaseOrder.PONumber, payment.Amount);
+                        }
+                    }
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             _logger.LogInformation("Payment {TxnNumber} confirmed. Amount: {Amount}.", payment.TransactionNumber, payment.Amount);
             return Ok(MapResponse(payment));
@@ -635,34 +649,38 @@ public class SupplierPaymentController : ControllerBase
 
             var currentUser = _currentUserService.GetCurrentUsername();
 
-            await using var regularTx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                // If payment was ADVANCE and COMPLETED, apply the remaining amount to PO first
-                if (payment.Status == "COMPLETED" && payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
+                await using var regularTx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
-                    if (purchaseOrder != null)
+                    // If payment was ADVANCE and COMPLETED, apply the remaining amount to PO first
+                    if (payment.Status == "COMPLETED" && payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
                     {
-                        purchaseOrder.RecordPayment(payment.RemainingAmount);
-                        purchaseOrder.ModifiedBy = currentUser;
-                        await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
-                        _logger.LogInformation("Applied remaining advance {Amount} to purchase order {PONumber} (converting to regular)",
-                            payment.RemainingAmount, purchaseOrder.PONumber);
+                        var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
+                        if (purchaseOrder != null)
+                        {
+                            purchaseOrder.RecordPayment(payment.RemainingAmount);
+                            purchaseOrder.ModifiedBy = currentUser;
+                            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                            _logger.LogInformation("Applied remaining advance {Amount} to purchase order {PONumber} (converting to regular)",
+                                payment.RemainingAmount, purchaseOrder.PONumber);
+                        }
                     }
+
+                    payment.MarkAsRegular();
+                    payment.ModifiedBy = currentUser;
+                    await _repository.UpdateAsync(payment, cancellationToken);
+
+                    await regularTx.CommitAsync(cancellationToken);
                 }
-
-                payment.MarkAsRegular();
-                payment.ModifiedBy = currentUser;
-                await _repository.UpdateAsync(payment, cancellationToken);
-
-                await regularTx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await regularTx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                catch
+                {
+                    await regularTx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             _logger.LogInformation("Converted payment {TransactionNumber} from ADVANCE to REGULAR. Amount: {Amount}",
                 payment.TransactionNumber, payment.Amount);
@@ -798,19 +816,23 @@ public class SupplierPaymentController : ControllerBase
             purchaseOrder.ModifiedBy = currentUser;
 
             // All three writes must succeed or none should: if any one fails the ledger is inconsistent.
-            await using var advanceTx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                await _repository.AddAsync(newPayment, cancellationToken);
-                await _repository.UpdateAsync(advancePayment, cancellationToken);
-                await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
-                await advanceTx.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await advanceTx.RollbackAsync(cancellationToken);
-                throw;
-            }
+                await using var advanceTx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    await _repository.AddAsync(newPayment, cancellationToken);
+                    await _repository.UpdateAsync(advancePayment, cancellationToken);
+                    await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                    await advanceTx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await advanceTx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             _logger.LogInformation("Advance credit {Amount} applied to PO {PONumber}. Balance calculated from transactions.",
                 request.Amount, purchaseOrder.PONumber);

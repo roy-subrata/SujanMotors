@@ -164,7 +164,15 @@ public class BrandsController : ControllerBase
         if (brand is null)
             return NotFound(ApiError.NotFound($"Brand '{id}' not found", Request.Path));
 
-        await _brandRepository.DeleteAsync(id, cancellationToken);
+        try
+        {
+            await _brandRepository.DeleteAsync(id, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiError.BusinessRule(ex.Message, Request.Path));
+        }
+
         return NoContent();
     }
 

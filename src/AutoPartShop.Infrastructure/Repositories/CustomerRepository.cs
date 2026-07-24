@@ -59,7 +59,16 @@ public class CustomerRepository : ICustomerRepository
 
         if (entity != null)
         {
-            _dbContext.Customers.Remove(entity);
+            // In-use guards — a customer's order/payment history must be retained, and a hard delete
+            // would either fail the Restrict FKs with a raw 500 or orphan the records.
+            if (await _dbContext.SalesOrders.AnyAsync(so => so.CustomerId == id && !so.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a customer that has sales orders. The order history must be retained.");
+
+            if (await _dbContext.CustomerPayments.AnyAsync(p => p.CustomerId == id && !p.Isdeleted, cancellationToken))
+                throw new InvalidOperationException("Cannot delete a customer that has payment records.");
+
+            // Soft delete, consistent with the rest of the model.
+            entity.Isdeleted = true;
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }

@@ -354,6 +354,11 @@ public class UnitsController : ControllerBase
             await _unitRepository.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
+        catch (InvalidOperationException ex)
+        {
+            // Unit is still referenced by products/stock/conversions — surface a clean 409.
+            return Conflict(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting unit: {UnitId}", id);

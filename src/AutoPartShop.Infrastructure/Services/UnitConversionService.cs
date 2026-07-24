@@ -67,7 +67,12 @@ public class UnitConversionService : IUnitConversionService
             uc.IsActive);
 
         if (conversion != null)
+        {
+            if (conversion.ConversionFactor <= 0)
+                throw new InvalidOperationException(
+                    $"Conversion factor for unit conversion '{conversion.Id}' must be greater than zero.");
             return conversion.ConversionFactor;
+        }
 
         // Try reverse conversion
         var reverseConversion = conversions.FirstOrDefault(uc =>
@@ -76,7 +81,12 @@ public class UnitConversionService : IUnitConversionService
             uc.IsActive);
 
         if (reverseConversion != null)
+        {
+            if (reverseConversion.ConversionFactor <= 0)
+                throw new InvalidOperationException(
+                    $"Conversion factor for unit conversion '{reverseConversion.Id}' must be greater than zero.");
             return 1m / reverseConversion.ConversionFactor;
+        }
 
         // If no conversion found, throw exception
         var fromUnit = await _unitRepository.GetByIdAsync(fromUnitId);

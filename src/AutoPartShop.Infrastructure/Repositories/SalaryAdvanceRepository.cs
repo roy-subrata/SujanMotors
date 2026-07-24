@@ -32,7 +32,7 @@ public class SalaryAdvanceRepository : ISalaryAdvanceRepository
         return await _dbContext.SalaryAdvances
             .Where(x => x.Status == "OUTSTANDING" && !x.Isdeleted)
             .GroupBy(x => x.EmployeeId)
-            .Select(g => new { g.Key, Total = g.Sum(x => x.Amount) })
+            .Select(g => new { g.Key, Total = g.Sum(x => x.Amount - x.RecoveredAmount) })
             .ToDictionaryAsync(x => x.Key, x => x.Total, cancellationToken);
     }
 
