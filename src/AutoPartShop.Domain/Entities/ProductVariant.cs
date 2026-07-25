@@ -1,3 +1,5 @@
+using AutoPartsShop.Domain.Entities;
+
 namespace AutoPartShop.Domain.Entities;
 
 public class ProductVariant : AuditableEntity
@@ -5,6 +7,8 @@ public class ProductVariant : AuditableEntity
     public Guid PartId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string Code { get; private set; } = string.Empty;
+    public PartNumber? PartNumber { get; private set; }
+    public string? OemNumber { get; private set; }
     public string? SKU { get; private set; }
     public string? Barcode { get; private set; }
 
@@ -38,7 +42,9 @@ public class ProductVariant : AuditableEntity
         string? barcode = null,
         string currency = "BDT",
         bool isActive = true,
-        decimal? weightKg = null)
+        decimal? weightKg = null,
+        PartNumber? partNumber = null,
+        string? oemNumber = null)
     {
         if (partId == Guid.Empty)
             throw new ArgumentException("PartId cannot be empty", nameof(partId));
@@ -56,6 +62,8 @@ public class ProductVariant : AuditableEntity
             PartId = partId,
             Name = name.Trim(),
             Code = code.Trim().ToUpperInvariant(),
+            PartNumber = partNumber,
+            OemNumber = oemNumber?.Trim(),
             SKU = sku?.Trim().ToUpperInvariant(),
             Barcode = barcode?.Trim(),
             PricingMode = "OVERRIDE",
@@ -76,7 +84,9 @@ public class ProductVariant : AuditableEntity
         string? barcode = null,
         string currency = "BDT",
         bool isActive = true,
-        decimal? weightKg = null)
+        decimal? weightKg = null,
+        PartNumber? partNumber = null,
+        string? oemNumber = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -89,6 +99,8 @@ public class ProductVariant : AuditableEntity
 
         Name = name.Trim();
         Code = code.Trim().ToUpperInvariant();
+        PartNumber = partNumber;
+        OemNumber = oemNumber?.Trim();
         SKU = sku?.Trim().ToUpperInvariant();
         Barcode = barcode?.Trim();
         CostPrice = costPrice;

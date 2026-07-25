@@ -148,6 +148,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
     this.variantForm.patchValue({
       name: variant.name,
       code: variant.code,
+      partNumber: variant.partNumber || '',
+      oemNumber: variant.oemNumber || '',
       sku: variant.sku || '',
       barcode: variant.barcode || '',
       sellingPrice: variant.sellingPrice ?? null,
@@ -214,6 +216,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
     const req: CreateVariantRequest = {
       name: v.name.trim(),
       code: v.code.trim(),
+      partNumber: v.partNumber?.trim() || null,
+      oemNumber: v.oemNumber?.trim() || null,
       sku: v.sku?.trim() || null,
       barcode: v.barcode?.trim() || null,
       costPrice: v.costPrice ?? 0,
@@ -277,6 +281,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
     this.variantForm = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(200)]],
       code: ['', [Validators.required, Validators.maxLength(50)]],
+      partNumber: [''],
+      oemNumber: [''],
       sku: [''],
       barcode: [''],
       costPrice: [null],

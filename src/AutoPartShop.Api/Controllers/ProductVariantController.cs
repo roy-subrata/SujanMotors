@@ -3,6 +3,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
+using AutoPartsShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -83,12 +84,15 @@ public class ProductVariantController : ControllerBase
         if (conflict is not null)
             return Conflict(conflict);
 
+        var partNumber = string.IsNullOrWhiteSpace(req.PartNumber) ? null : PartNumber.Create(req.PartNumber);
+
         var variant = ProductVariant.Create(
             productId, req.Name, req.Code,
             req.CostPrice, req.SellingPrice,
             req.SKU?.Trim(), req.Barcode?.Trim(),
             req.Currency ?? "BDT", req.IsActive,
-            req.WeightKg);
+            req.WeightKg,
+            partNumber, req.OemNumber?.Trim());
 
         var user = _currentUserService.GetCurrentUsername();
         variant.CreatedBy = user;
@@ -134,11 +138,14 @@ public class ProductVariantController : ControllerBase
         var oldSellingPrice = variant.SellingPrice;
         var user = _currentUserService.GetCurrentUsername();
 
+        var partNumber = string.IsNullOrWhiteSpace(req.PartNumber) ? null : PartNumber.Create(req.PartNumber);
+
         variant.Update(req.Name, req.Code,
             req.CostPrice, req.SellingPrice,
             req.SKU?.Trim(), req.Barcode?.Trim(),
             req.Currency ?? "BDT", req.IsActive,
-            req.WeightKg);
+            req.WeightKg,
+            partNumber, req.OemNumber?.Trim());
         variant.ModifiedBy = user;
 
         _db.VariantAttributeValues.RemoveRange(variant.Attributes);
@@ -177,14 +184,15 @@ public class ProductVariantController : ControllerBase
     // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
-    /// Validates that the variant's Code, SKU and Barcode do not collide with another
-    /// variant or a base product. Code is unique per product; SKU and Barcode are unique
+    /// Validates that the variant's Code, PartNumber, SKU and Barcode do not collide with another
+    /// variant or a base product. Code is unique per product; PartNumber, SKU and Barcode are unique
     /// across both the ProductVariants and Parts tables (so a variant can never shadow a
-    /// product on code/barcode lookup). Returns an ApiError to surface, or null when clear.
+    /// product on code/part-number/sku/barcode lookup). Returns an ApiError to surface, or null when clear.
     /// </summary>
     private async Task<ApiError?> CheckUniquenessAsync(Guid productId, CreateVariantRequest req, Guid? excludeVariantId, CancellationToken ct)
     {
         var normalizedCode = req.Code.Trim().ToUpperInvariant();
+        var normalizedPartNumber = string.IsNullOrWhiteSpace(req.PartNumber) ? null : req.PartNumber.Trim();
         var normalizedSku = string.IsNullOrWhiteSpace(req.SKU) ? null : req.SKU.Trim().ToUpperInvariant();
         var normalizedBarcode = string.IsNullOrWhiteSpace(req.Barcode) ? null : req.Barcode.Trim();
 
@@ -192,6 +200,15 @@ public class ProductVariantController : ControllerBase
         if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.PartId == productId
                 && v.Code == normalizedCode && v.Id != excludeVariantId, ct))
             return ApiError.Conflict($"Variant code '{req.Code}' already exists for this product", Request.Path);
+
+        // PartNumber: unique across variants and base products
+        if (normalizedPartNumber is not null)
+        {
+            if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.PartNumber!.Value == normalizedPartNumber && v.Id != excludeVariantId, ct))
+                return ApiError.Conflict($"Part Number '{req.PartNumber}' is already used by another variant", Request.Path);
+            if (await _db.Parts.AnyAsync(p => !p.Isdeleted && p.PartNumber.Value == normalizedPartNumber, ct))
+                return ApiError.Conflict($"Part Number '{req.PartNumber}' is already used by a product", Request.Path);
+        }
 
         // SKU: unique across variants and base products
         if (normalizedSku is not null)
@@ -282,6 +299,8 @@ public class ProductVariantController : ControllerBase
         partId = v.PartId,
         v.Name,
         v.Code,
+        partNumber = v.PartNumber?.Value,
+        v.OemNumber,
         v.SKU,
         v.Barcode,
         v.PricingMode,
@@ -312,6 +331,8 @@ public class CreateVariantRequest
 {
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
+    public string? PartNumber { get; set; }
+    public string? OemNumber { get; set; }
     public string? SKU { get; set; }
     public string? Barcode { get; set; }
     public decimal CostPrice { get; set; }

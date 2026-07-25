@@ -295,6 +295,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 && (query.CategoryId == null || v.Part.CategoryId == query.CategoryId)
                 && (EF.Functions.Like(v.Name, $"%{term}%")
                     || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
+                    || (v.PartNumber != null && EF.Functions.Like(v.PartNumber.Value, $"%{term}%"))
+                    || (v.OemNumber != null && EF.Functions.Like(v.OemNumber, $"%{term}%"))
                     || EF.Functions.Like(v.Part.Name, $"%{term}%")
                     || EF.Functions.Like(v.Part.SKU, $"%{term}%")))
             .Select(v => new ProductResponse
@@ -304,9 +306,9 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 DisplayName = v.Name.StartsWith(v.Part.Name) ? v.Name : v.Part.Name + " - " + v.Name,
                 Description = v.Part.Description,
                 RichDescription = v.Part.RichDescription,
-                PartNumber = v.Part.PartNumber.Value,
+                PartNumber = v.PartNumber != null ? v.PartNumber.Value : v.Part.PartNumber.Value,
                 SKU = v.Part.SKU,
-                OemNumber = v.Part.OemNumber,
+                OemNumber = v.OemNumber ?? v.Part.OemNumber,
                 LocalName = v.Part.LocalName,
                 CategoryId = v.Part.CategoryId,
                 CategoryName = v.Part.Category != null ? v.Part.Category.Name : string.Empty,
@@ -504,6 +506,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 && (query.CategoryId == null || v.Part.CategoryId == query.CategoryId)
                 && (EF.Functions.Like(v.Name, $"%{term}%")
                     || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
+                    || (v.PartNumber != null && EF.Functions.Like(v.PartNumber.Value, $"%{term}%"))
+                    || (v.OemNumber != null && EF.Functions.Like(v.OemNumber, $"%{term}%"))
                     || EF.Functions.Like(v.Part.Name, $"%{term}%")
                     || EF.Functions.Like(v.Part.SKU, $"%{term}%")))
             .Select(v => new ProductPublicResponse
@@ -513,9 +517,9 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 DisplayName = v.Name.StartsWith(v.Part.Name) ? v.Name : v.Part.Name + " - " + v.Name,
                 Description = v.Part.Description,
                 RichDescription = v.Part.RichDescription,
-                PartNumber = v.Part.PartNumber.Value,
+                PartNumber = v.PartNumber != null ? v.PartNumber.Value : v.Part.PartNumber.Value,
                 SKU = v.Part.SKU,
-                OemNumber = v.Part.OemNumber,
+                OemNumber = v.OemNumber ?? v.Part.OemNumber,
                 LocalName = v.Part.LocalName,
                 CategoryId = v.Part.CategoryId,
                 CategoryName = v.Part.Category != null ? v.Part.Category.Name : string.Empty,

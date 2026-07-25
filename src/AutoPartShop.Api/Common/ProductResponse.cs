@@ -87,6 +87,8 @@ public sealed class ProductVariantSummary
     public Guid? Id { get; init; }          // null means this is a synthesized default variant
     public string Name { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
+    public string? PartNumber { get; init; }
+    public string? OemNumber { get; init; }
     public string? SKU { get; init; }
     public string? Barcode { get; init; }
     public bool IsDefault { get; init; }    // true = synthesized from base product, no DB variant record
