@@ -41,6 +41,7 @@
     <ng-template pTemplate="header">
       <tr>
         <th>Variant</th>
+        <th>Part / OEM</th>
         <th>SKU / Barcode</th>
         <th>Price</th>
         <th>Attributes</th>
@@ -54,6 +55,11 @@
         <td>
           <div class="font-semibold">{{ v.name }}</div>
           <div class="text-xs text-secondary">{{ v.code }}</div>
+        </td>
+        <td>
+          <div *ngIf="v.partNumber" class="text-sm"><code>{{ v.partNumber }}</code></div>
+          <div *ngIf="v.oemNumber" class="text-xs text-secondary">OEM: {{ v.oemNumber }}</div>
+          <span *ngIf="!v.partNumber && !v.oemNumber" class="text-secondary">—</span>
         </td>
         <td>
           <div *ngIf="v.sku" class="text-sm"><code>{{ v.sku }}</code></div>
@@ -89,7 +95,7 @@
 
     <ng-template pTemplate="emptymessage">
       <tr>
-        <td [attr.colspan]="isViewMode ? 5 : 6" class="text-center py-4 text-secondary">
+        <td [attr.colspan]="isViewMode ? 6 : 7" class="text-center py-4 text-secondary">
           No variants yet.
           <span *ngIf="!isViewMode && partId"> Click <b>Add Variant</b> to create one.</span>
         </td>
@@ -133,6 +139,16 @@
         <div class="vd-field">
           <label>Barcode</label>
           <input pInputText formControlName="barcode" placeholder="UPC / EAN" class="w-full" />
+        </div>
+      </div>
+      <div class="vd-row">
+        <div class="vd-field">
+          <label>Part Number</label>
+          <input pInputText formControlName="partNumber" placeholder="Unique part number" class="w-full" />
+        </div>
+        <div class="vd-field">
+          <label>OEM Number</label>
+          <input pInputText formControlName="oemNumber" placeholder="Original equipment number" class="w-full" />
         </div>
       </div>
       <div class="vd-row">

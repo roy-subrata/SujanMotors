@@ -399,6 +399,8 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
                 VariantId = v.Id,
                 Name = v.Name,
                 Code = v.Code,
+                PartNumber = v.PartNumber?.Value,
+                OemNumber = v.OemNumber,
                 SKU = v.SKU,
                 OriginalPrice = basePrice,
                 SalePrice = salePriceV,
