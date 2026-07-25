@@ -124,6 +124,8 @@ export interface CatalogVariant {
   variantId: string;
   name: string;
   code: string;
+  partNumber?: string | null;
+  oemNumber?: string | null;
   sku?: string | null;
   price: number;           // Effective price (after discount)
   originalPrice?: number | null;

@@ -22,6 +22,8 @@ export interface ProductVariantResponse {
   partId: string;
   name: string;
   code: string;
+  partNumber?: string | null;
+  oemNumber?: string | null;
   sku?: string | null;
   barcode?: string | null;
   costPrice?: number | null;
@@ -43,6 +45,8 @@ export interface VariantAttributeValueRequest {
 export interface CreateVariantRequest {
   name: string;
   code: string;
+  partNumber?: string | null;
+  oemNumber?: string | null;
   sku?: string | null;
   barcode?: string | null;
   costPrice?: number | null;

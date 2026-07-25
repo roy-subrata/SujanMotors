@@ -35,6 +35,8 @@ public class CatalogVariantDto
     public Guid VariantId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
+    public string? PartNumber { get; set; }
+    public string? OemNumber { get; set; }
     public string? SKU { get; set; }
     public decimal Price { get; set; }        // Effective price after discount
     public decimal? OriginalPrice { get; set; }

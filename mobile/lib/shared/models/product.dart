@@ -87,6 +87,8 @@ class ProductVariant {
     this.id,
     required this.name,
     required this.code,
+    this.partNumber,
+    this.oemNumber,
     this.sku,
     this.barcode,
     this.isDefault = false,
@@ -97,6 +99,8 @@ class ProductVariant {
   final String? id; // null when synthesized "Default" variant
   final String name;
   final String code;
+  final String? partNumber;
+  final String? oemNumber;
   final String? sku;
   final String? barcode;
   final bool isDefault;
@@ -107,6 +111,8 @@ class ProductVariant {
         id: asStringOrNull(json['id']),
         name: asString(json['name']),
         code: asString(json['code']),
+        partNumber: asStringOrNull(json['partNumber']),
+        oemNumber: asStringOrNull(json['oemNumber']),
         sku: asStringOrNull(json['sku']),
         barcode: asStringOrNull(json['barcode']),
         isDefault: asBool(json['isDefault']),

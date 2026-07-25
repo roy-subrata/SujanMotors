@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartsShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,6 +18,18 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.Property(x => x.Code)
             .HasMaxLength(50)
             .IsRequired();
+
+        builder.Property(x => x.PartNumber)
+            .HasColumnName("PartNumber")
+            .HasMaxLength(30)
+            .IsRequired(false)
+            .HasConversion(
+                v => v != null ? v.Value : (string?)null,
+                v => string.IsNullOrEmpty(v) ? null : PartNumber.Create(v));
+
+        builder.Property(x => x.OemNumber)
+            .HasMaxLength(100)
+            .IsRequired(false);
 
         builder.Property(x => x.SKU)
             .HasMaxLength(100)
@@ -74,5 +87,10 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.HasIndex(x => x.Barcode)
             .IsUnique()
             .HasFilter("[Barcode] IS NOT NULL AND [Isdeleted] = 0");
+
+        // PartNumber: globally unique among live variants (filtered: ignore NULLs and soft-deleted rows).
+        builder.HasIndex("PartNumber")
+            .IsUnique()
+            .HasFilter("[PartNumber] IS NOT NULL AND [Isdeleted] = 0");
     }
 }
