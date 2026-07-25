@@ -4,15 +4,22 @@ namespace AutoPartShop.Application.DTOs.PartDtos;
 /// A single parsed row from the import spreadsheet. Foreign keys (category, brand, unit)
 /// are referenced by name and resolved server-side. Used as both the parse result of the
 /// validate step and the payload of the commit step (round-tripped through the client).
+///
+/// Category supports hierarchy via ">" separator (e.g., "Brake System > Front Brakes").
+/// Rows with the same Name + PartNumber are grouped as one product. Variant columns
+/// (Variant Name, Variant Code, etc.) create ProductVariant records under that product.
+/// If no variant columns are filled, no DB variant records are created (the API synthesizes
+/// a "Default" variant in responses).
 /// </summary>
 public class ProductImportRow
 {
     /// <summary>1-based row number in the source spreadsheet (header is row 1, first data row is 2).</summary>
     public int RowNumber { get; set; }
 
+    // ── Product-level fields ───────────────────────────────────────────────────
     public string? Name { get; set; }
     public string? PartNumber { get; set; }
-    public string? Category { get; set; }
+    public string? Category { get; set; }  // supports "Parent > Child > GrandChild"
     public string? Brand { get; set; }
     public string? Unit { get; set; }
 
@@ -32,6 +39,18 @@ public class ProductImportRow
     public string? WarrantyType { get; set; }
 
     public decimal? WeightKg { get; set; }
+
+    // ── Variant-level fields (optional) ────────────────────────────────────────
+    public string? VariantName { get; set; }
+    public string? VariantCode { get; set; }
+    public string? VariantPartNumber { get; set; }
+    public string? VariantOemNumber { get; set; }
+    public string? VariantBarcode { get; set; }
+    public decimal? VariantCostPrice { get; set; }
+    public decimal? VariantSellingPrice { get; set; }
+
+    /// <summary>Whether this row carries variant data (has a VariantCode).</summary>
+    public bool HasVariantData => !string.IsNullOrWhiteSpace(VariantCode);
 }
 
 /// <summary>Per-row outcome of validation or commit.</summary>
@@ -69,6 +88,10 @@ public class ProductImportCommitResult
 {
     public int CreatedCount { get; set; }
     public int FailedCount { get; set; }
+    public int CreatedBrandsCount { get; set; }
+    public int CreatedCategoriesCount { get; set; }
+    public int CreatedUnitsCount { get; set; }
+    public int CreatedVariantsCount { get; set; }
 
     /// <summary>Rows that failed during commit (re-validation or persistence errors).</summary>
     public List<ProductImportRowResult> Failures { get; set; } = [];

@@ -9,7 +9,7 @@ export interface ProductImportRow {
     rowNumber: number;
     name?: string | null;
     partNumber?: string | null;
-    category?: string | null;
+    category?: string | null;       // supports "Parent > Child > GrandChild" hierarchy
     brand?: string | null;
     unit?: string | null;
     costPrice?: number | null;
@@ -25,6 +25,13 @@ export interface ProductImportRow {
     warrantyPeriodMonths?: number | null;
     warrantyType?: string | null;
     weightKg?: number | null;
+    variantName?: string | null;
+    variantCode?: string | null;
+    variantPartNumber?: string | null;
+    variantOemNumber?: string | null;
+    variantBarcode?: string | null;
+    variantCostPrice?: number | null;
+    variantSellingPrice?: number | null;
 }
 
 export interface ProductImportRowResult {
@@ -46,6 +53,10 @@ export interface ProductImportValidationResult {
 export interface ProductImportCommitResult {
     createdCount: number;
     failedCount: number;
+    createdBrandsCount: number;
+    createdCategoriesCount: number;
+    createdUnitsCount: number;
+    createdVariantsCount: number;
     failures: ProductImportRowResult[];
 }
 

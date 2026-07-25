@@ -20,7 +20,9 @@
   <div *ngIf="step === 'upload'" class="import-step">
     <ol class="import-instructions">
       <li>Download the template and fill in one part per row.</li>
-      <li><strong>Category</strong>, <strong>Brand</strong>, and <strong>Unit</strong> are matched by name and must already exist.</li>
+      <li><strong>Category</strong> supports hierarchy using <code>&gt;</code> (e.g., <code>Brake System &gt; Front Brakes</code>). Missing categories are created automatically.</li>
+      <li><strong>Brand</strong> and <strong>Unit</strong> are created automatically if they don't already exist.</li>
+      <li>To import <strong>variants</strong>, fill in the Variant columns (Variant Name, Variant Code, etc.) on each row. Rows with the same Name + Part Number become one product with multiple variants.</li>
       <li>SKU is generated automatically &mdash; do not include it.</li>
       <li>Upload the completed file, review the validation report, then confirm the import.</li>
     </ol>
@@ -99,6 +101,10 @@
       <i class="pi" [ngClass]="commitResult.failedCount > 0 ? 'pi-exclamation-circle' : 'pi-check-circle'"></i>
       <div>
         <strong>{{ commitResult.createdCount }} part(s) imported.</strong>
+        <span *ngIf="commitResult.createdVariantsCount"> {{ commitResult.createdVariantsCount }} variant(s) created.</span>
+        <span *ngIf="commitResult.createdBrandsCount"> {{ commitResult.createdBrandsCount }} brand(s) created.</span>
+        <span *ngIf="commitResult.createdCategoriesCount"> {{ commitResult.createdCategoriesCount }} category(ies) created.</span>
+        <span *ngIf="commitResult.createdUnitsCount"> {{ commitResult.createdUnitsCount }} unit(s) created.</span>
         <span *ngIf="commitResult.failedCount > 0"> {{ commitResult.failedCount }} row(s) failed.</span>
       </div>
     </div>
