@@ -10,8 +10,9 @@ namespace AutoPartShop.Api.Controllers;
 /// <summary>
 /// Bulk import of products (parts) from an Excel workbook.
 /// Three-step flow: download a template, validate the filled file (dry-run),
-/// then commit the confirmed rows. Category, Brand, and Unit are referenced by name
-/// and must already exist.
+/// then commit the confirmed rows. Category (supports "Parent > Child" hierarchy),
+/// Brand, and Unit are auto-created when not found. Variants can be imported by
+/// filling the Variant columns on rows sharing the same product Name + Part Number.
 /// </summary>
 [Route("api/v1/products/import")]
 [ApiController]

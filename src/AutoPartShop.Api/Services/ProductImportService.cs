@@ -17,6 +17,7 @@ public sealed class ProductImportService(
     ILogger<ProductImportService> _logger) : IProductImportService
 {
     private const string SheetName = "Products";
+    private const string CategorySeparator = ">";
 
     // Canonical column headers, in template order. A trailing "*" marks a required column.
     private static readonly string[] Headers =
@@ -41,7 +42,14 @@ public sealed class ProductImportService(
         "Weight (kg)",
         "Width (cm)",
         "Height (cm)",
-        "Depth (cm)"
+        "Depth (cm)",
+        "Variant Name",
+        "Variant Code",
+        "Variant Part Number",
+        "Variant OEM Number",
+        "Variant Barcode",
+        "Variant Cost Price",
+        "Variant Selling Price"
     ];
 
     private static readonly string[] ValidProductTypes = ["PHYSICAL", "DIGITAL", "SERVICE"];
@@ -61,16 +69,26 @@ public sealed class ProductImportService(
             cell.Style.Fill.BackgroundColor = XLColor.LightGray;
         }
 
-        // Example row to show the expected format.
-        var example = new[]
+        var example1 = new[]
         {
-            "Front Brake Pad Set", "BP-1001", "Brake System", "Bosch", "Pieces",
+            "Front Brake Pad Set", "BP-1001", "Brake System > Front Brakes", "Bosch", "Pieces",
             "450", "650", "10", "8901234567890", "OEM-77231", "brake,pad,front",
             "Ceramic front brake pad set", "PHYSICAL", "STANDARD",
-            "TRUE", "12", "MANUFACTURER", "1.2", "15", "8", "20"
+            "TRUE", "12", "MANUFACTURER", "1.2", "15", "8", "20",
+            "Standard", "BP-STD", "", "", "", "450", "650"
         };
-        for (var i = 0; i < example.Length; i++)
-            ws.Cell(2, i + 1).Value = example[i];
+        var example2 = new[]
+        {
+            "Front Brake Pad Set", "BP-1001", "Brake System > Front Brakes", "Bosch", "Pieces",
+            "", "", "", "", "", "",
+            "", "", "",
+            "", "", "", "", "", "", "",
+            "Premium", "BP-PRM", "", "", "", "600", "900"
+        };
+        for (var i = 0; i < example1.Length; i++)
+            ws.Cell(2, i + 1).Value = example1[i];
+        for (var i = 0; i < example2.Length; i++)
+            ws.Cell(3, i + 1).Value = example2[i];
 
         ws.Row(1).SetAutoFilter();
         ws.SheetView.FreezeRows(1);
@@ -86,15 +104,18 @@ public sealed class ProductImportService(
     public async Task<ProductImportValidationResult> ValidateAsync(Stream xlsxStream, CancellationToken cancellationToken = default)
     {
         var rows = ParseRows(xlsxStream);
-        var ctx = await BuildLookupsAsync(cancellationToken);
+        var existingPartNumbers = await _db.Parts.AsNoTracking()
+            .Select(p => p.PartNumber.Value)
+            .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, cancellationToken);
 
         var seenPartNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenVariantPartNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new ProductImportValidationResult { TotalRows = rows.Count };
 
         foreach (var (row, parseErrors) in rows)
         {
             var errors = new List<string>(parseErrors);
-            ValidateRow(row, ctx, seenPartNumbers, errors);
+            ValidateRow(row, existingPartNumbers, seenPartNumbers, seenVariantPartNumbers, errors);
 
             var ok = errors.Count == 0;
             result.Rows.Add(new ProductImportRowResult
@@ -117,17 +138,24 @@ public sealed class ProductImportService(
 
     public async Task<ProductImportCommitResult> CommitAsync(IEnumerable<ProductImportRow> rows, CancellationToken cancellationToken = default)
     {
-        var ctx = await BuildLookupsAsync(cancellationToken);
+        var orderedRows = rows.OrderBy(r => r.RowNumber).ToList();
+
+        var existingPartNumbers = await _db.Parts.AsNoTracking()
+            .Select(p => p.PartNumber.Value)
+            .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, cancellationToken);
+
         var seenPartNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenVariantPartNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var user = _currentUserService.GetCurrentUsername();
 
         var result = new ProductImportCommitResult();
-        var toCreate = new List<Product>();
 
-        foreach (var row in rows.OrderBy(r => r.RowNumber))
+        // Pre-validate
+        var validRows = new List<ProductImportRow>();
+        foreach (var row in orderedRows)
         {
             var errors = new List<string>();
-            ValidateRow(row, ctx, seenPartNumbers, errors);
+            ValidateRow(row, existingPartNumbers, seenPartNumbers, seenVariantPartNumbers, errors);
 
             if (errors.Count > 0)
             {
@@ -140,33 +168,127 @@ public sealed class ProductImportService(
                     Errors = errors,
                     Row = row
                 });
-                continue;
             }
-
-            try
+            else
             {
-                var part = await BuildPartAsync(row, ctx, user, cancellationToken);
-                toCreate.Add(part);
-            }
-            catch (Exception ex)
-            {
-                result.Failures.Add(new ProductImportRowResult
-                {
-                    RowNumber = row.RowNumber,
-                    Name = row.Name,
-                    PartNumber = row.PartNumber,
-                    IsValid = false,
-                    Errors = [ex.Message],
-                    Row = row
-                });
+                validRows.Add(row);
             }
         }
 
-        if (toCreate.Count > 0)
+        if (validRows.Count == 0)
         {
-            _db.Parts.AddRange(toCreate);
+            result.FailedCount = result.Failures.Count;
+            return result;
+        }
 
-            foreach (var part in toCreate.Where(p => p.SellingPrice > 0))
+        // ── Resolve reference entities (find-or-create) ──────────────────────
+
+        // Brands
+        var brandNames = validRows
+            .Where(r => !string.IsNullOrWhiteSpace(r.Brand))
+            .Select(r => r.Brand!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var brandMap = await ResolveBrandsAsync(brandNames, user, cancellationToken);
+        result.CreatedBrandsCount = brandMap.Values.Count(b => b.IsNew);
+
+        // Categories — collect all unique full paths, resolve hierarchy
+        var categoryPaths = validRows
+            .Where(r => !string.IsNullOrWhiteSpace(r.Category))
+            .Select(r => r.Category!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var categoryLeafMap = await ResolveCategoryPathsAsync(categoryPaths, user, cancellationToken);
+        result.CreatedCategoriesCount = categoryLeafMap.Values.Count(c => c.IsNew);
+
+        // Units
+        var unitNames = validRows
+            .Where(r => !string.IsNullOrWhiteSpace(r.Unit))
+            .Select(r => r.Unit!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var unitMap = await ResolveUnitsAsync(unitNames, user, cancellationToken);
+        result.CreatedUnitsCount = unitMap.Values.Count(u => u.IsNew);
+
+        // Persist reference entities
+        await _db.SaveChangesAsync(cancellationToken);
+
+        // ── Group rows by product (Name + PartNumber) ────────────────────────
+
+        var productGroups = validRows
+            .GroupBy(r => $"{Key(r.Name ?? "")}|{Key(r.PartNumber ?? "")}")
+            .ToList();
+
+        var toCreateProducts = new List<Product>();
+        var variantsByProduct = new Dictionary<Guid, List<ProductVariant>>();
+
+        foreach (var group in productGroups)
+        {
+            var groupRows = group.ToList();
+            var firstRow = groupRows[0];
+
+            try
+            {
+                var part = BuildPart(firstRow, brandMap, categoryLeafMap, unitMap, user);
+                toCreateProducts.Add(part);
+
+                var variantRows = groupRows.Where(r => r.HasVariantData).ToList();
+                if (variantRows.Count > 0)
+                {
+                    var variants = new List<ProductVariant>();
+                    foreach (var vr in variantRows)
+                        variants.Add(BuildVariant(part, vr, user));
+                    variantsByProduct[part.Id] = variants;
+                }
+            }
+            catch (Exception ex)
+            {
+                foreach (var r in groupRows)
+                {
+                    result.Failures.Add(new ProductImportRowResult
+                    {
+                        RowNumber = r.RowNumber,
+                        Name = r.Name,
+                        PartNumber = r.PartNumber,
+                        IsValid = false,
+                        Errors = [ex.Message],
+                        Row = r
+                    });
+                }
+            }
+        }
+
+        if (toCreateProducts.Count > 0)
+        {
+            _db.Parts.AddRange(toCreateProducts);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            var allVariants = new List<ProductVariant>();
+            foreach (var (_, variants) in variantsByProduct)
+            {
+                foreach (var v in variants)
+                {
+                    _db.ProductVariants.Add(v);
+                    allVariants.Add(v);
+                }
+            }
+
+            if (allVariants.Count > 0)
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+
+                foreach (var v in allVariants.Where(v => v.SellingPrice > 0))
+                {
+                    var priceHistory = ProductVariantPriceHistory.Create(
+                        v.PartId, v.SellingPrice, DateTime.UtcNow, v.Id,
+                        v.Currency, "INITIAL_PRICE");
+                    priceHistory.CreatedBy = user;
+                    priceHistory.ModifiedBy = user;
+                    _db.ProductVariantPriceHistories.Add(priceHistory);
+                }
+            }
+
+            foreach (var part in toCreateProducts.Where(p => p.SellingPrice > 0 && !variantsByProduct.ContainsKey(p.Id)))
             {
                 var priceHistory = ProductVariantPriceHistory.Create(
                     part.Id, part.SellingPrice, DateTime.UtcNow, null,
@@ -179,28 +301,212 @@ public sealed class ProductImportService(
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        result.CreatedCount = toCreate.Count;
+        result.CreatedCount = toCreateProducts.Count;
+        result.CreatedVariantsCount = variantsByProduct.Values.Sum(v => v.Count);
         result.FailedCount = result.Failures.Count;
 
-        _logger.LogInformation("Product import committed: {Created} created, {Failed} failed by {User}",
-            result.CreatedCount, result.FailedCount, user);
+        _logger.LogInformation(
+            "Product import committed: {Created} parts, {Variants} variants, {Brands} brands, {Categories} categories, {Units} units by {User}",
+            result.CreatedCount, result.CreatedVariantsCount, result.CreatedBrandsCount, result.CreatedCategoriesCount, result.CreatedUnitsCount, user);
 
         return result;
     }
 
-    private async Task<Product> BuildPartAsync(ProductImportRow row, LookupContext ctx, string user, CancellationToken ct)
-    {
-        var category = ctx.Categories[Key(row.Category!)];
-        Guid? brandId = !string.IsNullOrWhiteSpace(row.Brand) ? ctx.Brands[Key(row.Brand)].Id : null;
-        Guid? unitId = !string.IsNullOrWhiteSpace(row.Unit) ? ctx.Units[Key(row.Unit)].Id : null;
+    // ── Reference entity resolution ────────────────────────────────────────────
 
-        var sku = await _codeGenerateService.GenerateAsync("SKU", ct);
+    private async Task<Dictionary<string, RefEntity<Brand>>> ResolveBrandsAsync(
+        List<string> names, string user, CancellationToken ct)
+    {
+        var existing = await _db.Brands.AsNoTracking()
+            .ToDictionaryAsync(b => Key(b.Name), b => b, StringComparer.OrdinalIgnoreCase, ct);
+
+        var result = new Dictionary<string, RefEntity<Brand>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var name in names)
+        {
+            var key = Key(name);
+            if (existing.TryGetValue(key, out var found))
+            {
+                result[key] = new RefEntity<Brand>(found, isNew: false);
+            }
+            else
+            {
+                var brand = Brand.Create(name);
+                brand.CreatedBy = user;
+                brand.ModifiedBy = user;
+                _db.Brands.Add(brand);
+                existing[key] = brand;
+                result[key] = new RefEntity<Brand>(brand, isNew: true);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Resolves full category paths like "Brake System > Front Brakes" into entities,
+    /// creating any missing levels in the hierarchy. Returns a map keyed by the full
+    /// normalized path pointing to the leaf (deepest) category.
+    /// </summary>
+    private async Task<Dictionary<string, RefEntity<Category>>> ResolveCategoryPathsAsync(
+        List<string> paths, string user, CancellationToken ct)
+    {
+        // Load ALL categories once so we can match by name at any depth
+        var allCategories = await _db.Categories.AsNoTracking().ToListAsync(ct);
+        var catByName = allCategories.ToDictionary(c => c.Id, c => c);
+        var nameToEntities = allCategories
+            .GroupBy(c => Key(c.Name))
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        var result = new Dictionary<string, RefEntity<Category>>(StringComparer.OrdinalIgnoreCase);
+        var newlyCreated = new List<Category>();
+
+        foreach (var path in paths)
+        {
+            var segments = path.Split(CategorySeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (segments.Length == 0) continue;
+
+            Guid? parentId = null;
+            var parentDepth = -1;
+            Category? leaf = null;
+
+            for (var i = 0; i < segments.Length; i++)
+            {
+                var segKey = Key(segments[i]);
+                var isLast = i == segments.Length - 1;
+
+                // Try to find existing category at this level under the current parent
+                Category? found = null;
+                if (nameToEntities.TryGetValue(segKey, out var candidates))
+                {
+                    // For root level: match categories with no parent
+                    // For nested levels: match categories whose parent matches
+                    if (parentId is null)
+                    {
+                        found = candidates.FirstOrDefault(c => c.ParentCategoryId is null);
+                    }
+                    else
+                    {
+                        found = candidates.FirstOrDefault(c => c.ParentCategoryId == parentId);
+                    }
+                }
+
+                if (found is not null)
+                {
+                    leaf = found;
+                    parentId = found.Id;
+                    parentDepth = found.DepthLevel;
+
+                    // Cache the full path key for the leaf
+                    if (isLast)
+                    {
+                        var fullKey = Key(path);
+                        if (!result.ContainsKey(fullKey))
+                            result[fullKey] = new RefEntity<Category>(found, isNew: false);
+                    }
+                }
+                else
+                {
+                    // Create missing category
+                    var depth = parentDepth + 1;
+                    var breadcrumb = parentId is null
+                        ? segments[i]
+                        : string.Join(" >", segments.Take(i + 1));
+                    var newCat = Category.Create(segments[i], description: "",
+                        parentCategoryId: parentId, breadcrumbPath: breadcrumb, depthLevel: depth);
+                    newCat.CreatedBy = user;
+                    newCat.ModifiedBy = user;
+                    _db.Categories.Add(newCat);
+                    newlyCreated.Add(newCat);
+
+                    // Update parent's child count
+                    if (parentId is not null && catByName.TryGetValue(parentId.Value, out var parentCat))
+                        parentCat.IncrementChildCount();
+
+                    // Register in lookups so subsequent segments can find it
+                    if (!nameToEntities.ContainsKey(segKey))
+                        nameToEntities[segKey] = new List<Category>();
+                    nameToEntities[segKey].Add(newCat);
+                    catByName[newCat.Id] = newCat;
+
+                    leaf = newCat;
+                    parentId = newCat.Id;
+                    parentDepth = newCat.DepthLevel;
+
+                    if (isLast)
+                    {
+                        var fullKey = Key(path);
+                        result[fullKey] = new RefEntity<Category>(newCat, isNew: true);
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private async Task<Dictionary<string, RefEntity<Unit>>> ResolveUnitsAsync(
+        List<string> names, string user, CancellationToken ct)
+    {
+        var existing = await _db.Units.AsNoTracking()
+            .ToDictionaryAsync(u => Key(u.Name), u => u, StringComparer.OrdinalIgnoreCase, ct);
+
+        var result = new Dictionary<string, RefEntity<Unit>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var name in names)
+        {
+            var key = Key(name);
+            if (existing.TryGetValue(key, out var found))
+            {
+                result[key] = new RefEntity<Unit>(found, isNew: false);
+            }
+            else
+            {
+                var symbol = name.Length <= 10 ? name.Trim() : name.Trim()[..10];
+                var unit = Unit.Create(name.Trim(), symbol);
+                unit.CreatedBy = user;
+                unit.ModifiedBy = user;
+                _db.Units.Add(unit);
+                existing[key] = unit;
+                result[key] = new RefEntity<Unit>(unit, isNew: true);
+            }
+        }
+
+        return result;
+    }
+
+    private sealed class RefEntity<T>(T entity, bool isNew)
+    {
+        public T Entity => entity;
+        public bool IsNew => isNew;
+    }
+
+    // ── Part & Variant building ────────────────────────────────────────────────
+
+    private Product BuildPart(
+        ProductImportRow row,
+        Dictionary<string, RefEntity<Brand>> brandMap,
+        Dictionary<string, RefEntity<Category>> categoryLeafMap,
+        Dictionary<string, RefEntity<Unit>> unitMap,
+        string user)
+    {
+        var catKey = Key(row.Category!);
+        if (!categoryLeafMap.TryGetValue(catKey, out var catRef))
+            throw new InvalidOperationException($"Category '{row.Category}' could not be resolved");
+
+        Guid? brandId = !string.IsNullOrWhiteSpace(row.Brand) && brandMap.ContainsKey(Key(row.Brand!))
+            ? brandMap[Key(row.Brand!)].Entity.Id : null;
+
+        Guid? unitId = !string.IsNullOrWhiteSpace(row.Unit) && unitMap.ContainsKey(Key(row.Unit!))
+            ? unitMap[Key(row.Unit!)].Entity.Id : null;
+
+        var sku = _codeGenerateService.GenerateAsync("SKU").GetAwaiter().GetResult();
         var partNumber = PartNumber.Create(row.PartNumber!.Trim());
 
         var hasWarranty = row.HasWarranty ?? false;
 
         var part = Product.Create(
-            row.Name!.Trim(), partNumber, sku, category.Id,
+            row.Name!.Trim(), partNumber, sku, catRef.Entity.Id,
             brandId, unitId, unitId,
             row.Description?.Trim() ?? string.Empty, richDescription: null,
             row.CostPrice ?? 0, row.SellingPrice ?? 0, row.MinimumStock ?? 0,
@@ -217,17 +523,52 @@ public sealed class ProductImportService(
         return part;
     }
 
+    private ProductVariant BuildVariant(Product parent, ProductImportRow row, string user)
+    {
+        var variantName = string.IsNullOrWhiteSpace(row.VariantName)
+            ? parent.Name
+            : row.VariantName!.Trim();
+        var variantCode = row.VariantCode!.Trim().ToUpperInvariant();
+
+        var costPrice = row.VariantCostPrice ?? row.CostPrice ?? parent.CostPrice;
+        var sellingPrice = row.VariantSellingPrice ?? row.SellingPrice ?? parent.SellingPrice;
+
+        var sku = _codeGenerateService.GenerateAsync("SKU").GetAwaiter().GetResult();
+
+        PartNumber? variantPartNumber = null;
+        if (!string.IsNullOrWhiteSpace(row.VariantPartNumber))
+            variantPartNumber = PartNumber.Create(row.VariantPartNumber!.Trim());
+
+        var variant = ProductVariant.Create(
+            parent.Id, variantName, variantCode,
+            costPrice, sellingPrice,
+            sku,
+            row.VariantBarcode?.Trim(),
+            currency: "BDT",
+            isActive: true,
+            weightKg: row.WeightKg,
+            partNumber: variantPartNumber,
+            oemNumber: row.VariantOemNumber?.Trim());
+
+        variant.CreatedBy = user;
+        variant.ModifiedBy = user;
+        return variant;
+    }
+
     // ── Validation ───────────────────────────────────────────────────────────────
 
-    private static void ValidateRow(ProductImportRow row, LookupContext ctx, HashSet<string> seenPartNumbers, List<string> errors)
+    private static void ValidateRow(
+        ProductImportRow row,
+        HashSet<string> existingPartNumbers,
+        HashSet<string> seenPartNumbers,
+        HashSet<string> seenVariantPartNumbers,
+        List<string> errors)
     {
-        // Name
         if (string.IsNullOrWhiteSpace(row.Name))
             errors.Add("Name is required");
         else if (row.Name.Trim().Length > 200)
             errors.Add("Name cannot exceed 200 characters");
 
-        // Part number
         var pn = row.PartNumber?.Trim();
         if (string.IsNullOrWhiteSpace(pn))
         {
@@ -240,38 +581,51 @@ public sealed class ProductImportService(
             else if (!char.IsLetter(pn[0]))
                 errors.Add("Part Number must start with a letter");
 
-            if (ctx.ExistingPartNumbers.Contains(pn))
+            if (existingPartNumbers.Contains(pn))
                 errors.Add($"Part Number '{pn}' already exists");
             else if (!seenPartNumbers.Add(pn))
                 errors.Add($"Part Number '{pn}' is duplicated within the file");
         }
 
-        // Category (required, must exist)
         if (string.IsNullOrWhiteSpace(row.Category))
             errors.Add("Category is required");
-        else if (!ctx.Categories.ContainsKey(Key(row.Category)))
-            errors.Add($"Category '{row.Category.Trim()}' was not found");
 
-        // Brand (optional, must exist if given)
-        if (!string.IsNullOrWhiteSpace(row.Brand) && !ctx.Brands.ContainsKey(Key(row.Brand)))
-            errors.Add($"Brand '{row.Brand.Trim()}' was not found");
+        // Variant validation
+        var hasVariantCols = row.HasVariantData || !string.IsNullOrWhiteSpace(row.VariantName);
+        if (row.HasVariantData)
+        {
+            if (string.IsNullOrWhiteSpace(row.VariantCode))
+                errors.Add("Variant Code is required when providing variant data");
+            else if (row.VariantCode.Trim().Length > 50)
+                errors.Add("Variant Code cannot exceed 50 characters");
 
-        // Unit (optional, must exist if given)
-        if (!string.IsNullOrWhiteSpace(row.Unit) && !ctx.Units.ContainsKey(Key(row.Unit)))
-            errors.Add($"Unit '{row.Unit.Trim()}' was not found");
+            var vpn = row.VariantPartNumber?.Trim();
+            if (!string.IsNullOrWhiteSpace(vpn))
+            {
+                if (vpn.Length is < 3 or > 20)
+                    errors.Add("Variant Part Number must be between 3 and 20 characters");
+                else if (!char.IsLetter(vpn[0]))
+                    errors.Add("Variant Part Number must start with a letter");
+                else if (existingPartNumbers.Contains(vpn) || !seenVariantPartNumbers.Add(vpn))
+                    errors.Add($"Variant Part Number '{vpn}' already exists");
+            }
+        }
+        else if (hasVariantCols && !row.HasVariantData)
+        {
+            errors.Add("Variant Code is required when providing variant data");
+        }
 
-        // Numerics
         if (row.CostPrice is < 0) errors.Add("Cost Price cannot be negative");
         if (row.SellingPrice is < 0) errors.Add("Selling Price cannot be negative");
         if (row.MinimumStock is < 0) errors.Add("Minimum Stock cannot be negative");
         if (row.WeightKg is < 0) errors.Add("Weight cannot be negative");
+        if (row.VariantCostPrice is < 0) errors.Add("Variant Cost Price cannot be negative");
+        if (row.VariantSellingPrice is < 0) errors.Add("Variant Selling Price cannot be negative");
 
-        // Product type
         if (!string.IsNullOrWhiteSpace(row.ProductType) &&
             !ValidProductTypes.Contains(row.ProductType.Trim().ToUpperInvariant()))
             errors.Add("Product Type must be PHYSICAL, DIGITAL, or SERVICE");
 
-        // Warranty
         if (row.HasWarranty == true)
         {
             if (row.WarrantyPeriodMonths is null or <= 0)
@@ -279,47 +633,6 @@ public sealed class ProductImportService(
             if (string.IsNullOrWhiteSpace(row.WarrantyType))
                 errors.Add("Warranty Type is required when Has Warranty is TRUE");
         }
-    }
-
-    // ── Lookups ────────────────────────────────────────────────────────────────
-
-    private async Task<LookupContext> BuildLookupsAsync(CancellationToken ct)
-    {
-        var categories = await _db.Categories.AsNoTracking().ToListAsync(ct);
-        var brands = await _db.Brands.AsNoTracking().ToListAsync(ct);
-        var units = await _db.Units.AsNoTracking().ToListAsync(ct);
-        var partNumbers = await _db.Parts.AsNoTracking().Select(p => p.PartNumber.Value).ToListAsync(ct);
-
-        return new LookupContext
-        {
-            Categories = BuildNameMap(categories, c => c.Name),
-            Brands = BuildNameMap(brands, b => b.Name),
-            Units = BuildNameMap(units, u => u.Name),
-            ExistingPartNumbers = new HashSet<string>(partNumbers, StringComparer.OrdinalIgnoreCase)
-        };
-    }
-
-    // Map by normalized name; first occurrence wins if names collide.
-    private static Dictionary<string, T> BuildNameMap<T>(IEnumerable<T> items, Func<T, string> nameSelector)
-    {
-        var map = new Dictionary<string, T>();
-        foreach (var item in items)
-        {
-            var key = Key(nameSelector(item));
-            if (!string.IsNullOrEmpty(key))
-                map.TryAdd(key, item);
-        }
-        return map;
-    }
-
-    private static string Key(string value) => value.Trim().ToLowerInvariant();
-
-    private sealed class LookupContext
-    {
-        public required Dictionary<string, Category> Categories { get; init; }
-        public required Dictionary<string, Brand> Brands { get; init; }
-        public required Dictionary<string, Unit> Units { get; init; }
-        public required HashSet<string> ExistingPartNumbers { get; init; }
     }
 
     // ── Parsing ────────────────────────────────────────────────────────────────
@@ -330,7 +643,6 @@ public sealed class ProductImportService(
         var ws = wb.Worksheets.FirstOrDefault()
             ?? throw new InvalidOperationException("The workbook contains no worksheets.");
 
-        // Build header → column index map (normalized, '*' and case ignored).
         var headerRow = ws.FirstRowUsed()
             ?? throw new InvalidOperationException("The worksheet is empty.");
 
@@ -374,7 +686,14 @@ public sealed class ProductImportService(
                 HasWarranty = Bool(xlRow, Col("Has Warranty"), "Has Warranty", parseErrors),
                 WarrantyPeriodMonths = Int(xlRow, Col("Warranty Period (months)"), "Warranty Period (months)", parseErrors),
                 WarrantyType = Str(xlRow, Col("Warranty Type")),
-                WeightKg = Dec(xlRow, Col("Weight (kg)"), "Weight (kg)", parseErrors)
+                WeightKg = Dec(xlRow, Col("Weight (kg)"), "Weight (kg)", parseErrors),
+                VariantName = Str(xlRow, Col("Variant Name")),
+                VariantCode = Str(xlRow, Col("Variant Code")),
+                VariantPartNumber = Str(xlRow, Col("Variant Part Number")),
+                VariantOemNumber = Str(xlRow, Col("Variant OEM Number")),
+                VariantBarcode = Str(xlRow, Col("Variant Barcode")),
+                VariantCostPrice = Dec(xlRow, Col("Variant Cost Price"), "Variant Cost Price", parseErrors),
+                VariantSellingPrice = Dec(xlRow, Col("Variant Selling Price"), "Variant Selling Price", parseErrors)
             };
 
             rows.Add((row, parseErrors));
@@ -441,4 +760,6 @@ public sealed class ProductImportService(
             return null;
         }
     }
+
+    private static string Key(string value) => value.Trim().ToLowerInvariant();
 }
