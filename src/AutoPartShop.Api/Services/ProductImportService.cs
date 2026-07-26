@@ -211,7 +211,28 @@ public sealed class ProductImportService(
         result.CreatedUnitsCount = unitMap.Values.Count(u => u.IsNew);
 
         // Persist reference entities
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save reference entities during import");
+            result.FailedCount = validRows.Count;
+            foreach (var r in validRows)
+            {
+                result.Failures.Add(new ProductImportRowResult
+                {
+                    RowNumber = r.RowNumber,
+                    Name = r.Name,
+                    PartNumber = r.PartNumber,
+                    IsValid = false,
+                    Errors = [$"Failed to save reference data: {ex.InnerException?.Message ?? ex.Message}"],
+                    Row = r
+                });
+            }
+            return result;
+        }
 
         // ── Group rows by product (Name + PartNumber) ────────────────────────
 
@@ -260,45 +281,60 @@ public sealed class ProductImportService(
 
         if (toCreateProducts.Count > 0)
         {
-            _db.Parts.AddRange(toCreateProducts);
-            await _db.SaveChangesAsync(cancellationToken);
-
-            var allVariants = new List<ProductVariant>();
-            foreach (var (_, variants) in variantsByProduct)
+            try
             {
-                foreach (var v in variants)
-                {
-                    _db.ProductVariants.Add(v);
-                    allVariants.Add(v);
-                }
-            }
-
-            if (allVariants.Count > 0)
-            {
+                _db.Parts.AddRange(toCreateProducts);
                 await _db.SaveChangesAsync(cancellationToken);
 
-                foreach (var v in allVariants.Where(v => v.SellingPrice > 0))
+                var allVariants = new List<ProductVariant>();
+                foreach (var (_, variants) in variantsByProduct)
+                {
+                    foreach (var v in variants)
+                    {
+                        _db.ProductVariants.Add(v);
+                        allVariants.Add(v);
+                    }
+                }
+
+                if (allVariants.Count > 0)
+                {
+                    await _db.SaveChangesAsync(cancellationToken);
+
+                    foreach (var v in allVariants.Where(v => v.SellingPrice > 0))
+                    {
+                        var priceHistory = ProductVariantPriceHistory.Create(
+                            v.PartId, v.SellingPrice, DateTime.UtcNow, v.Id,
+                            v.Currency, "INITIAL_PRICE");
+                        priceHistory.CreatedBy = user;
+                        priceHistory.ModifiedBy = user;
+                        _db.ProductVariantPriceHistories.Add(priceHistory);
+                    }
+                }
+
+                foreach (var part in toCreateProducts.Where(p => p.SellingPrice > 0 && !variantsByProduct.ContainsKey(p.Id)))
                 {
                     var priceHistory = ProductVariantPriceHistory.Create(
-                        v.PartId, v.SellingPrice, DateTime.UtcNow, v.Id,
-                        v.Currency, "INITIAL_PRICE");
+                        part.Id, part.SellingPrice, DateTime.UtcNow, null,
+                        part.SellingPriceCurrency, "INITIAL_PRICE");
                     priceHistory.CreatedBy = user;
                     priceHistory.ModifiedBy = user;
                     _db.ProductVariantPriceHistories.Add(priceHistory);
                 }
-            }
 
-            foreach (var part in toCreateProducts.Where(p => p.SellingPrice > 0 && !variantsByProduct.ContainsKey(p.Id)))
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
             {
-                var priceHistory = ProductVariantPriceHistory.Create(
-                    part.Id, part.SellingPrice, DateTime.UtcNow, null,
-                    part.SellingPriceCurrency, "INITIAL_PRICE");
-                priceHistory.CreatedBy = user;
-                priceHistory.ModifiedBy = user;
-                _db.ProductVariantPriceHistories.Add(priceHistory);
+                _logger.LogError(ex, "Failed to save products/variants during import");
+                result.FailedCount = toCreateProducts.Count + result.Failures.Count;
+                result.Failures.Add(new ProductImportRowResult
+                {
+                    RowNumber = 0,
+                    IsValid = false,
+                    Errors = [$"Failed to save products: {ex.InnerException?.Message ?? ex.Message}"]
+                });
+                return result;
             }
-
-            await _db.SaveChangesAsync(cancellationToken);
         }
 
         result.CreatedCount = toCreateProducts.Count;
@@ -462,7 +498,7 @@ public sealed class ProductImportService(
             }
             else
             {
-                var symbol = name.Length <= 10 ? name.Trim() : name.Trim()[..10];
+                var symbol = name.Length <= 5 ? name.Trim() : name.Trim()[..5];
                 var unit = Unit.Create(name.Trim(), symbol);
                 unit.CreatedBy = user;
                 unit.ModifiedBy = user;
