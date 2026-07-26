@@ -23,6 +23,7 @@
 #   4200 - Web (Angular + nginx)  → http://localhost:4200
 #   5292 - API (.NET Swagger)    → http://localhost:5292/swagger
 #   1433 - SQL Server             → connect with SSMS/DBeaver
+#   5341 - Seq (log UI)           → http://localhost:5341
 #
 # =============================================================================
 
@@ -67,6 +68,8 @@ services:
       # Database backups: shared folder as seen by this container / by SQL Server
       - Backup__Directory=/app/backups
       - Backup__SqlServerDirectory=/var/opt/mssql/backups
+      # Log shipping: Serilog → Seq container (host-run API uses http://localhost:5341 instead)
+      - Seq__Url=http://seq
     volumes:
       - ./backups:/app/backups                  # Same host folder as the DB container's backup mount
     ports:
@@ -91,6 +94,19 @@ services:
       - autopartshop.api
     restart: unless-stopped
 
+  # Seq — structured log UI at http://localhost:5341 (no login in dev)
+  seq:
+    image: datalust/seq:2024.3
+    container_name: autopartshop.seq
+    environment:
+      - ACCEPT_EULA=Y
+    ports:
+      - "5341:80"                               # UI + log ingestion on the same port
+    volumes:
+      - autopart_seq_dev_data:/data
+    restart: unless-stopped
+
 # Named volumes for persistent dev data
 volumes:
   autopart_mssql_dev_data:
+  autopart_seq_dev_data:
