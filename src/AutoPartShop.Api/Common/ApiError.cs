@@ -46,6 +46,16 @@ public sealed class ApiError
         Instance = instance
     };
 
+    /// <summary>Authenticated, but the caller lacks the permission the action requires.</summary>
+    public static ApiError Forbidden(string detail, string? instance = null) => new()
+    {
+        Type = "FORBIDDEN",
+        Title = "Permission denied",
+        Status = 403,
+        Detail = detail,
+        Instance = instance
+    };
+
     public static ApiError Conflict(string detail, string? instance = null) => new()
     {
         Type = "CONFLICT",
