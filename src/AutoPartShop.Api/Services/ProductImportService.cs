@@ -23,7 +23,7 @@ public sealed class ProductImportService(
     private static readonly string[] Headers =
     [
         "Name*",
-        "Part Number*",
+        "Part Number",
         "Category*",
         "Brand",
         "Unit",
@@ -105,7 +105,8 @@ public sealed class ProductImportService(
     {
         var rows = ParseRows(xlsxStream);
         var existingPartNumbers = await _db.Parts.AsNoTracking()
-            .Select(p => p.PartNumber.Value)
+            .Where(p => p.PartNumber != null)
+            .Select(p => p.PartNumber!.Value)
             .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, cancellationToken);
 
         var seenPartNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -141,7 +142,8 @@ public sealed class ProductImportService(
         var orderedRows = rows.OrderBy(r => r.RowNumber).ToList();
 
         var existingPartNumbers = await _db.Parts.AsNoTracking()
-            .Select(p => p.PartNumber.Value)
+            .Where(p => p.PartNumber != null)
+            .Select(p => p.PartNumber!.Value)
             .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, cancellationToken);
 
         var seenPartNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -537,7 +539,9 @@ public sealed class ProductImportService(
             ? unitMap[Key(row.Unit!)].Entity.Id : null;
 
         var sku = _codeGenerateService.GenerateAsync("SKU").GetAwaiter().GetResult();
-        var partNumber = PartNumber.Create(row.PartNumber!.Trim());
+        var partNumber = string.IsNullOrWhiteSpace(row.PartNumber)
+            ? null
+            : PartNumber.Create(row.PartNumber.Trim());
 
         var hasWarranty = row.HasWarranty ?? false;
 
@@ -605,12 +609,10 @@ public sealed class ProductImportService(
         else if (row.Name.Trim().Length > 200)
             errors.Add("Name cannot exceed 200 characters");
 
+        // Part Number is optional — brands that don't publish a catalog code are
+        // still identified by their auto-generated SKU.
         var pn = row.PartNumber?.Trim();
-        if (string.IsNullOrWhiteSpace(pn))
-        {
-            errors.Add("Part Number is required");
-        }
-        else
+        if (!string.IsNullOrWhiteSpace(pn))
         {
             if (pn.Length is < 3 or > 20)
                 errors.Add("Part Number must be between 3 and 20 characters");
@@ -706,7 +708,7 @@ public sealed class ProductImportService(
             {
                 RowNumber = r,
                 Name = Str(xlRow, Col("Name*")),
-                PartNumber = Str(xlRow, Col("Part Number*")),
+                PartNumber = Str(xlRow, Col("Part Number")),
                 Category = Str(xlRow, Col("Category*")),
                 Brand = Str(xlRow, Col("Brand")),
                 Unit = Str(xlRow, Col("Unit")),

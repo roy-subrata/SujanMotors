@@ -145,7 +145,8 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
         var normalized = code.Trim().ToUpperInvariant();
         return await _db.Parts
             .FirstOrDefaultAsync(p => !p.Isdeleted && p.IsActive &&
-                (p.Barcode == normalized || p.PartNumber.Value == normalized), cancellationToken);
+                (p.Barcode == normalized ||
+                 (p.PartNumber != null && p.PartNumber.Value == normalized)), cancellationToken);
     }
 
     public async Task<(Product Product, ProductVariant Variant)?> GetByVariantCodeAsync(string code, CancellationToken cancellationToken = default)
