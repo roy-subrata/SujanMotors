@@ -5,22 +5,36 @@ namespace AutoPartShop.Api.Services;
 /// <summary>
 /// Bulk product (parts) import from an Excel (.xlsx) workbook.
 /// Workflow: download template → validate (dry-run) → commit confirmed rows.
-/// Foreign keys (category, brand, unit) are referenced by name and must already exist.
+/// Category, Brand and Unit are referenced by name and auto-created when missing.
+///
+/// SKU is the import key. A blank SKU creates a new part; a filled one updates the
+/// matching part, but only when the run is in <see cref="ProductImportMode.CreateAndUpdate"/>.
 /// </summary>
 public interface IProductImportService
 {
-    /// <summary>Builds a ready-to-fill .xlsx template with column headers and one example row.</summary>
+    /// <summary>Builds a ready-to-fill .xlsx template with column headers and example rows.</summary>
     byte[] GenerateTemplate();
 
     /// <summary>
-    /// Parses and validates every row of an uploaded workbook without writing anything.
-    /// Returns a per-row report of validity and errors.
+    /// Exports the live catalog in the import's own column layout, SKU filled in — edit the
+    /// rows and upload the file back in create-and-update mode to apply the changes.
+    /// One row per variant; parts without variants get a single row.
     /// </summary>
-    Task<ProductImportValidationResult> ValidateAsync(Stream xlsxStream, CancellationToken cancellationToken = default);
+    Task<byte[]> GenerateExportAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Re-validates and persists the supplied rows. Valid rows are created as parts in a single
-    /// transaction; invalid rows are skipped and reported in <see cref="ProductImportCommitResult.Failures"/>.
+    /// Parses and validates every row of an uploaded workbook without writing anything.
+    /// Returns a per-row report of validity, the action each row would take, and the
+    /// master data (brands/categories/units) the batch would create.
     /// </summary>
-    Task<ProductImportCommitResult> CommitAsync(IEnumerable<ProductImportRow> rows, CancellationToken cancellationToken = default);
+    Task<ProductImportValidationResult> ValidateAsync(
+        Stream xlsxStream, ProductImportMode mode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Re-validates and persists the supplied rows in a single transaction — reference data,
+    /// parts, variants and price history all land together or not at all. Rows that fail
+    /// re-validation are skipped and reported in <see cref="ProductImportCommitResult.Failures"/>.
+    /// </summary>
+    Task<ProductImportCommitResult> CommitAsync(
+        IEnumerable<ProductImportRow> rows, ProductImportMode mode, CancellationToken cancellationToken = default);
 }

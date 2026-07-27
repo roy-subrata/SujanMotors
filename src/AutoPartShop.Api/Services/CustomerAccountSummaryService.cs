@@ -131,7 +131,7 @@ public class CustomerAccountSummaryService : ICustomerAccountSummaryService
                 SalesOrderLineId = li.Id,
                 ItemName = li.Part != null ? li.Part.Name : "",
                 ItemLocalName = li.Part != null ? li.Part.LocalName : null,
-                PartNumber = li.Part != null ? li.Part.PartNumber.Value : "",
+                PartNumber = li.Part != null && li.Part.PartNumber != null ? li.Part.PartNumber.Value : "",
                 SKU = li.Part != null ? li.Part.SKU : "",
                 Quantity = li.Quantity,
                 UnitPrice = li.UnitPrice,

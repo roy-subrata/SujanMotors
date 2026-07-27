@@ -111,13 +111,18 @@ public sealed class SqlServerBackupService(
             _logger.LogWarning("Restoring database from backup {FileName} (initiated by {User})",
                 record.FileName, initiatedBy);
 
+            // Snapshot history before the table is replaced: backups taken after this .bak was
+            // created have no row inside it, so their files would survive on disk (and Drive)
+            // as orphans — absent from history, not restorable, never seen by retention.
+            var historyBeforeRestore = await _backupRepository.GetAllUntrackedAsync(cancellationToken);
+
             await RestoreDatabaseAsync(record.FileName, cancellationToken);
 
             // Roll the restored schema forward in case the backup predates newer migrations
             SqlConnection.ClearAllPools();
             await _dbContext.Database.MigrateAsync(cancellationToken);
 
-            await ReconcileHistoryAfterRestoreAsync(record, refreshedSafety);
+            await ReconcileHistoryAfterRestoreAsync(record, refreshedSafety, historyBeforeRestore);
 
             _logger.LogWarning("Database restore from {FileName} completed successfully", record.FileName);
         }
@@ -385,11 +390,15 @@ public sealed class SqlServerBackupService(
 
     /// <summary>
     /// The restored BackupRecords table reflects the moment the backup was taken: the restored
-    /// backup's own record is frozen in "Running" and the pre-restore safety record doesn't exist
-    /// yet. Both entities are still tracked in memory with their final values, so write them back.
+    /// backup's own record is frozen in "Running", the pre-restore safety record doesn't exist
+    /// yet, and any backup taken between the two is missing entirely. Write all three back so
+    /// history matches the .bak files that are actually on disk.
     /// Best effort — a failure here must not fail an otherwise successful restore.
     /// </summary>
-    private async Task ReconcileHistoryAfterRestoreAsync(BackupRecord restoredBackup, BackupRecord safetyBackup)
+    private async Task ReconcileHistoryAfterRestoreAsync(
+        BackupRecord restoredBackup,
+        BackupRecord safetyBackup,
+        List<BackupRecord> historyBeforeRestore)
     {
         try
         {
@@ -413,6 +422,50 @@ public sealed class SqlServerBackupService(
             _logger.LogWarning(ex, "Could not re-insert the pre-restore safety backup record {FileName}",
                 safetyBackup.FileName);
         }
+
+        try
+        {
+            await ReinsertOrphanedHistoryAsync(historyBeforeRestore);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Could not re-insert backup history records created after the restored snapshot; " +
+                "their .bak files remain on disk but are no longer listed or pruned by retention");
+        }
+    }
+
+    /// <summary>
+    /// Re-insert the history rows the restored backup predates. Their .bak files were never
+    /// touched by the restore, so without their records they become orphans: invisible in the
+    /// history UI, impossible to restore, and skipped by retention (which only prunes files it
+    /// has a record for).
+    /// </summary>
+    private async Task ReinsertOrphanedHistoryAsync(List<BackupRecord> historyBeforeRestore)
+    {
+        // Rows that survived inside the .bak, plus anything already tracked in this scope
+        // (the restored and safety records, handled above) — everything else needs re-inserting.
+        var reconciledIds = await _dbContext.BackupRecords
+            .AsNoTracking()
+            .Select(b => b.Id)
+            .ToListAsync(CancellationToken.None);
+
+        var handled = new HashSet<Guid>(reconciledIds);
+        foreach (var entry in _dbContext.ChangeTracker.Entries<BackupRecord>())
+            handled.Add(entry.Entity.Id);
+
+        var orphaned = historyBeforeRestore.Where(b => !handled.Contains(b.Id)).ToList();
+        if (orphaned.Count == 0)
+            return;
+
+        foreach (var orphan in orphaned)
+            _dbContext.Entry(orphan).State = Microsoft.EntityFrameworkCore.EntityState.Added;
+
+        await _dbContext.SaveChangesAsync(CancellationToken.None);
+
+        _logger.LogInformation(
+            "Re-inserted {Count} backup history record(s) created after the restored snapshot: {FileNames}",
+            orphaned.Count, string.Join(", ", orphaned.Select(o => o.FileName)));
     }
 
     // ---------------------------------------------------------------------

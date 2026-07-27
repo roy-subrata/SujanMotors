@@ -206,7 +206,7 @@ public class ProductVariantController : ControllerBase
         {
             if (await _db.ProductVariants.AnyAsync(v => !v.Isdeleted && v.PartNumber!.Value == normalizedPartNumber && v.Id != excludeVariantId, ct))
                 return ApiError.Conflict($"Part Number '{req.PartNumber}' is already used by another variant", Request.Path);
-            if (await _db.Parts.AnyAsync(p => !p.Isdeleted && p.PartNumber.Value == normalizedPartNumber, ct))
+            if (await _db.Parts.AnyAsync(p => !p.Isdeleted && p.PartNumber != null && p.PartNumber.Value == normalizedPartNumber, ct))
                 return ApiError.Conflict($"Part Number '{req.PartNumber}' is already used by a product", Request.Path);
         }
 

@@ -12,7 +12,7 @@ public class Product : AuditableEntity
     public string Name { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;       // Short summary (255 chars)
     public string? RichDescription { get; private set; }                  // Full HTML/markdown for product pages
-    public PartNumber PartNumber { get; private set; } = null!;  // Item/product code
+    public PartNumber? PartNumber { get; private set; }  // Manufacturer's catalog code — optional (some brands don't publish one); SKU is the required identifier
     public string SKU { get; private set; } = string.Empty;
     public string? OemNumber { get; private set; }  // Manufacturer OEM part number (optional)
     public string? Barcode { get; private set; }  // UPC / EAN / QR — for POS scanner & ecommerce
@@ -62,7 +62,7 @@ public class Product : AuditableEntity
 
     private Product() { }
 
-    public static Product Create(string name, PartNumber partNumber, string sku, Guid categoryId,
+    public static Product Create(string name, PartNumber? partNumber, string sku, Guid categoryId,
         Guid? brandId = null, Guid? baseUnitId = null, Guid? unitId = null, string description = "",
         string? richDescription = null,
         decimal costPrice = 0, decimal sellingPrice = 0, int minimumStock = 0,
@@ -74,9 +74,6 @@ public class Product : AuditableEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
-
-        if (partNumber is null)
-            throw new InvalidOperationException($"PartNumber cannot be empty {nameof(partNumber)}");
 
         if (string.IsNullOrWhiteSpace(sku))
             throw new ArgumentException("SKU cannot be empty", nameof(sku));
@@ -217,6 +214,12 @@ public class Product : AuditableEntity
         WarrantyTerms = hasWarranty ? warrantyTerms?.Trim() : null;
         WarrantyCertificateTemplate = hasWarranty ? warrantyCertificateTemplate?.Trim() : null;
     }
+
+    /// <summary>
+    /// Sets or clears the manufacturer's catalog code. Pass null to clear it —
+    /// parts from brands that don't publish a part number are still identified by SKU.
+    /// </summary>
+    public void SetPartNumber(PartNumber? partNumber) => PartNumber = partNumber;
 
     public void UpdateSellingPrice(decimal newPrice, string currency = "BDT")
     {

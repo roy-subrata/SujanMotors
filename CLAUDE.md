@@ -12,6 +12,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Start SQL Server 2025 on port 1433
 docker compose -f deployment/docker-compose.yml up -d
+
+# Optional: Seq log UI on http://localhost:5341 (appsettings.Development.json points at it)
+docker compose -f deployment/docker-compose.dev.yml up -d seq
 ```
 
 ### Backend API (.NET 10)
@@ -72,7 +75,7 @@ All domain entities inherit from `AuditableEntity` (created/modified timestamps)
 
 **Auth**: ASP.NET Core Identity + JWT Bearer. Tokens configured in `appsettings.json` under `JwtSettings`. Controllers use `[Authorize]`; role-based with `ApplicationRole`.
 
-**Observability**: Serilog structured logging → OpenTelemetry → OTLP collector. Prometheus scrape endpoint at `/metrics`. Swagger UI at `/docs`.
+**Logging**: Serilog structured logging → console (compact JSON) + Seq (`Seq:Url`; blank = console only). Seq UI at `http://<host>:5341`. No tracing/metrics stack. Swagger UI at `/docs`.
 
 **API conventions**:
 - Route: `[Route("api/[controller]")]`
@@ -115,7 +118,7 @@ Riverpod for state, Dio for HTTP against the same REST API. Built as APK via `.g
 `deployment/docker-compose.yml` contains service definitions for:
 - SQL Server (always-on, required for local dev)
 - API, WebApp (commented out — build locally instead)
-- Full observability stack: OTel Collector, Prometheus, Loki, Tempo, Grafana (commented out)
+- Seq (structured log server + UI, port 5341) — the API ships Serilog logs to it
 
 ## Important Notes
 

@@ -4,12 +4,8 @@ using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Hubs;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Interfaces;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Formatting.Compact;
-using Serilog.Sinks.OpenTelemetry;
 using AutoPartShop.Application;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
@@ -29,25 +25,28 @@ AutoPartShop.Api.Pdf.Design.DocFonts.Register();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Observability bootstrap ---
-var otelEndpoint = builder.Configuration["Otel:Endpoint"] ?? "http://otel-collector:4317";
-var serviceName = builder.Configuration["Otel:ServiceName"] ?? "autopartshop-api";
+// --- Logging bootstrap (Serilog → console + Seq) ---
+// Seq:Url is optional: leave it blank and logs go to the console only, so a local run
+// doesn't need a Seq instance. Set it (e.g. "http://seq:5341" in Docker, env var Seq__Url)
+// to also ship structured logs to the Seq UI.
+var serviceName = builder.Configuration["Seq:ServiceName"] ?? "autopartshop-api";
+var seqUrl = builder.Configuration["Seq:Url"];
+var seqApiKey = builder.Configuration["Seq:ApiKey"];
 
-builder.Host.UseSerilog((ctx, lc) => lc
-    .ReadFrom.Configuration(ctx.Configuration)
-    .Enrich.FromLogContext()
-    .Enrich.WithProperty("service.name", serviceName)
-    .WriteTo.Console(new CompactJsonFormatter())
-    .WriteTo.OpenTelemetry(o =>
+builder.Host.UseSerilog((ctx, lc) =>
+{
+    lc.ReadFrom.Configuration(ctx.Configuration)
+      .Enrich.FromLogContext()
+      .Enrich.WithProperty("Application", serviceName)
+      .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName)
+      .WriteTo.Console(new CompactJsonFormatter());
+
+    if (!string.IsNullOrWhiteSpace(seqUrl))
     {
-        o.Endpoint = otelEndpoint;
-        o.Protocol = OtlpProtocol.Grpc;
-        o.ResourceAttributes = new Dictionary<string, object>
-        {
-            ["service.name"] = serviceName
-        };
-    }));
-// --------------------------------
+        lc.WriteTo.Seq(seqUrl, apiKey: string.IsNullOrWhiteSpace(seqApiKey) ? null : seqApiKey);
+    }
+});
+// ---------------------------------------------------
 
 // Configure CORS
 // In Development we echo back any origin (required for SignalR negotiate with
@@ -80,21 +79,6 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
-
-// Distributed tracing + metrics
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(r => r.AddService(serviceName))
-    .WithTracing(t => t
-        .AddAspNetCoreInstrumentation(o => o.RecordException = true)
-        .AddHttpClientInstrumentation()
-        .AddEntityFrameworkCoreInstrumentation(o =>
-            o.SetDbStatementForText = builder.Environment.IsDevelopment())
-        .AddOtlpExporter(o => o.Endpoint = new Uri(otelEndpoint)))
-    .WithMetrics(m => m
-        .AddAspNetCoreInstrumentation()
-        .AddRuntimeInstrumentation()
-        .AddPrometheusExporter());
-
 
 // Configure ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -335,7 +319,6 @@ app.MapHub<SaleNotificationHub>("/hubs/sale-notifications");
 
 // Ping the service is live or not
 app.MapGet("/live", () => "I am live");
-app.MapPrometheusScrapingEndpoint(); // Prometheus scrapes /metrics
 
 app.Run();
 
