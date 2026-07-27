@@ -65,7 +65,7 @@ export interface CreatePartRequest {
     name: string;
     description: string;
     richDescription?: string | null;
-    partNumber: string;
+    partNumber?: string | null;
     oemNumber?: string | null;
     localName?: string | null;
     barcode?: string | null;
@@ -95,6 +95,7 @@ export interface UpdatePartRequest {
     name: string;
     description: string;
     richDescription?: string | null;
+    partNumber?: string | null;
     oemNumber?: string | null;
     localName?: string | null;
     barcode?: string | null;

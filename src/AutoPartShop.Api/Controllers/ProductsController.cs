@@ -379,15 +379,17 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] CreatePartRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Name) ||
-            string.IsNullOrWhiteSpace(request.PartNumber) || request.CategoryId == Guid.Empty)
-            return BadRequest(ApiError.Validation("Name, PartNumber, and CategoryId are required", instance: Request.Path));
+        if (string.IsNullOrWhiteSpace(request.Name) || request.CategoryId == Guid.Empty)
+            return BadRequest(ApiError.Validation("Name and CategoryId are required", instance: Request.Path));
 
         if (!await _categoryRepository.ExistsAsync(request.CategoryId, cancellationToken))
             return BadRequest(ApiError.Validation("Category does not exist", instance: Request.Path));
 
         var sku = await _codeGenerateService.GenerateAsync("SKU", cancellationToken);
-        var partNumber = PartNumber.Create(request.PartNumber);
+        // PartNumber is optional — some brands don't publish a catalog code. SKU identifies the part.
+        var partNumber = string.IsNullOrWhiteSpace(request.PartNumber)
+            ? null
+            : PartNumber.Create(request.PartNumber);
         var part = Product.Create(
             request.Name, partNumber, sku, request.CategoryId,
             request.BrandId, request.BaseUnitId, request.UnitId,
@@ -455,6 +457,9 @@ public class ProductsController : ControllerBase
             request.Barcode, request.Tags, request.ProductType,
             request.IsPerishable, request.WeightKg,
             request.TaxCode, request.RichDescription, request.OemNumber, request.LocalName);
+        part.SetPartNumber(string.IsNullOrWhiteSpace(request.PartNumber)
+            ? null
+            : PartNumber.Create(request.PartNumber));
         part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
         await _productRepository.UpdateAsync(part, cancellationToken);
@@ -631,7 +636,7 @@ public class ProductsController : ControllerBase
             Name = part.Name,
             Description = part.Description,
             RichDescription = part.RichDescription,
-            PartNumber = part.PartNumber.Value,
+            PartNumber = part.PartNumber?.Value ?? string.Empty,
             SKU = part.SKU,
             OemNumber = part.OemNumber,
             LocalName = part.LocalName,

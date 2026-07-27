@@ -26,7 +26,7 @@
     <!-- Part Number Field -->
     <div class="form-group">
       <label for="create-part-number" class="form-label">
-        <span class="required">*</span> Part Number
+        Part Number
       </label>
       <input
         id="create-part-number"
@@ -40,7 +40,7 @@
       <small class="error-message" *ngIf="hasError(createForm, 'partNumber')">
         {{ getErrorMessage(createForm, 'partNumber') }}
       </small>
-      <small class="hint-message">Manufacturer's catalog code for this part</small>
+      <small class="hint-message">Optional &mdash; manufacturer's catalog code. Leave blank if the brand doesn't provide one</small>
     </div>
 
     <!-- OEM Number Field -->

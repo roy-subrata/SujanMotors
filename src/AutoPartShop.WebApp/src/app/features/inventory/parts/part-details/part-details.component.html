@@ -18,7 +18,7 @@
           [severity]="getStatusSeverity(part.isActive)">
         </p-tag>
       </div>
-      <p class="pd-subtitle" *ngIf="part">{{ part.partNumber }} &nbsp;·&nbsp; {{ part.sku }}</p>
+      <p class="pd-subtitle" *ngIf="part"><ng-container *ngIf="part.partNumber">{{ part.partNumber }} &nbsp;·&nbsp; </ng-container>{{ part.sku }}</p>
     </div>
     <div class="pd-header-actions">
       <button pButton type="button" label="Edit Part"
@@ -71,7 +71,7 @@
               <div class="info-grid">
                 <div class="info-item">
                   <label>Part Number</label>
-                  <span>{{ part.partNumber }}</span>
+                  <span>{{ part.partNumber || '—' }}</span>
                 </div>
                 <div class="info-item">
                   <label>SKU</label>

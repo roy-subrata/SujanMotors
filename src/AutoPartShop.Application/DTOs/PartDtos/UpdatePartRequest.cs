@@ -6,6 +6,7 @@ public class UpdatePartRequest
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? RichDescription { get; set; }
+    public string? PartNumber { get; set; }   // Manufacturer's catalog code — optional; null/blank clears it
     public Guid CategoryId { get; set; }
     public Guid? BrandId { get; set; }
     public Guid? BaseUnitId { get; set; }  // Base unit for stock/inventory tracking

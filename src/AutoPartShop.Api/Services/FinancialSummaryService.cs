@@ -434,7 +434,7 @@ public class FinancialSummaryService : IFinancialSummaryService
                 {
                     li.PartId,
                     PartName = li.Part!.Name,
-                    PartNumber = li.Part.PartNumber.Value,
+                    PartNumber = li.Part.PartNumber != null ? li.Part.PartNumber.Value : "",
                     Sku = li.Part.SKU,
                     li.Quantity,
                     Revenue = (li.Quantity * li.UnitPrice) - (li.Quantity * li.Discount),

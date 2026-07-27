@@ -95,6 +95,9 @@ services:
       - Backup__Directory=/app/backups
       - Backup__SqlServerDirectory=/var/opt/mssql/backups
       - GoogleDrive__ServiceAccountKeyJson=${GDRIVE_SA_KEY_JSON:-}
+      # Log shipping: Serilog pushes structured logs to the Seq container
+      - Seq__Url=http://seq                    # Seq listens on :80 for ingestion + UI
+      - Seq__ApiKey=${SEQ_API_KEY:-}
     volumes:
       - ./backups:/app/backups                # Same host folder as the DB container's backup mount
     ports:
@@ -125,6 +128,26 @@ services:
       - autopartshop.api                      # API must be running before web starts
     restart: always                           # Always restart in prod
 
+  # ---------------------------------------------------------------------------
+  # Seq — structured log server + UI
+  # ---------------------------------------------------------------------------
+  # The only observability component: the API's Serilog sink ships logs here
+  # (Seq__Url). Browse/search them at http://<host>:5341.
+  # SEQ_ADMIN_PASSWORD_HASH (optional) enables the built-in login; generate with:
+  #   docker run --rm datalust/seq config hash '<password>'
+  seq:
+    image: datalust/seq:2024.3
+    container_name: autopartshop.seq
+    environment:
+      - ACCEPT_EULA=Y                          # Required: accept the Seq licence
+      - SEQ_FIRSTRUN_ADMINPASSWORDHASH=${SEQ_ADMIN_PASSWORD_HASH:-}
+    volumes:
+      - autopart_seq_data:/data                # Persistent log storage
+    ports:
+      - "5341:80"                              # http://<host>:5341 — UI and ingestion
+    restart: always
+
 # Named volumes: persistent storage that survives container restarts
 volumes:
   autopart_mssql_data:                        # SQL Server data (production)
+  autopart_seq_data:                          # Seq log storage

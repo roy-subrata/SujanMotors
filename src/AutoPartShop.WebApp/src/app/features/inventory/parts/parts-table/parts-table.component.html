@@ -44,7 +44,7 @@
         <small *ngIf="part.vehicleFit" class="text-gray-400 d-block">Fits: {{ part.vehicleFit }}</small>
       </td>
 
-      <td>{{ part.partNumber }}</td>
+      <td>{{ part.partNumber || '—' }}</td>
 
       <td><span class="category-badge">{{ part.categoryName }}</span></td>
 

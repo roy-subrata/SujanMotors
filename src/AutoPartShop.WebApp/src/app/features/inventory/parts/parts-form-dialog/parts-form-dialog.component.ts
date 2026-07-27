@@ -149,7 +149,8 @@ export class PartsFormDialogComponent implements OnInit {
         this.createForm = this.formBuilder.group({
             name: ['', [Validators.required, Validators.maxLength(200)]],
             description: [''],
-            partNumber: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(20)]],
+            // Optional — some brands don't publish a catalog part number; SKU identifies the part
+            partNumber: ['', [Validators.minLength(3), Validators.maxLength(20)]],
             oemNumber: [null, [Validators.maxLength(100)]],
             categoryId: ['', [Validators.required]],
             brandId: [null],
@@ -490,7 +491,7 @@ export class PartsFormDialogComponent implements OnInit {
         const request: CreatePartRequest = {
             name: this.createForm.get('name')?.value ?? '',
             description: this.createForm.get('description')?.value ?? '',
-            partNumber: this.createForm.get('partNumber')?.value ?? '',
+            partNumber: this.createForm.get('partNumber')?.value?.trim() || null,
             oemNumber: this.createForm.get('oemNumber')?.value || null,
             categoryId: this.selectedCreateCategory?.id ?? '',
             brandId: this.selectedCreateBrand?.id ?? null,

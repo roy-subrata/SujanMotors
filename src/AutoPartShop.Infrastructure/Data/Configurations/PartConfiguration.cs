@@ -2,6 +2,7 @@
 
 
 using AutoPartShop.Domain.Entities;
+using AutoPartsShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace AutoPartShop.Infrastructure.Data.Configurations;
@@ -16,12 +17,16 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Product>
               .HasMaxLength(150)
               .IsRequired();
 
+        // Optional: not every brand publishes a catalog part number — SKU is the
+        // required identifier. Kept as an owned type (rather than a value converter)
+        // so that `p.PartNumber.Value` still translates to a plain column reference
+        // in LINQ queries; a NULL column materialises the owned reference as null.
         builder.OwnsOne(p => p.PartNumber, owned =>
         {
             owned.Property(x => x.Value)
                  .HasColumnName("PartNumber")
                  .HasMaxLength(30)
-                 .IsRequired();
+                 .IsRequired(false);
         });
 
         builder.Property(p => p.Description)

@@ -923,7 +923,7 @@ class _DetailsCard extends StatelessWidget {
     final pairs = <(String, String)>[
       if (product.brand != null) (s.brand, product.brand!.name),
       if (product.category != null) (s.category, product.category!.name),
-      (s.partNo, product.partNumber),
+      if (product.partNumber.isNotEmpty) (s.partNo, product.partNumber),
       if ((product.oemNumber ?? '').isNotEmpty)
         (s.oemNo, product.oemNumber!),
       if ((product.barcode ?? '').isNotEmpty) (s.barcode, product.barcode!),
