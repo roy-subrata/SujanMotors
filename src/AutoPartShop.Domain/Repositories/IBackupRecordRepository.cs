@@ -32,4 +32,10 @@ public interface IBackupRecordRepository : IBaseRepository<BackupRecord>
     /// Records still Pending/Running — after an app restart these are orphans of interrupted runs
     /// </summary>
     Task<List<BackupRecord>> GetInProgressAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every record including pruned ones, untracked — the pre-restore history snapshot used to
+    /// re-insert rows the restored backup predates
+    /// </summary>
+    Task<List<BackupRecord>> GetAllUntrackedAsync(CancellationToken cancellationToken = default);
 }

@@ -109,6 +109,15 @@ public class BackupRecordRepository(AutoPartDbContext context) : IBackupRecordRe
     }
 
     /// <inheritdoc/>
+    public async Task<List<BackupRecord>> GetAllUntrackedAsync(CancellationToken cancellationToken = default)
+    {
+        // Includes pruned records so the post-restore reconciliation restores history in full
+        return await _context.BackupRecords
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public async Task<bool> HasScheduledRunSinceAsync(DateTime utcCutoff, CancellationToken cancellationToken = default)
     {
         // Includes soft-deleted (pruned) records: a pruned run still counts as "ran today"
