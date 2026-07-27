@@ -177,6 +177,9 @@ builder.Services.AddScoped<IPermissionCheckService, PermissionCheckService>();
 builder.Services.AddHttpContextAccessor();
 
 // Register application services
+// Shop business clock — resolves the shop's calendar day from UTC (Shop:TzOffsetMinutes).
+// Singleton: it holds only the configured offset and reads DateTime.UtcNow per call.
+builder.Services.AddSingleton<IShopClock, ShopClock>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IShopProfileProvider, ShopProfileProvider>();
 builder.Services.AddScoped<StockManagementService>();

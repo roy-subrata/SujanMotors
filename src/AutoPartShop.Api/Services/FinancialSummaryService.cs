@@ -12,19 +12,34 @@ public interface IFinancialSummaryService
     Task<List<SalesTrendDto>> GetSalesTrendAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Dashboard aggregates.
+///
+/// <para><b>Date semantics:</b> <see cref="FinancialSummaryRequest.StartDate"/> and
+/// <see cref="FinancialSummaryRequest.EndDate"/> are the shop's <i>local calendar dates</i>,
+/// inclusive on both ends. Every query below runs against UTC-stored timestamps, so the range
+/// is first converted to the half-open UTC instant window that covers exactly those local days
+/// (see <see cref="IShopClock.DayWindowUtc"/>). Without that conversion a UTC-hosted server
+/// reports the shop a day that starts at 06:00 local.</para>
+/// </summary>
 public class FinancialSummaryService : IFinancialSummaryService
 {
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrencyConversionService _currencyService;
+    private readonly IShopClock _shopClock;
 
     // Statuses that represent no real economic activity and must be excluded from every metric.
     private static readonly string[] ExcludedSalesStatuses = ["CANCELLED", "RETURNED", "DRAFT"];
     private static readonly string[] ExcludedPOStatuses = ["DRAFT", "SUBMITTED", "CANCELLED"];
 
-    public FinancialSummaryService(AutoPartDbContext dbContext, ICurrencyConversionService currencyService)
+    public FinancialSummaryService(
+        AutoPartDbContext dbContext,
+        ICurrencyConversionService currencyService,
+        IShopClock shopClock)
     {
         _dbContext = dbContext;
         _currencyService = currencyService;
+        _shopClock = shopClock;
     }
 
     public async Task<DashboardResponse> GetDashboardDataAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
@@ -45,8 +60,8 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     public async Task<FinancialSummaryResponse> GetFinancialSummaryAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
-        var startDate = request.StartDate.Date;
-        var endDate = request.EndDate.Date.AddDays(1); // exclusive upper bound — all queries use < endDate
+        // Shop-local calendar range → UTC instant window. All queries use >= startDate && < endDate.
+        var (startDate, endDate) = _shopClock.DayWindowUtc(request.StartDate, request.EndDate);
 
         // ── Sales ─────────────────────────────────────────────────────────────────────
         // Exclude CANCELLED, RETURNED (reversed sales) and DRAFT (uncommitted legacy orders).
@@ -303,8 +318,10 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         return new FinancialSummaryResponse
         {
-            StartDate = startDate,
-            EndDate = request.EndDate.Date, // inclusive end — NOT the exclusive upper-bound variable
+            // Echo back the shop-local calendar range the caller asked for, inclusive on both
+            // ends — NOT the UTC window variables, which are shifted and half-open.
+            StartDate = request.StartDate.Date,
+            EndDate = request.EndDate.Date,
             Period = request.Period,
 
             // Revenue (accrual)
@@ -364,18 +381,24 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     public async Task<List<SalesTrendDto>> GetSalesTrendAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
-        var startDate = request.StartDate.Date;
-        var endDate = request.EndDate.Date;
-        var filterEnd = endDate.AddDays(1); // exclusive upper bound
+        // Chart x-axis is the shop's calendar, so both the range and the buckets are local.
+        var localStart = request.StartDate.Date;
+        var localEnd = request.EndDate.Date;
+        var (filterStart, filterEnd) = _shopClock.DayWindowUtc(localStart, localEnd);
+
+        // Shift each UTC timestamp onto the shop's wall clock before taking its date, so a sale
+        // rung up at 01:00 local buckets into that local day rather than the previous UTC one.
+        // EF translates AddMinutes/.Date to DATEADD/CAST(... AS date), keeping the grouping in SQL.
+        var tzOffsetMinutes = (double)_shopClock.OffsetMinutes;
 
         // Groups by calendar date in SQL so the result is already aggregated.
         // Currency conversion is intentionally omitted here (SQL-side grouping prevents
         // per-row conversion); the chart is informational and assumes base currency.
         var salesData = await _dbContext.SalesOrders
-            .Where(so => so.SODate >= startDate && so.SODate < filterEnd
+            .Where(so => so.SODate >= filterStart && so.SODate < filterEnd
                          && !so.Isdeleted
                          && !ExcludedSalesStatuses.Contains(so.Status))
-            .GroupBy(so => so.SODate.Date)
+            .GroupBy(so => so.SODate.AddMinutes(tzOffsetMinutes).Date)
             .Select(g => new
             {
                 Date = g.Key,
@@ -385,10 +408,10 @@ public class FinancialSummaryService : IFinancialSummaryService
             .ToListAsync(cancellationToken);
 
         var purchaseData = await _dbContext.PurchaseOrders
-            .Where(po => po.PODate >= startDate && po.PODate < filterEnd
+            .Where(po => po.PODate >= filterStart && po.PODate < filterEnd
                          && !po.Isdeleted
                          && !ExcludedPOStatuses.Contains(po.Status))
-            .GroupBy(po => po.PODate.Date)
+            .GroupBy(po => po.PODate.AddMinutes(tzOffsetMinutes).Date)
             .Select(g => new
             {
                 Date = g.Key,
@@ -397,10 +420,10 @@ public class FinancialSummaryService : IFinancialSummaryService
             .ToListAsync(cancellationToken);
 
         // Produce a zero-filled entry for every day in the range so the chart has no gaps.
-        return Enumerable.Range(0, (endDate - startDate).Days + 1)
+        return Enumerable.Range(0, (localEnd - localStart).Days + 1)
             .Select(offset =>
             {
-                var date = startDate.AddDays(offset);
+                var date = localStart.AddDays(offset);
                 var sale = salesData.FirstOrDefault(s => s.Date == date);
                 var purchase = purchaseData.FirstOrDefault(p => p.Date == date);
                 var salesAmt = sale?.Sales ?? 0m;
@@ -420,8 +443,8 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     private async Task<List<TopProductDto>> GetTopProductsAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
-        var startDate = request.StartDate.Date;
-        var endDate = request.EndDate.Date.AddDays(1); // exclusive upper bound
+        // Shop-local calendar range → UTC instant window (half-open).
+        var (startDate, endDate) = _shopClock.DayWindowUtc(request.StartDate, request.EndDate);
 
         // Revenue = (Quantity × UnitPrice) − (Quantity × Discount), where Discount is per-unit flat amount.
         var lineItems = await _dbContext.SalesOrders
@@ -491,8 +514,8 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     private async Task<List<TopCustomerDto>> GetTopCustomersAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
-        var startDate = request.StartDate.Date;
-        var endDate = request.EndDate.Date.AddDays(1); // exclusive upper bound
+        // Shop-local calendar range → UTC instant window (half-open).
+        var (startDate, endDate) = _shopClock.DayWindowUtc(request.StartDate, request.EndDate);
 
         var orders = await _dbContext.SalesOrders
             .Where(so => so.SODate >= startDate && so.SODate < endDate
