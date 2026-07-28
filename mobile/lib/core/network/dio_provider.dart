@@ -4,9 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/auth_controller.dart';
 import '../config/api_config.dart';
 import '../storage/token_storage.dart';
+import 'token_refresher.dart';
 
-/// Shared Dio client. Attaches the bearer token on every request and triggers a
-/// logout when the API responds 401 (mirrors the web app's auth interceptor).
+/// Marks a request that has already been replayed after a token refresh, so a
+/// second 401 ends the session instead of looping.
+const _retriedFlag = '__auth_retried';
+
+/// Shared Dio client. Attaches the bearer token on every request; on 401 it
+/// renews the access token once and replays the request, falling back to logout
+/// when the session can no longer be renewed.
+///
+/// The anonymous `/auth` endpoints deliberately do NOT go through this client —
+/// see [authDioProvider] in auth_repository.dart — so a failing refresh can
+/// never re-enter this interceptor.
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(BaseOptions(
     baseUrl: ApiConfig.apiBaseUrl,
@@ -25,15 +35,50 @@ final dioProvider = Provider<Dio>((ref) {
       }
       handler.next(options);
     },
-    onError: (error, handler) {
-      final isLoginRequest = error.requestOptions.path.contains('/auth/login');
-      if (error.response?.statusCode == 401 && !isLoginRequest) {
-        // Fire-and-forget: clear session so the router redirects to /login.
-        // Excludes the login endpoint itself — a bad-password 401 there must
-        // surface as a login error, not blow away the in-progress attempt.
-        ref.read(authControllerProvider.notifier).forceLogout();
+    onError: (error, handler) async {
+      if (error.response?.statusCode != 401) {
+        return handler.next(error);
       }
-      handler.next(error);
+
+      final options = error.requestOptions;
+
+      // Already replayed once — the new token was rejected too, so this is a
+      // real authorization failure rather than an expired token.
+      if (options.extra[_retriedFlag] == true) {
+        await ref.read(authControllerProvider.notifier).forceLogout();
+        return handler.next(error);
+      }
+
+      final renewed = await ref.read(tokenRefresherProvider).refresh();
+      if (!renewed) {
+        // Session is over; clearing it makes the router redirect to /login.
+        await ref.read(authControllerProvider.notifier).forceLogout();
+        return handler.next(error);
+      }
+
+      // Rotation may have returned updated roles/permissions; refresh the
+      // in-memory session so UI permission checks see them.
+      await ref.read(authControllerProvider.notifier).syncFromStorage();
+
+      try {
+        final token = await storage.readToken();
+        options.extra[_retriedFlag] = true;
+        options.headers['Authorization'] = 'Bearer $token';
+
+        // A FormData body (image upload) can only be finalised once — its file
+        // stream is consumed by the failed attempt, so the replay needs a fresh
+        // copy. clone() re-reads from the underlying file.
+        final body = options.data;
+        if (body is FormData) {
+          options.data = body.clone();
+        }
+
+        return handler.resolve(await dio.fetch(options));
+      } on DioException catch (e) {
+        return handler.next(e);
+      } catch (_) {
+        return handler.next(error);
+      }
     },
   ));
 

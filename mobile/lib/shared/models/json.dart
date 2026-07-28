@@ -39,6 +39,15 @@ double? asDoubleOrNull(dynamic v) {
   return null;
 }
 
+/// Parses an ISO-8601 timestamp. The API sends UTC with a `Z` designator, so the
+/// result is normalised to UTC rather than left in the device's local zone.
+DateTime? asDateTimeOrNull(dynamic v) {
+  if (v == null) return null;
+  if (v is DateTime) return v.toUtc();
+  final parsed = DateTime.tryParse(v.toString());
+  return parsed?.toUtc();
+}
+
 List<String> asStringList(dynamic v) {
   if (v is List) return v.map((e) => e.toString()).toList();
   return const [];
