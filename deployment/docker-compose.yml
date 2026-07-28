@@ -95,6 +95,24 @@ services:
       - Backup__Directory=/app/backups
       - Backup__SqlServerDirectory=/var/opt/mssql/backups
       - GoogleDrive__ServiceAccountKeyJson=${GDRIVE_SA_KEY_JSON:-}
+      # Business-day timezone. Dashboard and report date windows follow the shop's calendar
+      # day, not the server's UTC day (360 = UTC+6, Bangladesh).
+      - Shop__TzOffsetMinutes=${SHOP_TZ_OFFSET_MINUTES:-360}
+      # Request rate limiting. Enabled is the kill switch — flip it and restart, no rebuild.
+      # Limits are per minute: auth = login, session = token refresh/logout,
+      # public = anonymous endpoints, global = everything else (per user).
+      - RateLimiting__Enabled=${RATE_LIMIT_ENABLED:-true}
+      - RateLimiting__AuthPermitLimit=${RATE_LIMIT_AUTH:-10}
+      - RateLimiting__SessionPermitLimit=${RATE_LIMIT_SESSION:-60}
+      - RateLimiting__PublicPermitLimit=${RATE_LIMIT_PUBLIC:-60}
+      - RateLimiting__GlobalPermitLimit=${RATE_LIMIT_GLOBAL:-600}
+      # Real client IP recovery, which the per-IP limits above depend on.
+      # FORWARDED_HOP_COUNT: nginx alone = 1; Cloudflare/LB in front of nginx = 2.
+      # FORWARDED_KNOWN_NETWORKS: CIDR of the hop to trust. Docker assigns the nginx
+      # container an unstable address, so trust the bridge subnet rather than an IP.
+      # Leave blank to accept X-Forwarded-For from anyone (spoofable; warned at startup).
+      - ForwardedHeaders__ForwardLimit=${FORWARDED_HOP_COUNT:-1}
+      - ForwardedHeaders__KnownNetworks__0=${FORWARDED_KNOWN_NETWORK:-172.16.0.0/12}
       # Log shipping: Serilog pushes structured logs to the Seq container
       - Seq__Url=http://seq                    # Seq listens on :80 for ingestion + UI
       - Seq__ApiKey=${SEQ_API_KEY:-}
