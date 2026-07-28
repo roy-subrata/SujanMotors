@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/auth_controller.dart';
+import '../../features/auth/auth_repository.dart';
 import '../config/api_config.dart';
 import '../storage/token_storage.dart';
 import 'token_refresher.dart';
@@ -49,8 +50,16 @@ final dioProvider = Provider<Dio>((ref) {
         return handler.next(error);
       }
 
-      final renewed = await ref.read(tokenRefresherProvider).refresh();
-      if (!renewed) {
+      final outcome = await ref.read(tokenRefresherProvider).refresh();
+
+      if (outcome == RefreshOutcome.throttled) {
+        // Rate limited or the server was unreachable. The session is probably
+        // still valid, so keep the user signed in and surface the failure; the
+        // next request will try again.
+        return handler.next(error);
+      }
+
+      if (outcome == RefreshOutcome.expired) {
         // Session is over; clearing it makes the router redirect to /login.
         await ref.read(authControllerProvider.notifier).forceLogout();
         return handler.next(error);

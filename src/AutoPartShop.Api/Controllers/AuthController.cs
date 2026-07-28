@@ -17,9 +17,10 @@ namespace AutoPartShop.Api.Controllers;
 /// <summary>
 /// Credential endpoints.
 ///
-/// The anonymous ones (login, refresh, logout) carry the strict <c>auth</c> rate-limit policy:
-/// Identity lockout caps guesses against a single account, while this caps spraying across
-/// many and throttles probing of the refresh-token store. Register and change-password are
+/// Login carries the strict <c>auth</c> rate-limit policy: Identity lockout caps guesses against
+/// a single account, while this caps spraying across many. Refresh and logout use the roomier
+/// <c>session</c> policy — their credential is a 256-bit random token rather than a guessable
+/// password, and a whole shop behind one IP renews in bursts. Register and change-password are
 /// authenticated and stay on the generous global limiter, so an admin provisioning a batch of
 /// staff accounts is not throttled.
 /// </summary>
@@ -192,7 +193,7 @@ public class AuthController : ControllerBase
     /// absolute expiry. Presenting a spent token revokes the entire session (reuse detection).
     /// </summary>
     [HttpPost("refresh-token")]
-    [EnableRateLimiting(RateLimiting.AuthPolicy)]
+    [EnableRateLimiting(RateLimiting.SessionPolicy)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
         try
@@ -236,7 +237,7 @@ public class AuthController : ControllerBase
     /// so this cannot be used to probe for valid tokens.
     /// </summary>
     [HttpPost("logout")]
-    [EnableRateLimiting(RateLimiting.AuthPolicy)]
+    [EnableRateLimiting(RateLimiting.SessionPolicy)]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
         try

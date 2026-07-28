@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject, tap, catchError, of, map, finalize, shareReplay } from 'rxjs';
 import { environment } from 'src/environments/environment';
@@ -27,6 +27,18 @@ export interface RefreshTokenResponse {
   roles: string[];
   permissions?: string[];
 }
+
+/**
+ * Outcome of a token renewal.
+ *
+ * 'throttled' must stay distinct from 'expired': the rate limiter can reject a renewal that
+ * would otherwise have succeeded — a whole shop shares one IP and sessions expire in step —
+ * and treating that as a dead session would sign a cashier out mid-shift over a transient 429.
+ */
+export type RefreshResult =
+  | { status: 'renewed'; token: string }
+  | { status: 'throttled' }
+  | { status: 'expired' };
 
 export interface RegisterRequest {
   username: string;
@@ -72,7 +84,7 @@ export class AuthService {
    * trigger a single rotation. Rotation is single-use server-side: firing two in
    * parallel would spend the token twice and trip reuse detection, killing the session.
    */
-  private refreshInFlight$: Observable<string | null> | null = null;
+  private refreshInFlight$: Observable<RefreshResult> | null = null;
 
   constructor() {
     // Check for existing session on service initialization
@@ -141,25 +153,32 @@ export class AuthService {
    * session is cleared but no redirect happens here; the caller decides where to send
    * the user, so a background refresh cannot yank someone off the page mid-edit.
    */
-  refreshToken(): Observable<string | null> {
+  refreshToken(): Observable<RefreshResult> {
     if (this.refreshInFlight$) {
       return this.refreshInFlight$;
     }
 
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) {
-      return of(null);
+      return of<RefreshResult>({ status: 'expired' });
     }
 
     this.refreshInFlight$ = this.http
       .post<RefreshTokenResponse>(`${this.apiUrl}/refresh-token`, { refreshToken })
       .pipe(
         tap(response => this.applyRefresh(response)),
-        map(response => response.token),
-        catchError(() => {
-          // Expired, revoked, or reuse-detected — all unrecoverable.
+        map(response => ({ status: 'renewed', token: response.token }) as RefreshResult),
+        catchError((error: HttpErrorResponse) => {
+          // Retryable: the limiter rejected us (429), or the request never reached the
+          // server (status 0 / 5xx). The session may well still be valid, so keep it and
+          // let the next attempt renew.
+          if (error.status === 429 || error.status === 0 || error.status >= 500) {
+            return of<RefreshResult>({ status: 'throttled' });
+          }
+
+          // 401 — expired, revoked, or reuse-detected. All unrecoverable.
           this.clearSession();
-          return of(null);
+          return of<RefreshResult>({ status: 'expired' });
         }),
         finalize(() => {
           this.refreshInFlight$ = null;

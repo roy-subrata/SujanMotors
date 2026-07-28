@@ -14,8 +14,12 @@ namespace AutoPartShop.Api.Middleware;
 /// anonymous caller guessing passwords:</para>
 /// <list type="bullet">
 /// <item><b>auth</b> — the credential endpoints. Tight and per-IP. Identity lockout already caps
-/// guesses against a single account; this caps the spray across many accounts, and throttles
-/// probing of the refresh-token store.</item>
+/// guesses against a single account; this caps the spray across many accounts.</item>
+/// <item><b>session</b> — token renewal and sign-out. Separate from <b>auth</b>, and more
+/// generous, because these are not guessable: a refresh token is 256 bits of CSPRNG output and
+/// replaying one revokes the whole family, so a tight limit buys almost nothing. Meanwhile the
+/// shop NATs every till through one address, and staff who signed in together expire together —
+/// a burst of simultaneous renewals must not be mistaken for an attack.</item>
 /// <item><b>public</b> — the handful of <c>[AllowAnonymous]</c> data endpoints (invoice print
 /// data, file downloads, public settings). Per-IP and moderate: enough for a print page and its
 /// assets, not enough to enumerate.</item>
@@ -28,8 +32,11 @@ namespace AutoPartShop.Api.Middleware;
 /// </summary>
 public static class RateLimiting
 {
-    /// <summary>Credential endpoints: login, register, refresh, logout.</summary>
+    /// <summary>Credential endpoints: staff login, customer login and registration.</summary>
     public const string AuthPolicy = "auth";
+
+    /// <summary>Token renewal and sign-out.</summary>
+    public const string SessionPolicy = "session";
 
     /// <summary>Anonymous data endpoints.</summary>
     public const string PublicPolicy = "public";
@@ -65,6 +72,15 @@ public static class RateLimiting
                     PermitLimit = options.AuthPermitLimit,
                     Window = TimeSpan.FromSeconds(options.AuthWindowSeconds),
                     QueueLimit = 0 // fail fast; queueing a login attempt only delays the 429
+                }));
+
+            limiter.AddPolicy(SessionPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: $"session:{ClientKey(context)}",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = options.SessionPermitLimit,
+                    Window = TimeSpan.FromSeconds(options.SessionWindowSeconds),
+                    QueueLimit = 0
                 }));
 
             limiter.AddPolicy(PublicPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
@@ -177,6 +193,9 @@ public sealed record RateLimitSettings
     public int AuthPermitLimit { get; init; } = 10;
     public int AuthWindowSeconds { get; init; } = 60;
 
+    public int SessionPermitLimit { get; init; } = 60;
+    public int SessionWindowSeconds { get; init; } = 60;
+
     public int PublicPermitLimit { get; init; } = 60;
     public int PublicWindowSeconds { get; init; } = 60;
 
@@ -194,6 +213,8 @@ public sealed record RateLimitSettings
             Enabled = section.GetValue("Enabled", defaults.Enabled),
             AuthPermitLimit = Positive(section, "AuthPermitLimit", defaults.AuthPermitLimit),
             AuthWindowSeconds = Positive(section, "AuthWindowSeconds", defaults.AuthWindowSeconds),
+            SessionPermitLimit = Positive(section, "SessionPermitLimit", defaults.SessionPermitLimit),
+            SessionWindowSeconds = Positive(section, "SessionWindowSeconds", defaults.SessionWindowSeconds),
             PublicPermitLimit = Positive(section, "PublicPermitLimit", defaults.PublicPermitLimit),
             PublicWindowSeconds = Positive(section, "PublicWindowSeconds", defaults.PublicWindowSeconds),
             GlobalPermitLimit = Positive(section, "GlobalPermitLimit", defaults.GlobalPermitLimit),

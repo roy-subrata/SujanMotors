@@ -37,19 +37,31 @@ class _FakeAuthRepository extends AuthRepository {
   _FakeAuthRepository({this.result, this.delay = Duration.zero})
       : super(Dio());
 
-  RefreshedTokens? result;
+  RefreshAttempt? result;
   Duration delay;
   int refreshCalls = 0;
   final List<String> presentedTokens = [];
 
   @override
-  Future<RefreshedTokens?> refresh(String refreshToken) async {
+  Future<RefreshAttempt> refresh(String refreshToken) async {
     refreshCalls++;
     presentedTokens.add(refreshToken);
     if (delay > Duration.zero) await Future<void>.delayed(delay);
-    return result;
+    return result ?? const RefreshAttempt(RefreshOutcome.expired);
   }
 }
+
+RefreshAttempt _renewed(String token, String refreshToken,
+        {List<String> roles = const [], List<String> permissions = const []}) =>
+    RefreshAttempt(
+      RefreshOutcome.renewed,
+      RefreshedTokens(
+        token: token,
+        refreshToken: refreshToken,
+        roles: roles,
+        permissions: permissions,
+      ),
+    );
 
 Session _session({String refreshToken = 'rt-1'}) => Session(
       token: 'access-1',
@@ -66,7 +78,7 @@ void main() {
       // present the same spent token and trip server-side reuse detection,
       // revoking the whole session.
       final repo = _FakeAuthRepository(
-        result: const RefreshedTokens(token: 'access-2', refreshToken: 'rt-2'),
+        result: _renewed('access-2', 'rt-2'),
         delay: const Duration(milliseconds: 50),
       );
       final storage = _FakeStorage(session: _session());
@@ -78,35 +90,32 @@ void main() {
         refresher.refresh(),
       ]);
 
-      expect(results, everyElement(isTrue));
+      expect(results, everyElement(RefreshOutcome.renewed));
       expect(repo.refreshCalls, 1, reason: 'three callers, one rotation');
     });
 
     test('a later refresh starts a new rotation', () async {
       final repo = _FakeAuthRepository(
-        result: const RefreshedTokens(token: 'access-2', refreshToken: 'rt-2'),
+        result: _renewed('access-2', 'rt-2'),
       );
       final storage = _FakeStorage(session: _session());
       final refresher = TokenRefresher(repo, storage);
 
-      expect(await refresher.refresh(), isTrue);
-      expect(await refresher.refresh(), isTrue);
+      expect(await refresher.refresh(), RefreshOutcome.renewed);
+      expect(await refresher.refresh(), RefreshOutcome.renewed);
       expect(repo.refreshCalls, 2, reason: 'in-flight must clear on completion');
     });
 
     test('persists the rotated pair', () async {
       final repo = _FakeAuthRepository(
-        result: const RefreshedTokens(
-          token: 'access-2',
-          refreshToken: 'rt-2',
-          roles: ['Admin', 'Manager'],
-          permissions: ['sales.view', 'sales.edit'],
-        ),
+        result: _renewed('access-2', 'rt-2',
+            roles: const ['Admin', 'Manager'],
+            permissions: const ['sales.view', 'sales.edit']),
       );
       final storage = _FakeStorage(session: _session());
       final refresher = TokenRefresher(repo, storage);
 
-      expect(await refresher.refresh(), isTrue);
+      expect(await refresher.refresh(), RefreshOutcome.renewed);
 
       final saved = await storage.readSession();
       expect(saved!.token, 'access-2');
@@ -118,40 +127,72 @@ void main() {
     });
 
     test('rejection reports failure and leaves the session untouched', () async {
-      final repo = _FakeAuthRepository(result: null);
+      final repo = _FakeAuthRepository(result: const RefreshAttempt(RefreshOutcome.expired));
       final storage = _FakeStorage(session: _session());
       final refresher = TokenRefresher(repo, storage);
 
-      expect(await refresher.refresh(), isFalse);
+      expect(await refresher.refresh(), RefreshOutcome.expired);
       expect(storage.saveCount, 0);
     });
 
     test('a failed rotation does not poison later attempts', () async {
-      final repo = _FakeAuthRepository(result: null);
+      final repo = _FakeAuthRepository(result: const RefreshAttempt(RefreshOutcome.expired));
       final storage = _FakeStorage(session: _session());
       final refresher = TokenRefresher(repo, storage);
 
-      expect(await refresher.refresh(), isFalse);
-      repo.result =
-          const RefreshedTokens(token: 'access-2', refreshToken: 'rt-2');
-      expect(await refresher.refresh(), isTrue);
+      expect(await refresher.refresh(), RefreshOutcome.expired);
+      repo.result = _renewed('access-2', 'rt-2');
+      expect(await refresher.refresh(), RefreshOutcome.renewed);
     });
 
     test('a session with no refresh token cannot renew', () async {
       // Sessions stored by a build that predates refresh tokens.
       final repo = _FakeAuthRepository(
-        result: const RefreshedTokens(token: 'x', refreshToken: 'y'),
+        result: _renewed('x', 'y'),
       );
       final storage = _FakeStorage(session: _session(refreshToken: ''));
       final refresher = TokenRefresher(repo, storage);
 
-      expect(await refresher.refresh(), isFalse);
+      expect(await refresher.refresh(), RefreshOutcome.expired);
       expect(repo.refreshCalls, 0, reason: 'no point calling the API');
+    });
+
+    test('throttling is reported as retryable, not as a dead session', () async {
+      // The API rate-limits renewal per IP and a shop NATs every till through one
+      // address, so a burst of simultaneous renewals can be rejected while every
+      // session is still valid. Reporting that as expired would sign a cashier out.
+      final repo = _FakeAuthRepository(
+        result: const RefreshAttempt(RefreshOutcome.throttled),
+      );
+      final storage = _FakeStorage(session: _session());
+      final refresher = TokenRefresher(repo, storage);
+
+      expect(await refresher.refresh(), RefreshOutcome.throttled);
+      expect(storage.saveCount, 0, reason: 'nothing to persist');
+
+      final kept = await storage.readSession();
+      expect(kept, isNotNull, reason: 'the session must survive a 429');
+      expect(kept!.refreshToken, 'rt-1',
+          reason: 'the unspent token is still usable');
+    });
+
+    test('a throttled attempt can be retried successfully', () async {
+      final repo = _FakeAuthRepository(
+        result: const RefreshAttempt(RefreshOutcome.throttled),
+      );
+      final storage = _FakeStorage(session: _session());
+      final refresher = TokenRefresher(repo, storage);
+
+      expect(await refresher.refresh(), RefreshOutcome.throttled);
+      repo.result = _renewed('access-2', 'rt-2');
+      expect(await refresher.refresh(), RefreshOutcome.renewed);
+      expect(repo.presentedTokens, ['rt-1', 'rt-1'],
+          reason: 'a throttled attempt does not spend the token');
     });
 
     test('presents the current token, not a stale one', () async {
       final repo = _FakeAuthRepository(
-        result: const RefreshedTokens(token: 'access-2', refreshToken: 'rt-2'),
+        result: _renewed('access-2', 'rt-2'),
       );
       final storage = _FakeStorage(session: _session());
       final refresher = TokenRefresher(repo, storage);

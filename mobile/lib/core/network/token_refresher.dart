@@ -16,27 +16,29 @@ class TokenRefresher {
   final AuthRepository _repository;
   final TokenStorage _storage;
 
-  Future<bool>? _inFlight;
+  Future<RefreshOutcome>? _inFlight;
 
-  /// Returns true when a fresh access token has been persisted and the caller
-  /// may retry, false when the session is over and the caller should log out.
-  Future<bool> refresh() {
+  /// [RefreshOutcome.renewed] means a fresh access token is persisted and the
+  /// caller may retry. [RefreshOutcome.throttled] means try again later but keep
+  /// the session. [RefreshOutcome.expired] means sign out.
+  Future<RefreshOutcome> refresh() {
     return _inFlight ??= _refresh().whenComplete(() => _inFlight = null);
   }
 
-  Future<bool> _refresh() async {
+  Future<RefreshOutcome> _refresh() async {
     final refreshToken = await _storage.readRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
       // Nothing to renew with — e.g. a session stored by a build that predates
       // refresh tokens.
-      return false;
+      return RefreshOutcome.expired;
     }
 
-    final tokens = await _repository.refresh(refreshToken);
-    if (tokens == null) return false;
+    final attempt = await _repository.refresh(refreshToken);
+    if (attempt.outcome != RefreshOutcome.renewed) return attempt.outcome;
 
+    final tokens = attempt.tokens!;
     final session = await _storage.readSession();
-    if (session == null) return false;
+    if (session == null) return RefreshOutcome.expired;
 
     await _storage.saveSession(session.withRefreshedTokens(
       token: tokens.token,
@@ -46,7 +48,7 @@ class TokenRefresher {
       permissions: tokens.permissions.isEmpty ? null : tokens.permissions,
     ));
 
-    return true;
+    return RefreshOutcome.renewed;
   }
 }
 

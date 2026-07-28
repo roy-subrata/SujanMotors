@@ -49,14 +49,21 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         // The access token has most likely just expired. Rotate it and replay the request
         // once; concurrent 401s share a single rotation inside AuthService.
         return authService.refreshToken().pipe(
-          switchMap(newToken => {
-            if (!newToken) {
-              // Session is genuinely over — refreshToken() has already cleared it.
-              router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+          switchMap(result => {
+            if (result.status === 'renewed') {
+              return next(withToken(req, result.token));
+            }
+
+            // Throttled or unreachable — the session is probably fine, we just could not
+            // renew right now. Surface the failure and keep the user signed in; the next
+            // request will try again.
+            if (result.status === 'throttled') {
               return throwError(() => error);
             }
 
-            return next(withToken(req, newToken));
+            // Session is genuinely over — refreshToken() has already cleared it.
+            router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+            return throwError(() => error);
           })
         );
       }

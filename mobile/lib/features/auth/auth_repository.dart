@@ -6,6 +6,21 @@ import '../../core/network/app_exception.dart';
 import '../../shared/models/json.dart';
 import 'session.dart';
 
+/// Why a renewal ended the way it did.
+///
+/// [throttled] must stay distinct from [expired]: the API rate-limits token
+/// renewal per IP, and a shop NATs every till through one address, so a burst of
+/// simultaneous renewals can be rejected even though every session is valid.
+/// Treating that as a dead session would sign a cashier out mid-shift.
+enum RefreshOutcome { renewed, throttled, expired }
+
+class RefreshAttempt {
+  const RefreshAttempt(this.outcome, [this.tokens]);
+
+  final RefreshOutcome outcome;
+  final RefreshedTokens? tokens;
+}
+
 /// Result of exchanging a refresh token: a new access token plus its successor
 /// refresh token. Roles and permissions come back too, so a change made by an
 /// admin takes effect on the next rotation instead of requiring a re-login.
@@ -56,20 +71,33 @@ class AuthRepository {
     }
   }
 
-  /// Exchanges [refreshToken] for a new pair. Returns null when the session is
-  /// over — expired, revoked, or reuse-detected are all unrecoverable and
-  /// indistinguishable by design.
-  Future<RefreshedTokens?> refresh(String refreshToken) async {
+  /// Exchanges [refreshToken] for a new pair.
+  ///
+  /// A rejection (401) is terminal — expired, revoked and reuse-detected are
+  /// deliberately indistinguishable. Throttling or an unreachable server is not:
+  /// the session is probably still valid, so the caller must retry rather than
+  /// sign the user out.
+  Future<RefreshAttempt> refresh(String refreshToken) async {
     try {
       final res = await _dio.post('/auth/refresh-token', data: {
         'refreshToken': refreshToken,
       });
       final tokens = RefreshedTokens.fromJson(res.data as Map<String, dynamic>);
-      return tokens.token.isEmpty ? null : tokens;
-    } on DioException {
-      return null;
+      return tokens.token.isEmpty
+          ? const RefreshAttempt(RefreshOutcome.expired)
+          : RefreshAttempt(RefreshOutcome.renewed, tokens);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+
+      // 429 rate limited, 5xx server trouble, or no response at all (offline,
+      // timeout) — all transient.
+      if (status == null || status == 429 || status >= 500) {
+        return const RefreshAttempt(RefreshOutcome.throttled);
+      }
+
+      return const RefreshAttempt(RefreshOutcome.expired);
     } catch (_) {
-      return null;
+      return const RefreshAttempt(RefreshOutcome.expired);
     }
   }
 
