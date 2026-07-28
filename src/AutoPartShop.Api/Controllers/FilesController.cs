@@ -1,4 +1,5 @@
 using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.FileDtos;
 using AutoPartShop.Application.Interfaces;
@@ -6,6 +7,7 @@ using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -106,6 +108,7 @@ public class FilesController(
     /// </summary>
     [HttpGet("{id:guid}/content")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimiting.PublicPolicy)]   // unauthenticated blob serving
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetContent(Guid id, CancellationToken cancellationToken)

@@ -166,6 +166,12 @@ builder.Services.AddAuthentication(options =>
 });
 builder.Services.AddMemoryCache();
 
+// Recover the real client IP from X-Forwarded-For before anything partitions on it.
+builder.Services.AddProxyForwardedHeaders(builder.Configuration);
+
+// Request rate limiting — see Middleware/RateLimiting.cs for the tiers and their rationale.
+builder.Services.AddApiRateLimiting(builder.Configuration);
+
 // Add Authorization — permission policies ("permission:xxx") are built on demand and
 // resolved against the RolePermissions table (Admin bypasses; see Api/Authorization).
 builder.Services.AddAuthorization();
@@ -221,11 +227,11 @@ builder.Services.AddControllers()
 builder.Services.AddSignalR();
 
 // Allow SignalR to read JWT from query string (WebSocket/SSE can't set Authorization header)
-builder.Services.Configure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
-    Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
+builder.Services.Configure<JwtBearerOptions>(
+    JwtBearerDefaults.AuthenticationScheme,
     options =>
     {
-        var existing = options.Events ?? new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents();
+        var existing = options.Events ?? new JwtBearerEvents();
         options.Events = existing;
         options.Events.OnMessageReceived = ctx =>
         {
@@ -310,6 +316,12 @@ if (app.Environment.IsDevelopment())
 }
 
 await app.ApplyMigration();
+
+// Must run before anything reads the client IP (rate limiting, request logs): rewrites
+// RemoteIpAddress from X-Forwarded-For so it is the caller, not the reverse proxy.
+app.UseForwardedHeaders();
+app.LogForwardedHeadersTrust(builder.Configuration);
+
 // Enable CORS
 app.UseCors(corsPolicy);
 app.UseMiddleware<GlobalExceptionMiddleware>();
@@ -317,6 +329,19 @@ app.UseSerilogRequestLogging();
 
 app.UseRouting();
 app.UseAuthentication();
+
+// Deliberately between authentication and authorization.
+//
+// After UseAuthentication so HttpContext.User is populated and authenticated callers
+// partition by user id rather than by IP — a shop NATs every till through one address, and
+// an IP partition would make cashiers throttle one another.
+//
+// Before UseAuthorization because that is what short-circuits with 401/403. Downstream of
+// it, a caller spraying requests with a bogus token would never reach the limiter at all.
+// UseAuthentication itself never short-circuits: it just leaves User unauthenticated, which
+// falls back to the per-IP partition — exactly what an anonymous abuser should get.
+app.UseRateLimiter();
+
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<SaleNotificationHub>("/hubs/sale-notifications");

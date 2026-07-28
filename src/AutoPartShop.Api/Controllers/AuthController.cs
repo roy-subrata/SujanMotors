@@ -2,16 +2,27 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace AutoPartShop.Api.Controllers;
 
+/// <summary>
+/// Credential endpoints.
+///
+/// The anonymous ones (login, refresh, logout) carry the strict <c>auth</c> rate-limit policy:
+/// Identity lockout caps guesses against a single account, while this caps spraying across
+/// many and throttles probing of the refresh-token store. Register and change-password are
+/// authenticated and stay on the generous global limiter, so an admin provisioning a batch of
+/// staff accounts is not throttled.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
@@ -50,6 +61,7 @@ public class AuthController : ControllerBase
     /// User login endpoint
     /// </summary>
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimiting.AuthPolicy)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         try
@@ -180,6 +192,7 @@ public class AuthController : ControllerBase
     /// absolute expiry. Presenting a spent token revokes the entire session (reuse detection).
     /// </summary>
     [HttpPost("refresh-token")]
+    [EnableRateLimiting(RateLimiting.AuthPolicy)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
         try
@@ -223,6 +236,7 @@ public class AuthController : ControllerBase
     /// so this cannot be used to probe for valid tokens.
     /// </summary>
     [HttpPost("logout")]
+    [EnableRateLimiting(RateLimiting.AuthPolicy)]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
         try

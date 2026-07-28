@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Hr;
 using AutoPartShop.Application.Hr.Dtos;
@@ -5,6 +6,7 @@ using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -106,6 +108,10 @@ public class AttendanceController : ControllerBase
     /// </summary>
     [HttpPost("punch")]
     [AllowAnonymous]
+    // Device-key authenticated, so throttle X-Device-Key guessing. Uses the public tier
+    // rather than the tighter auth tier: a shift change puts many punches through one
+    // device in a short burst, which the auth limit would reject.
+    [EnableRateLimiting(RateLimiting.PublicPolicy)]
     public async Task<IActionResult> Punch(PunchRequest request, CancellationToken cancellationToken)
     {
         try
