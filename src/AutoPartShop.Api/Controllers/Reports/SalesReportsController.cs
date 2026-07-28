@@ -21,7 +21,8 @@ namespace AutoPartShop.Api.Controllers.Reports;
 public class SalesReportsController(
     IReportReadRepository reportRepository,
     IReportExportService exportService,
-    ILogger<SalesReportsController> logger) : ReportsControllerBase(exportService)
+    IShopClock shopClock,
+    ILogger<SalesReportsController> logger) : ReportsControllerBase(exportService, shopClock)
 {
     /// <summary>Sales summary bucketed by day/week/month.</summary>
     [HttpPost("summary")]
@@ -449,7 +450,9 @@ public class SalesReportsController(
             var net = gross - returnsTotal - discounts;
 
             var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
-            var businessDate = query.FromDate ?? DateTime.Now;
+            // Falls back to the shop's calendar day, not the server's — the Z-report number
+            // and business-day label must match the day the shop actually closed.
+            var businessDate = query.FromDate ?? ShopClock.Now;
 
             var data = new DailySalesReportData(
                 ReportNumber: $"Z-{businessDate:yyyyMMdd}",

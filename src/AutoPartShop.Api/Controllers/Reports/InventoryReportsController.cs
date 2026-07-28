@@ -20,7 +20,8 @@ namespace AutoPartShop.Api.Controllers.Reports;
 public class InventoryReportsController(
     IReportReadRepository reportRepository,
     IReportExportService exportService,
-    ILogger<InventoryReportsController> logger) : ReportsControllerBase(exportService)
+    IShopClock shopClock,
+    ILogger<InventoryReportsController> logger) : ReportsControllerBase(exportService, shopClock)
 {
     /// <summary>Current stock per part/variant/warehouse with lot-based valuation and grand totals.</summary>
     [HttpPost("stock-summary")]
@@ -87,7 +88,8 @@ public class InventoryReportsController(
             var warehouses = page.Data.Select(r => r.WarehouseName).Distinct().ToList();
             var warehouseLabel = warehouses.Count == 1 ? warehouses[0] : "All Warehouses";
 
-            var asOf = query.AsOfDate ?? DateTime.Now;
+            // Snapshot date defaults to the shop's calendar day, not the server's.
+            var asOf = query.AsOfDate ?? ShopClock.Now;
             var data = new AutoPartShop.Api.Pdf.StockReportDocumentData(
                 ReportNumber: $"STK-{asOf:yyyyMMdd}",
                 AsOf: asOf,

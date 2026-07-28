@@ -19,7 +19,8 @@ namespace AutoPartShop.Api.Controllers.Reports;
 public class PurchaseReportsController(
     IReportReadRepository reportRepository,
     IReportExportService exportService,
-    ILogger<PurchaseReportsController> logger) : ReportsControllerBase(exportService)
+    IShopClock shopClock,
+    ILogger<PurchaseReportsController> logger) : ReportsControllerBase(exportService, shopClock)
 {
     /// <summary>Purchase order totals bucketed by day/week/month.</summary>
     [HttpPost("summary")]

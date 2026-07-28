@@ -1,7 +1,9 @@
+using AutoPartShop.Api.Middleware;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AutoPartShop.Api.Controllers;
 
@@ -28,6 +30,7 @@ public class ApplicationSettingsController : ControllerBase
     /// </summary>
     [HttpGet("public/shop")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimiting.PublicPolicy)]
     public async Task<ActionResult> GetPublicShopProfile()
     {
         var settings = await _settingsRepository.GetByCategoryAsync("BUSINESS");
@@ -70,6 +73,7 @@ public class ApplicationSettingsController : ControllerBase
     /// </summary>
     [HttpGet("public/manifest")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimiting.PublicPolicy)]
     public async Task<ActionResult> GetManifest()
     {
         var appName = await _settingsRepository.GetValueAsync("APP_NAME");

@@ -2,15 +2,28 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Middleware;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace AutoPartShop.Api.Controllers;
 
+/// <summary>
+/// Credential endpoints.
+///
+/// Login carries the strict <c>auth</c> rate-limit policy: Identity lockout caps guesses against
+/// a single account, while this caps spraying across many. Refresh and logout use the roomier
+/// <c>session</c> policy — their credential is a 256-bit random token rather than a guessable
+/// password, and a whole shop behind one IP renews in bursts. Register and change-password are
+/// authenticated and stay on the generous global limiter, so an admin provisioning a batch of
+/// staff accounts is not throttled.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
@@ -22,6 +35,7 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
     private readonly AutoPartDbContext _dbContext;
+    private readonly IRefreshTokenService _refreshTokens;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
@@ -29,7 +43,8 @@ public class AuthController : ControllerBase
         RoleManager<ApplicationRole> roleManager,
         IConfiguration configuration,
         ILogger<AuthController> logger,
-        AutoPartDbContext dbContext)
+        AutoPartDbContext dbContext,
+        IRefreshTokenService refreshTokens)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -37,12 +52,17 @@ public class AuthController : ControllerBase
         _configuration = configuration;
         _logger = logger;
         _dbContext = dbContext;
+        _refreshTokens = refreshTokens;
     }
+
+    /// <summary>Best-effort client IP for the refresh-token audit trail.</summary>
+    private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
 
     /// <summary>
     /// User login endpoint
     /// </summary>
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimiting.AuthPolicy)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         try
@@ -71,12 +91,15 @@ public class AuthController : ControllerBase
             await _userManager.UpdateAsync(user);
 
             var token = await GenerateJwtToken(user);
+            var (refreshToken, refreshExpiresAt) = await _refreshTokens.IssueAsync(user, ClientIp);
             var roles = await _userManager.GetRolesAsync(user);
             var permissions = await GetUserPermissionsAsync(roles.ToList());
 
             return Ok(new LoginResponse
             {
                 Token = token,
+                RefreshToken = refreshToken,
+                RefreshTokenExpiresAt = refreshExpiresAt,
                 Username = user.UserName!,
                 Email = user.Email!,
                 FullName = user.FullName,
@@ -162,38 +185,69 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Refresh access token
+    /// Exchanges a refresh token for a new access token and a new refresh token.
+    ///
+    /// Anonymous by design — the caller's access token has usually expired by this point, which
+    /// is the whole reason for the call. Authority comes from the refresh token itself: it is a
+    /// 256-bit random value stored only as a hash, single-use, and bounded by its family's
+    /// absolute expiry. Presenting a spent token revokes the entire session (reuse detection).
     /// </summary>
     [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    [EnableRateLimiting(RateLimiting.SessionPolicy)]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            var principal = GetPrincipalFromExpiredToken(request.Token);
-            if (principal == null)
+            var result = await _refreshTokens.RotateAsync(request.RefreshToken, ClientIp, cancellationToken);
+
+            if (!result.Succeeded)
             {
-                return Unauthorized(ApiError.Unauthorized("Invalid token", Request.Path));
+                // Deliberately uniform: distinguishing "unknown" from "expired" from
+                // "reuse-detected" would let a caller probe the token store.
+                _logger.LogInformation("Refresh token rejected: {Reason}", result.FailureReason);
+                return Unauthorized(ApiError.Unauthorized("Invalid or expired refresh token", Request.Path));
             }
 
-            var username = principal.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
-            {
-                return Unauthorized(ApiError.Unauthorized("Invalid token", Request.Path));
-            }
-
-            var user = await _userManager.FindByNameAsync(username);
-            if (user == null || !user.IsActive)
-            {
-                return Unauthorized(ApiError.Unauthorized("User not found or inactive", Request.Path));
-            }
-
+            var user = result.User!;
             var newToken = await GenerateJwtToken(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var permissions = await GetUserPermissionsAsync(roles.ToList());
 
-            return Ok(new { token = newToken });
+            return Ok(new RefreshTokenResponse
+            {
+                Token = newToken,
+                RefreshToken = result.RefreshToken!,
+                RefreshTokenExpiresAt = result.ExpiresAt!.Value,
+                Roles = roles.ToList(),
+                Permissions = permissions
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during token refresh");
+            return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
+        }
+    }
+
+    /// <summary>
+    /// Ends the session tied to the supplied refresh token.
+    ///
+    /// Anonymous so that logging out still works once the access token has expired — the refresh
+    /// token is the credential being surrendered. Revoking an unknown token is a silent no-op,
+    /// so this cannot be used to probe for valid tokens.
+    /// </summary>
+    [HttpPost("logout")]
+    [EnableRateLimiting(RateLimiting.SessionPolicy)]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _refreshTokens.RevokeAsync(request.RefreshToken, "logout", cancellationToken);
+            return Ok(new { message = "Logged out" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
             return StatusCode(StatusCodes.Status500InternalServerError, ApiError.Internal(HttpContext.TraceIdentifier));
         }
     }
@@ -227,7 +281,13 @@ public class AuthController : ControllerBase
                     instance: Request.Path));
             }
 
-            return Ok(new { message = "Password changed successfully" });
+            // A password change must end every existing session — that is the action a user
+            // takes when they believe their credentials are compromised. The caller's own
+            // access token stays valid until it expires (at most JwtSettings:ExpiryInMinutes),
+            // but it can no longer be renewed, so all sessions die within that window.
+            await _refreshTokens.RevokeAllForUserAsync(user.Id, "password-change");
+
+            return Ok(new { message = "Password changed successfully. Please sign in again on your other devices." });
         }
         catch (Exception ex)
         {
@@ -301,38 +361,6 @@ public class AuthController : ControllerBase
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
-    {
-        var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT Secret Key not configured");
-
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = false // Don't validate lifetime for refresh
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        try
-        {
-            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
-
-            if (securityToken is not JwtSecurityToken jwtSecurityToken ||
-                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return null;
-            }
-
-            return principal;
-        }
-        catch
-        {
-            return null;
-        }
-    }
 }
 
 // DTOs
@@ -344,7 +372,18 @@ public record LoginRequest
 
 public record LoginResponse
 {
+    /// <summary>Short-lived access JWT (JwtSettings:ExpiryInMinutes).</summary>
     public string Token { get; init; } = default!;
+
+    /// <summary>
+    /// Single-use refresh token. Store it as securely as the access token — it is a
+    /// bearer credential for the whole session.
+    /// </summary>
+    public string RefreshToken { get; init; } = default!;
+
+    /// <summary>Absolute expiry of the session; rotation does not extend it.</summary>
+    public DateTime RefreshTokenExpiresAt { get; init; }
+
     public string Username { get; init; } = default!;
     public string Email { get; init; } = default!;
     public string FullName { get; init; } = default!;
@@ -364,7 +403,24 @@ public record RegisterRequest
 
 public record RefreshTokenRequest
 {
+    /// <summary>
+    /// The refresh token issued at login or by the previous refresh — NOT the access JWT.
+    /// </summary>
+    public string RefreshToken { get; init; } = default!;
+}
+
+public record RefreshTokenResponse
+{
     public string Token { get; init; } = default!;
+
+    /// <summary>The successor token. The one just presented is now spent — replace it.</summary>
+    public string RefreshToken { get; init; } = default!;
+
+    public DateTime RefreshTokenExpiresAt { get; init; }
+
+    /// <summary>Re-sent on every refresh so role/permission changes take effect without re-login.</summary>
+    public List<string> Roles { get; init; } = new();
+    public List<string> Permissions { get; init; } = new();
 }
 
 public record ChangePasswordRequest
