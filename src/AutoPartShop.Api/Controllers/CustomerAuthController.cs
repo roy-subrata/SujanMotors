@@ -1,19 +1,26 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AutoPartShop.Api.Middleware;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace AutoPartShop.Api.Controllers;
 
+/// <summary>
+/// Online-shopper credential endpoints. Fully anonymous, so both are rate limited per IP —
+/// registration would otherwise let anyone bulk-create customer records.
+/// </summary>
 [ApiController]
 [Route("api/customer-auth")]
 [Route("api/v1/customer-auth")]
 [Produces("application/json")]
+[EnableRateLimiting(RateLimiting.AuthPolicy)]
 public class CustomerAuthController(
     UserManager<ApplicationUser> _userManager,
     SignInManager<ApplicationUser> _signInManager,

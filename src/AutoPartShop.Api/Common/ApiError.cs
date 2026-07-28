@@ -88,6 +88,19 @@ public sealed class ApiError
         Instance = instance
     };
 
+    /// <summary>
+    /// Request rejected by the rate limiter. The response also carries a
+    /// <c>Retry-After</c> header when the window length is known.
+    /// </summary>
+    public static ApiError TooManyRequests(string detail, string? instance = null) => new()
+    {
+        Type = "RATE_LIMITED",
+        Title = "Too many requests",
+        Status = 429,
+        Detail = detail,
+        Instance = instance
+    };
+
     public static ApiError Internal(string? traceId = null) => new()
     {
         Type = "INTERNAL_ERROR",

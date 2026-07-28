@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/storage/token_storage.dart';
@@ -31,13 +31,35 @@ class AuthController extends AsyncNotifier<Session?> {
     });
   }
 
+  /// Signs out, revoking the session server-side so the refresh token cannot be
+  /// replayed. The revoke is best-effort and never blocks the local sign-out —
+  /// a network failure must not trap the user in a signed-in state.
   Future<void> logout() async {
+    final storage = ref.read(tokenStorageProvider);
+    final refreshToken = await storage.readRefreshToken();
+
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await ref.read(authRepositoryProvider).logout(refreshToken);
+    }
+
+    await storage.clear();
+    state = const AsyncData(null);
+  }
+
+  /// Called by the Dio interceptor when a request is unauthorized and the
+  /// session could not be renewed. Skips the server-side revoke: the refresh
+  /// token is already dead, so the call would be pointless.
+  Future<void> forceLogout() async {
     await ref.read(tokenStorageProvider).clear();
     state = const AsyncData(null);
   }
 
-  /// Called by the Dio interceptor when the API returns 401.
-  Future<void> forceLogout() => logout();
+  /// Re-reads the session from storage after the interceptor rotated the
+  /// tokens, so roles and permissions held in memory stay current.
+  Future<void> syncFromStorage() async {
+    final session = await ref.read(tokenStorageProvider).readSession();
+    if (session != null) state = AsyncData(session);
+  }
 }
 
 final authControllerProvider =

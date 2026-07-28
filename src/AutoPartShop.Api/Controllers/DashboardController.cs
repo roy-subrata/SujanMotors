@@ -11,7 +11,10 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [HasPermission(Permissions.ReportsView)]
-public class DashboardController(IFinancialSummaryService financialSummaryService, ILogger<DashboardController> logger) : ControllerBase
+public class DashboardController(
+    IFinancialSummaryService financialSummaryService,
+    IShopClock shopClock,
+    ILogger<DashboardController> logger) : ControllerBase
 {
     /// <summary>
     /// Get complete dashboard data including summary, trends, and top items
@@ -86,8 +89,9 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
     {
         try
         {
-            // Fix #1: use UtcNow.Date for consistency with the rest of the codebase
-            var today = DateTime.UtcNow.Date;
+            // The shop's calendar day, not the server's. On a UTC host these differ by the
+            // whole offset, which would start "today" at 06:00 local for a UTC+6 shop.
+            var today = shopClock.Today.ToDateTime(TimeOnly.MinValue);
             var request = new FinancialSummaryRequest
             {
                 StartDate = today,
@@ -114,8 +118,9 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
     {
         try
         {
-            // Fix #2: UtcNow for consistency
-            var now = DateTime.UtcNow;
+            // Month boundaries follow the shop's calendar, so the month rolls over at local
+            // midnight rather than 06:00 local on a UTC host.
+            var now = shopClock.Now;
             var request = new FinancialSummaryRequest
             {
                 StartDate = new DateTime(now.Year, now.Month, 1),
@@ -142,7 +147,8 @@ public class DashboardController(IFinancialSummaryService financialSummaryServic
     {
         try
         {
-            var now = DateTime.UtcNow; // Fix #2
+            // Year boundaries follow the shop's calendar (see GetMonthStats).
+            var now = shopClock.Now;
             var request = new FinancialSummaryRequest
             {
                 StartDate = new DateTime(now.Year, 1, 1),

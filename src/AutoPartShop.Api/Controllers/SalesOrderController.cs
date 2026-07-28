@@ -12,8 +12,10 @@ using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
 using AutoPartShop.Api.Authorization;
+using AutoPartShop.Api.Middleware;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
@@ -1589,6 +1591,7 @@ public class SalesOrderController : ControllerBase
     /// </summary>
     [HttpGet("invoices/{id:guid}/print-data")]
     [AllowAnonymous]   // print page is opened in a new tab; auth token may not be present
+    [EnableRateLimiting(RateLimiting.PublicPolicy)]   // unauthenticated invoice data — cap enumeration
     public async Task<IActionResult> GetInvoicePrintData(Guid id, CancellationToken cancellationToken)
     {
         var invoice = await _dbContext.Invoices
@@ -1674,6 +1677,7 @@ public class SalesOrderController : ControllerBase
     /// </summary>
     [HttpGet("invoices/{id:guid}/pdf")]
     [AllowAnonymous]   // opened from invoice preview; mirrors print-data auth policy
+    [EnableRateLimiting(RateLimiting.PublicPolicy)]
     [Produces("application/pdf")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

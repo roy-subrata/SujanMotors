@@ -23,7 +23,8 @@ public class FinancialReportsController(
     IReportReadRepository reportRepository,
     IFinancialSummaryService financialSummaryService,
     IReportExportService exportService,
-    ILogger<FinancialReportsController> logger) : ReportsControllerBase(exportService)
+    IShopClock shopClock,
+    ILogger<FinancialReportsController> logger) : ReportsControllerBase(exportService, shopClock)
 {
     /// <summary>Outstanding customer invoices bucketed by age (Current / 1-30 / 31-60 / 61-90 / 90+ days).</summary>
     [HttpPost("receivables-aging")]

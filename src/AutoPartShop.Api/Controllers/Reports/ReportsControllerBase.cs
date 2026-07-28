@@ -9,8 +9,15 @@ namespace AutoPartShop.Api.Controllers.Reports;
 /// Shared plumbing for the report group controllers: export file negotiation and the
 /// human-readable filter line stamped on exported files.
 /// </summary>
-public abstract class ReportsControllerBase(IReportExportService exportService) : ControllerBase
+public abstract class ReportsControllerBase(IReportExportService exportService, IShopClock shopClock) : ControllerBase
 {
+    /// <summary>
+    /// The shop's business clock. Report defaults and generated-on stamps use the shop's
+    /// calendar day rather than the server's, which on a UTC host is a different date for
+    /// the first hours of every local morning.
+    /// </summary>
+    protected IShopClock ShopClock { get; } = shopClock;
+
     /// <summary>
     /// Hard cap on rows in an exported file. Exports re-run the report unpaged; this keeps a
     /// runaway filter from producing a 100 MB workbook. UI shows page data only, so the cap
@@ -27,7 +34,9 @@ public abstract class ReportsControllerBase(IReportExportService exportService) 
         string fileSlug)
     {
         var meta = new ReportExportMeta(title, filterSummary);
-        var stamp = DateTime.UtcNow.ToString("yyyyMMdd");
+        // Filename stamp is the shop's calendar day, so a file downloaded at 09:00 local is
+        // named for today rather than yesterday.
+        var stamp = ShopClock.Now.ToString("yyyyMMdd");
 
         return format.ToLowerInvariant() switch
         {
@@ -44,7 +53,7 @@ public abstract class ReportsControllerBase(IReportExportService exportService) 
     }
 
     /// <summary>Filter line for export headers, e.g. "01 Jun 2026 – 30 Jun 2026 · Search: bolt".</summary>
-    protected static string BuildFilterSummary(ReportQuery query)
+    protected string BuildFilterSummary(ReportQuery query)
     {
         var parts = new List<string>();
         if (query.FromDate is not null || query.ToDate is not null)
@@ -53,7 +62,7 @@ public abstract class ReportsControllerBase(IReportExportService exportService) 
             parts.Add($"Search: {query.Search}");
         if (!string.IsNullOrWhiteSpace(query.Channel))
             parts.Add($"Channel: {query.Channel}");
-        parts.Add($"Generated {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC");
+        parts.Add($"Generated {ShopClock.Now:dd MMM yyyy HH:mm}");
         return string.Join("  ·  ", parts);
     }
 }

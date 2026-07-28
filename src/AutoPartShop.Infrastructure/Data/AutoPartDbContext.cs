@@ -139,6 +139,9 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     // Database backup history
     public DbSet<BackupRecord> BackupRecords { get; set; }
 
+    // Persisted refresh tokens (hashed, single-use, rotating)
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
