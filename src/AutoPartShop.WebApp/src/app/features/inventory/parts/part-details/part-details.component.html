@@ -57,6 +57,7 @@
           </span>
         </p-tab>
         <p-tab value="media"><i class="pi pi-images"></i> Media</p-tab>
+        <p-tab value="specifications"><i class="pi pi-list-check"></i> Specifications</p-tab>
         <p-tab value="compatibility"><i class="pi pi-car"></i> Compatibility</p-tab>
       </p-tablist>
 
@@ -413,6 +414,14 @@
           <div class="tab-content">
             <app-product-media-manager [partId]="partId!">
             </app-product-media-manager>
+          </div>
+        </p-tabpanel>
+
+        <!-- ══ TAB: SPECIFICATIONS ══ -->
+        <p-tabpanel value="specifications">
+          <div class="tab-content">
+            <app-product-specs-manager [partId]="partId!">
+            </app-product-specs-manager>
           </div>
         </p-tabpanel>
 

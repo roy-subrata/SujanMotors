@@ -28,6 +28,7 @@ import { CatalogEntryService, CatalogEntryResponse, UpsertCatalogEntryRequest } 
 import { ProductLocationManagerComponent } from '../product-location-manager.component';
 import { ProductVariantManagerComponent } from '../product-variant-manager/product-variant-manager.component';
 import { ProductMediaManagerComponent } from '../product-media-manager/product-media-manager.component';
+import { ProductSpecsManagerComponent } from '../product-specs-manager/product-specs-manager.component';
 import { PriceCodeService } from '@/shared/services/price-code.service';
 
 @Component({
@@ -39,7 +40,8 @@ import { PriceCodeService } from '@/shared/services/price-code.service';
         ToastModule, DialogModule, InputNumberModule, InputTextModule,
         TextareaModule, DatePickerModule, TooltipModule, TabsModule,
         ToggleSwitchModule, CheckboxModule, SelectModule, ConfirmDialogModule,
-        ProductLocationManagerComponent, ProductVariantManagerComponent, ProductMediaManagerComponent
+        ProductLocationManagerComponent, ProductVariantManagerComponent, ProductMediaManagerComponent,
+        ProductSpecsManagerComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './part-details.component.html',
