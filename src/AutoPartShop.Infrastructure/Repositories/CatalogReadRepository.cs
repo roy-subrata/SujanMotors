@@ -429,6 +429,28 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
             .Where(a => allAttributeIds.Contains(a.Id))
             .ToListAsync(cancellationToken);
 
+        // Simple product-level Label/Value specs. They describe the whole product,
+        // so they sit above the variant-derived groups and stay visible whichever
+        // variant is selected.
+        var productSpecs = await _db.ProductSpecifications
+            .Where(s => s.PartId == partId && !s.Isdeleted)
+            .OrderBy(s => s.DisplayOrder)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var productSpecGroup = productSpecs.Count == 0 ? null : new CatalogAttributeGroupDto
+        {
+            GroupName = "Specifications",
+            SortOrder = -1,
+            Attributes = productSpecs.Select(s => new CatalogAttributeValueDto
+            {
+                AttributeId = s.Id,
+                AttributeName = s.Label,
+                Value = s.Value,
+                Unit = string.Empty
+            }).ToList()
+        };
+
         // Build specs per variant so UI can switch specs when variant is selected
         foreach (var vDto in variantDtos)
         {
@@ -446,11 +468,18 @@ public class CatalogReadRepository(AutoPartDbContext _db) : ICatalogReadReposito
                 })
                 .OrderBy(g => g.SortOrder)
                 .ToList();
+
+            if (productSpecGroup != null)
+                vDto.Specifications.Insert(0, productSpecGroup);
         }
 
         // Product-level specs: union of all variants' specs (shown before a variant is selected)
         var defaultAttributes = variantDtos.FirstOrDefault()?.Attributes ?? new List<CatalogAttributeValueDto>();
         var specs = variantDtos.FirstOrDefault()?.Specifications ?? new List<CatalogAttributeGroupDto>();
+
+        // A product with no variants still has its own specs to show.
+        if (specs.Count == 0 && productSpecGroup != null)
+            specs = [productSpecGroup];
 
         // Fix: compute InStock for related products properly
         var relatedParts = await _db.Parts
