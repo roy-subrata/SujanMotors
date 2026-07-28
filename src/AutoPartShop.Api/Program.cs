@@ -181,6 +181,7 @@ builder.Services.AddHttpContextAccessor();
 // Singleton: it holds only the configured offset and reads DateTime.UtcNow per call.
 builder.Services.AddSingleton<IShopClock, ShopClock>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IShopProfileProvider, ShopProfileProvider>();
 builder.Services.AddScoped<StockManagementService>();
 builder.Services.AddScoped<StockAdjustmentApplier>();

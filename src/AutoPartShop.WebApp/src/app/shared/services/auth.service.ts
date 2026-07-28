@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, BehaviorSubject, tap, catchError, of } from 'rxjs';
+import { Observable, BehaviorSubject, tap, catchError, of, map, finalize, shareReplay } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
 export interface LoginRequest {
@@ -11,9 +11,19 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
   username: string;
   email: string;
   fullName: string;
+  roles: string[];
+  permissions?: string[];
+}
+
+export interface RefreshTokenResponse {
+  token: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
   roles: string[];
   permissions?: string[];
 }
@@ -54,7 +64,15 @@ export class AuthService {
   public currentUser = signal<User | null>(null);
 
   private readonly TOKEN_KEY = 'auth_token';
+  private readonly REFRESH_TOKEN_KEY = 'auth_refresh_token';
   private readonly USER_KEY = 'current_user';
+
+  /**
+   * The in-flight refresh, shared so that several requests failing with 401 at once
+   * trigger a single rotation. Rotation is single-use server-side: firing two in
+   * parallel would spend the token twice and trip reuse detection, killing the session.
+   */
+  private refreshInFlight$: Observable<string | null> | null = null;
 
   constructor() {
     // Check for existing session on service initialization
@@ -84,9 +102,22 @@ export class AuthService {
   }
 
   /**
-   * Logout current user
+   * Logout current user.
+   *
+   * Revokes the session server-side so the refresh token cannot be replayed, but does not
+   * wait for that call — the local session is cleared either way, so a network failure can
+   * never trap the user in a signed-in state.
    */
   logout(): void {
+    const refreshToken = this.getRefreshToken();
+    if (refreshToken) {
+      this.http.post(`${this.apiUrl}/logout`, { refreshToken }).subscribe({
+        error: () => {
+          /* best-effort: the token still expires on its own */
+        }
+      });
+    }
+
     this.clearSession();
     this.router.navigate(['/login']);
   }
@@ -103,28 +134,40 @@ export class AuthService {
   }
 
   /**
-   * Refresh authentication token
+   * Exchanges the stored refresh token for a fresh access token, rotating the refresh
+   * token in the process. Emits the new access token, or null when the session is over.
+   *
+   * Concurrent callers share one request — see {@link refreshInFlight$}. On failure the
+   * session is cleared but no redirect happens here; the caller decides where to send
+   * the user, so a background refresh cannot yank someone off the page mid-edit.
    */
-  refreshToken(): Observable<{ token: string }> {
-    const currentToken = this.getToken();
-    if (!currentToken) {
-      return of({ token: '' });
+  refreshToken(): Observable<string | null> {
+    if (this.refreshInFlight$) {
+      return this.refreshInFlight$;
     }
 
-    return this.http.post<{ token: string }>(`${this.apiUrl}/refresh-token`, {
-      token: currentToken
-    }).pipe(
-      tap(response => {
-        if (response.token) {
-          this.setToken(response.token);
-        }
-      }),
-      catchError(error => {
-        console.error('Token refresh failed:', error);
-        this.logout();
-        return of({ token: '' });
-      })
-    );
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return of(null);
+    }
+
+    this.refreshInFlight$ = this.http
+      .post<RefreshTokenResponse>(`${this.apiUrl}/refresh-token`, { refreshToken })
+      .pipe(
+        tap(response => this.applyRefresh(response)),
+        map(response => response.token),
+        catchError(() => {
+          // Expired, revoked, or reuse-detected — all unrecoverable.
+          this.clearSession();
+          return of(null);
+        }),
+        finalize(() => {
+          this.refreshInFlight$ = null;
+        }),
+        shareReplay(1)
+      );
+
+    return this.refreshInFlight$;
   }
 
   /**
@@ -136,7 +179,20 @@ export class AuthService {
   }
 
   /**
-   * Check if user is authenticated
+   * Get the current refresh token, if the session is renewable.
+   */
+  getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  }
+
+  /**
+   * Check if user is authenticated.
+   *
+   * An expired access token no longer means the session is over: if a refresh token is
+   * present the session is renewable, and the interceptor will rotate it on the next
+   * 401. Reporting "logged out" here would bounce the user to /login on every reload
+   * more than an hour after signing in.
    */
   isLoggedIn(): boolean {
     const token = this.getToken();
@@ -144,10 +200,8 @@ export class AuthService {
       return false;
     }
 
-    // Check if token is expired
     if (this.isTokenExpired(token)) {
-      this.clearSession();
-      return false;
+      return !!this.getRefreshToken();
     }
 
     return true;
@@ -229,6 +283,7 @@ export class AuthService {
 
   private setSession(authResult: LoginResponse): void {
     this.setToken(authResult.token);
+    this.setRefreshToken(authResult.refreshToken);
 
     const user: User = {
       username: authResult.username,
@@ -242,9 +297,37 @@ export class AuthService {
     this.updateAuthState(true, user);
   }
 
+  /**
+   * Stores a rotation result. The refresh token MUST be replaced: the one just used is
+   * spent, and presenting it again would trip server-side reuse detection and kill the
+   * session. Roles and permissions are refreshed too, so a role change applied by an
+   * admin takes effect on the next rotation instead of requiring a re-login.
+   */
+  private applyRefresh(response: RefreshTokenResponse): void {
+    this.setToken(response.token);
+    this.setRefreshToken(response.refreshToken);
+
+    const current = this.currentUser();
+    if (current) {
+      const updated: User = {
+        ...current,
+        roles: response.roles || [],
+        permissions: response.permissions || []
+      };
+      this.setUser(updated);
+      this.updateAuthState(true, updated);
+    }
+  }
+
   private setToken(token: string): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem(this.TOKEN_KEY, token);
+    }
+  }
+
+  private setRefreshToken(token: string): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
     }
   }
 
@@ -257,26 +340,38 @@ export class AuthService {
   private clearSession(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.REFRESH_TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
     }
     this.updateAuthState(false, null);
   }
 
+  /**
+   * Restores the session on page load. An expired access token is fine as long as a
+   * refresh token survives — the first API call will rotate it. Only a missing token or
+   * an unrenewable expired one clears the session.
+   */
   private loadStoredAuth(): void {
     if (typeof window === 'undefined') return;
 
     const token = this.getToken();
     const userStr = localStorage.getItem(this.USER_KEY);
 
-    if (token && userStr && !this.isTokenExpired(token)) {
-      try {
-        const user: User = JSON.parse(userStr);
-        this.updateAuthState(true, user);
-      } catch (e) {
-        console.error('Failed to parse stored user:', e);
-        this.clearSession();
-      }
-    } else {
+    if (!token || !userStr) {
+      this.clearSession();
+      return;
+    }
+
+    if (this.isTokenExpired(token) && !this.getRefreshToken()) {
+      this.clearSession();
+      return;
+    }
+
+    try {
+      const user: User = JSON.parse(userStr);
+      this.updateAuthState(true, user);
+    } catch (e) {
+      console.error('Failed to parse stored user:', e);
       this.clearSession();
     }
   }
