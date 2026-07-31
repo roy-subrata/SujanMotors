@@ -162,6 +162,7 @@ public class CurrenciesController : ControllerBase
         // Set new base currency
         currency.SetAsBaseCurrency();
         await _currencyRepository.UpdateAsync(currency);
+        _conversionService.InvalidateCache();
 
         return Ok(new { message = $"Currency {currency.Code} set as base currency" });
     }

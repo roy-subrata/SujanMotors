@@ -104,7 +104,8 @@ public sealed class ExchangeRate : AuditableEntity
         DateTime effectiveDate,
         DateTime? expiryDate = null,
         string source = "MANUAL",
-        string notes = "")
+        string notes = "",
+        bool isActive = true)
     {
         if (rate <= 0)
             throw new ArgumentException("Exchange rate must be greater than zero", nameof(rate));
@@ -117,6 +118,7 @@ public sealed class ExchangeRate : AuditableEntity
         ExpiryDate = expiryDate;
         Source = string.IsNullOrWhiteSpace(source) ? "MANUAL" : source.Trim().ToUpper();
         Notes = notes?.Trim() ?? string.Empty;
+        IsActive = isActive;
         ModifiedDate = DateTime.UtcNow;
     }
 

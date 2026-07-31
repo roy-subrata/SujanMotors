@@ -7,10 +7,12 @@ namespace AutoPartShop.Api.Services;
 public class DiscountResolutionService : IDiscountResolutionService
 {
     private readonly IDiscountRepository _discountRepository;
+    private readonly IShopClock _shopClock;
 
-    public DiscountResolutionService(IDiscountRepository discountRepository)
+    public DiscountResolutionService(IDiscountRepository discountRepository, IShopClock shopClock)
     {
         _discountRepository = discountRepository;
+        _shopClock = shopClock;
     }
 
     public async Task<DiscountResolutionResult> ResolveItemDiscountAsync(
@@ -19,13 +21,17 @@ public class DiscountResolutionService : IDiscountResolutionService
         decimal unitPrice,
         CancellationToken cancellationToken = default)
     {
-        Discount? variantDiscount = null;
-        Discount? productDiscount = null;
+        var today = _shopClock.Today.ToDateTime(TimeOnly.MinValue);
 
-        if (productVariantId.HasValue)
-            variantDiscount = await _discountRepository.GetVariantDiscountAsync(partId, productVariantId.Value, cancellationToken);
+        var variantDiscount = productVariantId.HasValue
+            ? (await _discountRepository.GetVariantDiscountsAsync(partId, productVariantId.Value, today, cancellationToken))
+                .OrderByDescending(d => d.CalculateDiscountAmount(unitPrice))
+                .FirstOrDefault()
+            : null;
 
-        productDiscount = await _discountRepository.GetProductDiscountAsync(partId, cancellationToken);
+        var productDiscount = (await _discountRepository.GetProductDiscountsAsync(partId, today, cancellationToken))
+            .OrderByDescending(d => d.CalculateDiscountAmount(unitPrice))
+            .FirstOrDefault();
 
         var variantAmount = variantDiscount?.CalculateDiscountAmount(unitPrice) ?? 0;
         var productAmount = productDiscount?.CalculateDiscountAmount(unitPrice) ?? 0;
@@ -43,20 +49,22 @@ public class DiscountResolutionService : IDiscountResolutionService
         string? promoCode,
         CancellationToken cancellationToken = default)
     {
+        var today = _shopClock.Today.ToDateTime(TimeOnly.MinValue);
+
         Discount? cartDiscount = null;
 
         // 1. Promo code
         if (!string.IsNullOrWhiteSpace(promoCode))
         {
             var byCode = await _discountRepository.GetByPromoCodeAsync(promoCode, cancellationToken);
-            if (byCode != null && byCode.IsValidOn(DateTime.UtcNow) && byCode.IsCartLevel)
+            if (byCode != null && byCode.IsValidOn(today) && byCode.IsCartLevel)
                 cartDiscount = byCode;
         }
 
         // 2. Threshold discount (best matching one)
         if (cartDiscount == null)
         {
-            var active = await _discountRepository.GetActiveDiscountsAsync(cancellationToken);
+            var active = await _discountRepository.GetActiveDiscountsAsync(today, cancellationToken);
             cartDiscount = active
                 .Where(d =>
                     d.IsCartLevel &&

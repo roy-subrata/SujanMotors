@@ -18,17 +18,20 @@ public class DiscountsController : ControllerBase
     private readonly IDiscountRepository _discountRepository;
     private readonly IDiscountResolutionService _discountResolutionService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IShopClock _shopClock;
     private readonly ILogger<DiscountsController> _logger;
 
     public DiscountsController(
         IDiscountRepository discountRepository,
         IDiscountResolutionService discountResolutionService,
         ICurrentUserService currentUserService,
+        IShopClock shopClock,
         ILogger<DiscountsController> logger)
     {
         _discountRepository = discountRepository;
         _discountResolutionService = discountResolutionService;
         _currentUserService = currentUserService;
+        _shopClock = shopClock;
         _logger = logger;
     }
 
@@ -52,7 +55,8 @@ public class DiscountsController : ControllerBase
     {
         try
         {
-            var discounts = await _discountRepository.GetActiveDiscountsAsync(cancellationToken);
+            var today = _shopClock.Today.ToDateTime(TimeOnly.MinValue);
+            var discounts = await _discountRepository.GetActiveDiscountsAsync(today, cancellationToken);
             return Ok(discounts.Select(MapToResponse));
         }
         catch (Exception ex)
