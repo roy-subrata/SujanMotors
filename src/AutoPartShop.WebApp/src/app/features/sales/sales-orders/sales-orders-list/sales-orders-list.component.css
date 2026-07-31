@@ -4,15 +4,23 @@
    cards, skeleton, empty states) lives in assets/_data-page.scss
    ============================================================ */
 
-/* Filter datepicker (sales-specific filter) */
+/* Filter datepicker (sales-specific filter)
+   NOTE: styleClass targets the p-datepicker HOST, but the host itself carries
+   no visible border/background in the default theme — the real visible box is
+   the nested native input (.p-datepicker-input). Target that via ::ng-deep. */
 .filter-datepicker { min-width: 200px; }
-.filter-datepicker .p-datepicker {
+:host ::ng-deep .filter-datepicker .p-datepicker-input {
+  padding: 6px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-bg-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
-.filter-datepicker .p-datepicker:hover { border-color: var(--color-text-muted); }
-.filter-datepicker .p-datepicker.p-focus {
+:host ::ng-deep .filter-datepicker .p-datepicker-input:hover { border-color: var(--color-text-muted); }
+:host ::ng-deep .filter-datepicker .p-datepicker-input:focus {
+  outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }

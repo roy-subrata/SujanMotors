@@ -46,6 +46,27 @@
   cursor: not-allowed;
 }
 
+:host ::ng-deep .form-input-number {
+  width: 100%;
+}
+
+:host ::ng-deep .form-input-number .p-inputnumber-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background: var(--surface-card);
+  color: var(--text-color);
+}
+
+:host ::ng-deep .form-input-number .p-inputnumber-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
 .code-input-wrapper {
   position: relative;
   display: flex;

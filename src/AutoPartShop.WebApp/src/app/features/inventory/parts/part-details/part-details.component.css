@@ -343,7 +343,7 @@
 .req       { color: var(--color-danger); margin-right: 2px; }
 .spf-error { color: var(--color-danger); font-size: 0.75rem; }
 
-.spf-input {
+:host ::ng-deep .spf-input {
   width: 100%;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--surface-border);
@@ -354,7 +354,7 @@
   transition: border 0.2s;
 }
 
-.spf-input:focus {
+:host ::ng-deep .spf-input:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px var(--color-primary-light);

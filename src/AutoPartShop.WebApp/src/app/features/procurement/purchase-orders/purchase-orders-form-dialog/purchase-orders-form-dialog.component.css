@@ -22,11 +22,14 @@
       }
     }
 
+    /* .p-inputnumber/.p-autocomplete are the component WRAPPER classes —
+       their real native input already carries .p-inputtext (via the
+       pInputText directive), so .p-inputtext alone correctly reaches the
+       visible box. Including the wrapper classes here too just draws a
+       second border around the wrapper, producing a double-boxed look. */
     input,
     textarea,
-    .p-inputtext,
-    .p-inputnumber,
-    .p-autocomplete {
+    .p-inputtext {
       font-size: 0.95rem;
       color: var(--text-color);
       border-radius: 0.375rem;
@@ -50,6 +53,18 @@
     textarea {
       font-family: inherit;
       resize: vertical;
+    }
+
+    /* p-inputNumber/p-autoComplete apply "ng-invalid"/"ng-touched" to their
+       own host element (where formControlName is bound), not to the nested
+       .p-inputtext — so the invalid-state override has to be host-scoped. */
+    .p-inputnumber.ng-invalid.ng-touched .p-inputtext,
+    .p-autocomplete.ng-invalid.ng-touched .p-inputtext {
+      border-color: var(--color-danger);
+
+      &:focus {
+        box-shadow: 0 0 0 3px var(--color-danger-light);
+      }
     }
   }
 
@@ -170,6 +185,15 @@
             color: var(--text-color);
 
             .small-input {
+              font-size: 0.875rem;
+              padding: 0.5rem 0.75rem;
+            }
+
+            /* p-inputNumber's real input is nested inside the wrapper span,
+               so a class applied to the component (like .small-input above)
+               lands on the wrapper, not the visible input — target the inner
+               input explicitly. */
+            .p-inputnumber.small-input .p-inputnumber-input {
               font-size: 0.875rem;
               padding: 0.5rem 0.75rem;
             }
