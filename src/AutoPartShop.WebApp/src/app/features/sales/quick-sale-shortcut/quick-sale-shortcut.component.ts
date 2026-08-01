@@ -8,7 +8,6 @@ import { map } from 'rxjs/operators';
 // PrimeNG Imports
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ButtonModule } from 'primeng/button';
-import { MenuModule } from 'primeng/menu';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TableModule } from 'primeng/table';
@@ -20,7 +19,7 @@ import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TextareaModule } from 'primeng/textarea';
-import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
 
 // Services
 import { QuickSaleService, QuickSaleLineItem, QuickSaleDraft, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
@@ -54,7 +53,6 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../s
     FormsModule,
     AutoCompleteModule,
     ButtonModule,
-    MenuModule,
     InputTextModule,
     InputNumberModule,
     TableModule,
@@ -248,7 +246,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   paymentResponsibility: PaymentResponsibility = 'CUSTOMER';
 
   // Customer Credit
-  customerCreditInfo: { creditLimit: number; usedCredit: number; availableCredit: number; dueBalance: number } | null = null;
+  customerCreditInfo: { advanceAmount: number; dueBalance: number } | null = null;
   loadingCustomerCredit = false;
 
   // Dialog States
@@ -299,8 +297,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   // Multi-payment (NEW)
   paymentInputAmount: number | null = null;
   selectedPaymentMethod: 'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE' = 'CASH';
-  useCreditBalance = false;
-  creditAmountToApply: number = 0;
+  useCreditBalance = signal(false);
+  creditAmountToApply = signal(0);
 
   private readonly allPaymentMethodOptions = [
     { label: 'Cash', value: 'CASH' as const, icon: 'pi pi-money-bill' },
@@ -328,8 +326,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   totalPaid = computed(() => this.payments().reduce((sum, p) => sum + p.amount, 0));
   totalDueAmount = computed(() => this.payments().filter(p => p.method === 'DUE').reduce((sum, p) => sum + p.amount, 0));
   remainingBalance = computed(() => {
-    const creditApplied = this.useCreditBalance ? (this.creditAmountToApply || 0) : 0;
+    const creditApplied = this.useCreditBalance() ? (this.creditAmountToApply() || 0) : 0;
     return Math.max(0, this.grandTotal() - this.totalPaid() - creditApplied);
+  });
+  // Balance before any credit deduction — used as the ceiling for the "Apply" input.
+  // remainingBalance() already nets out creditAmountToApply(), so using it as the [max]
+  // would clamp the value back to 0 the instant it fully covers the sale.
+  maxCreditApplicable = computed(() => {
+    return Math.min(this.availableAdvance(), Math.max(0, this.grandTotal() - this.totalPaid()));
   });
 
   readonly Math = Math;
@@ -745,8 +749,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.autoCreatePO = false;
     this.saleNotes = '';
     this.printType = 'THERMAL';
-    this.useCreditBalance = false;
-    this.creditAmountToApply = 0;
+    this.useCreditBalance.set(false);
+    this.creditAmountToApply.set(0);
     this.paymentInputAmount = null;
     this.paymentReference = '';
     this.paymentNotes = '';
@@ -864,22 +868,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     return !!this.quickSaleService.getLastSale();
   }
 
-  /** Secondary checkout actions, shown in the "More" overflow to keep one clear primary action. */
-  get moreActions(): MenuItem[] {
-    return [
-      { label: 'Save Draft', icon: 'pi pi-save', disabled: this.cartItems().length === 0, command: () => this.saveDraft() },
-      { label: 'Hold Sale', icon: 'pi pi-pause', disabled: this.cartItems().length === 0, command: () => this.holdSale() },
-      { label: 'Recall Held Sale', icon: 'pi pi-replay', command: () => this.recallHeldSales() },
-      { separator: true },
-      { label: 'Save as Quotation', icon: 'pi pi-file', disabled: this.cartItems().length === 0 || this.saving(), command: () => this.saveAsQuotation() },
-      { label: 'Reprint Receipt', icon: 'pi pi-print', command: () => this.openReprintDialog() },
-      { separator: true },
-      { label: 'Returns', icon: 'pi pi-refresh', command: () => this.openReturns() },
-      { label: 'Stock Check', icon: 'pi pi-box', command: () => this.openStockSearch() },
-      { label: 'Price Check', icon: 'pi pi-tag', command: () => this.openPriceCheck() },
-    ];
-  }
-
   printLastSaleReceipt(): void {
     this.showLastSaleDialog = false;
     if (this.invoicePreviewData) {
@@ -907,8 +895,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   saveAsQuotation(): void {
     if (this.cartItems().length === 0 || this.saving()) return;
-    this.saving.set(true);
     const customer = this.selectedCustomer();
+    if (!customer) {
+      this.messageService.add({ severity: 'error', summary: 'Customer Required', detail: 'Select a customer to save a quotation.' });
+      return;
+    }
+    this.saving.set(true);
     const request = {
       customerId: customer?.id,
       customerName: customer?.fullName || 'Walk-in Customer',
@@ -1071,14 +1063,15 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.showCustomerCreditDialog = true;
     this.loadingCustomerCredit = true;
     this.quickSaleService.getCustomerCredit(this.selectedCustomer()!.id).subscribe({
-      next: (credit) => { this.customerCreditInfo = credit; this.loadingCustomerCredit = false; },
+      next: (credit) => {
+        this.customerCreditInfo = { advanceAmount: credit.advanceAmount || 0, dueBalance: credit.dueBalance || 0 };
+        this.loadingCustomerCredit = false;
+      },
       error: () => {
         const c = this.selectedCustomer()!;
         this.customerCreditInfo = {
-          creditLimit: c.creditLimit || 0,
-          usedCredit: c.dueBalance || 0,
-          availableCredit: (c.creditLimit || 0) - (c.dueBalance || 0),
-          dueBalance: c.dueBalance || 0
+          advanceAmount: c.advanceAmount || 0,
+          dueBalance: c.dueAmount || 0
         };
         this.loadingCustomerCredit = false;
       }
@@ -1270,7 +1263,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const creditApplied = this.useCreditBalance ? (this.creditAmountToApply || 0) : 0;
+    const creditApplied = this.useCreditBalance() ? (this.creditAmountToApply() || 0) : 0;
     const totalPaid = this.payments().reduce((sum, p) => sum + p.amount, 0) + creditApplied;
     const remaining = this.grandTotal() - totalPaid;
     const hasDuePayment = this.payments().some(p => p.method === 'DUE');
@@ -1307,14 +1300,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     const customer = this.selectedCustomer()!;
 
-    // "Use credit balance" only adjusts remainingBalance/notes locally — it is never sent as
-    // useAdvanceBalance/advanceAmountToApply. Fold it into an explicit DUE line so the API
-    // (which now requires payments to fully account for the invoice total) sees it as the
-    // unpaid balance it actually is, rather than silently dropping it.
-    const creditApplied = this.useCreditBalance ? (this.creditAmountToApply || 0) : 0;
-    const paymentsForRequest = creditApplied > 0
-      ? [...this.payments(), { method: 'DUE', amount: creditApplied, reference: 'Credit balance applied' } as PaymentDetail]
-      : this.payments();
+    // Applied advance balance is sent as a real useAdvanceBalance/advanceAmountToApply request —
+    // the API deducts it from the customer's actual advance payment record and marks the invoice
+    // paid to that extent. It must NOT also appear as a DUE payment line (the API's
+    // paymentsTendered + advancePaymentAmount === invoice.GrandTotal guard would double-count it).
+    const creditApplied = this.useCreditBalance() ? (this.creditAmountToApply() || 0) : 0;
+    const paymentsForRequest = this.payments();
 
     const request = {
       customerId: customer.id,
@@ -1332,11 +1323,11 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       vatAmount: this.vatAmount(),
       vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),
-      paidAmount: paymentsForRequest.filter(p => p.method !== 'DUE').reduce((sum, p) => sum + p.amount, 0),
+      paidAmount: paymentsForRequest.filter(p => p.method !== 'DUE').reduce((sum, p) => sum + p.amount, 0) + creditApplied,
       dueAmount: paymentsForRequest.filter(p => p.method === 'DUE').reduce((sum, p) => sum + p.amount, 0),
       notes: this.saleNotes,
-      useAdvanceBalance: false,
-      advanceAmountToApply: 0,
+      useAdvanceBalance: creditApplied > 0,
+      advanceAmountToApply: creditApplied,
       saveAsQuotation: false
     };
 

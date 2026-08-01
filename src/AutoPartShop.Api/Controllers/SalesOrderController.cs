@@ -2184,10 +2184,15 @@ public class SalesOrderController : ControllerBase
 
                     salesOrder.SetTax(request.VatAmount);
 
-                    // If SaveAsQuotation = true, keep as DRAFT. Otherwise, confirm the order
+                    // If SaveAsQuotation = true, keep as DRAFT. Otherwise, confirm the order.
+                    // A Quick Sale is an immediate over-the-counter handover — no separate challan
+                    // step exists for it — so it also goes straight to DELIVERED. Without this the
+                    // order gets stuck at CONFIRMED forever, and Returns rejects it (returns only
+                    // allow PARTIALLY_SHIPPED/SHIPPED/DELIVERED/COMPLETED).
                     if (!request.SaveAsQuotation)
                     {
                         salesOrder.Confirm();
+                        salesOrder.MarkAsDelivered();
                     }
                     var quickSaleCashier = _currentUserService.GetCurrentUsername();
                     salesOrder.SetCashier(_currentUserService.GetCurrentUserGuid(), quickSaleCashier);
