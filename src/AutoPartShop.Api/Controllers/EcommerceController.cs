@@ -23,6 +23,9 @@ public class EcommerceController(
     ICustomerPaymentRepository _customerPaymentRepository,
     ICodeGenerateService _codeGenerateService,
     ICurrentUserService _currentUserService,
+    IStockConsumptionService _stockConsumptionService,
+    IDiscountResolutionService _discountResolutionService,
+    IProductRepository _productRepository,
     ILogger<EcommerceController> _logger) : ControllerBase
 {
     // ── Promo Code Validation (public — called before checkout) ─────────────
@@ -36,38 +39,20 @@ public class EcommerceController(
         if (string.IsNullOrWhiteSpace(code))
             return BadRequest(new { valid = false, message = "Code is required" });
 
-        var today = DateTime.UtcNow.Date;
-        var discount = await _dbContext.Discounts
-            .FirstOrDefaultAsync(d => d.IsActive && !d.Isdeleted
-                && d.PromoCode != null
-                && d.PromoCode.ToUpper() == code.Trim().ToUpper()
-                && d.PartId == null
-                && d.StartDate.Date <= today
-                && (!d.EndDate.HasValue || d.EndDate.Value.Date >= today),
-                cancellationToken);
-
-        if (discount == null)
+        var result = await _discountResolutionService.ResolveCartDiscountAsync(cartTotal, code, cancellationToken);
+        if (result.AppliedLevel != "CART")
             return Ok(new { valid = false, message = "Invalid or expired promo code" });
-
-        if (discount.MinimumCartAmount.HasValue && cartTotal < discount.MinimumCartAmount.Value)
-            return Ok(new
-            {
-                valid = false,
-                message = $"This code requires a minimum cart total of {discount.MinimumCartAmount.Value:N0}"
-            });
-
-        var discountAmount = discount.CalculateDiscountAmount(cartTotal);
 
         return Ok(new
         {
             valid = true,
-            code = discount.PromoCode,
-            discountType = discount.Type,
-            discountValue = discount.Value,
-            discountAmount,
-            finalTotal = Math.Max(0, cartTotal - discountAmount),
-            description = discount.Description ?? discount.Name,
-            minimumCartAmount = discount.MinimumCartAmount
+            code,
+            discountType = result.DiscountType,
+            discountValue = result.DiscountValue,
+            discountAmount = result.DiscountAmount,
+            finalTotal = result.FinalPrice,
+            description = result.DiscountName,
+            minimumCartAmount = (decimal?)null
         });
     }
 
@@ -104,8 +89,7 @@ public class EcommerceController(
             var lineRequests = new List<(Guid partId, Guid? variantId, int qty, decimal price)>();
             foreach (var item in request.Items)
             {
-                var part = await _dbContext.Parts
-                    .FirstOrDefaultAsync(p => p.Id == item.PartId && !p.Isdeleted, cancellationToken);
+                var part = await _productRepository.GetByIdAsync(item.PartId, cancellationToken);
 
                 if (part == null)
                     return BadRequest(new { message = $"Product {item.PartId} not found" });
@@ -129,26 +113,11 @@ public class EcommerceController(
                 if (serverPrice <= 0)
                     return BadRequest(new { message = $"No price set for '{part.Name}'. Please set a selling price in the admin panel." });
 
-                // Apply active discounts to get the effective (customer-facing) price
-                var today = DateTime.UtcNow.Date;
-                var activeDiscounts = await _dbContext.Discounts
-                    .Where(d => d.IsActive && !d.Isdeleted
-                        && d.StartDate.Date <= today
-                        && (!d.EndDate.HasValue || d.EndDate.Value.Date >= today)
-                        && (d.PartId == item.PartId || d.PartId == null)
-                        && (d.ProductVariantId == null || d.ProductVariantId == item.VariantId))
-                    .ToListAsync(cancellationToken);
-
-                var effectivePrice = serverPrice;
-                if (activeDiscounts.Any())
-                {
-                    var best = activeDiscounts
-                        .Select(d => new { d, amt = d.CalculateDiscountAmount(serverPrice) })
-                        .Where(x => x.amt > 0)
-                        .OrderByDescending(x => x.amt)
-                        .FirstOrDefault();
-                    if (best != null) effectivePrice = serverPrice - best.amt;
-                }
+                // Apply the best active discount (variant vs product) to get the effective
+                // (customer-facing) price — shared with POS/quick-sale via IDiscountResolutionService.
+                var itemDiscount = await _discountResolutionService.ResolveItemDiscountAsync(
+                    item.PartId, item.VariantId, serverPrice, cancellationToken);
+                var effectivePrice = itemDiscount.FinalPrice;
 
                 // Validate cart price matches effective server price (prevent client-side manipulation)
                 if (item.UnitPrice > 0 && Math.Abs(item.UnitPrice - effectivePrice) > 0.01m)
@@ -163,29 +132,15 @@ public class EcommerceController(
 
             if (!string.IsNullOrWhiteSpace(request.PromoCode))
             {
-                var promoToday = DateTime.UtcNow.Date;
-                var promoEntry = await _dbContext.Discounts
-                    .FirstOrDefaultAsync(d => d.IsActive && !d.Isdeleted
-                        && d.PromoCode != null
-                        && d.PromoCode.ToUpper() == request.PromoCode.Trim().ToUpper()
-                        && d.PartId == null
-                        && d.StartDate.Date <= promoToday
-                        && (!d.EndDate.HasValue || d.EndDate.Value.Date >= promoToday),
-                        cancellationToken);
+                var subtotalForPromo = lineRequests.Sum(l => l.qty * l.price);
+                var cartDiscount = await _discountResolutionService.ResolveCartDiscountAsync(
+                    subtotalForPromo, request.PromoCode, cancellationToken);
 
-                if (promoEntry == null)
+                if (cartDiscount.AppliedLevel != "CART")
                     return BadRequest(new { message = $"Promo code '{request.PromoCode}' is invalid or has expired." });
 
-                var subtotalForPromo = lineRequests.Sum(l => l.qty * l.price);
-
-                if (promoEntry.MinimumCartAmount.HasValue && subtotalForPromo < promoEntry.MinimumCartAmount.Value)
-                    return BadRequest(new
-                    {
-                        message = $"This promo code requires a minimum order of {promoEntry.MinimumCartAmount.Value:N0} {request.Currency ?? "BDT"}."
-                    });
-
-                promoDiscountAmount = promoEntry.CalculateDiscountAmount(subtotalForPromo);
-                appliedPromoCode = promoEntry.PromoCode!;
+                promoDiscountAmount = cartDiscount.DiscountAmount;
+                appliedPromoCode = request.PromoCode.Trim().ToUpper();
             }
 
             // 5. Build and persist the SalesOrder
@@ -265,7 +220,7 @@ public class EcommerceController(
                     await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
 
                     foreach (var (pId, vId, qty, _) in lineRequests)
-                        await ConsumeStockForLineAsync(pId, vId, qty, soNumber, warehouse!.Id, cancellationToken);
+                        await ConsumeStockForLineAsync(pId, vId, qty, soNumber, salesOrder.Id, cancellationToken);
 
                     // Return every session reservation's stock to available (not just mark the record
                     // released) — otherwise reserved units for cart items that weren't purchased, or
@@ -367,8 +322,7 @@ public class EcommerceController(
     [HttpGet("orders/{soNumber}")]
     public async Task<IActionResult> GetOrderBySoNumber(string soNumber, CancellationToken cancellationToken)
     {
-        var order = await _dbContext.SalesOrders
-            .FirstOrDefaultAsync(so => so.SONumber == soNumber.ToUpper() && !so.Isdeleted, cancellationToken);
+        var order = await _salesOrderRepository.GetByNumberAsync(soNumber.ToUpper(), cancellationToken);
 
         if (order is null) return NotFound(new { message = "Order not found" });
 
@@ -404,8 +358,7 @@ public class EcommerceController(
             if (request.AmountCollected <= 0)
                 return BadRequest(new { message = "AmountCollected must be greater than 0." });
 
-            var order = await _dbContext.SalesOrders
-                .FirstOrDefaultAsync(so => so.SONumber == soNumber.ToUpper() && !so.Isdeleted, cancellationToken);
+            var order = await _salesOrderRepository.GetByNumberAsync(soNumber.ToUpper(), cancellationToken);
 
             if (order is null) return NotFound(new { message = "Order not found." });
             if (order.Channel != "ECOMMERCE") return BadRequest(new { message = "COD collection is only applicable to online (ECOMMERCE) orders." });
@@ -544,8 +497,7 @@ public class EcommerceController(
             var lineRequests = new List<(Guid partId, Guid? variantId, int qty, decimal price)>();
             foreach (var item in request.Items)
             {
-                var part = await _dbContext.Parts
-                    .FirstOrDefaultAsync(p => p.Id == item.PartId && !p.Isdeleted, cancellationToken);
+                var part = await _productRepository.GetByIdAsync(item.PartId, cancellationToken);
 
                 if (part == null)
                     return BadRequest(new { message = $"Product {item.PartId} not found" });
@@ -568,25 +520,9 @@ public class EcommerceController(
                 if (serverPrice <= 0)
                     return BadRequest(new { message = $"No price set for '{part.Name}'." });
 
-                var today = DateTime.UtcNow.Date;
-                var activeDiscounts = await _dbContext.Discounts
-                    .Where(d => d.IsActive && !d.Isdeleted
-                        && d.StartDate.Date <= today
-                        && (!d.EndDate.HasValue || d.EndDate.Value.Date >= today)
-                        && (d.PartId == item.PartId || d.PartId == null)
-                        && (d.ProductVariantId == null || d.ProductVariantId == item.VariantId))
-                    .ToListAsync(cancellationToken);
-
-                var effectivePrice = serverPrice;
-                if (activeDiscounts.Any())
-                {
-                    var best = activeDiscounts
-                        .Select(d => new { d, amt = d.CalculateDiscountAmount(serverPrice) })
-                        .Where(x => x.amt > 0)
-                        .OrderByDescending(x => x.amt)
-                        .FirstOrDefault();
-                    if (best != null) effectivePrice = serverPrice - best.amt;
-                }
+                var itemDiscount = await _discountResolutionService.ResolveItemDiscountAsync(
+                    item.PartId, item.VariantId, serverPrice, cancellationToken);
+                var effectivePrice = itemDiscount.FinalPrice;
 
                 if (item.UnitPrice > 0 && Math.Abs(item.UnitPrice - effectivePrice) > 0.01m)
                     return BadRequest(new { message = $"The price for '{part.Name}' has changed. Please refresh and try again." });
@@ -600,29 +536,15 @@ public class EcommerceController(
 
             if (!string.IsNullOrWhiteSpace(request.PromoCode))
             {
-                var promoToday = DateTime.UtcNow.Date;
-                var promoEntry = await _dbContext.Discounts
-                    .FirstOrDefaultAsync(d => d.IsActive && !d.Isdeleted
-                        && d.PromoCode != null
-                        && d.PromoCode.ToUpper() == request.PromoCode.Trim().ToUpper()
-                        && d.PartId == null
-                        && d.StartDate.Date <= promoToday
-                        && (!d.EndDate.HasValue || d.EndDate.Value.Date >= promoToday),
-                        cancellationToken);
+                var subtotalForPromo = lineRequests.Sum(l => l.qty * l.price);
+                var cartDiscount = await _discountResolutionService.ResolveCartDiscountAsync(
+                    subtotalForPromo, request.PromoCode, cancellationToken);
 
-                if (promoEntry == null)
+                if (cartDiscount.AppliedLevel != "CART")
                     return BadRequest(new { message = $"Promo code '{request.PromoCode}' is invalid or has expired." });
 
-                var subtotalForPromo = lineRequests.Sum(l => l.qty * l.price);
-
-                if (promoEntry.MinimumCartAmount.HasValue && subtotalForPromo < promoEntry.MinimumCartAmount.Value)
-                    return BadRequest(new
-                    {
-                        message = $"This promo code requires a minimum order of {promoEntry.MinimumCartAmount.Value:N0} {request.Currency ?? "BDT"}."
-                    });
-
-                promoDiscountAmountPos = promoEntry.CalculateDiscountAmount(subtotalForPromo);
-                appliedPromoCodePos = promoEntry.PromoCode!;
+                promoDiscountAmountPos = cartDiscount.DiscountAmount;
+                appliedPromoCodePos = request.PromoCode.Trim().ToUpper();
             }
 
             var soNumber = await _codeGenerateService.GenerateAsync("SO", cancellationToken);
@@ -716,7 +638,7 @@ public class EcommerceController(
                     await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
 
                     foreach (var (pId, vId, qty, _) in lineRequests)
-                        await ConsumeStockForLineAsync(pId, vId, qty, soNumber, warehouse!.Id, cancellationToken);
+                        await ConsumeStockForLineAsync(pId, vId, qty, soNumber, salesOrder.Id, cancellationToken);
 
                     // Return every session reservation's stock to available (not just mark the record
                     // released) — otherwise reserved units for cart items that weren't purchased, or
@@ -1139,20 +1061,20 @@ public class EcommerceController(
         await _dbContext.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Releases any cart-reserved stock for this line, then hands off to the shared
+    /// <see cref="IStockConsumptionService"/> (same algorithm POS quick-sale uses — FEFO lot
+    /// consumption, per-level StockMovement/StockLotMovement records correctly linked to the
+    /// sales order) for the actual decrement. The release-reservation step is ecommerce-specific
+    /// (POS has no cart/reservation concept) so it stays here rather than in the shared service.
+    /// </summary>
     private async Task ConsumeStockForLineAsync(
         Guid partId, Guid? variantId, int qty,
-        string soNumber, Guid warehouseId, CancellationToken ct)
+        string soNumber, Guid salesOrderId, CancellationToken ct)
     {
-        var reference = $"Ecommerce Order {soNumber}";
-
-        // Unified: stock lives in StockLevels scoped by (PartId, VariantId?). VariantId null = part-level.
         var partLevels = await _dbContext.StockLevels
             .Where(s => s.PartId == partId && s.VariantId == variantId && s.IsActive && !s.Isdeleted)
             .ToListAsync(ct);
-
-        if (!partLevels.Any())
-            throw new InvalidOperationException(
-                $"No stock levels configured for part {partId}{(variantId.HasValue ? $" / variant {variantId}" : "")}. Cannot fulfil this order line.");
 
         var releaseRemaining = qty;
         foreach (var s in partLevels.OrderByDescending(x => x.QuantityReserved))
@@ -1161,55 +1083,12 @@ public class EcommerceController(
             var r = Math.Min(s.QuantityReserved, releaseRemaining);
             if (r > 0) { s.ReleaseReservedStock(r); releaseRemaining -= r; }
         }
-        var removeRemaining = qty;
-        foreach (var s in partLevels.OrderByDescending(x => x.QuantityAvailable))
-        {
-            if (removeRemaining <= 0) break;
-            var r = Math.Min(s.QuantityAvailable, removeRemaining);
-            if (r > 0) { s.RemoveStock(r); removeRemaining -= r; }
-        }
-        if (removeRemaining > 0)
-            throw new InvalidOperationException(
-                $"Insufficient stock for part {partId}: ordered {qty}, only {qty - removeRemaining} available.");
+        if (releaseRemaining < qty)
+            await _dbContext.SaveChangesAsync(ct);
 
-        // StockMovement audit record
-        var primaryLevel = partLevels.FirstOrDefault(s => s.WarehouseId == warehouseId) ?? partLevels.First();
-        var stockMovement = StockMovement.Create(primaryLevel.Id, "OUT", qty, reference, soNumber, quantityInBaseUnit: qty);
-        stockMovement.Approve("ECOMMERCE");
-        stockMovement.CreatedBy = "ECOMMERCE";
-        stockMovement.ModifiedBy = "ECOMMERCE";
-        await _dbContext.StockMovements.AddAsync(stockMovement, ct);
-
-        // FIFO lot deduction
-        try
-        {
-            var lots = await _dbContext.StockLots
-                .Where(l => l.PartId == partId && l.VariantId == variantId && l.WarehouseId == warehouseId
-                    && l.QuantityAvailableInBaseUnit > 0 && !l.Isdeleted)
-                .OrderBy(l => l.ReceivingDate)
-                .ToListAsync(ct);
-
-            var lotRemaining = qty;
-            foreach (var lot in lots)
-            {
-                if (lotRemaining <= 0) break;
-                var deduct = Math.Min(lot.QuantityAvailableInBaseUnit, lotRemaining);
-                lot.RemoveStock(deduct, deduct, reference);
-                lot.ModifiedBy = "ECOMMERCE";
-                var lotMovement = StockLotMovement.Create(lot.Id, deduct, "SALE",
-                    partId, "EcommerceOrder", DateTime.UtcNow, lot.CostPrice, reference);
-                lotMovement.CreatedBy = "ECOMMERCE";
-                lotMovement.ModifiedBy = "ECOMMERCE";
-                await _dbContext.StockLotMovements.AddAsync(lotMovement, ct);
-                lotRemaining -= deduct;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not deduct stock lots for ecommerce order {SONumber}, part {PartId}", soNumber, partId);
-        }
-
-        await _dbContext.SaveChangesAsync(ct);
+        await _stockConsumptionService.ConsumeStockAsync(
+            partId, variantId, qty, salesOrderId,
+            $"Ecommerce Order {soNumber}", soNumber, "EcommerceOrder", "ECOMMERCE", ct);
     }
 
     private async Task<(Customer customer, bool isNew)> ResolveCustomerAsync(EcommerceCheckoutRequest request, CancellationToken ct)
