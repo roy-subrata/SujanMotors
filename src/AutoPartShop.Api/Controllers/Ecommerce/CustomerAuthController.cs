@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-namespace AutoPartShop.Api.Controllers;
+namespace AutoPartShop.Api.Controllers.Ecommerce;
 
 /// <summary>
 /// Online-shopper credential endpoints. Fully anonymous, so both are rate limited per IP —

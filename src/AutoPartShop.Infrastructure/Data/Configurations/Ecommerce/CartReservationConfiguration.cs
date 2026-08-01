@@ -1,8 +1,8 @@
-using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Entities.Ecommerce;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace AutoPartShop.Infrastructure.Data.Configurations;
+namespace AutoPartShop.Infrastructure.Data.Configurations.Ecommerce;
 
 public class CartReservationConfiguration : IEntityTypeConfiguration<CartReservation>
 {

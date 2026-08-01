@@ -3,12 +3,13 @@ using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Entities.Ecommerce;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace AutoPartShop.Api.Controllers;
+namespace AutoPartShop.Api.Controllers.Ecommerce;
 
 [Route("api/ecommerce")]
 [Route("api/v1/ecommerce")]
