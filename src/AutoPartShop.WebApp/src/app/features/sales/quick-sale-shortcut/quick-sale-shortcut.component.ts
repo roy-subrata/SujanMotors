@@ -95,6 +95,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
   readonly layoutService = inject(LayoutService);
   readonly isDarkMode = computed(() => this.layoutService.isDarkTheme());
 
+  toggleDarkMode(): void {
+    this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+  }
+
   @ViewChild(QuickCustomerDialogComponent) quickCustomerDialog!: QuickCustomerDialogComponent;
 
   // ===== STATE =====

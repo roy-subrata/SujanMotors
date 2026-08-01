@@ -149,9 +149,9 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         [closable]="true">
 
         <form [formGroup]="exchangeRateForm" (ngSubmit)="saveExchangeRate()">
-          <div class="flex flex-column gap-4">
+          <div class="flex flex-col gap-4">
             <!-- From Currency -->
-            <div class="flex flex-column gap-2">
+            <div class="flex flex-col gap-2">
               <label htmlFor="fromCurrencyId">From Currency <span class="text-red-500">*</span></label>
               <p-select
                 id="fromCurrencyId"
@@ -163,7 +163,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
                 [filter]="true"
                 class="w-full">
                 <ng-template let-currency pTemplate="item">
-                  <div class="flex align-items-center gap-2">
+                  <div class="flex items-center gap-2">
                     <span>{{ currency.symbol }}</span>
                     <span class="font-semibold">{{ currency.code }}</span>
                     <span class="text-sm text-gray-600">- {{ currency.name }}</span>
@@ -176,7 +176,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
             </div>
 
             <!-- To Currency -->
-            <div class="flex flex-column gap-2">
+            <div class="flex flex-col gap-2">
               <label htmlFor="toCurrencyId">To Currency <span class="text-red-500">*</span></label>
               <p-select
                 id="toCurrencyId"
@@ -188,7 +188,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
                 [filter]="true"
                 class="w-full">
                 <ng-template let-currency pTemplate="item">
-                  <div class="flex align-items-center gap-2">
+                  <div class="flex items-center gap-2">
                     <span>{{ currency.symbol }}</span>
                     <span class="font-semibold">{{ currency.code }}</span>
                     <span class="text-sm text-gray-600">- {{ currency.name }}</span>
@@ -201,7 +201,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
             </div>
 
             <!-- Exchange Rate -->
-            <div class="flex flex-column gap-2">
+            <div class="flex flex-col gap-2">
               <label htmlFor="rate">Exchange Rate <span class="text-red-500">*</span></label>
               <p-inputNumber
                 id="rate"
@@ -218,7 +218,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
             </div>
 
             <!-- Effective Date -->
-            <div class="flex flex-column gap-2">
+            <div class="flex flex-col gap-2">
               <label htmlFor="effectiveDate">Effective Date <span class="text-red-500">*</span></label>
               <p-datepicker
                 id="effectiveDate"
@@ -234,7 +234,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
             </div>
 
             <!-- Expiry Date -->
-            <div class="flex flex-column gap-2">
+            <div class="flex flex-col gap-2">
               <label htmlFor="expiryDate">Expiry Date (Optional)</label>
               <p-datepicker
                 id="expiryDate"
@@ -248,7 +248,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
             </div>
 
             <!-- Is Active -->
-            <div class="flex align-items-center gap-2">
+            <div class="flex items-center gap-2">
               <p-checkbox
                 id="isActive"
                 formControlName="isActive"
@@ -258,7 +258,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
             </div>
 
             <!-- Notes -->
-            <div class="flex flex-column gap-2">
+            <div class="flex flex-col gap-2">
               <label htmlFor="notes">Notes</label>
               <textarea
                 pInputTextarea
