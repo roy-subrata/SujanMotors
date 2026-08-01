@@ -234,8 +234,8 @@ export class DiscountFormDialogComponent implements OnChanges {
       productVariantId:  this.selectedVariant()?.id || undefined,
       promoCode:         isCart && v.promoCode ? v.promoCode : undefined,
       minimumCartAmount: isCart && v.minimumCartAmount ? v.minimumCartAmount : undefined,
-      startDate:         v.startDate ? (v.startDate as Date).toISOString() : '',
-      endDate:           v.endDate ? (v.endDate as Date).toISOString() : undefined
+      startDate:         v.startDate ? this.toLocalDateString(v.startDate as Date) : '',
+      endDate:           v.endDate ? this.toLocalDateString(v.endDate as Date) : undefined
     };
 
     this.isCreating.set(true);
@@ -283,8 +283,8 @@ export class DiscountFormDialogComponent implements OnChanges {
       value:            v.value ?? 0,
       promoCode:        isCart && v.promoCode ? v.promoCode : undefined,
       minimumCartAmount: isCart && v.minimumCartAmount ? v.minimumCartAmount : undefined,
-      startDate:        v.startDate ? (v.startDate as Date).toISOString() : '',
-      endDate:          v.endDate ? (v.endDate as Date).toISOString() : undefined,
+      startDate:        v.startDate ? this.toLocalDateString(v.startDate as Date) : '',
+      endDate:          v.endDate ? this.toLocalDateString(v.endDate as Date) : undefined,
       isActive:         v.isActive ?? true
     };
 
@@ -305,5 +305,15 @@ export class DiscountFormDialogComponent implements OnChanges {
   isInvalid(form: 'create' | 'update', controlName: string): boolean {
     const ctrl = form === 'create' ? this.createForm.get(controlName) : this.updateForm.get(controlName);
     return !!(ctrl && ctrl.invalid && (ctrl.dirty || ctrl.touched));
+  }
+
+  // toISOString() converts to UTC which shifts dates in non-UTC timezones (e.g. local
+  // midnight Aug 1 in UTC+6 becomes Jul 31 in UTC). This helper returns "YYYY-MM-DD" in
+  // local time so the backend receives the calendar day the user actually picked.
+  private toLocalDateString(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 }

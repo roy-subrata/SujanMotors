@@ -36,9 +36,8 @@ public class DiscountRepository : IDiscountRepository
                 !x.Isdeleted, cancellationToken);
     }
 
-    public async Task<IEnumerable<Discount>> GetActiveDiscountsAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Discount>> GetActiveDiscountsAsync(DateTime today, CancellationToken cancellationToken = default)
     {
-        var today = DateTime.UtcNow.Date;
         return await _dbContext.Discounts
             .Where(x =>
                 x.IsActive &&
@@ -48,9 +47,8 @@ public class DiscountRepository : IDiscountRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<Discount?> GetVariantDiscountAsync(Guid partId, Guid productVariantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Discount>> GetVariantDiscountsAsync(Guid partId, Guid productVariantId, DateTime today, CancellationToken cancellationToken = default)
     {
-        var today = DateTime.UtcNow.Date;
         return await _dbContext.Discounts
             .Where(x =>
                 x.PartId == partId &&
@@ -59,12 +57,11 @@ public class DiscountRepository : IDiscountRepository
                 !x.Isdeleted &&
                 x.StartDate <= today &&
                 (!x.EndDate.HasValue || x.EndDate.Value >= today))
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<Discount?> GetProductDiscountAsync(Guid partId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Discount>> GetProductDiscountsAsync(Guid partId, DateTime today, CancellationToken cancellationToken = default)
     {
-        var today = DateTime.UtcNow.Date;
         return await _dbContext.Discounts
             .Where(x =>
                 x.PartId == partId &&
@@ -73,7 +70,7 @@ public class DiscountRepository : IDiscountRepository
                 !x.Isdeleted &&
                 x.StartDate <= today &&
                 (!x.EndDate.HasValue || x.EndDate.Value >= today))
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<Discount>> GetByPartAsync(Guid partId, CancellationToken cancellationToken = default)

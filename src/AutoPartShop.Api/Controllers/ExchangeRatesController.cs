@@ -160,6 +160,7 @@ public class ExchangeRatesController : ControllerBase
             request.Notes);
 
         await _exchangeRateRepository.AddAsync(exchangeRate);
+        _conversionService.InvalidateCache();
 
         return CreatedAtAction(nameof(GetById), new { id = exchangeRate.Id }, MapToResponse(exchangeRate));
     }
@@ -191,6 +192,9 @@ public class ExchangeRatesController : ControllerBase
             createdRates.Add(exchangeRate);
         }
 
+        if (createdRates.Count > 0)
+            _conversionService.InvalidateCache();
+
         return Ok(createdRates.Select(MapToResponse));
     }
 
@@ -213,9 +217,11 @@ public class ExchangeRatesController : ControllerBase
             request.EffectiveDate,
             request.ExpiryDate,
             request.Source,
-            request.Notes);
+            request.Notes,
+            request.IsActive);
 
         await _exchangeRateRepository.UpdateAsync(exchangeRate);
+        _conversionService.InvalidateCache();
 
         return Ok(MapToResponse(exchangeRate));
     }
@@ -233,6 +239,7 @@ public class ExchangeRatesController : ControllerBase
 
         exchangeRate.Delete();
         await _exchangeRateRepository.UpdateAsync(exchangeRate);
+        _conversionService.InvalidateCache();
 
         return NoContent();
     }

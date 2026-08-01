@@ -2,6 +2,7 @@ namespace AutoPartShop.Api.Services;
 
 using AutoPartShop.Domain.Repositories;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Primitives;
 
 /// <summary>
 /// Service implementation for currency conversion
@@ -16,6 +17,14 @@ public class CurrencyConversionService : ICurrencyConversionService
 
     private const string BaseCurrencyCacheKey = "BaseCurrency";
     private const int CacheExpirationMinutes = 60;
+    private const int DefaultDecimalPlaces = 2;
+
+    // static: this service is registered Scoped (new instance per request), but IMemoryCache
+    // is a singleton — an instance-level token source would only ever cancel itself, never
+    // the token attached to cache entries written by other request scopes. A shared static
+    // source (already thread-safe via Interlocked.Exchange below) keeps invalidation working
+    // regardless of DI lifetime.
+    private static CancellationTokenSource _cacheResetSource = new();
 
     public CurrencyConversionService(
         ICurrencyRepository currencyRepository,
@@ -64,7 +73,8 @@ public class CurrencyConversionService : ICurrencyConversionService
 
             convertedAmount = amount * rate.Value;
         }
-        // Case 2: Converting from base currency (inverse conversion)
+        // Case 2: Converting from base currency (direct lookup of the base→target rate row,
+        // not a mathematical inversion of a target→base rate)
         else if (fromCurrency == baseCurrency)
         {
             var rate = await GetExchangeRateInternalAsync(baseCurrency, toCurrency, date, cancellationToken);
@@ -91,8 +101,10 @@ public class CurrencyConversionService : ICurrencyConversionService
             convertedAmount = amountInBase * rateFromBase.Value;
         }
 
-        // Round to 2 decimal places using banker's rounding
-        return Math.Round(convertedAmount, 2, MidpointRounding.ToEven);
+        // Round to the target currency's configured decimal places using banker's rounding
+        var targetCurrency = await _currencyRepository.GetByCodeAsync(toCurrency, cancellationToken);
+        var decimalPlaces = targetCurrency?.DecimalPlaces ?? DefaultDecimalPlaces;
+        return Math.Round(convertedAmount, decimalPlaces, MidpointRounding.ToEven);
     }
 
     /// <inheritdoc/>
@@ -121,7 +133,7 @@ public class CurrencyConversionService : ICurrencyConversionService
         if (!string.IsNullOrWhiteSpace(baseCurrencySetting))
         {
             // Cache for future use
-            _cache.Set(BaseCurrencyCacheKey, baseCurrencySetting, TimeSpan.FromMinutes(CacheExpirationMinutes));
+            _cache.Set(BaseCurrencyCacheKey, baseCurrencySetting, CreateCacheEntryOptions());
             return baseCurrencySetting;
         }
 
@@ -129,7 +141,7 @@ public class CurrencyConversionService : ICurrencyConversionService
         var baseCurrencyEntity = await _currencyRepository.GetBaseCurrencyAsync(cancellationToken);
         if (baseCurrencyEntity != null)
         {
-            _cache.Set(BaseCurrencyCacheKey, baseCurrencyEntity.Code, TimeSpan.FromMinutes(CacheExpirationMinutes));
+            _cache.Set(BaseCurrencyCacheKey, baseCurrencyEntity.Code, CreateCacheEntryOptions());
             return baseCurrencyEntity.Code;
         }
 
@@ -181,13 +193,29 @@ public class CurrencyConversionService : ICurrencyConversionService
 
         decimal? rate = exchangeRate?.Rate;
 
-        // Cache the result (even if null, to avoid repeated DB queries)
-        var cacheOptions = new MemoryCacheEntryOptions
+        // Only cache found rates. A missing rate isn't cached (negative caching) so it
+        // doesn't poison lookups for the full expiration window once a rate is added.
+        if (rate.HasValue)
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes)
-        };
-        _cache.Set(cacheKey, rate, cacheOptions);
+            _cache.Set(cacheKey, rate, CreateCacheEntryOptions());
+        }
 
         return rate;
+    }
+
+    /// <inheritdoc/>
+    public void InvalidateCache()
+    {
+        var oldSource = Interlocked.Exchange(ref _cacheResetSource, new CancellationTokenSource());
+        oldSource.Cancel();
+        oldSource.Dispose();
+    }
+
+    private MemoryCacheEntryOptions CreateCacheEntryOptions()
+    {
+        return new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(CacheExpirationMinutes)
+        }.AddExpirationToken(new CancellationChangeToken(_cacheResetSource.Token));
     }
 }
