@@ -29,7 +29,7 @@
       </div>
     </div>
     <div class="pos-header-right">
-      <button class="topbar-icon-btn" (click)="layoutService.toggleDarkMode()" [pTooltip]="isDarkMode() ? 'Switch to light' : 'Switch to dark'">
+      <button class="topbar-icon-btn" (click)="toggleDarkMode()" [pTooltip]="isDarkMode() ? 'Switch to light' : 'Switch to dark'">
         <i [class]="isDarkMode() ? 'pi pi-sun' : 'pi pi-moon'"></i>
       </button>
       <button class="topbar-icon-btn" pTooltip="Notifications">
