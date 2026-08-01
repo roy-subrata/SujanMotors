@@ -274,7 +274,7 @@ export class InvoicePdfService {
 
   getInvoiceByNumber(invoiceNumber: string): Observable<{ id: string; invoiceNumber: string }> {
     return this.http.get<{ id: string; invoiceNumber: string }>(
-      `${environment.apiUrl}/v1/salesorders/invoices/number/${encodeURIComponent(invoiceNumber)}`
+      `${environment.apiUrl}/v1/salesorder/invoices/number/${encodeURIComponent(invoiceNumber)}`
     );
   }
 
@@ -283,7 +283,7 @@ export class InvoicePdfService {
    * Returns an Observable that completes once the browser download is triggered.
    */
   downloadServerPdf(invoiceId: string, invoiceNumber: string): Observable<void> {
-    const url = `${environment.apiUrl}/salesorders/invoices/${invoiceId}/pdf`;
+    const url = `${environment.apiUrl}/salesorder/invoices/${invoiceId}/pdf`;
     return this.pdfDownload.downloadGet(url, `invoice-${invoiceNumber}.pdf`);
   }
 }
