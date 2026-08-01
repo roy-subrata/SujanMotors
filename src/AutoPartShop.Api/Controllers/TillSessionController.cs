@@ -21,6 +21,7 @@ public class TillSessionController(
     ITillSessionRepository tillSessionRepository,
     ICurrentUserService currentUserService,
     IPermissionCheckService permissionCheckService,
+    ICashierProfileService cashierProfileService,
     AutoPartDbContext dbContext,
     ILogger<TillSessionController> logger) : ControllerBase
 {
@@ -89,22 +90,9 @@ public class TillSessionController(
         if (!string.IsNullOrWhiteSpace(terminalLabel))
             lastClosedOnTerminal = await tillSessionRepository.GetLastClosedSessionForTerminalAsync(terminalLabel.Trim(), cancellationToken);
 
-        string? suggestedShiftLabel = null;
-        string? suggestedShiftHours = null;
-        var employee = await dbContext.Employees
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.UserId == cashierId.Value && !e.Isdeleted, cancellationToken);
-        if (employee?.ShiftId is not null)
-        {
-            var shift = await dbContext.Shifts
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == employee.ShiftId.Value && !s.Isdeleted, cancellationToken);
-            if (shift is not null)
-            {
-                suggestedShiftLabel = shift.Name;
-                suggestedShiftHours = $"{shift.StartTime:hh\\:mm} – {shift.EndTime:hh\\:mm}";
-            }
-        }
+        var cashierProfile = await cashierProfileService.GetProfileAsync(cashierId.Value, cancellationToken);
+        var suggestedShiftLabel = cashierProfile?.ShiftLabel;
+        var suggestedShiftHours = cashierProfile?.ShiftHours;
 
         var suggestedOpeningFloatFromCashier = lastClosedOnTerminal is null
             ? null
@@ -319,12 +307,10 @@ public class TillSessionController(
     // ── Helpers ────────────────────────────────────────────────────────────────
     private async Task<string> ResolveCashierDisplayAsync(TillSession session, CancellationToken cancellationToken)
     {
-        var employee = await dbContext.Employees
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.UserId == session.CashierId && !e.Isdeleted, cancellationToken);
+        var cashierProfile = await cashierProfileService.GetProfileAsync(session.CashierId, cancellationToken);
 
-        if (employee is not null)
-            return $"{employee.Name} · Staff ID {employee.EmployeeCode}";
+        if (!string.IsNullOrWhiteSpace(cashierProfile?.EmployeeName))
+            return $"{cashierProfile.EmployeeName} · Staff ID {cashierProfile.EmployeeCode}";
 
         var user = session.Cashier ?? await dbContext.Users
             .AsNoTracking()

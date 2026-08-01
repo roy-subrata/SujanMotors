@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Hubs;
 using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services.HR;
 using AutoPartShop.Application.Interfaces;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -187,6 +188,10 @@ builder.Services.AddHttpContextAccessor();
 // Singleton: it holds only the configured offset and reads DateTime.UtcNow per call.
 builder.Services.AddSingleton<IShopClock, ShopClock>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+// HR module's Api-layer adapter for Core's ICashierProfileService (see remarks on the interface
+// and on CashierProfileService for why this is registered here rather than in Infrastructure's
+// Dependency.cs — Infrastructure has no project reference back to Api).
+builder.Services.AddScoped<ICashierProfileService, CashierProfileService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IShopProfileProvider, ShopProfileProvider>();
 builder.Services.AddScoped<StockManagementService>();
