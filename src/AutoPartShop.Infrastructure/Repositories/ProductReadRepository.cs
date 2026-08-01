@@ -95,12 +95,12 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
-                && (query.CategoryId == null || x.CategoryId == query.CategoryId) && (
-             (EF.Functions.Like(x.Name, $"%{term}%") ||
+            .Where(x => !x.Isdeleted)
+            .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
+            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
+            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") ||
              EF.Functions.Like(x.SKU, $"%{term}%") ||
-             (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%"))
-            )));
+             (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%")));
 
         if (query.LowStockOnly)
         {
@@ -236,10 +236,11 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
-                && (query.CategoryId == null || x.CategoryId == query.CategoryId)
-                && !x.Variants.Any(v => v.IsActive && !v.Isdeleted)
-                && (EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%")))
+            .Where(x => !x.Isdeleted)
+            .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
+            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
+            .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted))
+            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"))
             .Select(part => new ProductResponse
             {
                 Id = part.Id,
@@ -285,20 +286,31 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
-        var variantItems = await _db.ProductVariants
+        // EF Core cannot translate this Include(v => v.Part)-then-filter-on-Part combination when
+        // the optional (query.IsActive/CategoryId == null || ...) filters and the multi-field
+        // search OR-chain are applied together — it throws "could not be translated" regardless of
+        // whether the predicate is one combined Where() or several chained ones (tried both). So:
+        // fetch with only the always-true-shape, safely-translatable filter (active/not-deleted),
+        // then apply the optional query filters and the search-term match in memory. The catalog
+        // size here doesn't warrant fighting the translator further — this method already
+        // concatenates + paginates baseItems/variantItems in memory below.
+        var candidateVariants = await _db.ProductVariants
             .Include(v => v.Part).ThenInclude(p => p!.Category)
             .Include(v => v.Part).ThenInclude(p => p!.Brand)
             .Include(v => v.Part).ThenInclude(p => p!.Unit)
             .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
-            .Where(v => v.IsActive && !v.Isdeleted
-                && v.Part != null && !v.Part.Isdeleted && (query.IsActive == null || v.Part.IsActive == query.IsActive)
-                && (query.CategoryId == null || v.Part.CategoryId == query.CategoryId)
-                && (EF.Functions.Like(v.Name, $"%{term}%")
-                    || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
-                    || (v.PartNumber != null && EF.Functions.Like(v.PartNumber.Value, $"%{term}%"))
-                    || (v.OemNumber != null && EF.Functions.Like(v.OemNumber, $"%{term}%"))
-                    || EF.Functions.Like(v.Part.Name, $"%{term}%")
-                    || EF.Functions.Like(v.Part.SKU, $"%{term}%")))
+            .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
+            .ToListAsync(cancellationToken);
+
+        var variantItems = candidateVariants
+            .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
+            .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId)
+            .Where(v => v.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || (v.SKU != null && v.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || (v.PartNumber != null && v.PartNumber.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || (v.OemNumber != null && v.OemNumber.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || v.Part!.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || v.Part.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
             .Select(v => new ProductResponse
             {
                 Id = v.PartId,
@@ -348,7 +360,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 CreatedBy = v.Part.CreatedBy,
                 ModifiedBy = v.Part.ModifiedBy
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         var allItems = baseItems.Concat(variantItems)
             .OrderBy(x => x.Name).ThenBy(x => x.VariantName)
@@ -379,11 +391,10 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
-                && (query.CategoryId == null || x.CategoryId == query.CategoryId) && (
-             (EF.Functions.Like(x.Name, $"%{term}%") ||
-             EF.Functions.Like(x.SKU, $"%{term}%")
-            )));
+            .Where(x => !x.Isdeleted)
+            .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
+            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
+            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"));
 
         if (query.Sorts != null && query.Sorts.Any())
         {
@@ -453,10 +464,11 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted && (query.IsActive == null || x.IsActive == query.IsActive)
-                && (query.CategoryId == null || x.CategoryId == query.CategoryId)
-                && !x.Variants.Any(v => v.IsActive && !v.Isdeleted)
-                && (EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%")))
+            .Where(x => !x.Isdeleted)
+            .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
+            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
+            .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted))
+            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"))
             .Select(part => new ProductPublicResponse
             {
                 Id = part.Id,
@@ -497,20 +509,27 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
-        var variantItems = await _db.ProductVariants
+        // See the equivalent note in FindAllFlattenedAsync — EF Core cannot translate this
+        // Include(v => v.Part)-then-filter-on-Part combination (tried both a single combined
+        // Where() and chained ones), so fetch with only the safely-translatable filter and apply
+        // the optional query filters + search-term match in memory.
+        var candidateVariants = await _db.ProductVariants
             .Include(v => v.Part).ThenInclude(p => p!.Category)
             .Include(v => v.Part).ThenInclude(p => p!.Brand)
             .Include(v => v.Part).ThenInclude(p => p!.Unit)
             .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
-            .Where(v => v.IsActive && !v.Isdeleted
-                && v.Part != null && !v.Part.Isdeleted && (query.IsActive == null || v.Part.IsActive == query.IsActive)
-                && (query.CategoryId == null || v.Part.CategoryId == query.CategoryId)
-                && (EF.Functions.Like(v.Name, $"%{term}%")
-                    || (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%"))
-                    || (v.PartNumber != null && EF.Functions.Like(v.PartNumber.Value, $"%{term}%"))
-                    || (v.OemNumber != null && EF.Functions.Like(v.OemNumber, $"%{term}%"))
-                    || EF.Functions.Like(v.Part.Name, $"%{term}%")
-                    || EF.Functions.Like(v.Part.SKU, $"%{term}%")))
+            .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
+            .ToListAsync(cancellationToken);
+
+        var variantItems = candidateVariants
+            .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
+            .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId)
+            .Where(v => v.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || (v.SKU != null && v.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || (v.PartNumber != null && v.PartNumber.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || (v.OemNumber != null && v.OemNumber.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    || v.Part!.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || v.Part.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
             .Select(v => new ProductPublicResponse
             {
                 Id = v.PartId,
@@ -555,7 +574,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 WeightKg = v.WeightKg ?? v.Part.WeightKg,
                 TaxCode = v.Part.TaxCode
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         var allItems = baseItems.Concat(variantItems)
             .OrderBy(x => x.Name).ThenBy(x => x.VariantName)
