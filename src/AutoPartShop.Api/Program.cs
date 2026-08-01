@@ -196,6 +196,9 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IShopProfileProvider, ShopProfileProvider>();
 builder.Services.AddScoped<StockManagementService>();
 builder.Services.AddScoped<StockAdjustmentApplier>();
+// Shared stock-decrement algorithm for every channel that sells stock (POS quick sale,
+// ecommerce checkout, in-store ecommerce checkout) — see IStockConsumptionService remarks.
+builder.Services.AddScoped<IStockConsumptionService, StockConsumptionService>();
 builder.Services.AddScoped<SupplierPaymentSummaryService>();
 builder.Services.AddScoped<ISupplierLedgerService, SupplierLedgerService>();
 builder.Services.AddScoped<ICustomerAccountSummaryService, CustomerAccountSummaryService>();

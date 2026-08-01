@@ -1,4 +1,4 @@
-namespace AutoPartShop.Domain.Entities;
+namespace AutoPartShop.Domain.Entities.Ecommerce;
 
 public class CartReservation : BaseEntity
 {

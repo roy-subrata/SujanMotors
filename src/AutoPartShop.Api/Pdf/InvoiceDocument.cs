@@ -84,7 +84,7 @@ public class InvoiceDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Tax Invoice",
+        new DocHeader(_theme, _shop, _data.TaxAmount > 0 ? "Tax Invoice" : "Invoice",
         [
             new MetaField("No.", _data.InvoiceNumber),
             new MetaField("Date", _data.InvoiceDate.ToString("dd MMM yyyy")),

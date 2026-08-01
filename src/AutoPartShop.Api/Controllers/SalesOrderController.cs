@@ -47,6 +47,7 @@ public class SalesOrderController : ControllerBase
     private readonly AutoPartDbContext _dbContext;
     private readonly ITillSessionRepository _tillSessionRepository;
     private readonly IPermissionCheckService _permissionCheckService;
+    private readonly IStockConsumptionService _stockConsumptionService;
 
     public SalesOrderController(
         ISalesOrderRepository salesOrderRepository,
@@ -68,7 +69,8 @@ public class SalesOrderController : ControllerBase
         ILogger<SalesOrderController> logger,
         AutoPartDbContext dbContext,
         ITillSessionRepository tillSessionRepository,
-        IPermissionCheckService permissionCheckService)
+        IPermissionCheckService permissionCheckService,
+        IStockConsumptionService stockConsumptionService)
     {
         _salesOrderRepository = salesOrderRepository;
         _saleOrderReadRepository = saleOrderReadRepository;
@@ -90,6 +92,7 @@ public class SalesOrderController : ControllerBase
         _dbContext = dbContext;
         _tillSessionRepository = tillSessionRepository;
         _permissionCheckService = permissionCheckService;
+        _stockConsumptionService = stockConsumptionService;
     }
 
     private static bool IsWalkIn(Customer? customer) =>
@@ -2181,10 +2184,15 @@ public class SalesOrderController : ControllerBase
 
                     salesOrder.SetTax(request.VatAmount);
 
-                    // If SaveAsQuotation = true, keep as DRAFT. Otherwise, confirm the order
+                    // If SaveAsQuotation = true, keep as DRAFT. Otherwise, confirm the order.
+                    // A Quick Sale is an immediate over-the-counter handover — no separate challan
+                    // step exists for it — so it also goes straight to DELIVERED. Without this the
+                    // order gets stuck at CONFIRMED forever, and Returns rejects it (returns only
+                    // allow PARTIALLY_SHIPPED/SHIPPED/DELIVERED/COMPLETED).
                     if (!request.SaveAsQuotation)
                     {
                         salesOrder.Confirm();
+                        salesOrder.MarkAsDelivered();
                     }
                     var quickSaleCashier = _currentUserService.GetCurrentUsername();
                     salesOrder.SetCashier(_currentUserService.GetCurrentUserGuid(), quickSaleCashier);
@@ -2331,64 +2339,23 @@ public class SalesOrderController : ControllerBase
                         await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
                     }
 
+                    var quickSaleActor = _currentUserService.GetCurrentUsername();
                     foreach (var line in salesOrder.LineItems)
                     {
-                        var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, line.ProductVariantId, cancellationToken);
-                        var remainingQty = line.QuantityInBaseUnit;
-                        foreach (var stockLevel in stockLevels.OrderByDescending(sl => sl.QuantityAvailableInBaseUnit))
+                        try
                         {
-                            if (remainingQty <= 0) break;
-                            var qtyToDecrease = Math.Min(remainingQty, stockLevel.QuantityAvailableInBaseUnit);
-                            if (qtyToDecrease > 0)
-                            {
-                                stockLevel.RemoveStock(qtyToDecrease, qtyToDecrease, "Quick Sale - " + invoiceNumber);
-                                stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
-                                await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
-                                var stockMovement = StockMovement.Create(stockLevel.Id, "OUT", qtyToDecrease,
-                                    $"Quick Sale {invoiceNumber}", invoiceNumber,
-                                    unitId: stockLevel.UnitId, quantityInBaseUnit: qtyToDecrease);
-                                stockMovement.Approve(_currentUserService.GetCurrentUsername());
-                                stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-                                stockMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-                                await _dbContext.StockMovements.AddAsync(stockMovement, cancellationToken);
-                                try
-                                {
-                                    var stockLots = await _dbContext.StockLots
-                                        .Where(l => l.PartId == line.PartId &&
-                                                   l.VariantId == line.ProductVariantId &&
-                                                   l.WarehouseId == stockLevel.WarehouseId &&
-                                                   l.QuantityAvailableInBaseUnit > 0 &&
-                                                   !l.Isdeleted)
-                                        .OrderBy(l => l.ExpiryDate == null ? DateTime.MaxValue : l.ExpiryDate)
-                                        .ThenBy(l => l.ReceivingDate)
-                                        .ToListAsync(cancellationToken);
-                                    var lotRemainingQty = qtyToDecrease;
-                                    foreach (var lot in stockLots)
-                                    {
-                                        if (lotRemainingQty <= 0) break;
-                                        int qtyFromLot = Math.Min(lot.QuantityAvailableInBaseUnit, lotRemainingQty);
-                                        lot.RemoveStock(qtyFromLot, qtyFromLot, $"Quick Sale {invoiceNumber}");
-                                        lot.ModifiedBy = _currentUserService.GetCurrentUsername();
-                                        var lotMovement = StockLotMovement.Create(lot.Id, qtyFromLot, "SALE",
-                                            salesOrder.Id, "QuickSale", DateTime.UtcNow, lot.CostPrice,
-                                            $"Quick Sale {invoiceNumber}");
-                                        lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
-                                        lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
-                                        await _dbContext.StockLotMovements.AddAsync(lotMovement, cancellationToken);
-                                        lotRemainingQty -= qtyFromLot;
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning(ex, "Could not create stock lot movements for quick sale {InvoiceNumber}, part {PartId}",
-                                        invoiceNumber, line.PartId);
-                                }
-                                remainingQty -= qtyToDecrease;
-                            }
+                            await _stockConsumptionService.ConsumeStockAsync(
+                                line.PartId, line.ProductVariantId, line.QuantityInBaseUnit,
+                                salesOrder.Id, $"Quick Sale {invoiceNumber}", invoiceNumber, "QuickSale",
+                                quickSaleActor, cancellationToken);
                         }
-                        if (remainingQty > 0)
+                        catch (InvalidOperationException)
+                        {
+                            // Re-thrown with quick-sale-specific context: stock was verified available in
+                            // the pre-check above, so hitting this here means a concurrent sale won the race.
                             throw new InvalidOperationException(
                                 $"Insufficient stock for part {line.PartId}: stock was available at check time but was consumed by a concurrent transaction. Please retry the sale.");
+                        }
                     }
 
                     // Audit trail: salesperson discount

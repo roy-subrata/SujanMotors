@@ -8,8 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-[Route("api/v1/[controller]")]
+[Route("api/exchange-rates")]
+[Route("api/v1/exchange-rates")]
 [Authorize]
 public class ExchangeRatesController : ControllerBase
 {

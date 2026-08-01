@@ -399,7 +399,7 @@ export class QuickSaleService {
   /**
    * Get customer credit info
    */
-  getCustomerCredit(customerId: string): Observable<{ creditLimit: number; usedCredit: number; availableCredit: number; dueBalance: number }> {
+  getCustomerCredit(customerId: string): Observable<{ currentBalance: number; advanceAmount: number; dueBalance: number }> {
     return this.http.get<any>(`${this.apiUrl}/v1/customers/${customerId}/credit`);
   }
 

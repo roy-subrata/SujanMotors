@@ -1,7 +1,6 @@
 <div class="pos-container">
   <p-toast></p-toast>
   <p-confirmDialog></p-confirmDialog>
-  <p-menu #moreMenu [model]="moreActions" [popup]="true" appendTo="body"></p-menu>
   <app-quick-customer-dialog (customerCreated)="onCustomerCreated($event)"></app-quick-customer-dialog>
   <app-invoice-preview [(visible)]="showInvoicePreview" [invoiceData]="invoicePreviewData" [invoiceId]="currentInvoiceId()"></app-invoice-preview>
 
@@ -30,7 +29,7 @@
       </div>
     </div>
     <div class="pos-header-right">
-      <button class="topbar-icon-btn" (click)="layoutService.toggleDarkMode()" [pTooltip]="isDarkMode() ? 'Switch to light' : 'Switch to dark'">
+      <button class="topbar-icon-btn" (click)="toggleDarkMode()" [pTooltip]="isDarkMode() ? 'Switch to light' : 'Switch to dark'">
         <i [class]="isDarkMode() ? 'pi pi-sun' : 'pi pi-moon'"></i>
       </button>
       <button class="topbar-icon-btn" pTooltip="Notifications">
@@ -395,18 +394,19 @@
           </div>
 
           <!-- Customer Credit -->
-          <div class="credit-inline" *ngIf="selectedCustomer() && customerCreditInfo && customerCreditInfo.availableCredit > 0">
+          <div class="credit-inline" *ngIf="selectedCustomer() && availableAdvance() > 0">
             <label class="checkbox-label">
-              <input type="checkbox" [checked]="useCreditBalance" (change)="useCreditBalance = !useCreditBalance" />
-              <span>Use credit ({{ formatCurrency(customerCreditInfo.availableCredit) }})</span>
+              <input type="checkbox" [checked]="useCreditBalance()" (change)="useCreditBalance.set(!useCreditBalance())" />
+              <span>Use advance balance ({{ formatCurrency(availableAdvance()) }})</span>
             </label>
-            <div class="credit-amount-row" *ngIf="useCreditBalance">
+            <div class="credit-amount-row" *ngIf="useCreditBalance()">
               <span class="credit-label">Apply:</span>
               <p-inputNumber
-                [(ngModel)]="creditAmountToApply"
+                [ngModel]="creditAmountToApply()"
+                (ngModelChange)="creditAmountToApply.set($event)"
                 [ngModelOptions]="{standalone: true}"
                 [min]="0"
-                [max]="Math.min(customerCreditInfo.availableCredit, remainingBalance())"
+                [max]="maxCreditApplicable()"
                 mode="decimal"
                 styleClass="credit-field">
               </p-inputNumber>
@@ -434,7 +434,7 @@
           <div class="balance-summary">
             <div class="balance-row">
               <span>Paid:</span>
-              <span class="paid-value">{{ formatCurrency(totalPaid() + (useCreditBalance ? creditAmountToApply : 0)) }}</span>
+              <span class="paid-value">{{ formatCurrency(totalPaid() + (useCreditBalance() ? creditAmountToApply() : 0)) }}</span>
             </div>
             <div class="balance-row" *ngIf="remainingBalance() > 0">
               <span>Remaining:</span>
@@ -499,41 +499,44 @@
 
   <!-- Bottom Action Strip -->
   <nav class="pos-action-strip">
-    <button class="strip-btn" (click)="resetShortcut()" pTooltip="New Sale">
+    <button class="strip-btn" (click)="resetShortcut()" pTooltip="New Sale" tooltipPosition="top">
       <i class="pi pi-plus-circle"></i><span>New Sale</span>
     </button>
-    <button class="strip-btn" (click)="viewLastSale()" [disabled]="!hasLastSale()" pTooltip="Last Sale">
+    <button class="strip-btn" (click)="viewLastSale()" [disabled]="!hasLastSale()" pTooltip="Last Sale" tooltipPosition="top">
       <i class="pi pi-clock"></i><span>Last Sale</span>
     </button>
-    <button class="strip-btn amber" (click)="holdSale()" [disabled]="cartItems().length === 0" pTooltip="Hold Sale">
+    <button class="strip-btn amber" (click)="holdSale()" [disabled]="cartItems().length === 0" pTooltip="Hold Sale" tooltipPosition="top">
       <i class="pi pi-pause"></i><span>Hold</span>
     </button>
-    <button class="strip-btn" (click)="recallHeldSales()" pTooltip="Recall Held Sale">
+    <button class="strip-btn" (click)="recallHeldSales()" pTooltip="Recall Held Sale" tooltipPosition="top">
       <i class="pi pi-replay"></i><span>Recall</span>
     </button>
-    <button class="strip-btn" (click)="openReturns()" pTooltip="Returns">
+    <button class="strip-btn" (click)="openReturns()" pTooltip="Returns" tooltipPosition="top">
       <i class="pi pi-refresh"></i><span>Returns</span>
     </button>
-    <button class="strip-btn" (click)="openBulkDiscount()" [disabled]="cartItems().length === 0" pTooltip="Apply Discount">
+    <button class="strip-btn" (click)="openBulkDiscount()" [disabled]="cartItems().length === 0" pTooltip="Apply Discount" tooltipPosition="top">
       <i class="pi pi-percentage"></i><span>Discount</span>
     </button>
-    <button class="strip-btn" (click)="saveDraft()" [disabled]="cartItems().length === 0" pTooltip="Save Draft">
+    <button class="strip-btn" (click)="saveDraft()" [disabled]="cartItems().length === 0" pTooltip="Save Draft" tooltipPosition="top">
       <i class="pi pi-save"></i><span>Draft</span>
     </button>
-    <button class="strip-btn" (click)="saveAsQuotation()" [disabled]="cartItems().length === 0 || saving()" pTooltip="Save as Quotation">
+    <button class="strip-btn" (click)="saveAsQuotation()" [disabled]="cartItems().length === 0 || saving()" pTooltip="Save as Quotation" tooltipPosition="top">
       <i class="pi pi-file"></i><span>Quotation</span>
     </button>
-    <button class="strip-btn" (click)="openReprintDialog()" pTooltip="Reprint Receipt">
+    <button class="strip-btn" (click)="openReprintDialog()" pTooltip="Reprint Receipt" tooltipPosition="top">
       <i class="pi pi-print"></i><span>Reprint</span>
     </button>
-    <button class="strip-btn" (click)="openCustomerHistory()" [disabled]="!selectedCustomer()" pTooltip="Customer History">
+    <button class="strip-btn" (click)="openCustomerHistory()" [disabled]="!selectedCustomer()" pTooltip="Customer History" tooltipPosition="top">
       <i class="pi pi-history"></i><span>History</span>
     </button>
-    <button class="strip-btn" (click)="viewCustomerCredit()" [disabled]="!selectedCustomer()" pTooltip="Customer Credit">
+    <button class="strip-btn" (click)="viewCustomerCredit()" [disabled]="!selectedCustomer()" pTooltip="Customer Credit" tooltipPosition="top">
       <i class="pi pi-wallet"></i><span>Credit</span>
     </button>
-    <button class="strip-btn" (click)="openStockSearch()" pTooltip="Stock Check">
+    <button class="strip-btn" (click)="openStockSearch()" pTooltip="Stock Check" tooltipPosition="top">
       <i class="pi pi-box"></i><span>Stock</span>
+    </button>
+    <button class="strip-btn" (click)="openPriceCheck()" pTooltip="Price Check" tooltipPosition="top">
+      <i class="pi pi-tag"></i><span>Price</span>
     </button>
   </nav>
 
@@ -568,16 +571,8 @@
   <p-dialog [(visible)]="showCustomerCreditDialog" [modal]="true" [style]="{ width: '450px' }" header="Customer Credit Information">
     <div class="credit-dialog-content" *ngIf="selectedCustomer() && customerCreditInfo">
       <div class="credit-stat">
-        <span class="stat-label">Credit Limit</span>
-        <span class="stat-value">{{ formatCurrency(customerCreditInfo.creditLimit) }}</span>
-      </div>
-      <div class="credit-stat">
-        <span class="stat-label">Used Credit</span>
-        <span class="stat-value">{{ formatCurrency(customerCreditInfo.usedCredit) }}</span>
-      </div>
-      <div class="credit-stat">
-        <span class="stat-label">Available Credit</span>
-        <span class="stat-value success">{{ formatCurrency(customerCreditInfo.availableCredit) }}</span>
+        <span class="stat-label">Advance Balance</span>
+        <span class="stat-value success">{{ formatCurrency(customerCreditInfo.advanceAmount) }}</span>
       </div>
       <div class="credit-stat">
         <span class="stat-label">Outstanding Due</span>
