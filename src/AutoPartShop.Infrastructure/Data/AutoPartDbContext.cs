@@ -2,6 +2,7 @@
 
 using System.Security.Claims;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Entities.HR;
 using AutoPartsShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;

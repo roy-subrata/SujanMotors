@@ -415,8 +415,12 @@ export class ExchangeRatesListComponent implements OnInit {
       fromCurrencyId: formValue.fromCurrencyId,
       toCurrencyId: formValue.toCurrencyId,
       rate: formValue.rate,
-      effectiveDate: formValue.effectiveDate,
-      expiryDate: formValue.expiryDate,
+      // Build date-only strings from local date components. Passing the raw Date
+      // object would have HttpClient's JSON.stringify() call Date#toJSON() (i.e.
+      // toISOString()), which shifts the picked calendar day back a day in any
+      // timezone ahead of UTC (e.g. Aug 1 local midnight becomes Jul 31 in UTC+6).
+      effectiveDate: this.toLocalDateString(formValue.effectiveDate),
+      expiryDate: formValue.expiryDate ? this.toLocalDateString(formValue.expiryDate) : undefined,
       notes: formValue.notes || '',
       isActive: formValue.isActive
     };
@@ -472,5 +476,15 @@ export class ExchangeRatesListComponent implements OnInit {
         });
       }
     });
+  }
+
+  // toISOString() converts to UTC which shifts dates in non-UTC timezones (e.g. local
+  // midnight Aug 1 in UTC+6 becomes Jul 31 in UTC). This helper returns "YYYY-MM-DD" in
+  // local time so the backend receives the calendar day the user actually picked.
+  private toLocalDateString(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 }

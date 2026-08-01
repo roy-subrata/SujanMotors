@@ -55,4 +55,10 @@ public interface ICurrencyConversionService
         string toCurrency,
         DateTime? effectiveDate = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Invalidate all cached base-currency and exchange-rate lookups.
+    /// Must be called after any write that changes currency or exchange rate data.
+    /// </summary>
+    void InvalidateCache();
 }

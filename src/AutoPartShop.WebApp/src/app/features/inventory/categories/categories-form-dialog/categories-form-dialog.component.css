@@ -178,6 +178,27 @@
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
+:host ::ng-deep .form-input-number {
+  width: 100%;
+}
+
+:host ::ng-deep .form-input-number .p-inputnumber-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--surface-card);
+  color: var(--text-color);
+  transition: border-color .2s, box-shadow .2s;
+}
+
+:host ::ng-deep .form-input-number .p-inputnumber-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
 .hint-message {
   font-size: 11px;
   color: var(--text-color-secondary);

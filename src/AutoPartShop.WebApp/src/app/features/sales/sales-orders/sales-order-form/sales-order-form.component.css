@@ -348,8 +348,16 @@
   cursor: not-allowed;
 }
 
-/* Input error state */
+/* Input error state
+   Works as-is for p-select (its host is the visible box). p-datepicker's host
+   carries no visible border in the default theme though — the real visible
+   box is the nested native input — so its error state needs a ::ng-deep rule
+   targeting .p-datepicker-input directly. */
 .input-error {
+  border-color: var(--color-danger) !important;
+}
+
+:host ::ng-deep p-datepicker.input-error .p-datepicker-input {
   border-color: var(--color-danger) !important;
 }
 

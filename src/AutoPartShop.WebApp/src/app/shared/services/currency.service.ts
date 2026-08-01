@@ -68,15 +68,17 @@ export interface CreateExchangeRateRequest {
   fromCurrencyId: string;
   toCurrencyId: string;
   rate: number;
-  effectiveDate: Date;
-  expiryDate?: Date;
+  // Date-only (yyyy-MM-dd) — sent as a plain string so the local calendar day the
+  // user picked isn't shifted by a UTC conversion (see toLocalDateString() callers).
+  effectiveDate: string;
+  expiryDate?: string;
   notes?: string;
 }
 
 export interface UpdateExchangeRateRequest {
   rate: number;
-  effectiveDate: Date;
-  expiryDate?: Date;
+  effectiveDate: string;
+  expiryDate?: string;
   notes?: string;
   isActive?: boolean;
 }
