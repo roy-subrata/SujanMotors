@@ -92,11 +92,17 @@ public class StockLotController(
         {
             var (lots, totalCount) =
                 await _stockLotReadRepository.FindAllQuery(query, cancellationToken);
+            var summary = await _stockLotReadRepository.GetSummaryAsync(query, cancellationToken);
 
             var result = PagedResult<StockLotResponse>
                 .Create(lots, totalCount, query);
 
-            return Ok(result);
+            return Ok(new
+            {
+                result.Data,
+                result.Pagination,
+                summary
+            });
         }
         catch (Exception ex)
         {

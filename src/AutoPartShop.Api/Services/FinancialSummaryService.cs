@@ -495,17 +495,22 @@ public class FinancialSummaryService : IFinancialSummaryService
             .ToDictionaryAsync(x => x.PartId, x => x.Returns, cancellationToken);
 
         return productAgg
-            .Select(kvp => new TopProductDto
+            .Select(kvp =>
             {
-                PartId = kvp.Key.ToString(),
-                PartName = kvp.Value.Name,
-                PartNumber = kvp.Value.PartNumber,
-                Sku = kvp.Value.Sku,
-                QuantitySold = kvp.Value.Qty,
-                TotalRevenue = kvp.Value.Revenue,
-                TotalProfit = kvp.Value.Revenue
-                    - (cogsByPart.TryGetValue(kvp.Key, out var c) ? c : 0)
-                    + (returnsByPart.TryGetValue(kvp.Key, out var r) ? r : 0)
+                var cogs = cogsByPart.TryGetValue(kvp.Key, out var c) ? c : 0;
+                var returns = returnsByPart.TryGetValue(kvp.Key, out var r) ? r : 0;
+                var profit = kvp.Value.Revenue - cogs + returns;
+                return new TopProductDto
+                {
+                    PartId = kvp.Key.ToString(),
+                    PartName = kvp.Value.Name,
+                    PartNumber = kvp.Value.PartNumber,
+                    Sku = kvp.Value.Sku,
+                    QuantitySold = kvp.Value.Qty,
+                    TotalRevenue = kvp.Value.Revenue,
+                    TotalProfit = profit,
+                    MarginPercent = kvp.Value.Revenue > 0 ? (profit / kvp.Value.Revenue) * 100 : 0
+                };
             })
             .OrderByDescending(p => p.TotalRevenue)
             .Take(10)

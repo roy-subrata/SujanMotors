@@ -76,6 +76,7 @@ export interface TopProductDto {
   quantitySold: number;
   totalRevenue: number;
   totalProfit: number;
+  marginPercent: number;
 }
 
 export interface TopCustomerDto {

@@ -317,10 +317,6 @@ export class DashboardComponent implements OnInit {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
 
-  getMarginPercent(revenue: number, profit: number): number {
-    return revenue > 0 ? (profit / revenue) * 100 : 0;
-  }
-
   getChangeColor(value: number): string {
     if (value > 0) return 'success';
     if (value < 0) return 'danger';

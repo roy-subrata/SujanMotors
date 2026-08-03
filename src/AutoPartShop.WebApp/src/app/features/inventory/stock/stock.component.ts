@@ -368,24 +368,6 @@ export class StockComponent implements OnInit {
   }
 
   /**
-   * Get warehouse summary for sidebar
-   */
-  getWarehouseSummary(): { name: string; itemCount: number; percentage: number }[] {
-    const maxItems = Math.max(...this.warehouses.map(w => 
-      this.allStockLevels.filter(s => s.warehouseId === w.id).length
-    ), 1);
-
-    return this.warehouses.slice(0, 4).map(w => {
-      const itemCount = this.allStockLevels.filter(s => s.warehouseId === w.id).length;
-      return {
-        name: w.name,
-        itemCount,
-        percentage: (itemCount / maxItems) * 100
-      };
-    });
-  }
-
-  /**
    * Get part name for a given partId
    */
   getPartName(partId: string): string {
@@ -418,22 +400,6 @@ export class StockComponent implements OnInit {
   getWarehouseName(warehouseId: string): string {
     const warehouse = this.warehouses.find(w => w.id === warehouseId);
     return warehouse?.name || warehouseId;
-  }
-
-  /**
-   * Calculate total on-hand quantity
-   */
-  getTotalOnHand(): number {
-    // Sum base unit quantities for accurate totals across different units
-    return this.allStockLevels.reduce((sum, s) => sum + (s.quantityInBaseUnit || 0), 0);
-  }
-
-  /**
-   * Calculate total reserved quantity
-   */
-  getTotalReserved(): number {
-    // Sum base unit quantities for accurate totals across different units
-    return this.allStockLevels.reduce((sum, s) => sum + (s.reservedQuantityInBaseUnit || 0), 0);
   }
 
   /**
