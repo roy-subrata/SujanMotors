@@ -14,14 +14,12 @@ public class StockLotReadRepository : IStockLotReadRepository
         _dbContext = dbContext;
     }
 
+    // No .Include() here: both callers (FindAllQuery, GetSummaryAsync) project straight into
+    // DTOs via .Select(), so EF Core generates the joins it needs for navigation-property
+    // access without eager-loading the related entities onto the root.
     private IQueryable<Domain.Entities.StockLot> ApplyFilters(StockLotQuery query)
     {
         var lots = _dbContext.StockLots
-            .Include(x => x.Part).ThenInclude(p => p != null ? p.BaseUnit : null)
-            .Include(x => x.Variant)
-            .Include(x => x.Unit)
-            .Include(x => x.Warehouse)
-            .Include(x => x.Supplier)
             .Where(x => !x.Isdeleted);
 
         if (!string.IsNullOrWhiteSpace(query.PartId) && Guid.TryParse(query.PartId, out var partId) && partId != Guid.Empty)
