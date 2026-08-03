@@ -108,6 +108,17 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface StockLotSummary {
+  totalCost: number;
+  availableCost: number;
+  averageCostPerUnit: number;
+  totalQuantityAvailableInBaseUnit: number;
+}
+
+export interface StockLotListResponse extends PaginatedResponse<StockLotResponse> {
+  summary: StockLotSummary;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -135,8 +146,8 @@ export class StockLotService {
   /**
    * Get stock lots with pagination & filters
    */
-  getStockLots(query: StockLotQuery): Observable<PaginatedResponse<StockLotResponse>> {
-    return this.http.post<PaginatedResponse<StockLotResponse>>(`${this.apiUrl}/list`, query);
+  getStockLots(query: StockLotQuery): Observable<StockLotListResponse> {
+    return this.http.post<StockLotListResponse>(`${this.apiUrl}/list`, query);
   }
 
   /**

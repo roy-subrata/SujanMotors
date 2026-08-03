@@ -77,7 +77,8 @@
     <div class="method-filter" *ngIf="(book()?.entryCount ?? 0) > 0">
       <p-select
         [options]="methodOptions()"
-        [(ngModel)]="filterMethod"
+        [ngModel]="filterMethod()"
+        (ngModelChange)="filterMethod.set($event)"
         optionLabel="label"
         optionValue="value"
         appendTo="body"
