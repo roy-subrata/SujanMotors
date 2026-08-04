@@ -41,8 +41,8 @@
     </div>
   </app-filter-bar>
 
-  <!-- ==================== DATA TABLE ==================== -->
-  <section class="table-section">
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
     <div class="table-container">
       <p-table [value]="advances" [loading]="loading" [lazy]="true" [paginator]="false"
         [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
@@ -101,6 +101,63 @@
         </ng-template>
       </p-table>
     </div>
+  </section>
+
+  <!-- ==================== CARDS (Mobile) ==================== -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && advances.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-money-bill"></i></div>
+      <h3>No Salary Advances</h3>
+      <p>Advances are deducted automatically in the next payroll run</p>
+    </div>
+
+    <div *ngIf="!loading && advances.length > 0" class="cards-grid">
+      <div *ngFor="let advance of advances" class="order-card">
+
+        <div class="card-header">
+          <span class="card-so-number">{{ advance.employeeName }}</span>
+          <span class="status-pill" [attr.data-status]="advance.status.toLowerCase()">{{ advance.status }}</span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-customer">
+            <div class="customer-info">
+              <span class="customer-name">{{ advance.employeeCode }}</span>
+              <span class="customer-phone">{{ advance.advanceDate | date: 'dd MMM yyyy' }}</span>
+            </div>
+          </div>
+          <div class="card-meta">
+            <span class="card-meta-item"><i class="pi pi-money-bill"></i>&nbsp;{{ advance.amount | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-credit-card"></i>&nbsp;{{ advance.paymentMethod }}</span>
+            <span class="card-meta-item" *ngIf="advance.notes"><i class="pi pi-comment"></i>&nbsp;{{ advance.notes }}</span>
+            <span class="card-meta-item" *ngIf="advance.settledAt">
+              <i class="pi pi-check-circle"></i>&nbsp;Settled {{ advance.settledAt | date: 'dd MMM yyyy' }} ({{ advance.settledRunCode }})
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer" *ngIf="advance.status === 'OUTSTANDING'">
+          <button class="btn-card-action" pTooltip="Cancel advance" (click)="cancelAdvance(advance)">
+            <i class="pi pi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ==================== PAGINATION ==================== -->

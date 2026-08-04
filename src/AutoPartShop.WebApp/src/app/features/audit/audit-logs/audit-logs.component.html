@@ -55,7 +55,8 @@
     </div>
   </app-filter-bar>
 
-  <!-- Logs Table -->
+  <!-- Logs Table (Desktop) -->
+  <section class="desktop-only">
   <p-card styleClass="table-card">
     <p-table
       [value]="logs"
@@ -144,6 +145,60 @@
       </ng-template>
     </p-table>
   </p-card>
+  </section>
+
+  <!-- Logs Cards (Mobile) -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && logs.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+      <h3>No audit logs found</h3>
+      <p>Try adjusting your filters or search criteria</p>
+    </div>
+
+    <div *ngIf="!loading && logs.length > 0" class="cards-grid">
+      <div *ngFor="let log of logs" class="order-card" (click)="viewTimeline(log)">
+
+        <div class="card-header">
+          <span class="card-so-number">{{ log.entityName }} <span class="text-muted">#{{ log.entityId | slice:0:8 }}</span></span>
+          <p-tag [value]="log.action" [severity]="getActionSeverity(log.action)"></p-tag>
+        </div>
+
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="card-meta-item"><i class="pi pi-clock"></i>&nbsp;{{ log.performedAt | date:'MMM dd, HH:mm:ss' }}</span>
+            <span class="card-meta-item" *ngIf="log.propertyName"><i class="pi pi-tag"></i>&nbsp;{{ log.propertyName }}</span>
+            <span class="card-meta-item"><i class="pi pi-user"></i>&nbsp;{{ log.performedBy }}</span>
+            <span class="card-meta-item" *ngIf="log.ipAddress"><i class="pi pi-globe"></i>&nbsp;{{ log.ipAddress }}</span>
+          </div>
+          <div class="card-values" *ngIf="log.oldValue || log.newValue">
+            <span class="value-cell old-value" *ngIf="log.oldValue">{{ truncateValue(log.oldValue, 40) }}</span>
+            <span class="value-cell new-value" *ngIf="log.newValue">{{ truncateValue(log.newValue, 40) }}</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button class="btn-card-action" pTooltip="View Timeline" (click)="viewTimeline(log); $event.stopPropagation()">
+            <i class="pi pi-eye"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </section>
 
   <!-- Pagination -->
   <app-data-pagination

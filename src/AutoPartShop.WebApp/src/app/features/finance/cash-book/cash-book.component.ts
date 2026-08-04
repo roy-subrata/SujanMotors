@@ -44,41 +44,50 @@ export class CashBookComponent implements OnInit {
   maxDate   = new Date();
 
   // Filters
-  filterMethod = '';
+  filterMethod = signal('');
 
   // ── Computed ─────────────────────────────────────────────────────
   ledgerRows = computed(() => {
     const b = this.book();
     if (!b) return [];
-    return this.filterMethod
-      ? b.ledger.filter(r => r.paymentMethod === this.filterMethod)
+    const method = this.filterMethod();
+    return method
+      ? b.ledger.filter(r => r.paymentMethod === method)
       : b.ledger;
   });
 
   cashInRows = computed(() => {
     const b = this.book();
     if (!b) return [];
-    return this.filterMethod
-      ? b.cashIn.filter(r => r.paymentMethod === this.filterMethod)
+    const method = this.filterMethod();
+    return method
+      ? b.cashIn.filter(r => r.paymentMethod === method)
       : b.cashIn;
   });
 
   cashOutRows = computed(() => {
     const b = this.book();
     if (!b) return [];
-    return this.filterMethod
-      ? b.cashOut.filter(r => r.paymentMethod === this.filterMethod)
+    const method = this.filterMethod();
+    return method
+      ? b.cashOut.filter(r => r.paymentMethod === method)
       : b.cashOut;
   });
 
-  filteredIn        = computed(() => this.cashInRows().reduce((s, r) => s + r.amount, 0));
-  filteredOut       = computed(() => this.cashOutRows().reduce((s, r) => s + r.amount, 0));
-  filteredNet       = computed(() => this.filteredIn() - this.filteredOut());
-  filteredCreditIn  = computed(() => this.cashInRows().filter(r => r.isCreditSale).reduce((s, r) => s + r.amount, 0));
-  filteredActualIn  = computed(() => this.filteredIn() - this.filteredCreditIn());
-  filteredActualNet = computed(() => this.filteredActualIn() - this.filteredOut());
+  // Totals come straight from the backend's per-method breakdown (or the day's
+  // top-level totals when no method filter is applied) — never recomputed here.
+  filteredTotals = computed(() => {
+    const b = this.book();
+    if (!b) return { in: 0, out: 0, net: 0 };
+    const method = this.filterMethod();
+    if (!method) return { in: b.totalCashIn, out: b.totalCashOut, net: b.netCash };
+    const entry = b.paymentMethodBreakdown.find(x => x.method === method);
+    return entry ? { in: entry.in, out: entry.out, net: entry.net } : { in: 0, out: 0, net: 0 };
+  });
 
-  hasCreditSales = computed(() => this.cashInRows().some(r => r.isCreditSale));
+  filteredIn  = computed(() => this.filteredTotals().in);
+  filteredOut = computed(() => this.filteredTotals().out);
+  filteredNet = computed(() => this.filteredTotals().net);
 
   methodOptions = computed(() => {
     const b = this.book();
@@ -93,7 +102,7 @@ export class CashBookComponent implements OnInit {
   // ── Preset navigation ────────────────────────────────────────────
   applyPreset(p: Preset): void {
     this.preset.set(p);
-    this.filterMethod = '';
+    this.filterMethod.set('');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 

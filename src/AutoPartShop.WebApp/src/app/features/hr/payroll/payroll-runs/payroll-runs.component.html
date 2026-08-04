@@ -16,8 +16,8 @@
     </ng-container>
   </app-page-header>
 
-  <!-- ==================== DATA TABLE ==================== -->
-  <section class="table-section">
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
     <div class="table-container">
       <p-table [value]="runs" [loading]="loading" [scrollable]="true" scrollHeight="flex"
         styleClass="app-table" dataKey="id">
@@ -73,6 +73,63 @@
         </ng-template>
       </p-table>
     </div>
+  </section>
+
+  <!-- ==================== CARDS (Mobile) ==================== -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && runs.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-wallet"></i></div>
+      <h3>No Payroll Runs</h3>
+      <p>Generate the first monthly payroll run</p>
+    </div>
+
+    <div *ngIf="!loading && runs.length > 0" class="cards-grid">
+      <div *ngFor="let run of runs" class="order-card" (click)="viewRun(run)">
+
+        <div class="card-header">
+          <span class="card-so-number">{{ run.runCode }}</span>
+          <span class="status-pill" [attr.data-status]="run.status.toLowerCase()">{{ run.status }}</span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-customer">
+            <div class="customer-info">
+              <span class="customer-name">{{ monthLabel(run) }}</span>
+              <span class="customer-phone">{{ run.employeeCount }} employees</span>
+            </div>
+          </div>
+          <div class="card-meta">
+            <span class="card-meta-item"><i class="pi pi-money-bill"></i>&nbsp;Gross {{ run.totalGross | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-minus-circle"></i>&nbsp;Deductions {{ run.totalDeductions | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-wallet"></i>&nbsp;Net {{ run.totalNet | number: '1.2-2' }}</span>
+            <span class="card-meta-item" *ngIf="run.paidAt">
+              <i class="pi pi-check-circle"></i>&nbsp;Paid {{ run.paidAt | date: 'dd MMM yyyy' }} ({{ run.paymentMethod }})
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button class="btn-card-action" pTooltip="Open" (click)="viewRun(run); $event.stopPropagation()"><i class="pi pi-eye"></i></button>
+          <button *ngIf="run.status !== 'PAID'" class="btn-card-action" pTooltip="Delete"
+            (click)="deleteRun(run); $event.stopPropagation()"><i class="pi pi-trash"></i></button>
+        </div>
+      </div>
+    </div>
+
   </section>
 
 </app-page-container>

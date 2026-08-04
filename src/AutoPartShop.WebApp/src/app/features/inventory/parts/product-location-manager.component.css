@@ -54,12 +54,12 @@
     background-color: var(--surface-ground);
   }
 
+  /* The inline "column title" span is only meaningful once PrimeNG's
+     [responsiveLayout]="stack" mode hides the real <thead> below the
+     breakpoint (see markup: breakpoint="768px") — on desktop it must stay
+     hidden or every cell shows a redundant label in front of its value. */
   .p-datatable .p-column-title {
-    font-weight: 600;
-    color: var(--text-color-secondary);
-    display: inline-block;
-    min-width: 110px;
-    margin-right: 0.5rem;
+    display: none;
   }
 }
 
@@ -67,4 +67,23 @@
   text-align: center;
   padding: 2rem;
   color: var(--text-color-secondary);
+}
+
+@media (max-width: 768px) {
+  ::ng-deep .p-datatable .p-column-title {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    min-width: 110px;
+    margin-right: 0.5rem;
+  }
+
+  .location-manager {
+    padding: 0.75rem;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
 }

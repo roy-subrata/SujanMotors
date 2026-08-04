@@ -14,16 +14,12 @@ public class StockLotReadRepository : IStockLotReadRepository
         _dbContext = dbContext;
     }
 
-    public async Task<(IReadOnlyCollection<StockLotResponse> response, int totalCount)> FindAllQuery(
-        StockLotQuery query,
-        CancellationToken cancellationToken = default)
+    // No .Include() here: both callers (FindAllQuery, GetSummaryAsync) project straight into
+    // DTOs via .Select(), so EF Core generates the joins it needs for navigation-property
+    // access without eager-loading the related entities onto the root.
+    private IQueryable<Domain.Entities.StockLot> ApplyFilters(StockLotQuery query)
     {
         var lots = _dbContext.StockLots
-            .Include(x => x.Part).ThenInclude(p => p != null ? p.BaseUnit : null)
-            .Include(x => x.Variant)
-            .Include(x => x.Unit)
-            .Include(x => x.Warehouse)
-            .Include(x => x.Supplier)
             .Where(x => !x.Isdeleted);
 
         if (!string.IsNullOrWhiteSpace(query.PartId) && Guid.TryParse(query.PartId, out var partId) && partId != Guid.Empty)
@@ -54,7 +50,46 @@ public class StockLotReadRepository : IStockLotReadRepository
                 (x.Supplier != null && EF.Functions.Like(x.Supplier.Name.ToLower(), $"%{term}%")));
         }
 
-        lots = lots.OrderByDescending(x => x.ReceivingDate);
+        return lots;
+    }
+
+    public async Task<StockLotFilterSummaryResponse> GetSummaryAsync(
+        StockLotQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        var lots = ApplyFilters(query);
+
+        var totals = await lots
+            .GroupBy(x => 1)
+            .Select(g => new
+            {
+                TotalCost = g.Sum(x => x.QuantityReceived * x.CostPrice),
+                AvailableCost = g.Sum(x => x.QuantityAvailable * x.CostPrice),
+                TotalQuantityAvailableInBaseUnit = g.Sum(x => x.QuantityAvailableInBaseUnit)
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (totals is null)
+        {
+            return new StockLotFilterSummaryResponse();
+        }
+
+        return new StockLotFilterSummaryResponse
+        {
+            TotalCost = totals.TotalCost,
+            AvailableCost = totals.AvailableCost,
+            TotalQuantityAvailableInBaseUnit = totals.TotalQuantityAvailableInBaseUnit,
+            AverageCostPerUnit = totals.TotalQuantityAvailableInBaseUnit == 0
+                ? 0
+                : totals.AvailableCost / totals.TotalQuantityAvailableInBaseUnit
+        };
+    }
+
+    public async Task<(IReadOnlyCollection<StockLotResponse> response, int totalCount)> FindAllQuery(
+        StockLotQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        var lots = ApplyFilters(query).OrderByDescending(x => x.ReceivingDate);
 
         var totalCount = await lots.CountAsync(cancellationToken);
         var items = await lots

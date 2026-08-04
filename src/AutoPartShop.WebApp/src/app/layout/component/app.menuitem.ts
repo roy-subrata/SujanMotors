@@ -84,6 +84,8 @@ export class AppMenuitem {
 
     menuResetSubscription: Subscription;
 
+    routerEventsSubscription: Subscription;
+
     key: string = '';
 
     constructor(
@@ -106,7 +108,7 @@ export class AppMenuitem {
             this.active = false;
         });
 
-        this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((params) => {
+        this.routerEventsSubscription = this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((params) => {
             if (this.item.routerLink) {
                 this.updateActiveStateFromRoute();
             }
@@ -165,6 +167,10 @@ export class AppMenuitem {
 
         if (this.menuResetSubscription) {
             this.menuResetSubscription.unsubscribe();
+        }
+
+        if (this.routerEventsSubscription) {
+            this.routerEventsSubscription.unsubscribe();
         }
     }
 }

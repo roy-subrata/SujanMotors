@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
@@ -15,6 +16,7 @@ import { AppMenuitem } from '../app.menuitem';
 export class AppMenuComponent implements OnInit {
     private authService = inject(AuthService);
     private i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
     model: MenuItem[] = [];
 
     hasAdminRole(): boolean {
@@ -25,7 +27,7 @@ export class AppMenuComponent implements OnInit {
         this.buildMenu();
 
         // Rebuild menu when language changes
-        this.i18n.translationsLoaded$.subscribe(() => {
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.buildMenu();
         });
     }

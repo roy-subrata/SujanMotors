@@ -304,13 +304,32 @@
 }
 
 /* ── Responsive ─────────────────────────────────────────────────── */
-@media (max-width: 640px) {
+/* Breakpoints match the app-wide scale used by assets/_data-page.scss
+   (1024 / 768 / 480) instead of a one-off 640px cutoff, so this form
+   collapses in step with every other page's tablet/mobile behavior. */
+@media (max-width: 1024px) {
+  .pf-row.three {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
   .pf-row, .pf-row.three {
     grid-template-columns: 1fr;
   }
   .pf-section { padding: 1rem; }
   .pf-actions { flex-direction: column-reverse; }
   .pf-actions button { width: 100%; }
+
+  .pf-compat-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .pf-section { padding: 0.85rem; }
+  .pf-section-head { flex-wrap: wrap; }
 }
 
 /* ── Textarea ───────────────────────────────────────────────────── */
@@ -323,3 +342,8 @@ textarea {
 .text-sm { font-size: 0.875rem; }
 .text-secondary { color: var(--text-color-secondary); }
 .font-semibold { font-weight: 600; }
+
+.pf-compat-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

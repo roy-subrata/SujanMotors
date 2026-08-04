@@ -127,13 +127,13 @@
           <ng-template #header>
             <tr>
               <th>Part</th>
-              <th>Code</th>
-              <th>Location</th>
+              <th class="col-hide-mobile">Code</th>
+              <th class="col-hide-mobile">Location</th>
               <th class="col-num">Expected</th>
               <th class="col-count">Counted</th>
               <th class="col-num">Variance</th>
-              <th class="col-num">Value</th>
-              <th *ngIf="!isCounting">Counted By</th>
+              <th class="col-num col-hide-mobile">Value</th>
+              <th *ngIf="!isCounting" class="col-hide-mobile">Counted By</th>
             </tr>
           </ng-template>
 
@@ -143,10 +143,13 @@
               <td>
                 <div class="customer-info">
                   <span class="customer-name">{{ line.partName }}<ng-container *ngIf="line.variantName"> — {{ line.variantName }}</ng-container></span>
+                  <span class="line-meta-mobile">
+                    {{ line.partCode || '—' }}<ng-container *ngIf="line.location"> · {{ line.location }}</ng-container>
+                  </span>
                 </div>
               </td>
-              <td><span class="date-text">{{ line.partCode || '—' }}</span></td>
-              <td><span class="date-text">{{ line.location || '—' }}</span></td>
+              <td class="col-hide-mobile"><span class="date-text">{{ line.partCode || '—' }}</span></td>
+              <td class="col-hide-mobile"><span class="date-text">{{ line.location || '—' }}</span></td>
               <td class="col-num">{{ line.expectedQuantity }}</td>
 
               <!-- Counted: editable while COUNTING, read-only otherwise -->
@@ -172,7 +175,7 @@
                 </span>
                 <span *ngIf="effectiveVariance(line) === null" class="text-muted">—</span>
               </td>
-              <td class="col-num">
+              <td class="col-num col-hide-mobile">
                 <span *ngIf="effectiveVariance(line) !== null"
                       [class.value-negative]="effectiveVariance(line)! < 0"
                       [class.value-positive]="effectiveVariance(line)! > 0">
@@ -180,7 +183,7 @@
                 </span>
                 <span *ngIf="effectiveVariance(line) === null" class="text-muted">—</span>
               </td>
-              <td *ngIf="!isCounting">
+              <td *ngIf="!isCounting" class="col-hide-mobile">
                 <span class="date-text">{{ line.countedBy || '—' }}</span>
               </td>
             </tr>

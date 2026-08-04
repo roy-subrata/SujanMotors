@@ -12,6 +12,7 @@ import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { PartService, PartResponse } from '../../services/part.service';
 import { PriceCodeService } from '@/shared/services/price-code.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-parts-table',
@@ -19,7 +20,8 @@ import { PriceCodeService } from '@/shared/services/price-code.service';
   imports: [
     CommonModule,
     TableModule, ButtonModule, ConfirmDialogModule, TooltipModule,
-    TagModule, ContextMenuModule, RippleModule, ToastModule
+    TagModule, ContextMenuModule, RippleModule, ToastModule,
+    DataPaginationComponent
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './parts-table.component.html',
@@ -151,6 +153,16 @@ export class PartsTableComponent implements OnInit {
   onPageChange(event: any): void {
     if (!event || typeof event.page !== 'number' || typeof event.rows !== 'number') return;
     this.pageChange.emit({ page: event.page + 1, rows: event.rows });
+  }
+
+  /** Wired to the shared <app-data-pagination> footer (1-based page). */
+  goToPage(page: number): void {
+    this.pageChange.emit({ page, rows: this.rows });
+  }
+
+  /** Wired to the shared <app-data-pagination> page-size selector. */
+  onPageSizeChange(size: number): void {
+    this.pageChange.emit({ page: 1, rows: size });
   }
 
   getStatusSeverity(isActive: boolean): string { return isActive ? 'success' : 'danger'; }

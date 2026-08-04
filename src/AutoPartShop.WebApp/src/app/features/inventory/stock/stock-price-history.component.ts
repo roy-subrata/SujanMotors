@@ -13,6 +13,7 @@ import { PartService, PartResponse } from '../services/part.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PriceCodeService } from '../../../shared/services/price-code.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { map } from 'rxjs';
 
 @Component({
@@ -27,7 +28,8 @@ import { map } from 'rxjs';
     TagModule,
     ToastModule,
     TooltipModule,
-    LazyAutocompleteComponent
+    LazyAutocompleteComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService],
   templateUrl: './stock-price-history.component.html',
@@ -112,6 +114,14 @@ export class StockPriceHistoryComponent implements OnInit {
     this.pageSize = event.rows ?? this.pageSize;
     this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
     this.loadPriceHistory();
+  }
+
+  goToPage(page: number): void {
+    this.onLazyLoad({ first: (page - 1) * this.pageSize, rows: this.pageSize } as TableLazyLoadEvent);
+  }
+
+  onPageSizeChangeHandler(size: number): void {
+    this.onLazyLoad({ first: 0, rows: size } as TableLazyLoadEvent);
   }
 
   private resetPagination(): void {

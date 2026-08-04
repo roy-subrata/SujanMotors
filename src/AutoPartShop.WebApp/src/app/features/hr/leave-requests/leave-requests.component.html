@@ -41,8 +41,8 @@
     </div>
   </app-filter-bar>
 
-  <!-- ==================== DATA TABLE ==================== -->
-  <section class="table-section">
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
     <div class="table-container">
       <p-table [value]="requests" [loading]="loading" [lazy]="true" [paginator]="false"
         [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
@@ -103,6 +103,59 @@
         </ng-template>
       </p-table>
     </div>
+  </section>
+
+  <!-- ==================== CARDS (Mobile) ==================== -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && requests.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-calendar-minus"></i></div>
+      <h3>No Leave Requests Found</h3>
+      <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a leave request' }}</p>
+    </div>
+
+    <div *ngIf="!loading && requests.length > 0" class="cards-grid">
+      <div *ngFor="let request of requests" class="order-card">
+
+        <div class="card-header">
+          <span class="card-so-number">{{ request.employeeName }}</span>
+          <span class="status-pill" [attr.data-status]="request.status.toLowerCase()">{{ request.status }}</span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-customer">
+            <div class="customer-info">
+              <span class="customer-name">{{ request.employeeCode }} &middot; {{ request.leaveType }}</span>
+              <span class="customer-phone">{{ request.fromDate | date: 'dd MMM yyyy' }} – {{ request.toDate | date: 'dd MMM yyyy' }} ({{ request.totalDays }}d)</span>
+            </div>
+          </div>
+          <div class="card-meta">
+            <span class="card-meta-item" *ngIf="request.reason"><i class="pi pi-comment"></i>&nbsp;{{ request.reason }}</span>
+            <span class="card-meta-item" *ngIf="request.decisionBy"><i class="pi pi-user"></i>&nbsp;{{ request.decisionBy }}</span>
+          </div>
+        </div>
+
+        <div class="card-footer" *ngIf="request.status === 'PENDING'">
+          <button class="btn-card-action" pTooltip="Approve" (click)="approve(request)"><i class="pi pi-check"></i></button>
+          <button class="btn-card-action" pTooltip="Reject" (click)="reject(request)"><i class="pi pi-times"></i></button>
+          <button class="btn-card-action" pTooltip="Edit" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
+        </div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ==================== PAGINATION ==================== -->

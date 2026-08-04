@@ -207,6 +207,10 @@
   text-align: center;
 }
 
+.ledger-table-wrapper {
+  overflow-x: auto;
+}
+
 ::ng-deep .p-datatable {
   font-size: 14px;
 }

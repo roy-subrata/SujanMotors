@@ -75,6 +75,7 @@ public class TopProductDto
     public int QuantitySold { get; set; }
     public decimal TotalRevenue { get; set; }
     public decimal TotalProfit { get; set; }
+    public decimal MarginPercent { get; set; }
 }
 
 /// <summary>

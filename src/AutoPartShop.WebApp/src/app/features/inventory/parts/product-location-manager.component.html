@@ -68,7 +68,7 @@
 </div>
 
 <!-- Add/Edit Location Dialog -->
-<p-dialog [(visible)]="displayDialog" [header]="isEditing ? 'Edit Location' : 'Add Location'" [modal]="true" [style]="{ width: '500px' }" (onHide)="closeDialog()">
+<p-dialog [(visible)]="displayDialog" [header]="isEditing ? 'Edit Location' : 'Add Location'" [modal]="true" [style]="{ width: '500px', maxWidth: '95vw' }" (onHide)="closeDialog()">
     <form [formGroup]="locationForm">
         <div class="form-group">
             <label for="warehouse">Warehouse *</label>

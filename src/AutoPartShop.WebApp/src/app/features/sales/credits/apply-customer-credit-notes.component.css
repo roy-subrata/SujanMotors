@@ -113,8 +113,22 @@ tr.selected {
   text-align: right;
 }
 
+.credit-table-wrapper {
+  overflow-x: auto;
+}
+
 @media (max-width: 768px) {
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .col-hide-md {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .col-hide-sm {
+    display: none;
   }
 }

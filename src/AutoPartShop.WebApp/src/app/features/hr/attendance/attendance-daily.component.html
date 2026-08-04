@@ -27,8 +27,8 @@
     </div>
   </app-filter-bar>
 
-  <!-- ==================== ATTENDANCE SHEET ==================== -->
-  <section class="table-section">
+  <!-- ==================== ATTENDANCE SHEET (Desktop) ==================== -->
+  <section class="table-section desktop-only">
     <div class="table-container">
       <p-table [value]="rows" [loading]="loading" [scrollable]="true" scrollHeight="flex"
         styleClass="app-table" dataKey="employeeId">
@@ -84,6 +84,74 @@
         </ng-template>
       </p-table>
     </div>
+  </section>
+
+  <!-- ==================== ATTENDANCE SHEET (Mobile Cards) ==================== -->
+  <!-- Editable daily sheet: each card carries the same status/time/notes
+       controls as the desktop row (denser than a typical read-only card). -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && rows.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-calendar"></i></div>
+      <h3>No Active Employees</h3>
+      <p>Add employees in HR &gt; Employees first</p>
+    </div>
+
+    <div *ngIf="!loading && rows.length > 0" class="cards-grid">
+      <div *ngFor="let row of rows" class="order-card attendance-card" [class.row-dirty]="row.dirty">
+
+        <div class="card-header">
+          <span class="card-so-number">
+            {{ row.name }}
+            <i *ngIf="row.isMarked" class="pi pi-check-circle marked-icon" pTooltip="Already marked"></i>
+          </span>
+          <span class="code-link">{{ row.employeeCode }}</span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-meta" *ngIf="row.designation || row.shiftName">
+            <span class="card-meta-item" *ngIf="row.designation"><i class="pi pi-briefcase"></i>&nbsp;{{ row.designation }}</span>
+            <span class="card-meta-item" *ngIf="row.shiftName"><i class="pi pi-clock"></i>&nbsp;{{ row.shiftName }}</span>
+          </div>
+
+          <div class="attendance-field">
+            <label>Status</label>
+            <p-select [options]="statusOptions" [(ngModel)]="row.status" placeholder="Not marked"
+              [showClear]="true" appendTo="body" styleClass="status-select-mobile" (onChange)="markRow(row)"></p-select>
+          </div>
+
+          <div class="attendance-time-row">
+            <div class="attendance-field">
+              <label>Check In</label>
+              <input type="time" class="time-input" [(ngModel)]="row.checkIn" (change)="markRow(row)" />
+            </div>
+            <div class="attendance-field">
+              <label>Check Out</label>
+              <input type="time" class="time-input" [(ngModel)]="row.checkOut" (change)="markRow(row)" />
+            </div>
+          </div>
+
+          <div class="attendance-field">
+            <label>Notes</label>
+            <input pInputText type="text" [(ngModel)]="row.notes" placeholder="Notes" (input)="markRow(row)" />
+          </div>
+        </div>
+      </div>
+    </div>
+
   </section>
 
 </app-page-container>

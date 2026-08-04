@@ -25,6 +25,8 @@ import { LayoutService } from '../service/layout.service';
 export class AppLayout {
     overlayMenuOpenSubscription: Subscription;
 
+    routerEventsSubscription: Subscription;
+
     menuOutsideClickListener: any;
 
     @ViewChild(AppSidebar) appSidebar!: AppSidebar;
@@ -50,7 +52,7 @@ export class AppLayout {
             }
         });
 
-        this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+        this.routerEventsSubscription = this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
             this.hideMenu();
         });
     }
@@ -101,6 +103,10 @@ export class AppLayout {
     ngOnDestroy() {
         if (this.overlayMenuOpenSubscription) {
             this.overlayMenuOpenSubscription.unsubscribe();
+        }
+
+        if (this.routerEventsSubscription) {
+            this.routerEventsSubscription.unsubscribe();
         }
 
         if (this.menuOutsideClickListener) {

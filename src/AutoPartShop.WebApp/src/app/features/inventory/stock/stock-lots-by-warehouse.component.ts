@@ -11,7 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
-import { StockLotService, StockLotResponse } from '../services/stock-lot.service';
+import { StockLotService, StockLotResponse, StockLotSummary } from '../services/stock-lot.service';
 import { BarcodeDialogComponent } from '../parts/barcode-dialog/barcode-dialog.component';
 import { labelFromStockLot } from '../parts/barcode-dialog/label-data';
 import { PartService, PartResponse } from '../services/part.service';
@@ -19,6 +19,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PriceCodeService } from '../../../shared/services/price-code.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { map } from 'rxjs';
 
 @Component({
@@ -35,7 +36,8 @@ import { map } from 'rxjs';
     TagModule,
     ToastModule,
     TooltipModule,
-    LazyAutocompleteComponent
+    LazyAutocompleteComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, DialogService],
   templateUrl: './stock-lots-by-warehouse.component.html',
@@ -52,6 +54,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
 
   warehouses: WarehouseResponse[] = [];
   stockLots: StockLotResponse[] = [];
+  summary: StockLotSummary = { totalCost: 0, availableCost: 0, averageCostPerUnit: 0, totalQuantityAvailableInBaseUnit: 0 };
 
   selectedPart: PartResponse | null = null;
   selectedWarehouseId: string | null = null;
@@ -137,6 +140,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
       next: (response) => {
         this.stockLots = response.data;
         this.totalRecords = response.pagination.totalCount;
+        this.summary = response.summary;
         this.loading = false;
       },
       error: (_error) => {
@@ -157,24 +161,17 @@ export class StockLotsByWarehouseComponent implements OnInit {
     this.loadStockLots();
   }
 
+  goToPage(page: number): void {
+    this.onLazyLoad({ first: (page - 1) * this.pageSize, rows: this.pageSize } as TableLazyLoadEvent);
+  }
+
+  onPageSizeChangeHandler(size: number): void {
+    this.onLazyLoad({ first: 0, rows: size } as TableLazyLoadEvent);
+  }
+
   private resetPagination(): void {
     this.first = 0;
     this.pageNumber = 1;
-  }
-
-  getTotalCost(): number {
-    return this.stockLots.reduce((sum, lot) => sum + lot.totalCost, 0);
-  }
-
-  getTotalAvailableCost(): number {
-    return this.stockLots.reduce((sum, lot) => sum + lot.availableCost, 0);
-  }
-
-  getAverageCostPerUnit(): number {
-    // Use base unit quantities for accurate average across different units
-    const totalQuantity = this.stockLots.reduce((sum, lot) => sum + (lot.quantityAvailableInBaseUnit || 0), 0);
-    if (totalQuantity === 0) return 0;
-    return this.getTotalAvailableCost() / totalQuantity;
   }
 
   /** Open the label dialog to reprint barcodes for a stock lot (batch/dates carry over). */

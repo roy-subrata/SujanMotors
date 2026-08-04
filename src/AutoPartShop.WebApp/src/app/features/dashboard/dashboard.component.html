@@ -255,8 +255,8 @@
             <span class="col-right cell-strong">{{ formatCurrency(product.totalRevenue) }}</span>
             <span class="col-right" [class.cell-green]="product.totalProfit > 0" [class.cell-red]="product.totalProfit < 0">{{ formatCurrency(product.totalProfit) }}</span>
             <span class="col-right">
-              <span class="margin-pill" [class.margin-pill-positive]="getMarginPercent(product.totalRevenue, product.totalProfit) > 0">
-                {{ formatPercent(getMarginPercent(product.totalRevenue, product.totalProfit)) }}
+              <span class="margin-pill" [class.margin-pill-positive]="product.marginPercent > 0">
+                {{ formatPercent(product.marginPercent) }}
               </span>
             </span>
           </div>

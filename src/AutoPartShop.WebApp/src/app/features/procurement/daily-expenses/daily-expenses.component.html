@@ -89,6 +89,55 @@
         </div>
     </section>
 
+    <!-- ==================== CARDS (Mobile) ==================== -->
+    <section class="cards-section mobile-only">
+
+        <div *ngIf="loading()" class="cards-grid">
+            <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+                <div class="card-header">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-badge"></div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton skeleton-text-lg"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <div *ngIf="!loading() && expenses().length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-wallet"></i></div>
+            <h3>No Expenses Found</h3>
+            <p>Add a new expense to get started</p>
+        </div>
+
+        <div *ngIf="!loading() && expenses().length > 0" class="cards-grid">
+            <div *ngFor="let expense of expenses()" class="order-card">
+
+                <div class="card-header">
+                    <span class="card-so-number">{{ expense.description }}</span>
+                    <span class="amount-value">{{ formatCurrency(expense.amount) }}</span>
+                </div>
+
+                <div class="card-body">
+                    <div class="card-meta">
+                        <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ formatDate(expense.expenseDate) }}</span>
+                        <span class="card-meta-item"><i class="pi {{ getCategoryIcon(expense.category) }}"></i>&nbsp;{{ getCategoryLabel(expense.category) }}</span>
+                        <span *ngIf="expense.vendorName" class="card-meta-item"><i class="pi pi-building"></i>&nbsp;{{ expense.vendorName }}</span>
+                        <span class="card-meta-item"><i class="pi pi-credit-card"></i>&nbsp;{{ expense.paymentMethod }}</span>
+                        <span *ngIf="expense.isRecurring" class="card-meta-item" [title]="expense.recurrencePattern"><i class="pi pi-sync"></i>&nbsp;Recurring</span>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <button class="btn-card-action" pTooltip="Edit" (click)="editExpense(expense)"><i class="pi pi-pencil"></i></button>
+                    <button class="btn-card-action" pTooltip="Delete" (click)="deleteExpense(expense)"><i class="pi pi-trash"></i></button>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
 <!-- Add/Edit Expense Dialog -->
 <p-dialog
     [(visible)]="displayDialog"

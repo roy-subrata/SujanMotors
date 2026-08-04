@@ -159,6 +159,74 @@
     </p-table>
     </div>
   </section>
+
+  <!-- ==================== WARRANTIES CARDS (Mobile) ==================== -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="isLoading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading && filteredWarranties.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-shield"></i></div>
+      <h3>No Warranty Registrations Found</h3>
+      <p>Try adjusting your filters or register a new warranty</p>
+      <button pButton type="button" label="Register New Warranty" icon="pi pi-plus"
+        class="p-button-sm p-button-outlined" (click)="openCreateDialog()"></button>
+    </div>
+
+    <div *ngIf="!isLoading && filteredWarranties.length > 0" class="cards-grid">
+      <div *ngFor="let warranty of filteredWarranties" class="order-card">
+
+        <div class="card-header">
+          <a class="card-so-number link-text" (click)="openDetailDialog(warranty)">{{ warranty.warrantyNumber }}</a>
+          <p-tag [value]="warranty.status" [severity]="getStatusSeverity(warranty.status)"></p-tag>
+        </div>
+
+        <div class="card-body">
+          <div class="cell-stack">
+            <span class="cell-primary">{{ warranty.partName }}</span>
+            <span *ngIf="warranty.partLocalName" class="cell-secondary">{{ warranty.partLocalName }}</span>
+            <span class="cell-secondary">{{ warranty.partSKU }}</span>
+          </div>
+          <div class="cell-stack">
+            <span class="cell-primary">{{ warranty.customerName }}</span>
+            <span class="cell-secondary">{{ warranty.customerPhone }}</span>
+          </div>
+          <div class="card-meta">
+            <span class="card-meta-item"><i class="pi pi-file"></i>&nbsp;{{ warranty.salesOrderNumber }}</span>
+            <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ formatDate(warranty.warrantyStartDate) }} – {{ formatDate(warranty.warrantyExpiryDate) }}</span>
+            <span class="card-meta-item"><i class="pi pi-clock"></i>&nbsp;{{ warranty.warrantyPeriodMonths }} months</span>
+            <span class="card-meta-item"><i class="pi pi-shield"></i>&nbsp;{{ warranty.warrantyType }}</span>
+            <span class="card-meta-item" [class]="getDaysUntilExpiryClass(warranty)">
+              {{ getDaysUntilExpiryDisplay(warranty) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-info p-button-text"
+            pTooltip="View Details" tooltipPosition="top" (click)="openDetailDialog(warranty)"></button>
+          <button *ngIf="isManager && warranty.status === 'ACTIVE'" pButton type="button" icon="pi pi-ban"
+            class="p-button-sm p-button-danger p-button-text"
+            pTooltip="Void Warranty" tooltipPosition="top" (click)="openVoidDialog(warranty)"></button>
+          <button *ngIf="isManager && warranty.status === 'VOID'" pButton type="button" icon="pi pi-trash"
+            class="p-button-sm p-button-danger p-button-text"
+            pTooltip="Delete" tooltipPosition="top" (click)="deleteWarranty(warranty)"></button>
+        </div>
+      </div>
+    </div>
+
+  </section>
 </app-page-container>
 
 <!-- Create Warranty Registration Dialog -->

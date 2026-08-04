@@ -13,23 +13,23 @@
   </ng-template>
 
   <!-- Available Credits Table -->
+  <div class="credit-table-wrapper" *ngIf="availableCredits.length > 0">
   <p-table
     [value]="availableCredits"
     [loading]="loading"
     [paginator]="false"
     styleClass="credit-table"
-    responsiveLayout="scroll"
-    *ngIf="availableCredits.length > 0">
+    responsiveLayout="scroll">
 
     <ng-template pTemplate="header">
       <tr>
         <th style="width: 140px">Credit Note #</th>
-        <th>Return #</th>
-        <th style="width: 100px" class="text-right">Total</th>
-        <th style="width: 100px" class="text-right">Used</th>
+        <th class="col-hide-md">Return #</th>
+        <th style="width: 100px" class="text-right col-hide-sm">Total</th>
+        <th style="width: 100px" class="text-right col-hide-sm">Used</th>
         <th style="width: 110px" class="text-right">Available</th>
-        <th style="width: 120px">Issue Date</th>
-        <th style="width: 110px">Expiry Date</th>
+        <th style="width: 120px" class="col-hide-md">Issue Date</th>
+        <th style="width: 110px" class="col-hide-md">Expiry Date</th>
         <th style="width: 100px">Action</th>
       </tr>
     </ng-template>
@@ -39,14 +39,14 @@
         <td>
           <span class="credit-number">{{ credit.creditNoteNumber }}</span>
         </td>
-        <td>{{ credit.returnNumber || '-' }}</td>
-        <td class="text-right">{{ credit.totalAmount | currency }}</td>
-        <td class="text-right">{{ credit.usedAmount | currency }}</td>
+        <td class="col-hide-md">{{ credit.returnNumber || '-' }}</td>
+        <td class="text-right col-hide-sm">{{ credit.totalAmount | currency }}</td>
+        <td class="text-right col-hide-sm">{{ credit.usedAmount | currency }}</td>
         <td class="text-right">
           <span class="available-amount">{{ credit.availableAmount | currency }}</span>
         </td>
-        <td>{{ credit.issueDate | date:'dd-MMM-yyyy' }}</td>
-        <td>{{ credit.expiryDate ? (credit.expiryDate | date:'dd-MMM-yyyy') : 'No Expiry' }}</td>
+        <td class="col-hide-md">{{ credit.issueDate | date:'dd-MMM-yyyy' }}</td>
+        <td class="col-hide-md">{{ credit.expiryDate ? (credit.expiryDate | date:'dd-MMM-yyyy') : 'No Expiry' }}</td>
         <td>
           <button
             pButton
@@ -81,6 +81,7 @@
       </tr>
     </ng-template>
   </p-table>
+  </div>
 
   <!-- Apply Credit Form -->
   <div class="apply-section" *ngIf="selectedCreditNote">
