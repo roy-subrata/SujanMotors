@@ -1,5 +1,7 @@
 namespace AutoPartShop.Application.DTOs.BackupDtos;
 
+using AutoPartShop.Domain.Enums;
+
 /// <summary>
 /// A single backup history entry
 /// </summary>
@@ -8,7 +10,7 @@ public class BackupRecordDto
     public Guid Id { get; set; }
     public string FileName { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public BackupRecordStatus Status { get; set; }
     public string TriggerType { get; set; } = string.Empty;
     public bool UploadedToDrive { get; set; }
     public bool LocalFileExists { get; set; }

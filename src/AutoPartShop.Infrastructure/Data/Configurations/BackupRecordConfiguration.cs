@@ -21,7 +21,8 @@ public class BackupRecordConfiguration : IEntityTypeConfiguration<BackupRecord>
 
         builder.Property(b => b.Status)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(20)
+            .HasConversion<string>();
 
         builder.Property(b => b.TriggerType)
             .IsRequired()
