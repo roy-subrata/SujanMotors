@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -16,7 +18,7 @@ public class Invoice : AuditableEntity
     public decimal TaxAmount { get; private set; }
     public decimal DiscountAmount { get; private set; } = 0;
     public decimal GrandTotal => SubTotal + TaxAmount - DiscountAmount;
-    public string Status { get; private set; } = "DRAFT";  // DRAFT, ISSUED, DUE, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
+    public InvoiceStatus Status { get; private set; } = InvoiceStatus.DRAFT;
     public string Notes { get; private set; } = string.Empty;
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
 
@@ -28,12 +30,12 @@ public class Invoice : AuditableEntity
     public decimal TotalAmount => GrandTotal;  // Alias for clarity
     public decimal AmountPaid =>
         CustomerPayments?
-            .Where(p => p.Status == "COMPLETED")
+            .Where(p => p.Status == CustomerPaymentStatus.COMPLETED)
             .Sum(p => p.Amount) ?? 0;
     public decimal OutstandingAmount => GrandTotal - AmountPaid;
     public decimal CreditBalance => AmountPaid > GrandTotal ? AmountPaid - GrandTotal : 0;
     public bool HasCredit => CreditBalance > 0;
-    public bool IsOverdue => Status != "PAID" && Status != "CANCELLED" && DueDate < DateTime.UtcNow.Date;
+    public bool IsOverdue => Status != InvoiceStatus.PAID && Status != InvoiceStatus.CANCELLED && DueDate < DateTime.UtcNow.Date;
 
     private Invoice() { }
 
@@ -60,7 +62,7 @@ public class Invoice : AuditableEntity
             DueDate = dueDate ?? DateTime.UtcNow.AddDays(30),
             SubTotal = subTotal,
             TaxAmount = taxAmount,
-            Status = "DRAFT",
+            Status = InvoiceStatus.DRAFT,
             Notes = notes?.Trim() ?? string.Empty,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
@@ -68,10 +70,10 @@ public class Invoice : AuditableEntity
 
     public void Issue()
     {
-        if (Status != "DRAFT")
+        if (Status != InvoiceStatus.DRAFT)
             throw new InvalidOperationException("Only draft invoices can be issued");
 
-        Status = "ISSUED";
+        Status = InvoiceStatus.ISSUED;
     }
 
     /// <summary>
@@ -80,7 +82,7 @@ public class Invoice : AuditableEntity
     /// </summary>
     public void UpdatePaymentStatus()
     {
-        if (Status == "CANCELLED")
+        if (Status == InvoiceStatus.CANCELLED)
             return;
 
         var paid = AmountPaid;
@@ -89,37 +91,37 @@ public class Invoice : AuditableEntity
         if (paid <= 0)
         {
             if (IsOverdue)
-                Status = "OVERDUE";
-            else if (Status != "DUE")
-                Status = "ISSUED";
+                Status = InvoiceStatus.OVERDUE;
+            else if (Status != InvoiceStatus.DUE)
+                Status = InvoiceStatus.ISSUED;
             // else: keep DUE — balance went to zero but due date hasn't been crossed
         }
         else if (paid >= total)
         {
-            Status = "PAID";
+            Status = InvoiceStatus.PAID;
         }
         else
         {
-            Status = IsOverdue ? "OVERDUE" : "PARTIALLY_PAID";
+            Status = IsOverdue ? InvoiceStatus.OVERDUE : InvoiceStatus.PARTIALLY_PAID;
         }
     }
 
     public void MarkAsDue()
     {
-        if (Status != "ISSUED")
+        if (Status != InvoiceStatus.ISSUED)
             throw new InvalidOperationException("Only issued invoices can be marked as due.");
-        Status = "DUE";
+        Status = InvoiceStatus.DUE;
     }
 
     public void Cancel(string reason = "")
     {
-        if (Status == "PAID")
+        if (Status == InvoiceStatus.PAID)
             throw new InvalidOperationException("Cannot cancel a paid invoice");
 
-        if (Status == "PARTIALLY_PAID")
+        if (Status == InvoiceStatus.PARTIALLY_PAID)
             throw new InvalidOperationException("Cannot cancel a partially paid invoice. Refund or reverse the payments first.");
 
-        Status = "CANCELLED";
+        Status = InvoiceStatus.CANCELLED;
         Notes = reason?.Trim() ?? string.Empty;
     }
 

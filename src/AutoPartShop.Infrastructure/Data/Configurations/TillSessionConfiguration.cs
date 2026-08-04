@@ -14,7 +14,7 @@ public class TillSessionConfiguration : IEntityTypeConfiguration<TillSession>
         builder.Property(t => t.CashierUsername).IsRequired().HasMaxLength(100);
         builder.Property(t => t.TerminalLabel).IsRequired().HasMaxLength(50);
         builder.Property(t => t.ShiftLabel).HasMaxLength(50);
-        builder.Property(t => t.Status).IsRequired().HasMaxLength(20);
+        builder.Property(t => t.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
         builder.Property(t => t.Notes).HasMaxLength(1000);
 
         builder.Property(t => t.OpeningFloat).HasPrecision(18, 2);

@@ -1,3 +1,4 @@
+using AutoPartShop.Domain.Enums;
 
 namespace AutoPartShop.Domain.Entities;
 
@@ -12,7 +13,7 @@ public class SalesReturn : AuditableEntity
     public Guid WarehouseId { get; private set; }
     public DateTime ReturnDate { get; private set; }
     public string Reason { get; private set; } = string.Empty;  // DAMAGED, DEFECTIVE, WRONG_ITEM, EXCESS_STOCK, etc.
-    public string Status { get; private set; } = "PENDING";  // PENDING, APPROVED, RECEIVED, REJECTED, PROCESSED
+    public SalesReturnStatus Status { get; private set; } = SalesReturnStatus.PENDING;
     public decimal RefundAmount { get; private set; } = 0;
     public string RefundType { get; private set; } = "CASH_REFUND";  // CASH_REFUND, STORE_CREDIT
     public string Notes { get; private set; } = string.Empty;
@@ -53,35 +54,35 @@ public class SalesReturn : AuditableEntity
             WarehouseId = warehouseId,
             ReturnDate = returnDate ?? DateTime.UtcNow,
             Reason = reason.Trim(),
-            Status = "PENDING",
+            Status = SalesReturnStatus.PENDING,
             Notes = notes.Trim()
         };
     }
 
     public void Approve(string approvedBy)
     {
-        if (Status != "PENDING")
+        if (Status != SalesReturnStatus.PENDING)
             throw new InvalidOperationException("Only pending returns can be approved");
 
         if (string.IsNullOrWhiteSpace(approvedBy))
             throw new ArgumentException("ApprovedBy cannot be empty", nameof(approvedBy));
 
-        Status = "APPROVED";
+        Status = SalesReturnStatus.APPROVED;
         ApprovedBy = approvedBy.Trim();
         ApprovedDate = DateTime.UtcNow;
     }
 
     public void MarkAsReceived()
     {
-        if (Status != "APPROVED")
+        if (Status != SalesReturnStatus.APPROVED)
             throw new InvalidOperationException("Only approved returns can be marked as received");
 
-        Status = "RECEIVED";
+        Status = SalesReturnStatus.RECEIVED;
     }
 
     public void Reject(string reason = "")
     {
-        Status = "REJECTED";
+        Status = SalesReturnStatus.REJECTED;
         var trimmedReason = reason.Trim();
         if (!string.IsNullOrEmpty(trimmedReason))
         {
@@ -93,10 +94,10 @@ public class SalesReturn : AuditableEntity
 
     public void Process()
     {
-        if (Status != "RECEIVED")
+        if (Status != SalesReturnStatus.RECEIVED)
             throw new InvalidOperationException("Only received returns can be processed");
 
-        Status = "PROCESSED";
+        Status = SalesReturnStatus.PROCESSED;
     }
 
     public void CalculateRefund()

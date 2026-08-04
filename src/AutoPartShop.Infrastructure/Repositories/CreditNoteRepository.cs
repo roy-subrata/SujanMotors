@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,9 +31,9 @@ public class CreditNoteRepository(AutoPartDbContext dbContext) : ICreditNoteRepo
         return await dbContext.CreditNotes
             .Include(cn => cn.Supplier)
             .Where(cn => cn.SupplierId == supplierId
-                      && cn.Status != "CANCELLED"
-                      && cn.Status != "EXPIRED"
-                      && cn.Status != "FULLY_USED"
+                      && cn.Status != CreditNoteStatus.CANCELLED
+                      && cn.Status != CreditNoteStatus.EXPIRED
+                      && cn.Status != CreditNoteStatus.FULLY_USED
                       && (!cn.ExpiryDate.HasValue || cn.ExpiryDate.Value >= DateTime.UtcNow))
             .OrderBy(cn => cn.ExpiryDate)
             .ThenBy(cn => cn.IssueDate)
@@ -67,8 +68,8 @@ public class CreditNoteRepository(AutoPartDbContext dbContext) : ICreditNoteRepo
         if (query.SupplierId.HasValue)
             dbQuery = dbQuery.Where(cn => cn.SupplierId == query.SupplierId.Value);
 
-        if (!string.IsNullOrWhiteSpace(query.Status))
-            dbQuery = dbQuery.Where(cn => cn.Status == query.Status);
+        if (query.Status.HasValue)
+            dbQuery = dbQuery.Where(cn => cn.Status == query.Status.Value);
 
         var totalCount = await dbQuery.CountAsync(cancellationToken);
         var creditNotes = await dbQuery
@@ -96,9 +97,9 @@ public class CreditNoteRepository(AutoPartDbContext dbContext) : ICreditNoteRepo
     {
         return await dbContext.CreditNotes
             .Where(cn => cn.SupplierId == supplierId
-                      && cn.Status != "CANCELLED"
-                      && cn.Status != "EXPIRED"
-                      && cn.Status != "FULLY_USED"
+                      && cn.Status != CreditNoteStatus.CANCELLED
+                      && cn.Status != CreditNoteStatus.EXPIRED
+                      && cn.Status != CreditNoteStatus.FULLY_USED
                       && (!cn.ExpiryDate.HasValue || cn.ExpiryDate.Value >= DateTime.UtcNow))
             .SumAsync(cn => cn.TotalAmount - cn.UsedAmount, cancellationToken);
     }

@@ -3,6 +3,7 @@ using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.TillSessionDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -224,7 +225,7 @@ public class TillSessionController(
             var cashSales = await dbContext.CustomerPayments
                 .Where(p => p.CreatedBy == session.CashierUsername
                          && p.PaymentMethod == "CASH"
-                         && p.Status == "COMPLETED"
+                         && p.Status == CustomerPaymentStatus.COMPLETED
                          && p.PaymentDate >= session.OpenedAt
                          && p.PaymentDate <= windowEnd
                          && !p.Isdeleted)
@@ -235,7 +236,7 @@ public class TillSessionController(
             var cashRefunds = await dbContext.CustomerPayments
                 .Where(p => p.CreatedBy == session.CashierUsername
                          && p.PaymentMethod == "REFUND"
-                         && p.Status == "COMPLETED"
+                         && p.Status == CustomerPaymentStatus.COMPLETED
                          && p.PaymentDate >= session.OpenedAt
                          && p.PaymentDate <= windowEnd
                          && !p.Isdeleted)
@@ -270,7 +271,7 @@ public class TillSessionController(
         var session = await tillSessionRepository.GetByIdAsync(id, cancellationToken);
         if (session is null) return NotFound(new { message = "Till session not found" });
 
-        if (session.Status != "CLOSED")
+        if (session.Status != TillSessionStatus.CLOSED)
             return BadRequest(new { message = "The shift report is only available once the session is closed." });
 
         var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
@@ -333,7 +334,7 @@ public class TillSessionController(
         var payments = await dbContext.CustomerPayments
             .AsNoTracking()
             .Where(p => p.CreatedBy == session.CashierUsername
-                     && p.Status == "COMPLETED"
+                     && p.Status == CustomerPaymentStatus.COMPLETED
                      && p.PaymentDate >= session.OpenedAt
                      && p.PaymentDate <= windowEnd
                      && !p.Isdeleted)

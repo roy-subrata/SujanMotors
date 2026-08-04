@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -76,7 +77,7 @@ public class TechnicianRepository : ITechnicianRepository
             .FirstOrDefaultAsync(x => x.TechnicianCode == technicianCode && !x.Isdeleted, cancellationToken);
     }
 
-    public async Task<IEnumerable<Technician>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Technician>> GetByStatusAsync(TechnicianStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Technicians
             .Where(x => x.Status == status && !x.Isdeleted)

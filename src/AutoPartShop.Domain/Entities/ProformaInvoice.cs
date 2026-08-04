@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -13,7 +15,7 @@ public class ProformaInvoice : AuditableEntity
     public Guid SalesOrderId { get; private set; }
     public DateTime IssueDate { get; private set; }
     public DateTime ValidUntil { get; private set; }
-    public string Status { get; private set; } = "ISSUED";  // ISSUED, EXPIRED, SUPERSEDED
+    public ProformaInvoiceStatus Status { get; private set; } = ProformaInvoiceStatus.ISSUED;
     public string IssuedBy { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
 
@@ -44,7 +46,7 @@ public class ProformaInvoice : AuditableEntity
             IssueDate = issueDate,
             // Handoff default is 15 days' validity when the caller doesn't specify one.
             ValidUntil = validUntil ?? issueDate.AddDays(15),
-            Status = "ISSUED",
+            Status = ProformaInvoiceStatus.ISSUED,
             IssuedBy = issuedBy?.Trim() ?? string.Empty,
             Notes = notes?.Trim() ?? string.Empty
         };
@@ -52,20 +54,20 @@ public class ProformaInvoice : AuditableEntity
 
     public void MarkAsExpired()
     {
-        if (Status != "ISSUED")
+        if (Status != ProformaInvoiceStatus.ISSUED)
             throw new InvalidOperationException($"Only ISSUED proforma invoices can expire. Current: {Status}");
 
-        Status = "EXPIRED";
+        Status = ProformaInvoiceStatus.EXPIRED;
     }
 
     /// <summary>A reissued proforma (e.g. after a price change on the order) supersedes this one.</summary>
     public void MarkAsSuperseded()
     {
-        if (Status != "ISSUED")
+        if (Status != ProformaInvoiceStatus.ISSUED)
             throw new InvalidOperationException($"Only ISSUED proforma invoices can be superseded. Current: {Status}");
 
-        Status = "SUPERSEDED";
+        Status = ProformaInvoiceStatus.SUPERSEDED;
     }
 
-    public bool IsExpired => Status == "ISSUED" && ValidUntil.Date < DateTime.UtcNow.Date;
+    public bool IsExpired => Status == ProformaInvoiceStatus.ISSUED && ValidUntil.Date < DateTime.UtcNow.Date;
 }

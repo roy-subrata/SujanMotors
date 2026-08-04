@@ -1,5 +1,6 @@
 ﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Data;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -54,7 +55,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
         // â”€â”€ Opening balance (all COMPLETED transactions before dateFrom) â”€
         var priorCustomerNet = await _db.CustomerPayments
-            .Where(p => p.PaymentDate < dateFrom && p.Status == "COMPLETED")
+            .Where(p => p.PaymentDate < dateFrom && p.Status == CustomerPaymentStatus.COMPLETED)
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
 
         var priorExpenseTotal = await _db.DailyExpenses
@@ -74,7 +75,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         // â”€â”€ Customer payments â€” COMPLETED only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var customerPayments = await _db.CustomerPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
-                     && p.Status == "COMPLETED")
+                     && p.Status == CustomerPaymentStatus.COMPLETED)
             .Include(p => p.Customer)
             .Include(p => p.Invoice)
             .AsNoTracking()
@@ -131,7 +132,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
                 PaymentMethod = p.PaymentMethod,
                 Amount = Math.Abs(p.Amount),
                 Currency = p.Currency,
-                Status = p.Status,
+                Status = p.Status.ToString(),
                 Notes = string.IsNullOrWhiteSpace(p.Notes) ? null : p.Notes,
                 IsCreditSale = !isRefund && CreditMethods.Contains(p.PaymentMethod)
             };

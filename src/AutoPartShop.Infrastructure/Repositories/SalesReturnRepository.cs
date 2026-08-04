@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -103,7 +104,7 @@ public class SalesReturnRepository : ISalesReturnRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<SalesReturn>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<SalesReturn>> GetByStatusAsync(SalesReturnStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.SalesReturns
             .Include(x => x.LineItems)
@@ -124,7 +125,7 @@ public class SalesReturnRepository : ISalesReturnRepository
             .Include(x => x.SalesOrder)
                 .ThenInclude(so => so!.LineItems)
                     .ThenInclude(sol => sol.ProductVariant)
-            .Where(x => x.Status == "PENDING" && !x.Isdeleted)
+            .Where(x => x.Status == SalesReturnStatus.PENDING && !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
     }

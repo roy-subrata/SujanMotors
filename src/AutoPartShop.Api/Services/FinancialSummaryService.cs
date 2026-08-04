@@ -1,5 +1,6 @@
 using AutoPartShop.Application.DTOs.DashboardDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,7 +30,7 @@ public class FinancialSummaryService : IFinancialSummaryService
     private readonly IShopClock _shopClock;
 
     // Statuses that represent no real economic activity and must be excluded from every metric.
-    private static readonly string[] ExcludedSalesStatuses = ["CANCELLED", "RETURNED", "DRAFT"];
+    private static readonly SalesOrderStatus[] ExcludedSalesStatuses = [SalesOrderStatus.CANCELLED, SalesOrderStatus.RETURNED, SalesOrderStatus.DRAFT];
     private static readonly string[] ExcludedPOStatuses = ["DRAFT", "SUBMITTED", "CANCELLED"];
 
     public FinancialSummaryService(
@@ -81,7 +82,7 @@ public class FinancialSummaryService : IFinancialSummaryService
             var converted = await _currencyService.ConvertToBaseAsync(so.TotalAmount, so.Currency, so.SODate, cancellationToken);
             totalSales += converted;
 
-            if (so.PaymentStatus == "PAID")
+            if (so.PaymentStatus == SalesOrderPaymentStatus.PAID)
                 cashSales += converted;
             else
                 creditSales += converted;
@@ -95,7 +96,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         var customerPaymentsList = await _dbContext.CustomerPayments
             .Where(cp => cp.PaymentDate >= startDate && cp.PaymentDate < endDate
                          && !cp.Isdeleted
-                         && cp.Status == "COMPLETED"
+                         && cp.Status == CustomerPaymentStatus.COMPLETED
                          && (cp.PaymentType == CustomerPaymentType.ADVANCE || cp.SourceAdvancePaymentId == null))
             .ToListAsync(cancellationToken);
 
@@ -151,7 +152,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var openInvoiceData = await _dbContext.Invoices
             .Where(i => !i.Isdeleted
-                        && i.Status != "CANCELLED"
+                        && i.Status != InvoiceStatus.CANCELLED
                         && i.SalesOrder != null
                         && !i.SalesOrder.Isdeleted
                         && !ExcludedSalesStatuses.Contains(i.SalesOrder.Status))
@@ -160,7 +161,7 @@ public class FinancialSummaryService : IFinancialSummaryService
                 CustomerId = i.SalesOrder!.CustomerId,
                 GrandTotal = i.SubTotal + i.TaxAmount - i.DiscountAmount,
                 AmountPaid = i.CustomerPayments
-                    .Where(p => p.Status == "COMPLETED")
+                    .Where(p => p.Status == CustomerPaymentStatus.COMPLETED)
                     .Sum(p => (decimal?)p.Amount) ?? 0m,
                 Currency = i.SalesOrder.Currency,
                 SODate = i.SalesOrder.SODate,

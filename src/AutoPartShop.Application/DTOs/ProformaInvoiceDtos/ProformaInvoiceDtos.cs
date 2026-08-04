@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.ProformaInvoiceDtos;
 
 public class CreateProformaInvoiceRequest
@@ -17,7 +19,7 @@ public class ProformaInvoiceResponse
     public decimal GrandTotal { get; set; }
     public DateTime IssueDate { get; set; }
     public DateTime ValidUntil { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public ProformaInvoiceStatus Status { get; set; }
     public bool IsExpired { get; set; }
     public string Notes { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

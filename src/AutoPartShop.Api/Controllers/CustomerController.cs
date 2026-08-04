@@ -4,6 +4,7 @@ using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Customers.Dtos;
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -144,7 +145,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpGet("status/{status}")]
-    public async Task<IActionResult> GetByStatus(string status, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByStatus(CustomerStatus status, CancellationToken cancellationToken)
     {
         try
         {

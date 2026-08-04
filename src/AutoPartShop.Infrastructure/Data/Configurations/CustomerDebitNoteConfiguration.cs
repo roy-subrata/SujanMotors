@@ -17,7 +17,7 @@ public class CustomerDebitNoteConfiguration : IEntityTypeConfiguration<CustomerD
 
         builder.Property(dn => dn.TotalAmount).HasColumnType("decimal(18,2)");
         builder.Property(dn => dn.Currency).HasMaxLength(10).HasDefaultValue("BDT");
-        builder.Property(dn => dn.Status).IsRequired().HasMaxLength(20);
+        builder.Property(dn => dn.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
         builder.Property(dn => dn.Reason).IsRequired().HasMaxLength(500);
         builder.Property(dn => dn.Notes).HasMaxLength(1000);
         builder.Property(dn => dn.IssuedBy).HasMaxLength(100);

@@ -5,6 +5,7 @@ using AutoPartShop.Application.DTOs.TechnicianDtos;
 using AutoPartShop.Application.Technecians;
 using AutoPartShop.Application.Technecians.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -116,7 +117,7 @@ public class TechnicianController : ControllerBase
     }
 
     [HttpGet("status/{status}")]
-    public async Task<IActionResult> GetByStatus(string status, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByStatus(TechnicianStatus status, CancellationToken cancellationToken)
     {
         try
         {

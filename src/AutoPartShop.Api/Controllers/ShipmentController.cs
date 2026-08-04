@@ -1,6 +1,7 @@
 ﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Shipments.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -60,7 +61,7 @@ public class ShipmentController(
             if (salesOrder is null)
                 return NotFound(new { message = "Sales order not found" });
 
-            if (salesOrder.Status is not ("CONFIRMED" or "PAID" or "PACKED" or "PARTIALLY_SHIPPED"))
+            if (salesOrder.Status is not (SalesOrderStatus.CONFIRMED or SalesOrderStatus.PAID or SalesOrderStatus.PACKED or SalesOrderStatus.PARTIALLY_SHIPPED))
                 return BadRequest(new { message = $"Cannot create shipment for a {salesOrder.Status} order. Order must be CONFIRMED, PAID, PACKED or PARTIALLY_SHIPPED." });
 
             // Validate each line references a real SalesOrderLine on this order
@@ -264,7 +265,7 @@ public class ShipmentController(
                         .Where(s => s.SalesOrderId == shipment.SalesOrderId && !s.Isdeleted)
                         .ToListAsync(cancellationToken);
 
-                    bool allDelivered = allShipments.All(s => s.Status == "DELIVERED");
+                    bool allDelivered = allShipments.All(s => s.Status == ShipmentStatus.DELIVERED);
                     if (allDelivered)
                     {
                         var salesOrder = await _dbContext.SalesOrders

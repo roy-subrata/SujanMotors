@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.Shipments.Dtos;
 
 public class CreateShipmentRequest
@@ -45,7 +47,7 @@ public class ShipmentResponse
     public string? SalesOrderNumber { get; set; }
     public string? CourierName { get; set; }
     public string? TrackingNumber { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public ShipmentStatus Status { get; set; }
     public DateTime? EstimatedDeliveryDate { get; set; }
     public DateTime? DispatchedDate { get; set; }
     public DateTime? DeliveredDate { get; set; }

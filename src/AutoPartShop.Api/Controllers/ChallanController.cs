@@ -2,6 +2,7 @@
 using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
 using AutoPartShop.Api.Authorization;
@@ -43,7 +44,7 @@ public class ChallanController(
         if (so is null)
             return NotFound(ApiError.NotFound("Sales order not found", Request.Path));
 
-        if (so.Status is not ("CONFIRMED" or "READY_FOR_DELIVERY"))
+        if (so.Status is not (SalesOrderStatus.CONFIRMED or SalesOrderStatus.READY_FOR_DELIVERY))
             return BadRequest(ApiError.BusinessRule(
                 $"Challan can only be generated for Confirmed or Ready-For-Delivery orders. Current status: {so.Status}",
                 Request.Path));
@@ -59,9 +60,9 @@ public class ChallanController(
                 // Re-check status inside the transaction to prevent race conditions
                 var freshSo = await _db.SalesOrders
                     .FirstOrDefaultAsync(s => s.Id == salesOrderId && !s.Isdeleted, ct);
-                if (freshSo is null || freshSo.Status is not ("CONFIRMED" or "READY_FOR_DELIVERY"))
+                if (freshSo is null || freshSo.Status is not (SalesOrderStatus.CONFIRMED or SalesOrderStatus.READY_FOR_DELIVERY))
                     throw new InvalidOperationException(
-                        $"Challan can no longer be generated â€” order status is '{freshSo?.Status ?? "deleted"}'.");
+                        $"Challan can no longer be generated â€” order status is '{(freshSo is null ? "deleted" : freshSo.Status.ToString())}'.");
 
                 var challanNumber = await _codeGen.GenerateAsync("CHN", ct);
                 var deliveryAddress = req?.DeliveryAddress ?? so.DeliveryAddress;
@@ -107,7 +108,7 @@ public class ChallanController(
                 await _db.Challans.AddAsync(challan, ct);
 
                 // Transition SO to READY_FOR_DELIVERY if still CONFIRMED
-                if (so.Status == "CONFIRMED")
+                if (so.Status == SalesOrderStatus.CONFIRMED)
                 {
                     so.MarkAsReadyForDelivery();
                     so.ModifiedBy = _currentUser.GetCurrentUsername();
@@ -223,8 +224,8 @@ public class ChallanController(
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending(CancellationToken ct)
     {
-        var draft = await _challanRepo.GetByStatusAsync("DRAFT", ct);
-        var issued = await _challanRepo.GetByStatusAsync("ISSUED", ct);
+        var draft = await _challanRepo.GetByStatusAsync(ChallanStatus.DRAFT, ct);
+        var issued = await _challanRepo.GetByStatusAsync(ChallanStatus.ISSUED, ct);
         var all = draft.Concat(issued).OrderBy(c => c.CreatedDate);
         return Ok(ApiResponse<object>.Ok(all.Select(MapToResponse)));
     }
@@ -276,7 +277,7 @@ public class ChallanController(
 
                 // Transition SO â†’ DELIVERED
                 var so = await _soRepo.GetByIdAsync(challan.SalesOrderId, ct);
-                if (so != null && so.Status != "DELIVERED")
+                if (so != null && so.Status != SalesOrderStatus.DELIVERED)
                 {
                     so.MarkAsDelivered(DateTime.UtcNow);
                     so.ModifiedBy = _currentUser.GetCurrentUsername();
@@ -286,7 +287,7 @@ public class ChallanController(
                     var invoice = await _db.Invoices
                         .FirstOrDefaultAsync(i => i.SalesOrderId == so.Id && !i.Isdeleted, ct);
 
-                    if (invoice is { Status: "DRAFT" })
+                    if (invoice is { Status: InvoiceStatus.DRAFT })
                     {
                         invoice.Issue();
                         invoice.ModifiedBy = _currentUser.GetCurrentUsername();
