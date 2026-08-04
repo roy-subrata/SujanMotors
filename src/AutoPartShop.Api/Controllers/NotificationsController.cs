@@ -1,6 +1,7 @@
 ﻿using AutoPartShop.Application.DTOs.Notification;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -131,7 +132,7 @@ public class NotificationsController : ControllerBase
         if (customer is null)
             return NotFound(new { message = "Customer not found" });
 
-        var channel = (request?.Channel ?? "SMS").Trim().ToUpperInvariant();
+        var channel = request?.Channel ?? NotificationChannel.SMS;
         var due = customer.CurrentBalance;
         var name = customer.GetFullName();
 
@@ -145,7 +146,7 @@ public class NotificationsController : ControllerBase
         {
             switch (channel)
             {
-                case "SMS":
+                case NotificationChannel.SMS:
                     if (string.IsNullOrWhiteSpace(customer.Phone))
                         return BadRequest(new { message = "Customer has no phone number" });
                     if (!await IsEnabled(SmsKey, cancellationToken))
@@ -153,7 +154,7 @@ public class NotificationsController : ControllerBase
                     await _notificationService.SendSmsAsync(customer.Phone, message, cancellationToken);
                     return Ok(new { message = "Payment reminder sent by SMS", channel, recipient = customer.Phone, due });
 
-                case "WHATSAPP":
+                case NotificationChannel.WHATSAPP:
                     if (string.IsNullOrWhiteSpace(customer.Phone))
                         return BadRequest(new { message = "Customer has no phone number" });
                     if (!await IsEnabled(WhatsAppKey, cancellationToken))
@@ -161,7 +162,7 @@ public class NotificationsController : ControllerBase
                     await _notificationService.SendWhatsAppAsync(customer.Phone, message, cancellationToken);
                     return Ok(new { message = "Payment reminder sent by WhatsApp", channel, recipient = customer.Phone, due });
 
-                case "EMAIL":
+                case NotificationChannel.EMAIL:
                     if (string.IsNullOrWhiteSpace(customer.Email))
                         return BadRequest(new { message = "Customer has no email address" });
                     var html = $"<p>Dear <strong>{System.Net.WebUtility.HtmlEncode(name)}</strong>,</p>" +
@@ -224,8 +225,8 @@ public class NotificationsController : ControllerBase
     [HttpGet("logs")]
     [HasPermission(Permissions.AuditView)]
     public async Task<IActionResult> GetLogs(
-        [FromQuery] string? channel,
-        [FromQuery] string? status,
+        [FromQuery] NotificationChannel? channel,
+        [FromQuery] NotificationLogStatus? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -235,8 +236,8 @@ public class NotificationsController : ControllerBase
             var db = HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
             var q = db.NotificationLogs.Where(n => !n.Isdeleted).AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(channel)) q = q.Where(n => n.Channel == channel.ToUpper());
-            if (!string.IsNullOrWhiteSpace(status)) q = q.Where(n => n.Status == status.ToUpper());
+            if (channel.HasValue) q = q.Where(n => n.Channel == channel.Value);
+            if (status.HasValue) q = q.Where(n => n.Status == status.Value);
 
             var total = await q.CountAsync(cancellationToken);
             var items = await q
