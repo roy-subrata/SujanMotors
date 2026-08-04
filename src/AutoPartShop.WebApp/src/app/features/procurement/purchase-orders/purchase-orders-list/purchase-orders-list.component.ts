@@ -13,6 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
   selector: 'app-purchase-orders-list',
@@ -58,6 +59,7 @@ export class PurchaseOrdersListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
+  private readonly statusDisplay = inject(StatusDisplayService);
 
   /** Procurement mutations (create/edit/delete/payment) are restricted to back-office roles. */
   get canManage(): boolean {
@@ -163,16 +165,8 @@ export class PurchaseOrdersListComponent implements OnInit {
     }
   }
 
-  getStatusSeverity(status: string): string {
-    switch (status?.toUpperCase()) {
-      case 'DRAFT':     return 'warning';
-      case 'SUBMITTED': return 'info';
-      case 'CONFIRMED': return 'success';
-      case 'PARTIAL':   return 'warning';
-      case 'DELIVERED': return 'success';
-      case 'CANCELLED': return 'danger';
-      default:          return 'secondary';
-    }
+  getStatusSeverity(status: string): StatusSeverity {
+    return this.statusDisplay.getSeverity(status, 'purchase-order');
   }
 
   goToPage(page: number): void {

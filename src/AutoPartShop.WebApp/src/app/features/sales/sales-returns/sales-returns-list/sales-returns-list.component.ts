@@ -26,6 +26,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
   selector: 'app-sales-returns-list',
@@ -67,6 +68,7 @@ export class SalesReturnsListComponent implements OnInit {
   private readonly currencyService = inject(CurrencyService);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly statusDisplay = inject(StatusDisplayService);
 
   salesReturns: SalesReturnResponse[] = [];
   loading = false;
@@ -438,15 +440,8 @@ export class SalesReturnsListComponent implements OnInit {
     });
   }
 
-  getStatusSeverity(status: string): string {
-    const severityMap: Record<string, string> = {
-      PENDING: 'warn',
-      APPROVED: 'info',
-      RECEIVED: 'primary',
-      REJECTED: 'danger',
-      PROCESSED: 'success'
-    };
-    return severityMap[status] || 'secondary';
+  getStatusSeverity(status: string): StatusSeverity {
+    return this.statusDisplay.getSeverity(status, 'sales-return');
   }
 
   formatCurrency(amount: number): string {

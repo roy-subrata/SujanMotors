@@ -35,6 +35,7 @@ import { StockLotService } from '../../../inventory/services/stock-lot.service';
 import { ApplyCustomerCreditNotesComponent } from '../../credits/apply-customer-credit-notes.component';
 import { CustomerCreditNoteService } from '../../services/customer-credit-note.service';
 import { AppBrandingService } from '../../../../shared/services/app-branding.service';
+import { StatusDisplayService } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-sales-order-form',
@@ -84,6 +85,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private readonly warehouseService = inject(WarehouseService);
     private readonly stockLotService = inject(StockLotService);
     private readonly branding = inject(AppBrandingService);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     // Credit note state
     totalCreditApplied = 0;
@@ -1400,15 +1402,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
      * Get status badge severity
      */
     getStatusSeverity(status: string): string {
-        const severityMap: Record<string, string> = {
-            DRAFT: 'secondary',
-            CONFIRMED: 'info',
-            PARTIALLY_SHIPPED: 'warning',
-            SHIPPED: 'primary',
-            DELIVERED: 'success',
-            CANCELLED: 'danger'
-        };
-        return severityMap[status] || 'secondary';
+        return this.statusDisplay.getSeverity(status, 'sales-order');
     }
 
     private ensureCompatibleUnitsForLine(part: PublicPartResponse, line: FormGroup | null, preservePrice: boolean): void {

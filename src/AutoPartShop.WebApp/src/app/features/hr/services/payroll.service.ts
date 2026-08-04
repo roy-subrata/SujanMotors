@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { PayrollRunStatus } from 'src/app/shared/models/status.types';
 
 export interface PayslipResponse {
     id: string;
@@ -38,7 +39,7 @@ export interface PayrollRunResponse {
     runCode: string;
     year: number;
     month: number;
-    status: string;
+    status: PayrollRunStatus;
     currency: string;
     totalGross: number;
     totalDeductions: number;

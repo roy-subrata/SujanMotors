@@ -26,6 +26,7 @@ import { CurrencyService } from '@/shared/services/currency.service';
 import { CurrencySelectorComponent } from '@/shared/components/currency-selector/currency-selector.component';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/components/lazy-autocomplete';
 import { Subject, takeUntil, map } from 'rxjs';
+import { StatusDisplayService } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-quotation-form',
@@ -63,6 +64,7 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     private readonly destroy$ = new Subject<void>();
 
@@ -600,14 +602,6 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
     }
 
     getStatusSeverity(status: string): string {
-        const severityMap: Record<string, string> = {
-            DRAFT: 'secondary',
-            SENT: 'info',
-            ACCEPTED: 'success',
-            REJECTED: 'danger',
-            CONVERTED: 'contrast',
-            EXPIRED: 'warn'
-        };
-        return severityMap[status] || 'secondary';
+        return this.statusDisplay.getSeverity(status, 'quotation');
     }
 }

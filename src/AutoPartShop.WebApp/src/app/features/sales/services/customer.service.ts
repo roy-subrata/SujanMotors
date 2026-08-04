@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { CustomerStatus } from '@/shared/models/status.types';
 
 export interface CreateCustomerRequest {
     customerCode: string;
@@ -41,7 +42,7 @@ export interface CustomerResponse {
     postalCode: string;
     country: string;
     customerType: string;
-    status: string;
+    status: CustomerStatus;
     currentBalance: number;
     advanceAmount: number;
     dueAmount: number;
@@ -95,7 +96,7 @@ export class CustomerService {
         return this.http.get<CustomerResponse>(`${this.apiUrl}/email/${email}`);
     }
 
-    getCustomersByStatus(status: string): Observable<CustomerResponse[]> {
+    getCustomersByStatus(status: CustomerStatus): Observable<CustomerResponse[]> {
         return this.http.get<CustomerResponse[]>(`${this.apiUrl}/status/${status}`);
     }
 

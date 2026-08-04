@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PdfDownloadService } from '@/shared/services/pdf-download.service';
+import { QuotationStatus } from '@/shared/models/status.types';
 
 export interface CreateQuotationLineRequest {
     partId: string;
@@ -48,7 +49,7 @@ export interface QuotationResponse {
     customerPhone: string;
     quoteDate: string;
     validUntil: string;
-    status: string; // DRAFT | SENT | ACCEPTED | REJECTED | CONVERTED | EXPIRED
+    status: QuotationStatus;
     isExpired: boolean;
     subTotal: number;
     discountPercentage: number;
@@ -65,7 +66,7 @@ export interface QuotationResponse {
 
 export interface QuotationQuery {
     customerId?: string;
-    status?: string;
+    status?: QuotationStatus;
     search?: string;
     pageNumber: number;
     pageSize: number;

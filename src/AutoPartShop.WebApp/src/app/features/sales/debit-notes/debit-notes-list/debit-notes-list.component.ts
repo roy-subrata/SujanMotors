@@ -16,11 +16,13 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
 import { CustomerDebitNoteService, CustomerDebitNoteResponse } from '../../services/customer-debit-note.service';
+import { CustomerDebitNoteStatus } from '@/shared/models/status.types';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-debit-notes-list',
@@ -51,6 +53,7 @@ export class DebitNotesListComponent implements OnInit {
     private readonly currencyService = inject(CurrencyService);
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -63,7 +66,7 @@ export class DebitNotesListComponent implements OnInit {
     pageSize = 10;
     first = 0;
 
-    filterStatus = '';
+    filterStatus: CustomerDebitNoteStatus | '' = '';
     statusOptions: { label: string; value: string }[] = [
         { label: 'All Statuses', value: '' },
         { label: 'Issued', value: 'ISSUED' },
@@ -253,13 +256,8 @@ export class DebitNotesListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, currency || this.currencyService.selectedCurrency());
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            ISSUED: 'info',
-            SETTLED: 'success',
-            CANCELLED: 'danger'
-        };
-        return map[status] ?? 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'customer-debit-note');
     }
 
     formatStatus(status: string): string {

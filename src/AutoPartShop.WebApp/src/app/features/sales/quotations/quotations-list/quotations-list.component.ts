@@ -20,6 +20,7 @@ import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
 import { QuotationService, QuotationResponse } from '../../services/quotation.service';
+import { QuotationStatus } from '@/shared/models/status.types';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
@@ -27,6 +28,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-quotations-list',
@@ -65,6 +67,7 @@ export class QuotationsListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -78,7 +81,7 @@ export class QuotationsListComponent implements OnInit {
     first = 0;
 
     searchTerm = '';
-    filterStatus = '';
+    filterStatus: QuotationStatus | '' = '';
 
     statusOptions: { label: string; value: string }[] = [];
 
@@ -379,16 +382,8 @@ export class QuotationsListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, currency || this.currencyService.selectedCurrency());
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            DRAFT: 'secondary',
-            SENT: 'info',
-            ACCEPTED: 'success',
-            REJECTED: 'danger',
-            CONVERTED: 'contrast',
-            EXPIRED: 'warn'
-        };
-        return map[status] ?? 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'quotation');
     }
 
     formatStatus(status: string): string {

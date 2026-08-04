@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PaginatedResponse } from './employee.service';
+import { SalaryAdvanceStatus } from 'src/app/shared/models/status.types';
 
 export interface SalaryAdvanceResponse {
     id: string;
@@ -13,7 +14,7 @@ export interface SalaryAdvanceResponse {
     amount: number;
     paymentMethod: string;
     notes: string;
-    status: string;
+    status: SalaryAdvanceStatus;
     settledAt: string | null;
     settledRunCode: string | null;
     createdAt: string;
@@ -29,7 +30,7 @@ export interface GiveAdvanceRequest {
 
 export interface SalaryAdvanceQuery {
     search?: string;
-    status?: string;
+    status?: SalaryAdvanceStatus | '';
     employeeId?: string;
     pageSize: number;
     pageNumber: number;

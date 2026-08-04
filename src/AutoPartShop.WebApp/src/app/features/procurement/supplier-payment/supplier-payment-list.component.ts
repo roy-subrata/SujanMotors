@@ -14,6 +14,7 @@ import { DatePicker } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { SupplierPaymentService, SupplierPaymentResponse, PaginatedSupplierPaymentResponse, SupplierPaymentQuery } from '../services/supplier-payment.service';
+import { SupplierPaymentStatus } from '@/shared/models/status.types';
 import { StatusBadgeComponent } from '../components/status-badge.component';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { SupplierService } from '../../inventory/services/supplier.service';
@@ -57,7 +58,7 @@ export class SupplierPaymentListComponent implements OnInit {
     loading: boolean = false;
     contextMenuItems: MenuItem[] = [];
     selectedPayment: SupplierPaymentResponse | null = null;
-    filterStatus: string | null = null;
+    filterStatus: SupplierPaymentStatus | null = null;
     dateRange: Date[] = [];
     sortField: string | null = null;
     sortOrder: number | null = null;

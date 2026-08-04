@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { CreditNoteStatus } from '@/shared/models/status.types';
 
 export interface CreditNoteResponse {
   id: string;
@@ -18,7 +19,7 @@ export interface CreditNoteResponse {
   currency: string;
   issueDate: string;
   expiryDate?: string;
-  status: string;
+  status: CreditNoteStatus;
   notes: string;
   issuedBy: string;
   createdBy: string;
@@ -33,7 +34,7 @@ export interface ApplyCreditNoteRequest {
 
 export interface CreditNoteListQuery {
   supplierId?: string;
-  status?: string;
+  status?: CreditNoteStatus;
   pageNumber: number;
   pageSize: number;
 }

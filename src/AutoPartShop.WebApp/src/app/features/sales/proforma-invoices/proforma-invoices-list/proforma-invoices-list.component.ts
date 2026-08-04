@@ -19,6 +19,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { GenerateProformaDialogComponent } from '../generate-proforma-dialog/generate-proforma-dialog.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-proforma-invoices-list',
@@ -47,6 +48,7 @@ export class ProformaInvoicesListComponent implements OnInit {
     private readonly currencyService = inject(CurrencyService);
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -179,13 +181,8 @@ export class ProformaInvoicesListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, this.currencyService.selectedCurrency());
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            ISSUED: 'success',
-            EXPIRED: 'warn',
-            SUPERSEDED: 'secondary'
-        };
-        return map[status] ?? 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'proforma-invoice');
     }
 
     formatStatus(status: string): string {

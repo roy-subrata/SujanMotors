@@ -4,6 +4,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { SupplierPaymentStatus } from '@/shared/models/status.types';
 
 export interface CreateSupplierPaymentRequest {
     supplierId: string;
@@ -29,7 +30,7 @@ export interface MarkPaymentAsRegularRequest {
     description: string;
 }
 export interface UpdateSupplierPaymentRequest {
-    status?: string;
+    status?: SupplierPaymentStatus;
     referenceNumber: string;
     authorizationCode: string;
     invoiceNumber: string;
@@ -53,7 +54,7 @@ export interface SupplierPaymentResponse {
     currency: string;
     paymentDate: string;
     paymentMethod: string;
-    status: string;
+    status: SupplierPaymentStatus;
     referenceNumber: string;
     authorizationCode: string;
     invoiceNumber: string;
@@ -134,7 +135,7 @@ export interface PaymentHistoryItem {
     id: string;
     amount: number;
     paymentDate: string;
-    status: string;
+    status: SupplierPaymentStatus;
     paymentMethod: string;
     paymentType: string;
     invoiceNumber: string;
@@ -163,7 +164,7 @@ export interface SupplierPaymentQuery {
     pageSize: number;
     search?: string;
     supplierId?: string;
-    status?: string;
+    status?: SupplierPaymentStatus;
     fromDate?: string;
     toDate?: string;
     isReconciled?: boolean;
@@ -237,7 +238,7 @@ export class SupplierPaymentService {
     /**
      * Get payments by status
      */
-    getPaymentsByStatus(status: string): Observable<SupplierPaymentResponse[]> {
+    getPaymentsByStatus(status: SupplierPaymentStatus): Observable<SupplierPaymentResponse[]> {
         return this.http.get<SupplierPaymentResponse[]>(`${this.apiUrl}/by-status/${status}`);
     }
 

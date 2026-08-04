@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { TechnicianStatus } from '@/shared/models/status.types';
 
 export interface TechnicianResponse {
     id: string;
@@ -12,7 +13,7 @@ export interface TechnicianResponse {
     shopName: string;
     address: string;
     city: string;
-    status: string;
+    status: TechnicianStatus;
     notes: string;
     createdAt: string;
 }

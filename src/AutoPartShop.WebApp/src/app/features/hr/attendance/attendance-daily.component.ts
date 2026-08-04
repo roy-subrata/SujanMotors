@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AttendanceService, DailyAttendanceRow, MarkAttendanceEntry } from '../services/attendance.service';
+import { AttendanceStatus } from '@/shared/models/status.types';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -104,7 +105,7 @@ export class AttendanceDailyComponent implements OnInit {
         row.dirty = true;
     }
 
-    markAll(status: string): void {
+    markAll(status: AttendanceStatus): void {
         this.rows.forEach(row => {
             row.status = status;
             row.dirty = true;

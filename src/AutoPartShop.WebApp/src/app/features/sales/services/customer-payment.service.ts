@@ -4,6 +4,7 @@ import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { PaginatedResponse } from './customer.service';
 import { environment } from 'src/environments/environment';
+import { CustomerPaymentStatus } from '@/shared/models/status.types';
 
 export interface CreateCustomerPaymentRequest {
     customerId: string;
@@ -23,7 +24,7 @@ export interface CreateCustomerPaymentRequest {
 }
 
 export interface UpdateCustomerPaymentRequest {
-    status?: string;
+    status?: CustomerPaymentStatus;
     referenceNumber: string;
     authorizationCode: string;
     notes: string;
@@ -44,7 +45,7 @@ export interface CustomerPaymentResponse {
     currency: string;
     paymentDate: string;
     paymentMethod: string;
-    status: string;
+    status: CustomerPaymentStatus;
     referenceNumber: string;
     authorizationCode: string;
     notes: string;
@@ -86,7 +87,7 @@ export interface PaymentHistoryItem {
     id: string;
     amount: number;
     paymentDate: string;
-    status: string;
+    status: CustomerPaymentStatus;
     paymentMethod: string;
     paymentType: string;
     invoiceNumber: string;
@@ -128,7 +129,7 @@ export interface CustomerPaymentQuery {
     pageSize: number;
     search?: string;
     customerId?: string;
-    status?: string;
+    status?: CustomerPaymentStatus;
     fromDate?: string;
     toDate?: string;
     isReconciled?: boolean;

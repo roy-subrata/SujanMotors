@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { EmployeeStatus } from 'src/app/shared/models/status.types';
 
 export interface EmployeeResponse {
     id: string;
@@ -27,7 +28,7 @@ export interface EmployeeResponse {
     commissionRate: number;
     emergencyContactName: string;
     emergencyContactPhone: string;
-    status: string;
+    status: EmployeeStatus;
     notes: string;
     photoUrl: string | null;
     userId: string | null;
@@ -77,7 +78,7 @@ export interface PaginatedResponse<T> {
 
 export interface EmployeeQuery {
     search?: string;
-    status?: string;
+    status?: EmployeeStatus | '';
     department?: string;
     pageSize: number;
     pageNumber: number;

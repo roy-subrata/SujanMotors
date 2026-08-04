@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PdfDownloadService } from '@/shared/services/pdf-download.service';
+import { TillSessionStatus } from '@/shared/models/status.types';
 
 export interface OpenTillSessionRequest {
     terminalLabel: string;
@@ -38,7 +39,7 @@ export interface TillSessionResponse {
     closedAt?: string | null;
     openingFloat: number;
     closingCountedAmount?: number | null;
-    status: string; // OPEN | CLOSED
+    status: TillSessionStatus;
     cashSalesTotal: number;
     cashRefundsTotal: number;
     cashDropsTotal: number;
@@ -50,7 +51,7 @@ export interface TillSessionResponse {
 
 export interface TillSessionQuery {
     cashierId?: string;
-    status?: string;
+    status?: TillSessionStatus;
     fromDate?: string;
     toDate?: string;
     pageNumber: number;

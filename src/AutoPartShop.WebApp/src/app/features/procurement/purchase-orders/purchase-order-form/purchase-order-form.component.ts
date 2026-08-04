@@ -28,6 +28,7 @@ import { tap, forkJoin, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ApplyCreditNotesComponent } from '../../purchase-credits/apply-credit-notes.component';
 import { CreditNoteService } from '../../services/credit-note.service';
+import { StatusDisplayService } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-purchase-order-form',
@@ -123,6 +124,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     private readonly unitConversionService = inject(UnitConversionService);
     private readonly currencyService = inject(CurrencyService);
     private readonly creditNoteService = inject(CreditNoteService);
+    private readonly statusDisplay = inject(StatusDisplayService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
 
@@ -566,22 +568,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     }
 
     getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
-        switch (status?.toUpperCase()) {
-            case 'DRAFT':
-                return 'warn';
-            case 'SUBMITTED':
-                return 'info';
-            case 'CONFIRMED':
-                return 'success';
-            case 'PARTIAL':
-                return 'warn';
-            case 'DELIVERED':
-                return 'success';
-            case 'CANCELLED':
-                return 'danger';
-            default:
-                return 'secondary';
-        }
+        return this.statusDisplay.getSeverity(status, 'purchase-order');
     }
 
     submitPurchaseOrder(): void {

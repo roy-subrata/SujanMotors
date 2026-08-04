@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { InvoiceStatus } from '@/shared/models/status.types';
 
 export interface CreateInvoiceRequest {
   salesOrderId: string;
@@ -39,7 +40,7 @@ export interface InvoiceResponse {
   grandTotal: number;
   amountPaid: number;
   outstandingAmount: number;
-  status: string;
+  status: InvoiceStatus;
   isOverdue: boolean;
   notes: string;
   payments: InvoicePaymentResponse[];
@@ -69,7 +70,7 @@ export class InvoiceService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/v1/salesorder/invoices`;
 
-  getAllInvoices(pageNumber: number = 1, pageSize: number = 10, filter: { searchTerm?: string; status?: string; customerId?: string; fromDate?: string; toDate?: string } = {}): Observable<InvoiceListResponse> {
+  getAllInvoices(pageNumber: number = 1, pageSize: number = 10, filter: { searchTerm?: string; status?: InvoiceStatus; customerId?: string; fromDate?: string; toDate?: string } = {}): Observable<InvoiceListResponse> {
     let params: any = { pageNumber: pageNumber.toString(), pageSize: pageSize.toString() };
     if (filter.searchTerm) params.searchTerm = filter.searchTerm;
     if (filter.status) params.status = filter.status;

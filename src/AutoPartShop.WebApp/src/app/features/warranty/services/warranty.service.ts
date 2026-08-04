@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { WarrantyClaimStatus, WarrantyRegistrationStatus } from '@/shared/models/status.types';
 
 // Warranty Registration Interfaces
 export interface WarrantyRegistrationResponse {
@@ -25,7 +26,7 @@ export interface WarrantyRegistrationResponse {
     warrantyTerms: string;
     guaranteeMessage: string;
     certificateNumber: string;
-    status: string;
+    status: WarrantyRegistrationStatus;
     voidReason?: string;
     voidedDate?: Date;
     isValid: boolean;
@@ -55,7 +56,7 @@ export interface VoidWarrantyRequest {
 
 export interface WarrantySearchParams {
     searchTerm?: string;
-    status?: string;
+    status?: WarrantyRegistrationStatus;
     customerId?: string;
     partId?: string;
     expiryDateFrom?: Date;
@@ -83,7 +84,7 @@ export interface WarrantyClaimResponse {
     claimDate: Date;
     issueDescription: string;
     serviceType: string;
-    status: string;
+    status: WarrantyClaimStatus;
     rejectionReason?: string;
     rejectedDate?: Date;
     approvedDate?: Date;
@@ -236,7 +237,7 @@ export interface ReplacementLogisticsResponse {
 
 export interface ClaimSearchParams {
     searchTerm?: string;
-    status?: string;
+    status?: WarrantyClaimStatus;
     serviceType?: string;
     customerId?: string;
     technicianId?: string;
@@ -358,7 +359,7 @@ export class WarrantyService {
         return this.http.get<WarrantyClaimResponse[]>(`${this.claimsApiUrl}/technician/${technicianId}`);
     }
 
-    getClaimsByStatus(status: string): Observable<WarrantyClaimResponse[]> {
+    getClaimsByStatus(status: WarrantyClaimStatus): Observable<WarrantyClaimResponse[]> {
         return this.http.get<WarrantyClaimResponse[]>(`${this.claimsApiUrl}/status/${status}`);
     }
 

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { EmployeeService, EmployeeResponse } from '../../services/employee.service';
+import { EmployeeStatus } from '@/shared/models/status.types';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -42,7 +43,7 @@ export class EmployeesListComponent implements OnInit {
     pageSizeOptions = [10, 25, 50, 100];
 
     searchTerm = '';
-    filterStatus = '';
+    filterStatus: EmployeeStatus | '' = '';
     filterDepartment = '';
 
     statusOptions = [

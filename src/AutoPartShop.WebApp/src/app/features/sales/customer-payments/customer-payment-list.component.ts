@@ -22,10 +22,12 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { CustomerPaymentService, CustomerPaymentResponse } from '../services/customer-payment.service';
+import { CustomerPaymentStatus } from '@/shared/models/status.types';
 import { CustomerService, PaginatedResponse } from '../services/customer.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 import { I18nService } from '@/shared/services/i18n.service';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-customer-payment-list',
@@ -65,13 +67,14 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     private readonly customerService = inject(CustomerService);
     private readonly currencyService = inject(CurrencyService);
     private readonly i18n = inject(I18nService);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     private readonly destroy$ = new Subject<void>();
     private readonly searchSubject$ = new Subject<string>();
 
     customerPayments: CustomerPaymentResponse[] = [];
     searchTerm: string = '';
-    statusFilter: string | null = null;
+    statusFilter: CustomerPaymentStatus | null = null;
     dateRange: Date[] = [];
     pageSize: number = 25;
     pageSizeOptions = [10, 25, 50, 100];
@@ -619,16 +622,8 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         return `${year}-${month}-${day}`;
     }
 
-    getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
-        switch (status?.toUpperCase()) {
-            case 'COMPLETED': return 'success';
-            case 'PENDING': return 'warn';
-            case 'FAILED':
-            case 'CANCELLED': return 'danger';
-            case 'REFUNDED': return 'secondary';
-            case 'PROCESSING': return 'info';
-            default: return 'secondary';
-        }
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'customer-payment');
     }
 
     getMethodSeverity(method: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {

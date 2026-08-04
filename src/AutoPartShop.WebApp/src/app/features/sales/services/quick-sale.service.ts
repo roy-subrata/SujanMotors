@@ -83,6 +83,12 @@ export interface QuickSaleResponse {
   grandTotal: number;
   paidAmount: number;
   dueAmount: number;
+  /**
+   * Mixed-domain field: the backend DTO (`QuickSaleResponse.Status`) is itself a plain `string`,
+   * not a typed enum — different code paths populate it from `invoice.Status.ToString()`
+   * (InvoiceStatus) or hardcoded "DRAFT"/"COMPLETED" literals (SalesOrderStatus-shaped), so it
+   * can't be narrowed to a single union here without misrepresenting the wire format.
+   */
   status: string;
   isQuotation?: boolean;
   createdAt: string;

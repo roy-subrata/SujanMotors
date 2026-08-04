@@ -15,9 +15,11 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StockTakeService, StockTakeResponse } from '../services/stock-take.service';
+import { StockTakeStatus } from '@/shared/models/status.types';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { CategoryService, CategoryResponse } from '../services/category.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { StatusDisplayService } from '@/shared/services/status-display.service';
 
 @Component({
   selector: 'app-stock-takes',
@@ -45,6 +47,7 @@ export class StockTakesComponent implements OnInit {
   private readonly warehouseService = inject(WarehouseService);
   private readonly categoryService = inject(CategoryService);
   private readonly currencyService = inject(CurrencyService);
+  private readonly statusDisplay = inject(StatusDisplayService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
 
@@ -57,7 +60,7 @@ export class StockTakesComponent implements OnInit {
 
   // Filters
   searchTerm = '';
-  filterStatus: string | null = null;
+  filterStatus: StockTakeStatus | null = null;
   filterWarehouseId: string | null = null;
 
   statusOptions = [
@@ -134,13 +137,7 @@ export class StockTakesComponent implements OnInit {
 
   /** Maps stock-take statuses onto the shared status-pill palette. */
   pillStatus(status: string): string {
-    switch (status) {
-      case 'COUNTING': return 'pending';
-      case 'REVIEW': return 'info';
-      case 'COMPLETED': return 'completed';
-      case 'CANCELLED': return 'cancelled';
-      default: return 'draft';
-    }
+    return this.statusDisplay.getPillAttr(status, 'stock-take');
   }
 
   statusLabel(status: string): string {

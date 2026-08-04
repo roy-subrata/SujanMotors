@@ -22,6 +22,12 @@ export interface SupplierLedgerEntryDto {
     creditAmount: number;
     runningBalance: number;
     description: string;
+    /**
+     * Mixed-domain field: depending on `transactionType` this mirrors a PurchaseOrderStatus,
+     * SupplierPaymentStatus, or PurchaseReturnSettlementStatus value — left as `string` rather
+     * than a single union (see quick-sale.service.ts's `QuickSaleResponse.status` for the same
+     * pattern on the sales side).
+     */
     status: string;
 }
 

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { SalesReturnStatus } from '@/shared/models/status.types';
 
 export interface SalesReturnLineRequest {
   salesOrderLineId: string;
@@ -51,7 +52,7 @@ export interface SalesReturnResponse {
   salesOrderNumber?: string; // Sales Order Number
   warehouseId: string;
   reason: string;
-  status: string; // PENDING, APPROVED, RECEIVED, REJECTED, PROCESSED
+  status: SalesReturnStatus;
   totalRefundAmount: number;
   refundType: string; // CASH_REFUND, STORE_CREDIT
   notes: string;

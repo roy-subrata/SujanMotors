@@ -25,6 +25,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-warranties-list',
@@ -63,6 +64,7 @@ export class WarrantiesListComponent implements OnInit {
     private readonly authService = inject(AuthService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     /** Voiding and deleting warranties are manager-only (mirrors the API). */
     get isManager(): boolean {
@@ -183,14 +185,8 @@ export class WarrantiesListComponent implements OnInit {
         this.applyFilters();
     }
 
-    getStatusSeverity(status: string): 'success' | 'warn' | 'info' | 'danger' | 'secondary' {
-        switch (status) {
-            case 'ACTIVE': return 'success';
-            case 'EXPIRED': return 'warn';
-            case 'CLAIMED': return 'info';
-            case 'VOID': return 'danger';
-            default: return 'secondary';
-        }
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'warranty-registration');
     }
 
     getDaysUntilExpiryClass(warranty: WarrantyRegistrationResponse): string {

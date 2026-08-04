@@ -23,6 +23,7 @@ import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purc
 import { PartService } from '../../../inventory/services/part.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { AppBrandingService } from '../../../../shared/services/app-branding.service';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
   selector: 'app-purchase-returns-form',
@@ -111,6 +112,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly branding = inject(AppBrandingService);
+  private readonly statusDisplay = inject(StatusDisplayService);
 
   constructor() {
     this.form = this.createForm();
@@ -747,16 +749,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
   /**
    * Get status severity for display
    */
-  getStatusSeverity(status: string): 'warn' | 'info' | 'success' | 'danger' | 'secondary' {
-    switch (status?.toUpperCase()) {
-      case 'PENDING': return 'warn';
-      case 'APPROVED': return 'info';
-      case 'RETURNED': return 'info';
-      case 'RECEIVED': return 'success';
-      case 'CREDITED': return 'success';
-      case 'REJECTED': return 'danger';
-      default: return 'secondary';
-    }
+  getStatusSeverity(status: string): StatusSeverity {
+    return this.statusDisplay.getSeverity(status, 'purchase-return');
   }
 
   /**

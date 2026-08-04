@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SalaryAdvanceService, SalaryAdvanceResponse } from '../services/salary-advance.service';
 import { EmployeeService, EmployeeResponse } from '../services/employee.service';
+import { SalaryAdvanceStatus } from '@/shared/models/status.types';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -44,7 +45,7 @@ export class SalaryAdvancesComponent implements OnInit {
     pageSizeOptions = [10, 25, 50, 100];
 
     searchTerm = '';
-    filterStatus = '';
+    filterStatus: SalaryAdvanceStatus | '' = '';
 
     statusOptions = [
         { label: 'All Statuses', value: '' },

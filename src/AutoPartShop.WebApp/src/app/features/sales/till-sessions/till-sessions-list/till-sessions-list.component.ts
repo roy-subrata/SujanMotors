@@ -12,6 +12,7 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 
 import { TillSessionService, TillSessionResponse } from '../../services/till-session.service';
+import { TillSessionStatus } from '@/shared/models/status.types';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
@@ -57,7 +58,7 @@ export class TillSessionsListComponent implements OnInit {
     pageSize = 10;
     first = 0;
 
-    filterStatus = '';
+    filterStatus: TillSessionStatus | '' = '';
     dateRange: Date[] | null = null;
 
     statusOptions: { label: string; value: string }[] = [

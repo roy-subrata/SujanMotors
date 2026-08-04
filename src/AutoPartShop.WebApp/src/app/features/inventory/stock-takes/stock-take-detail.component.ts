@@ -19,6 +19,7 @@ import {
 } from '../services/stock-take.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { extractApiError } from '../../../shared/utils/api-error.util';
+import { StatusDisplayService } from '@/shared/services/status-display.service';
 
 type LineFilter = 'ALL' | 'UNCOUNTED' | 'VARIANCE';
 
@@ -44,6 +45,7 @@ type LineFilter = 'ALL' | 'UNCOUNTED' | 'VARIANCE';
 export class StockTakeDetailComponent implements OnInit {
   private readonly stockTakeService = inject(StockTakeService);
   private readonly currencyService = inject(CurrencyService);
+  private readonly statusDisplay = inject(StatusDisplayService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly route = inject(ActivatedRoute);
@@ -166,13 +168,7 @@ export class StockTakeDetailComponent implements OnInit {
   }
 
   pillStatus(status: string): string {
-    switch (status) {
-      case 'COUNTING': return 'pending';
-      case 'REVIEW': return 'info';
-      case 'COMPLETED': return 'completed';
-      case 'CANCELLED': return 'cancelled';
-      default: return 'draft';
-    }
+    return this.statusDisplay.getPillAttr(status, 'stock-take');
   }
 
   formatCurrency(amount: number): string {
