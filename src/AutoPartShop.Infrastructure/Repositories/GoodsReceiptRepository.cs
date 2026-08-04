@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
@@ -75,13 +76,11 @@ public class GoodsReceiptRepository(AutoPartDbContext _db) : IGoodsReceiptReposi
 
     public async Task<IEnumerable<GoodsReceipt>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(status))
+        if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<GoodsReceiptStatus>(status.Trim(), true, out var parsedStatus))
             return Enumerable.Empty<GoodsReceipt>();
 
-        var normalizedStatus = status.Trim().ToUpperInvariant();
-
         return await QueryWithDetails()
-            .Where(x => x.Status.ToUpper() == normalizedStatus)
+            .Where(x => x.Status == parsedStatus)
             .OrderByDescending(x => x.ReceiptDate)
             .ToListAsync(cancellationToken);
     }

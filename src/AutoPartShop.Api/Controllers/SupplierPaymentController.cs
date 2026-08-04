@@ -7,6 +7,7 @@ using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Application.Supplier;
 using AutoPartShop.Application.SupplierPayment.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -556,7 +557,7 @@ public class SupplierPaymentController : ControllerBase
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
             // Only allow deletion if not completed or reconciled
-            if (payment.Status == "COMPLETED" || payment.IsReconciled)
+            if (payment.Status == SupplierPaymentStatus.COMPLETED || payment.IsReconciled)
                 return BadRequest(new { message = "Cannot delete completed or reconciled payments" });
 
             await _repository.DeleteAsync(id, cancellationToken);
@@ -577,7 +578,7 @@ public class SupplierPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
-            if (payment.Status == "CANCELLED")
+            if (payment.Status == SupplierPaymentStatus.CANCELLED)
                 return BadRequest(new { message = "Cannot update a cancelled payment" });
 
             // Only non-financial reference info is editable after creation. These are set
@@ -612,7 +613,7 @@ public class SupplierPaymentController : ControllerBase
 
             // Block conversion for COMPLETED payments - once applied, cannot be converted
             // To "unapply" a payment, use proper reversal/refund process instead
-            if (payment.Status == "COMPLETED")
+            if (payment.Status == SupplierPaymentStatus.COMPLETED)
             {
                 return BadRequest(new { message = "Cannot convert a completed REGULAR payment to ADVANCE. The payment has already been applied to the purchase order and supplier balance. Use a reversal or refund instead." });
             }
@@ -656,7 +657,7 @@ public class SupplierPaymentController : ControllerBase
                 try
                 {
                     // If payment was ADVANCE and COMPLETED, apply the remaining amount to PO first
-                    if (payment.Status == "COMPLETED" && payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
+                    if (payment.Status == SupplierPaymentStatus.COMPLETED && payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
                     {
                         var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
                         if (purchaseOrder != null)
@@ -738,7 +739,7 @@ public class SupplierPaymentController : ControllerBase
             var payments = await _repository.GetBySupplierAsync(supplierId, cancellationToken);
             var availableAdvances = payments
                 .Where(p => p.PaymentType == PaymentType.ADVANCE &&
-                           p.Status == "COMPLETED" &&
+                           p.Status == SupplierPaymentStatus.COMPLETED &&
                            p.RemainingAmount > 0)
                 .OrderByDescending(p => p.PaymentDate)
                 .Select(p => new AvailableAdvancePayment

@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -8,7 +10,7 @@ public class PurchaseOrder : AuditableEntity
     public string PONumber { get; private set; } = string.Empty;  // Unique PO number
     public Guid SupplierId { get; private set; }
     public Guid? WarehouseId { get; private set; }  // Expected delivery warehouse
-    public string Status { get; private set; } = "DRAFT";  // DRAFT, SUBMITTED, CONFIRMED, PARTIAL, DELIVERED, CANCELLED
+    public PurchaseOrderStatus Status { get; private set; } = PurchaseOrderStatus.DRAFT;
     public DateTime PODate { get; private set; }
     public DateTime ExpectedDeliveryDate { get; private set; }
     public DateTime? ActualDeliveryDate { get; private set; }
@@ -20,7 +22,7 @@ public class PurchaseOrder : AuditableEntity
     public decimal DiscountFixedAmount { get; private set; } = 0;  // User-entered fixed discount amount (optional)
     public string DiscountType { get; private set; } = "TOTAL";  // BULK or TOTAL
     public decimal TotalAmount { get; private set; } = 0;
-    public string PaymentStatus { get; private set; } = "PENDING";  // PENDING, PARTIAL, PAID
+    public PurchaseOrderPaymentStatus PaymentStatus { get; private set; } = PurchaseOrderPaymentStatus.PENDING;
     public decimal PaidAmount { get; private set; } = 0;
     public decimal CreditAppliedAmount { get; private set; } = 0;  // Total credit notes applied to this PO
     public string Notes { get; private set; } = string.Empty;
@@ -56,7 +58,7 @@ public class PurchaseOrder : AuditableEntity
             WarehouseId = warehouseId,
             PODate = DateTime.UtcNow,
             ExpectedDeliveryDate = expectedDeliveryDate,
-            Status = "DRAFT",
+            Status = PurchaseOrderStatus.DRAFT,
             Notes = notes?.Trim() ?? string.Empty,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
@@ -64,31 +66,31 @@ public class PurchaseOrder : AuditableEntity
 
     public void Submit()
     {
-        if (Status != "DRAFT")
+        if (Status != PurchaseOrderStatus.DRAFT)
             throw new InvalidOperationException("Only draft POs can be submitted");
 
         if (!LineItems.Any())
             throw new InvalidOperationException("PO must have at least one line item");
 
-        Status = "SUBMITTED";
+        Status = PurchaseOrderStatus.SUBMITTED;
     }
 
     public void Confirm(string approvedBy)
     {
-        if (Status != "SUBMITTED")
+        if (Status != PurchaseOrderStatus.SUBMITTED)
             throw new InvalidOperationException("Only submitted POs can be confirmed");
 
-        Status = "CONFIRMED";
+        Status = PurchaseOrderStatus.CONFIRMED;
         ApprovedBy = approvedBy;
         ApprovedDate = DateTime.UtcNow;
     }
 
     public void Cancel()
     {
-        if (Status is "DELIVERED" or "CANCELLED" or "PARTIAL")
+        if (Status is PurchaseOrderStatus.DELIVERED or PurchaseOrderStatus.CANCELLED or PurchaseOrderStatus.PARTIAL)
             throw new InvalidOperationException($"Cannot cancel a {Status} PO. A PARTIAL order has accepted goods receipts — create a purchase return first.");
 
-        Status = "CANCELLED";
+        Status = PurchaseOrderStatus.CANCELLED;
     }
 
     public void CalculateTotal()
@@ -155,7 +157,7 @@ public class PurchaseOrder : AuditableEntity
             throw new InvalidOperationException("Payment exceeds outstanding amount");
 
         PaidAmount += amount;
-        PaymentStatus = PaidAmount >= TotalAmount ? "PAID" : "PARTIAL";
+        PaymentStatus = PaidAmount >= TotalAmount ? PurchaseOrderPaymentStatus.PAID : PurchaseOrderPaymentStatus.PARTIAL;
     }
 
     /// <summary>
@@ -174,22 +176,22 @@ public class PurchaseOrder : AuditableEntity
 
         // Update payment status based on total payments + credits
         var totalApplied = PaidAmount + CreditAppliedAmount;
-        PaymentStatus = totalApplied >= TotalAmount ? "PAID" : "PARTIAL";
+        PaymentStatus = totalApplied >= TotalAmount ? PurchaseOrderPaymentStatus.PAID : PurchaseOrderPaymentStatus.PARTIAL;
     }
 
     public void MarkAsDelivered(DateTime? deliveryDate = null)
     {
-        if (Status is not ("CONFIRMED" or "PARTIAL"))
+        if (Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
             throw new InvalidOperationException($"Only CONFIRMED or PARTIAL purchase orders can be marked as delivered. Current: {Status}");
 
-        Status = "DELIVERED";
+        Status = PurchaseOrderStatus.DELIVERED;
         ActualDeliveryDate = deliveryDate ?? DateTime.UtcNow;
     }
 
     public void UpdateReceiptStatus()
     {
         // Only update status if PO is CONFIRMED or PARTIAL
-        if (Status != "CONFIRMED" && Status != "PARTIAL")
+        if (Status != PurchaseOrderStatus.CONFIRMED && Status != PurchaseOrderStatus.PARTIAL)
             return;
 
         // Calculate total ordered quantity across all line items
@@ -206,12 +208,12 @@ public class PurchaseOrder : AuditableEntity
         // Update status based on received quantities
         if (totalAccepted >= totalOrdered)
         {
-            Status = "DELIVERED";
+            Status = PurchaseOrderStatus.DELIVERED;
             ActualDeliveryDate = DateTime.UtcNow;
         }
         else if (totalAccepted > 0)
         {
-            Status = "PARTIAL";
+            Status = PurchaseOrderStatus.PARTIAL;
         }
     }
 
@@ -231,13 +233,13 @@ public class PurchaseOrder : AuditableEntity
             return 0;
 
         var accepted = GoodsReceipts
-            .Where(gr => gr.Status == "ACCEPTED")
+            .Where(gr => gr.Status == GoodsReceiptStatus.ACCEPTED)
             .SelectMany(gr => gr.LineItems)
             .Where(grl => grl.PurchaseOrderLineId == purchaseOrderLineId)
             .Sum(grl => grl.AcceptedQuantity);
 
         var inFlight = GoodsReceipts
-            .Where(gr => (gr.Status == "PENDING" || gr.Status == "VERIFIED")
+            .Where(gr => (gr.Status == GoodsReceiptStatus.PENDING || gr.Status == GoodsReceiptStatus.VERIFIED)
                 && gr.Id != (excludeGoodsReceiptId ?? Guid.Empty))
             .SelectMany(gr => gr.LineItems)
             .Where(grl => grl.PurchaseOrderLineId == purchaseOrderLineId)
@@ -290,7 +292,7 @@ public class PurchaseOrder : AuditableEntity
     /// </summary>
     public void UpdateSupplier(Guid supplierId)
     {
-        if (Status != "DRAFT")
+        if (Status != PurchaseOrderStatus.DRAFT)
             throw new InvalidOperationException("Can only change supplier on draft POs");
 
         if (supplierId == Guid.Empty)
@@ -307,7 +309,7 @@ public class PurchaseOrder : AuditableEntity
     /// </summary>
     public void SyncLineItems(IEnumerable<LineItemData> items)
     {
-        if (Status != "DRAFT")
+        if (Status != PurchaseOrderStatus.DRAFT)
             throw new InvalidOperationException("Can only modify line items on draft POs");
 
         var itemsList = items.ToList();

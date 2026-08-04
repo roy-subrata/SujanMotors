@@ -51,7 +51,7 @@ public class StockManagementService
             throw new ArgumentException("Goods receipt must have line items", nameof(goodsReceipt));
 
         // Prevent duplicate processing - check if GRN is already accepted
-        if (goodsReceipt.Status == "ACCEPTED")
+        if (goodsReceipt.Status == GoodsReceiptStatus.ACCEPTED)
             throw new InvalidOperationException($"Goods receipt {goodsReceipt.GRNNumber} has already been processed");
 
         try
@@ -325,7 +325,7 @@ public class StockManagementService
                 // flips only after stock processing succeeds), so include it by id — otherwise the
                 // PO's received quantities lag one receipt behind and it never reaches DELIVERED.
                 var totalAcceptedForLine = purchaseOrder.GoodsReceipts
-                    .Where(gr => gr.Status == "ACCEPTED" || gr.Id == acceptingGrnId)
+                    .Where(gr => gr.Status == GoodsReceiptStatus.ACCEPTED || gr.Id == acceptingGrnId)
                     .SelectMany(gr => gr.LineItems)
                     .Where(l => l.PurchaseOrderLineId == poLine.Id)
                     .Sum(l => l.AcceptedQuantity);

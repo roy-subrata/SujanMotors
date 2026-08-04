@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 
 public class GoodsReceiptResponse
@@ -9,7 +11,7 @@ public class GoodsReceiptResponse
     public Guid WarehouseId { get; set; }
     public string WarehouseName { get; set; } = string.Empty;
     public DateTime ReceivedDate { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public GoodsReceiptStatus Status { get; set; }
     public int TotalItemsReceived { get; set; }
     public int DiscrepancyCount { get; set; }
 

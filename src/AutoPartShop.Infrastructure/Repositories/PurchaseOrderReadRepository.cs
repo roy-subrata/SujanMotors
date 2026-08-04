@@ -1,4 +1,5 @@
 using AutoPartShop.Application.PurchaseOrders;
+using AutoPartShop.Domain.Enums;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,7 +31,13 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
 
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
-            var statuses = query.Status.Split(',').Select(s => s.Trim()).ToArray();
+            var statuses = query.Status.Split(',')
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => Enum.TryParse<PurchaseOrderStatus>(s, true, out var parsed) ? parsed : (PurchaseOrderStatus?)null)
+                .Where(s => s.HasValue)
+                .Select(s => s!.Value)
+                .ToArray();
             purchaseOrders = purchaseOrders.Where(x => statuses.Contains(x.Status));
         }
 
@@ -41,7 +48,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
             purchaseOrders = purchaseOrders.Where(x => x.LineItems.Any(l =>
                 l.Quantity - l.ReceivedQuantity
                 - (x.GoodsReceipts
-                    .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                    .Where(gr => gr.Status == GoodsReceiptStatus.PENDING || gr.Status == GoodsReceiptStatus.VERIFIED)
                     .SelectMany(gr => gr.LineItems)
                     .Where(grl => grl.PurchaseOrderLineId == l.Id)
                     .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0) > 0));
@@ -88,7 +95,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                 GrandTotal = po.TotalAmount,
                 AmountPaid = po.PaidAmount,
                 OutstandingAmount = po.TotalAmount - po.PaidAmount,
-                IsOverdue = DateTime.UtcNow > po.ExpectedDeliveryDate && po.Status != "DELIVERED" && po.Status != "CANCELLED",
+                IsOverdue = DateTime.UtcNow > po.ExpectedDeliveryDate && po.Status != PurchaseOrderStatus.DELIVERED && po.Status != PurchaseOrderStatus.CANCELLED,
                 Notes = po.Notes,
                 Lines = po.LineItems.Select(l => new PurchaseOrderLineResponse
                 {
@@ -111,7 +118,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                     ReceivedQuantity = l.ReceivedQuantity,
                     ReceivedQuantityInBaseUnit = l.ReceivedQuantityInBaseUnit,
                     InFlightReceivedQuantity = po.GoodsReceipts
-                        .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                        .Where(gr => gr.Status == GoodsReceiptStatus.PENDING || gr.Status == GoodsReceiptStatus.VERIFIED)
                         .SelectMany(gr => gr.LineItems)
                         .Where(grl => grl.PurchaseOrderLineId == l.Id)
                         .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0,
@@ -155,8 +162,8 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                  AmountPaid = po.PaidAmount,
                  OutstandingAmount = po.TotalAmount - po.PaidAmount,
                  IsOverdue = now > po.ExpectedDeliveryDate
-                     && po.Status != "DELIVERED"
-                     && po.Status != "CANCELLED",
+                     && po.Status != PurchaseOrderStatus.DELIVERED
+                     && po.Status != PurchaseOrderStatus.CANCELLED,
                  CreatedAt = po.CreatedDate,
                  Notes = po.Notes,
                  TaxPercentage = po.TaxPercentage,
@@ -179,7 +186,7 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                      ReceivedQuantity = pl.ReceivedQuantity,
                      ReceivedQuantityInBaseUnit = pl.ReceivedQuantityInBaseUnit,
                      InFlightReceivedQuantity = po.GoodsReceipts
-                         .Where(gr => gr.Status == "PENDING" || gr.Status == "VERIFIED")
+                         .Where(gr => gr.Status == GoodsReceiptStatus.PENDING || gr.Status == GoodsReceiptStatus.VERIFIED)
                          .SelectMany(gr => gr.LineItems)
                          .Where(grl => grl.PurchaseOrderLineId == pl.Id)
                          .Sum(grl => (int?)grl.ReceivedQuantity) ?? 0,

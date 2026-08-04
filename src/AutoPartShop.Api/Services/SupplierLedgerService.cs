@@ -1,5 +1,6 @@
 using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 
 namespace AutoPartShop.Api.Services;
@@ -164,9 +165,9 @@ public class SupplierLedgerService : ISupplierLedgerService
         var purchaseOrders = await _purchaseOrderRepository.GetBySuppliersAsync(supplierId, ct);
 
         var entries = purchaseOrders
-            .Where(po => po.Status != "DRAFT" &&
-                        po.Status != "SUBMITTED" &&
-                        po.Status != "CANCELLED")
+            .Where(po => po.Status != PurchaseOrderStatus.DRAFT &&
+                        po.Status != PurchaseOrderStatus.SUBMITTED &&
+                        po.Status != PurchaseOrderStatus.CANCELLED)
             .Where(po => !fromDate.HasValue || po.PODate >= fromDate.Value)
             .Where(po => !toDate.HasValue || po.PODate <= toDate.Value)
             .Select(po => new SupplierLedgerEntryDto
@@ -179,7 +180,7 @@ public class SupplierLedgerService : ISupplierLedgerService
                 DebitAmount = po.TotalAmount,
                 CreditAmount = 0,
                 Description = $"Purchase Order - {po.LineItems?.Count ?? 0} items",
-                Status = po.Status
+                Status = po.Status.ToString()
             })
             .ToList();
 
@@ -192,7 +193,7 @@ public class SupplierLedgerService : ISupplierLedgerService
         var payments = await _supplierPaymentRepository.GetBySupplierAsync(supplierId, ct);
 
         var entries = payments
-            .Where(p => p.Status == "COMPLETED"
+            .Where(p => p.Status == SupplierPaymentStatus.COMPLETED
                      && p.PaymentMethod != "REFUND"
                      && p.PaymentMethod != "CREDIT_NOTE" // settled returns appear separately in GetRefundEntriesAsync
                      && (p.PaymentType == PaymentType.ADVANCE || p.SourceAdvancePaymentId == null)) // exclude re-applications to avoid double-count with the original advance
@@ -210,7 +211,7 @@ public class SupplierLedgerService : ISupplierLedgerService
                 DebitAmount = 0,
                 CreditAmount = p.Amount,
                 Description = GetPaymentDescription(p),
-                Status = p.Status
+                Status = p.Status.ToString()
             })
             .ToList();
 
@@ -223,7 +224,7 @@ public class SupplierLedgerService : ISupplierLedgerService
         var returns = await _purchaseReturnRepository.GetBySupplierAsync(supplierId, ct);
 
         var entries = returns
-            .Where(r => r.SettlementStatus == "SETTLED")
+            .Where(r => r.SettlementStatus == PurchaseReturnSettlementStatus.SETTLED)
             .Where(r => !fromDate.HasValue || r.SettledDate >= fromDate.Value)
             .Where(r => !toDate.HasValue || r.SettledDate <= toDate.Value)
             .Select(r => new SupplierLedgerEntryDto
@@ -236,7 +237,7 @@ public class SupplierLedgerService : ISupplierLedgerService
                 DebitAmount = 0,
                 CreditAmount = r.SettledAmount,
                 Description = $"Purchase Return - {r.Reason} ({r.SettlementMethod})",
-                Status = r.Status
+                Status = r.Status.ToString()
             })
             .ToList();
 

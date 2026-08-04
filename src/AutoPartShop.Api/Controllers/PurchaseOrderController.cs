@@ -5,6 +5,7 @@ using AutoPartShop.Application.PurchaseOrders;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using AutoPartShop.Api.Pdf;
@@ -541,12 +542,12 @@ public class PurchaseOrderController : ControllerBase
             // Block cancellation once goods have been accepted into stock â€” those movements must be
             // reversed via a PurchaseReturn rather than simply cancelling the PO.
             var hasAcceptedGrns = await _dbContext.GoodsReceipts
-                .AnyAsync(g => g.PurchaseOrderId == id && g.Status == "ACCEPTED" && !g.Isdeleted, cancellationToken);
+                .AnyAsync(g => g.PurchaseOrderId == id && g.Status == GoodsReceiptStatus.ACCEPTED && !g.Isdeleted, cancellationToken);
             if (hasAcceptedGrns)
                 return BadRequest(new { message = "Cannot cancel a purchase order with accepted goods receipts. Create a purchase return to reverse the received stock first." });
 
             // Track if order was confirmed before cancellation (for balance reversal)
-            bool wasConfirmed = order.Status == "CONFIRMED";
+            bool wasConfirmed = order.Status == PurchaseOrderStatus.CONFIRMED;
             decimal orderTotal = order.TotalAmount;
             Guid supplierId = order.SupplierId;
 
@@ -590,7 +591,7 @@ public class PurchaseOrderController : ControllerBase
 
             // Deleting a committed PO would orphan stock lots, payments, and returns.
             // Cancel it first â€” the cancellation guard above ensures no accepted GRNs remain.
-            if (orderToDelete.Status is "CONFIRMED" or "PARTIAL" or "DELIVERED")
+            if (orderToDelete.Status is PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL or PurchaseOrderStatus.DELIVERED)
                 return BadRequest(new { message = $"Cannot delete a {orderToDelete.Status} purchase order. Cancel it first to prevent orphaned stock and payment records." });
 
             await _purchaseOrderRepository.DeleteAsync(id, cancellationToken);
@@ -620,7 +621,7 @@ public class PurchaseOrderController : ControllerBase
 
             // Only CONFIRMED or PARTIAL POs are ready to receive goods. Raising a GRN against
             // a DRAFT/SUBMITTED PO would commit stock before the order is approved.
-            if (purchaseOrder.Status != "CONFIRMED" && purchaseOrder.Status != "PARTIAL")
+            if (purchaseOrder.Status != PurchaseOrderStatus.CONFIRMED && purchaseOrder.Status != PurchaseOrderStatus.PARTIAL)
                 return BadRequest(new { message = $"Goods receipts can only be created for CONFIRMED or PARTIAL purchase orders. Current status: {purchaseOrder.Status}" });
 
             var grnNumber = await _codeGenerateService.GenerateAsync("GRN", cancellationToken);
@@ -868,7 +869,7 @@ public class PurchaseOrderController : ControllerBase
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
             // Only allow updates if GRN is still pending
-            if (grn.Status != "PENDING")
+            if (grn.Status != GoodsReceiptStatus.PENDING)
                 return BadRequest(new { message = "Only pending goods receipts can be edited" });
 
             // Get the purchase order to retrieve line items and their details
@@ -876,7 +877,7 @@ public class PurchaseOrderController : ControllerBase
             if (purchaseOrder is null)
                 return NotFound(new { message = "Purchase order not found" });
 
-            if (purchaseOrder.Status is not ("CONFIRMED" or "PARTIAL"))
+            if (purchaseOrder.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
                 return BadRequest(new { message = $"Cannot update a goods receipt for a {purchaseOrder.Status} purchase order." });
 
             // Update basic GRN info
@@ -1022,8 +1023,8 @@ public class PurchaseOrderController : ControllerBase
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
             var poForVerify = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken);
-            if (poForVerify is null || poForVerify.Status is not ("CONFIRMED" or "PARTIAL"))
-                return BadRequest(new { message = $"Cannot verify a goods receipt for a {poForVerify?.Status ?? "missing"} purchase order." });
+            if (poForVerify is null || poForVerify.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
+                return BadRequest(new { message = $"Cannot verify a goods receipt for a {(poForVerify is null ? "missing" : poForVerify.Status.ToString())} purchase order." });
 
             // Record the actual authenticated user as the verifier — never a client-supplied name,
             // so the "who verified this receipt" audit trail can't be spoofed.
@@ -1054,7 +1055,7 @@ public class PurchaseOrderController : ControllerBase
             var grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken);
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
-            if (grn.Status != "VERIFIED")
+            if (grn.Status != GoodsReceiptStatus.VERIFIED)
                 return BadRequest(new { message = "Only verified goods receipts can be accepted" });
 
             // Atomic accept: stock processing + status flip in ONE transaction (under the global retry
@@ -1069,12 +1070,12 @@ public class PurchaseOrderController : ControllerBase
                 {
                     grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken)
                         ?? throw new InvalidOperationException("Goods receipt not found");
-                    if (grn.Status != "VERIFIED")
+                    if (grn.Status != GoodsReceiptStatus.VERIFIED)
                         throw new InvalidOperationException("This goods receipt has already been accepted");
 
                     var poForAccept = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken)
                         ?? throw new InvalidOperationException("Purchase order not found");
-                    if (poForAccept.Status is not ("CONFIRMED" or "PARTIAL"))
+                    if (poForAccept.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
                         throw new InvalidOperationException($"Cannot accept a goods receipt for a {poForAccept.Status} purchase order.");
 
                     // Cost is lot-driven and permanent once posted. Refuse to create zero-cost stock —
@@ -1123,7 +1124,7 @@ public class PurchaseOrderController : ControllerBase
             var grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken);
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
-            if (grn.Status != "VERIFIED")
+            if (grn.Status != GoodsReceiptStatus.VERIFIED)
                 return BadRequest(new { message = "Pricing can only be set on verified goods receipts" });
 
             foreach (var linePricing in request.Lines)
@@ -1229,7 +1230,7 @@ public class PurchaseOrderController : ControllerBase
             GrandTotal = order.TotalAmount,
             AmountPaid = order.PaidAmount,
             OutstandingAmount = order.TotalAmount - order.PaidAmount,
-            IsOverdue = DateTime.UtcNow > order.ExpectedDeliveryDate && order.Status != "DELIVERED" && order.Status != "CANCELLED",
+            IsOverdue = DateTime.UtcNow > order.ExpectedDeliveryDate && order.Status != PurchaseOrderStatus.DELIVERED && order.Status != PurchaseOrderStatus.CANCELLED,
             Notes = order.Notes,
             Lines = order.LineItems.Select(l => new PurchaseOrderLineResponse
             {

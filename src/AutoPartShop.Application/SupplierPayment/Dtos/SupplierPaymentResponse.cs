@@ -1,4 +1,5 @@
 ﻿using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 
 namespace AutoPartShop.Application.SupplierPayment.Dtos;
 
@@ -20,7 +21,7 @@ public class SupplierPaymentResponse
     public string Currency { get; set; } = string.Empty;
     public DateTime PaymentDate { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public SupplierPaymentStatus Status { get; set; }
     public string ReferenceNumber { get; set; } = string.Empty;
     public string AuthorizationCode { get; set; } = string.Empty;
     public string InvoiceNumber { get; set; } = string.Empty;

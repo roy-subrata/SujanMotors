@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -117,6 +118,9 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
     public async Task<IEnumerable<PurchaseReturn>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<PurchaseReturnStatus>(status.Trim(), true, out var parsedStatus))
+            return Enumerable.Empty<PurchaseReturn>();
+
         return await _dbContext.PurchaseReturns
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
@@ -124,7 +128,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
             .Include(x => x.PurchaseOrder)
                 .ThenInclude(po => po!.LineItems)
                     .ThenInclude(pol => pol.Variant)
-            .Where(x => x.Status == status && !x.Isdeleted)
+            .Where(x => x.Status == parsedStatus && !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
     }
@@ -138,7 +142,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
             .Include(x => x.PurchaseOrder)
                 .ThenInclude(po => po!.LineItems)
                     .ThenInclude(pol => pol.Variant)
-            .Where(x => x.Status == "PENDING" && !x.Isdeleted)
+            .Where(x => x.Status == PurchaseReturnStatus.PENDING && !x.Isdeleted)
             .OrderBy(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
     }
@@ -191,7 +195,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     public async Task<decimal> GetTotalSettledRefundsBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
         => await _dbContext.PurchaseReturns
             .Where(x => x.SupplierId == supplierId &&
-                        x.SettlementStatus == "SETTLED" &&
+                        x.SettlementStatus == PurchaseReturnSettlementStatus.SETTLED &&
                         !x.Isdeleted)
             .SumAsync(x => x.SettledAmount, cancellationToken);
 }

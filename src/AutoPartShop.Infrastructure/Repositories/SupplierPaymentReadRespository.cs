@@ -2,6 +2,7 @@
 using AutoPartShop.Application.Supplier;
 using AutoPartShop.Application.SupplierPayment.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -102,9 +103,9 @@ namespace AutoPartShop.Infrastructure.Repositories
                 paymentsQuery = paymentsQuery.Where(x => x.SupplierId == supplierId);
             }
 
-            if (!string.IsNullOrWhiteSpace(query.Status))
+            if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<SupplierPaymentStatus>(query.Status.Trim(), true, out var parsedStatus))
             {
-                paymentsQuery = paymentsQuery.Where(x => x.Status == query.Status);
+                paymentsQuery = paymentsQuery.Where(x => x.Status == parsedStatus);
             }
 
             if (query.FromDate.HasValue && query.ToDate.HasValue)
