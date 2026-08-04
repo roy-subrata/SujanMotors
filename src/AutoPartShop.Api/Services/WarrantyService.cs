@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -211,7 +212,7 @@ public class WarrantyService(
             ?? throw new InvalidOperationException("Warranty claim not found");
 
         // For replacement/refund, the claim can be completed directly from APPROVED.
-        if (claim.Status == "APPROVED" &&
+        if (claim.Status == WarrantyClaimStatus.APPROVED &&
             (claim.ServiceType.Equals("REPLACEMENT", StringComparison.OrdinalIgnoreCase) ||
              claim.ServiceType.Equals("REFUND", StringComparison.OrdinalIgnoreCase)))
         {
@@ -268,14 +269,14 @@ public class WarrantyService(
                 // Reactivate the warranty if no other active claim remains,
                 // so the customer can file a new claim on a still-valid warranty.
                 var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
-                if (warranty != null && warranty.Status == "CLAIMED")
+                if (warranty != null && warranty.Status == WarrantyRegistrationStatus.CLAIMED)
                 {
-                    var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+                    var activeStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
                     var allClaims = await claimRepository.GetByWarrantyRegistrationIdAsync(
                         claim.WarrantyRegistrationId, cancellationToken);
                     var hasOtherActiveClaims = allClaims.Any(c =>
                         c.Id != claim.Id &&
-                        activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+                        activeStatuses.Contains(c.Status));
 
                     if (!hasOtherActiveClaims)
                     {
@@ -318,14 +319,14 @@ public class WarrantyService(
                 if (claim.ServiceType.Equals("REPAIR", StringComparison.OrdinalIgnoreCase))
                 {
                     var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
-                    if (warranty != null && warranty.Status == "CLAIMED")
+                    if (warranty != null && warranty.Status == WarrantyRegistrationStatus.CLAIMED)
                     {
-                        var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+                        var activeStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
                         var allClaims = await claimRepository.GetByWarrantyRegistrationIdAsync(
                             claim.WarrantyRegistrationId, cancellationToken);
                         var hasOtherActiveClaims = allClaims.Any(c =>
                             c.Id != claim.Id &&
-                            activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+                            activeStatuses.Contains(c.Status));
 
                         if (!hasOtherActiveClaims)
                         {

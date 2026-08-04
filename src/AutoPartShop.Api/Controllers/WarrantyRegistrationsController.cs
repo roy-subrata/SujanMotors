@@ -1,6 +1,7 @@
 ﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.WarrantyDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using AutoPartShop.Api.Authorization;
@@ -262,7 +263,7 @@ public class WarrantyRegistrationsController : ControllerBase
 
             // Prevent duplicate warranty registration for the same sales order line
             var existingWarranties = await _warrantyRepository.GetBySalesOrderIdAsync(request.SalesOrderId, cancellationToken);
-            if (existingWarranties.Any(w => w.SalesOrderLineId == request.SalesOrderLineId && w.Status != "VOID"))
+            if (existingWarranties.Any(w => w.SalesOrderLineId == request.SalesOrderLineId && w.Status != WarrantyRegistrationStatus.VOID))
                 return BadRequest(new { message = "A warranty registration already exists for this sales order line" });
 
             // Generate warranty number
@@ -376,9 +377,9 @@ public class WarrantyRegistrationsController : ControllerBase
                 return NotFound(new { message = "Warranty registration not found" });
 
             // Fix #7: block deletion when active claims exist to prevent orphaned claim records.
-            var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+            var activeStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
             var activeClaim = warranty.Claims
-                .FirstOrDefault(c => activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+                .FirstOrDefault(c => activeStatuses.Contains(c.Status));
             if (activeClaim != null)
                 return BadRequest(new
                 {

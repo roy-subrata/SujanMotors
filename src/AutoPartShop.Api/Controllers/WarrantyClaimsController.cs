@@ -1,6 +1,7 @@
 ﻿using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.WarrantyDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
@@ -305,10 +306,10 @@ public class WarrantyClaimsController : ControllerBase
                     message = $"Warranty expired on {warranty.WarrantyExpiryDate:yyyy-MM-dd}. New claims are not allowed."
                 });
 
-            var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+            var activeStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
             var existingClaims = await _claimRepository.GetByWarrantyRegistrationIdAsync(request.WarrantyRegistrationId, cancellationToken);
             var activeClaim = existingClaims
-                .FirstOrDefault(c => activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+                .FirstOrDefault(c => activeStatuses.Contains(c.Status));
 
             if (activeClaim != null)
                 return BadRequest(new { message = $"Warranty already has an active claim: {activeClaim.ClaimNumber}" });
@@ -343,7 +344,7 @@ public class WarrantyClaimsController : ControllerBase
 
             await _claimRepository.AddAsync(claim, cancellationToken);
 
-            if (warranty.Status == "ACTIVE")
+            if (warranty.Status == WarrantyRegistrationStatus.ACTIVE)
             {
                 warranty.MarkAsClaimed();
                 await _warrantyRepository.UpdateAsync(warranty, cancellationToken);
@@ -795,7 +796,7 @@ public class WarrantyClaimsController : ControllerBase
                 return NotFound(new { message = "Warranty claim not found" });
             if (!claim.ServiceType.Equals("REPAIR", StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new { message = "Parts-used tracking is only valid for repair claims" });
-            if (claim.Status != "IN_PROGRESS")
+            if (claim.Status != WarrantyClaimStatus.IN_PROGRESS)
                 return BadRequest(new { message = $"Parts can only be recorded while the repair is in progress. Current status: {claim.Status}" });
 
             var strategy = _dbContext.Database.CreateExecutionStrategy();
@@ -884,7 +885,7 @@ public class WarrantyClaimsController : ControllerBase
                 return NotFound(new { message = "Warranty claim not found" });
             if (!claim.ServiceType.Equals("REPAIR", StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new { message = "Send-for-repair is only valid for repair claims" });
-            if (claim.Status != "IN_PROGRESS" && claim.Status != "APPROVED")
+            if (claim.Status != WarrantyClaimStatus.IN_PROGRESS && claim.Status != WarrantyClaimStatus.APPROVED)
                 return BadRequest(new { message = $"Item can only be sent for repair on an approved/in-progress claim. Current status: {claim.Status}" });
 
             var events = (await _claimEventRepository.GetByClaimIdAsync(id, cancellationToken)).ToList();
@@ -894,7 +895,7 @@ public class WarrantyClaimsController : ControllerBase
 
             // Sending the unit out IS the start of service â€” move an approved claim to in-progress so it
             // can be completed later without forcing an in-house technician assignment.
-            if (claim.Status == "APPROVED")
+            if (claim.Status == WarrantyClaimStatus.APPROVED)
             {
                 claim.StartServiceWithoutTechnician();
                 await _claimRepository.UpdateAsync(claim, cancellationToken);
@@ -1212,12 +1213,12 @@ public class WarrantyClaimsController : ControllerBase
                 return NotFound(new { message = "Warranty claim not found" });
 
             // Fix #7: block deletion if the claim has associated financial records.
-            var openStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
-            if (openStatuses.Contains(claim.Status, StringComparer.OrdinalIgnoreCase))
+            var openStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
+            if (openStatuses.Contains(claim.Status))
                 return BadRequest(new { message = $"Cannot delete an active claim (status: {claim.Status}). Close or reject it first." });
 
             if (claim.ServiceType.Equals("REFUND", StringComparison.OrdinalIgnoreCase) &&
-                claim.Status == "COMPLETED")
+                claim.Status == WarrantyClaimStatus.COMPLETED)
             {
                 var refundPayment = await _customerPaymentRepository.GetByTransactionNumberAsync(
                     $"WREFUND-{claim.ClaimNumber}", cancellationToken);
@@ -1331,7 +1332,7 @@ public class WarrantyClaimsController : ControllerBase
             response.RepairLogisticsState = outstanding ? "AT_PARTNER"
                 : sentCount > 0 ? "RETURNED_FROM_REPAIR"
                 : "NOT_APPLICABLE";
-            response.CanSendForRepair = !outstanding && (claim.Status == "APPROVED" || claim.Status == "IN_PROGRESS");
+            response.CanSendForRepair = !outstanding && (claim.Status == WarrantyClaimStatus.APPROVED || claim.Status == WarrantyClaimStatus.IN_PROGRESS);
             response.CanReceiveFromRepair = outstanding;
             response.RepairExpectedReturnDate = outstanding ? lastSent?.ExpectedReturnDate : null;
         }

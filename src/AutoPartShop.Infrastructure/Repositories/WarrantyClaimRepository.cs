@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -104,7 +105,9 @@ public class WarrantyClaimRepository(AutoPartDbContext _db) : IWarrantyClaimRepo
 
     public async Task<IEnumerable<WarrantyClaim>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
     {
-        var normalizedStatus = status.ToUpper();
+        if (!Enum.TryParse<WarrantyClaimStatus>(status.Trim().ToUpperInvariant(), out var normalizedStatus))
+            return Enumerable.Empty<WarrantyClaim>();
+
         return await _db.WarrantyClaims
             .Include(wc => wc.WarrantyRegistration)
                 .ThenInclude(wr => wr!.Part)
@@ -132,7 +135,7 @@ public class WarrantyClaimRepository(AutoPartDbContext _db) : IWarrantyClaimRepo
                 .ThenInclude(wr => wr!.Part)
             .Include(wc => wc.Customer)
             .Include(wc => wc.Technician)
-            .Where(wc => wc.Status != "CLOSED" && wc.Status != "REJECTED" && !wc.Isdeleted)
+            .Where(wc => wc.Status != WarrantyClaimStatus.CLOSED && wc.Status != WarrantyClaimStatus.REJECTED && !wc.Isdeleted)
             .OrderByDescending(wc => wc.ClaimDate)
             .ToListAsync(cancellationToken);
     }
@@ -170,8 +173,9 @@ public class WarrantyClaimRepository(AutoPartDbContext _db) : IWarrantyClaimRepo
 
         if (!string.IsNullOrWhiteSpace(status))
         {
-            var normalizedStatus = status.ToUpper();
-            query = query.Where(wc => wc.Status == normalizedStatus);
+            query = Enum.TryParse<WarrantyClaimStatus>(status.Trim().ToUpperInvariant(), out var normalizedStatus)
+                ? query.Where(wc => wc.Status == normalizedStatus)
+                : query.Where(wc => false);
         }
 
         if (!string.IsNullOrWhiteSpace(serviceType))

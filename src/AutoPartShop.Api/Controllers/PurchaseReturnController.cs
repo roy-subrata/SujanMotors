@@ -3,6 +3,7 @@ using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Application.DTOs.PurchaseReturnDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
@@ -494,7 +495,7 @@ public class PurchaseReturnController : ControllerBase
                                 // This ensures we return items from the same supplier we purchased from
                                 // No lot selected => sellable Available bucket only (Damaged/Quarantine returns must pick a lot).
                                 var supplierLots = allLots
-                                    .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
+                                    .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0 && l.Status == StockLotStatus.AVAILABLE)
                                     .OrderBy(l => l.ReceivingDate)  // FIFO - oldest lots first
                                     .ToList();
 
@@ -1035,13 +1036,21 @@ public class PurchaseReturnController : ControllerBase
     }
 
     /// <summary>
-    /// Normalises a StockLot.Status into one of the three inventory buckets.
+    /// Normalises a raw (query-string) bucket value into one of the three inventory buckets.
     /// Anything that isn't DAMAGED/QUARANTINE is treated as the sellable AVAILABLE bucket.
     /// </summary>
     private static string NormalizeBucket(string? status) => status?.Trim().ToUpper() switch
     {
         "DAMAGED" => "DAMAGED",
         "QUARANTINE" => "QUARANTINE",
+        _ => "AVAILABLE"
+    };
+
+    /// <summary>Normalises a StockLot.Status into one of the three inventory bucket labels.</summary>
+    private static string NormalizeBucket(StockLotStatus status) => status switch
+    {
+        StockLotStatus.DAMAGED => "DAMAGED",
+        StockLotStatus.QUARANTINE => "QUARANTINE",
         _ => "AVAILABLE"
     };
 

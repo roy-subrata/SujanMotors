@@ -1,5 +1,6 @@
 using AutoPartShop.Application.DTOs.DashboardDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -275,7 +276,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         // CostPrice on StockLot = actual purchase cost stored in base currency at goods-receipt time.
         // Only AVAILABLE lots are sellable; DAMAGED and QUARANTINE are held for return and excluded.
         var inventoryValue = await _dbContext.StockLots
-            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == StockLotStatus.AVAILABLE)
             .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken);
 
         // Low-stock: quantity at or below the configured minimum threshold.
@@ -293,7 +294,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var lowStockValue = lowStockPartIds.Count > 0
             ? await _dbContext.StockLots
-                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE" && lowStockPartIds.Contains(l.PartId))
+                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == StockLotStatus.AVAILABLE && lowStockPartIds.Contains(l.PartId))
                 .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken)
             : 0m;
 

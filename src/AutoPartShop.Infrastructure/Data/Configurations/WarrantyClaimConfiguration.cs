@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -38,9 +39,10 @@ public class WarrantyClaimConfiguration : IEntityTypeConfiguration<WarrantyClaim
             .IsRequired();
 
         builder.Property(wc => wc.Status)
+            .HasConversion<string>()
             .HasMaxLength(20)
             .IsRequired()
-            .HasDefaultValue("PENDING");
+            .HasDefaultValue(WarrantyClaimStatus.PENDING);
 
         builder.Property(wc => wc.RejectionReason)
             .HasMaxLength(1000)

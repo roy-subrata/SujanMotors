@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -15,7 +17,7 @@ public class StockTake : AuditableEntity
     public string StockTakeNumber { get; private set; } = string.Empty;
     public Guid WarehouseId { get; private set; }
     public Guid? CategoryId { get; private set; }  // Optional cycle-count scope: only parts in this category
-    public string Status { get; private set; } = "COUNTING";  // COUNTING, REVIEW, COMPLETED, CANCELLED
+    public StockTakeStatus Status { get; private set; } = StockTakeStatus.COUNTING;
     public DateTime SnapshotDate { get; private set; }  // When expected quantities were captured
     public DateTime? SubmittedDate { get; private set; }   // COUNTING → REVIEW
     public DateTime? CompletedDate { get; private set; }   // REVIEW → COMPLETED (variances applied)
@@ -43,7 +45,7 @@ public class StockTake : AuditableEntity
             StockTakeNumber = stockTakeNumber.Trim().ToUpper(),
             WarehouseId = warehouseId,
             CategoryId = categoryId,
-            Status = "COUNTING",
+            Status = StockTakeStatus.COUNTING,
             SnapshotDate = DateTime.UtcNow,
             Notes = notes?.Trim() ?? string.Empty
         };
@@ -52,46 +54,46 @@ public class StockTake : AuditableEntity
     /// <summary>Counting finished — lock counts and move to variance review.</summary>
     public void SubmitForReview()
     {
-        if (Status != "COUNTING")
+        if (Status != StockTakeStatus.COUNTING)
             throw new InvalidOperationException($"Only a COUNTING stock take can be submitted for review. Current: {Status}");
 
         if (!Lines.Any(l => l.CountedQuantity.HasValue))
             throw new InvalidOperationException("At least one line must be counted before submitting for review");
 
-        Status = "REVIEW";
+        Status = StockTakeStatus.REVIEW;
         SubmittedDate = DateTime.UtcNow;
     }
 
     /// <summary>Reopen counting from review (e.g. a variance needs a recount).</summary>
     public void ReopenCounting()
     {
-        if (Status != "REVIEW")
+        if (Status != StockTakeStatus.REVIEW)
             throw new InvalidOperationException($"Only a stock take in REVIEW can be reopened for counting. Current: {Status}");
 
-        Status = "COUNTING";
+        Status = StockTakeStatus.COUNTING;
         SubmittedDate = null;
     }
 
     /// <summary>Variances applied as adjustments — terminal state.</summary>
     public void Complete(string completedBy)
     {
-        if (Status != "REVIEW")
+        if (Status != StockTakeStatus.REVIEW)
             throw new InvalidOperationException($"Only a stock take in REVIEW can be completed. Current: {Status}");
 
         if (string.IsNullOrWhiteSpace(completedBy))
             throw new ArgumentException("CompletedBy cannot be empty", nameof(completedBy));
 
-        Status = "COMPLETED";
+        Status = StockTakeStatus.COMPLETED;
         CompletedDate = DateTime.UtcNow;
         CompletedBy = completedBy.Trim();
     }
 
     public void Cancel()
     {
-        if (Status is "COMPLETED" or "CANCELLED")
+        if (Status is StockTakeStatus.COMPLETED or StockTakeStatus.CANCELLED)
             throw new InvalidOperationException($"Cannot cancel a {Status} stock take");
 
-        Status = "CANCELLED";
+        Status = StockTakeStatus.CANCELLED;
         CancelledDate = DateTime.UtcNow;
     }
 
