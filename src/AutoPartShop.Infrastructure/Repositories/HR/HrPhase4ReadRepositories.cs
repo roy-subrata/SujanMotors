@@ -1,5 +1,6 @@
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.HR.Dtos;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories.HR
@@ -24,7 +25,7 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                     EF.Functions.Like(x.a.Notes, $"%{search}%"));
             }
 
-            if (!string.IsNullOrWhiteSpace(query.Status))
+            if (query.Status is not null)
             {
                 advances = advances.Where(x => x.a.Status == query.Status);
             }
@@ -77,7 +78,7 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                 join o in _dbContext.SalesOrders on u.UserName equals o.CreatedBy
                 where !e.Isdeleted && !o.Isdeleted
                     && o.SODate >= start && o.SODate < end
-                    && o.Status != "CANCELLED" && o.Status != "RETURNED"
+                    && o.Status != SalesOrderStatus.CANCELLED && o.Status != SalesOrderStatus.RETURNED
                 group o by e.Id into g
                 select new { EmployeeId = g.Key, Total = g.Sum(o => o.TotalAmount + o.TaxAmount) })
                 .ToListAsync(cancellationToken);

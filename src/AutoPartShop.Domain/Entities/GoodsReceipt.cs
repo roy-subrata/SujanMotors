@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -12,7 +14,7 @@ public class GoodsReceipt : AuditableEntity
     public Guid PurchaseOrderId { get; private set; }
     public Guid WarehouseId { get; private set; }
     public DateTime ReceiptDate { get; private set; }
-    public string Status { get; private set; } = "PENDING";  // PENDING, VERIFIED, ACCEPTED, REJECTED
+    public GoodsReceiptStatus Status { get; private set; } = GoodsReceiptStatus.PENDING;
     public string Notes { get; private set; } = string.Empty;
     public int TotalItemsReceived { get; private set; } = 0;
     public int DiscrepancyCount { get; private set; } = 0;
@@ -56,7 +58,7 @@ public class GoodsReceipt : AuditableEntity
             PurchaseOrderId = purchaseOrderId,
             WarehouseId = warehouseId,
             ReceiptDate = receiptDate ?? DateTime.UtcNow,
-            Status = "PENDING",
+            Status = GoodsReceiptStatus.PENDING,
             Notes = notes?.Trim() ?? string.Empty
         };
     }
@@ -66,31 +68,31 @@ public class GoodsReceipt : AuditableEntity
         if (string.IsNullOrWhiteSpace(verifiedBy))
             throw new ArgumentException("VerifiedBy cannot be empty", nameof(verifiedBy));
 
-        if (Status != "PENDING")
+        if (Status != GoodsReceiptStatus.PENDING)
             throw new InvalidOperationException("Only pending GRNs can be verified");
 
-        Status = "VERIFIED";
+        Status = GoodsReceiptStatus.VERIFIED;
         VerifiedBy = verifiedBy.Trim();
         VerificationDate = DateTime.UtcNow;
     }
 
     public void Accept()
     {
-        if (Status != "VERIFIED")
+        if (Status != GoodsReceiptStatus.VERIFIED)
             throw new InvalidOperationException("Only verified GRNs can be accepted");
 
-        Status = "ACCEPTED";
+        Status = GoodsReceiptStatus.ACCEPTED;
     }
 
     public void Reject(string reason = "")
     {
-        if (Status == "ACCEPTED")
+        if (Status == GoodsReceiptStatus.ACCEPTED)
             throw new InvalidOperationException("Cannot reject an accepted GRN");
 
-        if (Status == "REJECTED")
+        if (Status == GoodsReceiptStatus.REJECTED)
             throw new InvalidOperationException("GRN is already rejected");
 
-        Status = "REJECTED";
+        Status = GoodsReceiptStatus.REJECTED;
         Notes = reason?.Trim() ?? string.Empty;
     }
 

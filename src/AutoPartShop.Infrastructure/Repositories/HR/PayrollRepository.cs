@@ -1,5 +1,6 @@
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.EntityFrameworkCore;
@@ -115,7 +116,7 @@ public class PayrollRepository : IPayrollRepository
             if (settleIds.Count > 0)
             {
                 var advancesByEmployee = (await _dbContext.SalaryAdvances
-                        .Where(a => settleIds.Contains(a.EmployeeId) && a.Status == "OUTSTANDING" && !a.Isdeleted)
+                        .Where(a => settleIds.Contains(a.EmployeeId) && a.Status == SalaryAdvanceStatus.OUTSTANDING && !a.Isdeleted)
                         .ToListAsync(cancellationToken))
                     .GroupBy(a => a.EmployeeId)
                     .ToDictionary(g => g.Key, g => g.OrderBy(a => a.AdvanceDate).ToList());

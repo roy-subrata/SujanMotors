@@ -10,6 +10,7 @@ import '../../core/i18n/strings.dart';
 import '../../shared/format.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/design_system.dart';
+import '../../shared/models/status_enums.dart';
 import '../../shared/widgets/paged_list_view.dart';
 import '../../shared/widgets/state_views.dart';
 import '../auth/auth_controller.dart';
@@ -123,7 +124,9 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
               fetch: (page) => ref.read(purchaseOrdersRepositoryProvider).list(
                     search: _search,
                     pendingOnly: _filter == _PoFilter.pending,
-                    status: _filter == _PoFilter.received ? 'DELIVERED' : null,
+                    status: _filter == _PoFilter.received
+                        ? PurchaseOrderStatus.delivered
+                        : null,
                     page: page,
                   ),
               emptyBuilder: (context) => EmptyView(
@@ -141,7 +144,7 @@ class _StockInListScreenState extends ConsumerState<StockInListScreen> {
 }
 
 /// Maps backend PO statuses onto the design's pill labels.
-String poPillLabel(BuildContext context, String status) =>
+String poPillLabel(BuildContext context, PurchaseOrderStatus status) =>
     S.of(context).poStatusName(status);
 
 class _PoRow extends StatelessWidget {
@@ -209,7 +212,10 @@ class _PoRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    StatusPill(label: poPillLabel(context, po.status)),
+                    StatusPill(
+                      label: poPillLabel(context, po.status),
+                      kind: po.status.kind,
+                    ),
                   ],
                 ),
               ],
@@ -268,11 +274,12 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
         ref.read(authControllerProvider).value?.username ?? 'mobile';
     setState(() => _receiving = true);
     try {
-      if (po.status == 'DRAFT') {
+      if (po.status == PurchaseOrderStatus.draft) {
         setState(() => _progress = s.submittingOrder);
         await repo.submit(po.id);
       }
-      if (po.status == 'DRAFT' || po.status == 'SUBMITTED') {
+      if (po.status == PurchaseOrderStatus.draft ||
+          po.status == PurchaseOrderStatus.submitted) {
         setState(() => _progress = s.confirmingOrder);
         await repo.confirm(po.id);
       }
@@ -334,7 +341,10 @@ class _PoDetailSheetState extends ConsumerState<_PoDetailSheet> {
                   ),
                 ),
                 if (po != null)
-                  StatusPill(label: poPillLabel(context, po.status)),
+                  StatusPill(
+                    label: poPillLabel(context, po.status),
+                    kind: po.status.kind,
+                  ),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.of(context).pop(),

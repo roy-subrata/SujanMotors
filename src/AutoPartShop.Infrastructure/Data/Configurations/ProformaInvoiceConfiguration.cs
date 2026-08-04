@@ -15,7 +15,7 @@ public class ProformaInvoiceConfiguration : IEntityTypeConfiguration<ProformaInv
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(p => p.Status).IsRequired().HasMaxLength(20);
+        builder.Property(p => p.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
         builder.Property(p => p.IssuedBy).HasMaxLength(100);
         builder.Property(p => p.Notes).HasMaxLength(1000);
 

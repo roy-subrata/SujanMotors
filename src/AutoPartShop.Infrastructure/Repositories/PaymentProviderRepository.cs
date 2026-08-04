@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
@@ -47,13 +48,18 @@ public class PaymentProviderRepository(AutoPartDbContext _db) : IPaymentProvider
         => await _db.PaymentProviders.Where(x => x.ProviderType == providerType.ToUpper() && !x.Isdeleted).OrderBy(x => x.ProviderName).ToListAsync(cancellationToken);
 
     public async Task<IEnumerable<PaymentProvider>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
-        => await _db.PaymentProviders.Where(x => x.Status == status && !x.Isdeleted).OrderBy(x => x.ProviderName).ToListAsync(cancellationToken);
+    {
+        if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<PaymentProviderStatus>(status.Trim(), true, out var parsedStatus))
+            return Enumerable.Empty<PaymentProvider>();
+
+        return await _db.PaymentProviders.Where(x => x.Status == parsedStatus && !x.Isdeleted).OrderBy(x => x.ProviderName).ToListAsync(cancellationToken);
+    }
 
     public async Task<PaymentProvider?> GetDefaultAsync(CancellationToken cancellationToken = default)
-        => await _db.PaymentProviders.FirstOrDefaultAsync(x => x.IsDefault && x.Status == "ACTIVE" && !x.Isdeleted, cancellationToken);
+        => await _db.PaymentProviders.FirstOrDefaultAsync(x => x.IsDefault && x.Status == PaymentProviderStatus.ACTIVE && !x.Isdeleted, cancellationToken);
 
     public async Task<IEnumerable<PaymentProvider>> GetActiveAsync(CancellationToken cancellationToken = default)
-        => await _db.PaymentProviders.Where(x => x.Status == "ACTIVE" && !x.Isdeleted).OrderBy(x => x.ProviderName).ToListAsync(cancellationToken);
+        => await _db.PaymentProviders.Where(x => x.Status == PaymentProviderStatus.ACTIVE && !x.Isdeleted).OrderBy(x => x.ProviderName).ToListAsync(cancellationToken);
 
     public async Task<(IEnumerable<PaymentProvider> providers, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {

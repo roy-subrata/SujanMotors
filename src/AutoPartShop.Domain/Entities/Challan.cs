@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -10,7 +12,7 @@ public class Challan : AuditableEntity
     public string ChallanNumber { get; private set; } = string.Empty;
     public Guid SalesOrderId { get; private set; }
     public Guid? InvoiceId { get; private set; }
-    public string Status { get; private set; } = "DRAFT"; // DRAFT → ISSUED → DELIVERED
+    public ChallanStatus Status { get; private set; } = ChallanStatus.DRAFT;
     public DateTime? IssuedAt { get; private set; }
     public DateTime? DeliveredAt { get; private set; }
     public string DeliveryAddress { get; private set; } = string.Empty;
@@ -74,10 +76,10 @@ public class Challan : AuditableEntity
     /// <summary>Issue the challan — makes it ready to travel with the goods.</summary>
     public void Issue()
     {
-        if (Status != "DRAFT")
+        if (Status != ChallanStatus.DRAFT)
             throw new InvalidOperationException($"Only Draft challans can be issued. Current: {Status}");
 
-        Status = "ISSUED";
+        Status = ChallanStatus.ISSUED;
         IssuedAt = DateTime.UtcNow;
     }
 
@@ -87,10 +89,10 @@ public class Challan : AuditableEntity
     /// </summary>
     public void MarkDelivered(string? receiverName = null, string? receiverPhone = null)
     {
-        if (Status != "ISSUED")
+        if (Status != ChallanStatus.ISSUED)
             throw new InvalidOperationException($"Only Issued challans can be marked as Delivered. Current: {Status}");
 
-        Status = "DELIVERED";
+        Status = ChallanStatus.DELIVERED;
         DeliveredAt = DateTime.UtcNow;
         if (!string.IsNullOrWhiteSpace(receiverName)) ReceiverName = receiverName.Trim();
         if (!string.IsNullOrWhiteSpace(receiverPhone)) ReceiverPhone = receiverPhone.Trim();

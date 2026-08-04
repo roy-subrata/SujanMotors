@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -27,7 +29,7 @@ public class TillSession : AuditableEntity
     public DateTime? ClosedAt { get; private set; }
     public decimal OpeningFloat { get; private set; }
     public decimal? ClosingCountedAmount { get; private set; }
-    public string Status { get; private set; } = "OPEN";  // OPEN, CLOSED
+    public TillSessionStatus Status { get; private set; } = TillSessionStatus.OPEN;
 
     // Snapshotted at Close — see class remarks.
     public decimal CashSalesTotal { get; private set; }
@@ -68,14 +70,14 @@ public class TillSession : AuditableEntity
             ShiftLabel = string.IsNullOrWhiteSpace(shiftLabel) ? null : shiftLabel.Trim(),
             OpeningFloat = openingFloat,
             OpenedAt = DateTime.UtcNow,
-            Status = "OPEN",
+            Status = TillSessionStatus.OPEN,
             Notes = notes?.Trim() ?? string.Empty
         };
     }
 
     public void RecordCashDrop(TillCashDrop drop)
     {
-        if (Status != "OPEN")
+        if (Status != TillSessionStatus.OPEN)
             throw new InvalidOperationException($"Cannot record a cash drop on a {Status} session");
 
         CashDrops.Add(drop);
@@ -88,7 +90,7 @@ public class TillSession : AuditableEntity
     /// </summary>
     public void Close(decimal countedAmount, decimal cashSalesTotal, decimal cashRefundsTotal, string notes = "")
     {
-        if (Status != "OPEN")
+        if (Status != TillSessionStatus.OPEN)
             throw new InvalidOperationException($"Only an OPEN session can be closed. Current: {Status}");
 
         if (countedAmount < 0)
@@ -102,7 +104,7 @@ public class TillSession : AuditableEntity
         OverShortAmount = countedAmount - ExpectedAmount;
 
         ClosedAt = DateTime.UtcNow;
-        Status = "CLOSED";
+        Status = TillSessionStatus.CLOSED;
         if (!string.IsNullOrWhiteSpace(notes))
             Notes = string.IsNullOrWhiteSpace(Notes) ? notes.Trim() : $"{Notes}\n{notes.Trim()}";
     }

@@ -32,6 +32,8 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { GenerateProformaDialogComponent } from '../../proforma-invoices/generate-proforma-dialog/generate-proforma-dialog.component';
 import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { SalesOrderStatus } from '@/shared/models/status.types';
 
 @Component({
     selector: 'app-sales-orders-list',
@@ -74,6 +76,7 @@ export class SalesOrdersListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -88,7 +91,7 @@ export class SalesOrdersListComponent implements OnInit {
     pageSizeOptions = [10, 20, 50];
 
     searchTerm = '';
-    filterStatus = '';
+    filterStatus: SalesOrderStatus | '' = '';
     dateRange: Date[] = [];
 
     statusOptions: { label: string; value: string }[] = [];
@@ -188,7 +191,7 @@ export class SalesOrdersListComponent implements OnInit {
                 pageNumber: this.pageNumber,
                 pageSize: this.pageSize,
                 search: this.searchTerm,
-                status: this.filterStatus,
+                status: this.filterStatus || undefined,
                 fromDate,
                 toDate
             })
@@ -399,18 +402,8 @@ export class SalesOrdersListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, currency);
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            PENDING:            'secondary',
-            DRAFT:              'secondary',
-            CONFIRMED:          'info',
-            READY_FOR_DELIVERY: 'warn',
-            DELIVERED:          'success',
-            CANCELLED:          'danger',
-            PAID: 'info', PACKED: 'warn', PARTIALLY_SHIPPED: 'warn', SHIPPED: 'info',
-            COMPLETED: 'success', RETURNED: 'danger'
-        };
-        return map[status] ?? 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'sales-order');
     }
 
     formatStatus(status: string): string {

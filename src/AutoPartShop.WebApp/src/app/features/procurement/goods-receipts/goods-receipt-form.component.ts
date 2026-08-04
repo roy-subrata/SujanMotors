@@ -31,6 +31,7 @@ import {
 import { PurchaseOrderResponse, PurchaseOrderService } from '../services/purchase-order.service';
 import { BarcodeDialogComponent } from '../../inventory/parts/barcode-dialog/barcode-dialog.component';
 import { labelFromGrnLine } from '../../inventory/parts/barcode-dialog/label-data';
+import { StatusDisplayService } from '@/shared/services/status-display.service';
 
 type WorkflowStatus = 'PENDING' | 'VERIFIED' | 'ACCEPTED';
 
@@ -76,6 +77,7 @@ export class GoodsReceiptFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
+  private readonly statusDisplay = inject(StatusDisplayService);
 
   /** GRN create/verify/accept/reject are restricted to back-office roles; cashiers can only view. */
   get canManage(): boolean {
@@ -264,18 +266,7 @@ export class GoodsReceiptFormComponent implements OnInit {
   }
 
   getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
-    switch (status?.toUpperCase()) {
-      case 'PENDING':
-        return 'warn';
-      case 'VERIFIED':
-        return 'info';
-      case 'ACCEPTED':
-        return 'success';
-      case 'REJECTED':
-        return 'danger';
-      default:
-        return 'secondary';
-    }
+    return this.statusDisplay.getSeverity(status, 'goods-receipt');
   }
 
   getWorkflowStatusIndex(status: string): number {

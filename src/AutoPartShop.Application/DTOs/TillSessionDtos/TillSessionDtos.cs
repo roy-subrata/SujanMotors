@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.TillSessionDtos;
 
 public class OpenTillSessionRequest
@@ -31,7 +33,7 @@ public class TillSessionResponse
     public DateTime? ClosedAt { get; set; }
     public decimal OpeningFloat { get; set; }
     public decimal? ClosingCountedAmount { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public TillSessionStatus Status { get; set; }
     public decimal CashSalesTotal { get; set; }
     public decimal CashRefundsTotal { get; set; }
     public decimal CashDropsTotal { get; set; }

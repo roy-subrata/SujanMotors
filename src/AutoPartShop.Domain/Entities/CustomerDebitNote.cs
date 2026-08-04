@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -16,7 +18,7 @@ public class CustomerDebitNote : AuditableEntity
     public string Currency { get; private set; } = "BDT";
     public DateTime IssueDate { get; private set; }
     public string Reason { get; private set; } = string.Empty;
-    public string Status { get; private set; } = "ISSUED";  // ISSUED, SETTLED, CANCELLED
+    public CustomerDebitNoteStatus Status { get; private set; } = CustomerDebitNoteStatus.ISSUED;
     public string Notes { get; private set; } = string.Empty;
     public string IssuedBy { get; private set; } = string.Empty;
 
@@ -58,7 +60,7 @@ public class CustomerDebitNote : AuditableEntity
             Reason = reason.Trim(),
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
             IssueDate = issueDate ?? DateTime.UtcNow,
-            Status = "ISSUED",
+            Status = CustomerDebitNoteStatus.ISSUED,
             Notes = notes?.Trim() ?? string.Empty,
             IssuedBy = issuedBy?.Trim() ?? string.Empty
         };
@@ -66,18 +68,18 @@ public class CustomerDebitNote : AuditableEntity
 
     public void MarkAsSettled()
     {
-        if (Status != "ISSUED")
+        if (Status != CustomerDebitNoteStatus.ISSUED)
             throw new InvalidOperationException($"Only ISSUED debit notes can be settled. Current: {Status}");
 
-        Status = "SETTLED";
+        Status = CustomerDebitNoteStatus.SETTLED;
     }
 
     public void Cancel(string reason = "")
     {
-        if (Status == "SETTLED")
+        if (Status == CustomerDebitNoteStatus.SETTLED)
             throw new InvalidOperationException("Cannot cancel a settled debit note");
 
-        Status = "CANCELLED";
+        Status = CustomerDebitNoteStatus.CANCELLED;
         Notes = string.IsNullOrWhiteSpace(reason) ? Notes : $"{Notes}\n[Cancelled] {reason}".Trim();
     }
 }

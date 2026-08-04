@@ -3,6 +3,15 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { CustomerPaymentStatus, SupplierPaymentStatus } from 'src/app/shared/models/status.types';
+
+/**
+ * The backend's `CashBookEntry.Status` aggregates several payment-status enums
+ * (`CustomerPaymentStatus`, `SupplierPaymentStatus`) plus a plain `"COMPLETED"` literal for
+ * deposits/expenses that have no lifecycle of their own — it's deliberately a `string` on the API
+ * DTO. This union covers every value that can actually appear on the wire.
+ */
+export type CashBookEntryStatus = CustomerPaymentStatus | SupplierPaymentStatus;
 
 export interface CashBookEntry {
   id: string;
@@ -13,7 +22,7 @@ export interface CashBookEntry {
   paymentMethod: string;
   amount: number;
   currency: string;
-  status: string;
+  status: CashBookEntryStatus;
   notes?: string | null;
   category?: string | null;
   vendor?: string | null;
@@ -32,7 +41,7 @@ export interface LedgerRow {
   cashOut?: number | null;
   balance: number;
   currency: string;
-  status: string;
+  status: CashBookEntryStatus;
   notes?: string | null;
   category?: string | null;
   vendor?: string | null;

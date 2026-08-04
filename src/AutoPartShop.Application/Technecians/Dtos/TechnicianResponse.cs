@@ -1,4 +1,6 @@
-﻿namespace AutoPartShop.Application.Technecians.Dtos
+﻿using AutoPartShop.Domain.Enums;
+
+namespace AutoPartShop.Application.Technecians.Dtos
 {
     public class TechnicianResponse
     {
@@ -10,7 +12,7 @@
         public string ShopName { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public TechnicianStatus Status { get; set; }
         public string Notes { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }

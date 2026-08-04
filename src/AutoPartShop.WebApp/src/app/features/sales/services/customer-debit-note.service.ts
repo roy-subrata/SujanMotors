@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PdfDownloadService } from '@/shared/services/pdf-download.service';
+import { CustomerDebitNoteStatus } from '@/shared/models/status.types';
 
 export interface CreateCustomerDebitNoteRequest {
     customerId: string;
@@ -24,7 +25,7 @@ export interface CustomerDebitNoteResponse {
     currency: string;
     issueDate: string;
     reason: string;
-    status: string; // ISSUED | SETTLED | CANCELLED
+    status: CustomerDebitNoteStatus;
     notes: string;
     issuedBy: string;
     createdAt: string;
@@ -32,7 +33,7 @@ export interface CustomerDebitNoteResponse {
 
 export interface CustomerDebitNoteQuery {
     customerId?: string;
-    status?: string;
+    status?: CustomerDebitNoteStatus;
     pageNumber: number;
     pageSize: number;
 }

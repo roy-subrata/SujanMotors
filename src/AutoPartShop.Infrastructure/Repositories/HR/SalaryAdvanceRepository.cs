@@ -1,5 +1,6 @@
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,7 @@ public class SalaryAdvanceRepository : ISalaryAdvanceRepository
     public async Task<IEnumerable<SalaryAdvance>> GetOutstandingByEmployeeAsync(Guid employeeId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.SalaryAdvances
-            .Where(x => x.EmployeeId == employeeId && x.Status == "OUTSTANDING" && !x.Isdeleted)
+            .Where(x => x.EmployeeId == employeeId && x.Status == SalaryAdvanceStatus.OUTSTANDING && !x.Isdeleted)
             .OrderBy(x => x.AdvanceDate)
             .ToListAsync(cancellationToken);
     }
@@ -34,7 +35,7 @@ public class SalaryAdvanceRepository : ISalaryAdvanceRepository
     public async Task<IReadOnlyDictionary<Guid, decimal>> GetOutstandingTotalsAsync(CancellationToken cancellationToken = default)
     {
         return await _dbContext.SalaryAdvances
-            .Where(x => x.Status == "OUTSTANDING" && !x.Isdeleted)
+            .Where(x => x.Status == SalaryAdvanceStatus.OUTSTANDING && !x.Isdeleted)
             .GroupBy(x => x.EmployeeId)
             .Select(g => new { g.Key, Total = g.Sum(x => x.Amount - x.RecoveredAmount) })
             .ToDictionaryAsync(x => x.Key, x => x.Total, cancellationToken);
@@ -88,7 +89,7 @@ public class SalaryAdvanceRepository : ISalaryAdvanceRepository
     {
         var ids = employeeIds.ToList();
         var outstanding = await _dbContext.SalaryAdvances
-            .Where(x => ids.Contains(x.EmployeeId) && x.Status == "OUTSTANDING" && !x.Isdeleted)
+            .Where(x => ids.Contains(x.EmployeeId) && x.Status == SalaryAdvanceStatus.OUTSTANDING && !x.Isdeleted)
             .ToListAsync(cancellationToken);
 
         foreach (var advance in outstanding)

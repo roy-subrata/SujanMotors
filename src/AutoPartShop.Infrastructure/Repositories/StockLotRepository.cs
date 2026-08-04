@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -79,7 +80,7 @@ public class StockLotRepository : IStockLotRepository
     public async Task<IEnumerable<StockLot>> GetAvailableLotsAsync(Guid partId, Guid warehouseId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.StockLots
-            .Where(x => x.PartId == partId && x.WarehouseId == warehouseId && x.QuantityAvailable > 0 && x.Status == "AVAILABLE" && !x.Isdeleted)
+            .Where(x => x.PartId == partId && x.WarehouseId == warehouseId && x.QuantityAvailable > 0 && x.Status == StockLotStatus.AVAILABLE && !x.Isdeleted)
             .OrderBy(x => x.ReceivingDate)
             .ToListAsync(cancellationToken);
     }
@@ -87,7 +88,7 @@ public class StockLotRepository : IStockLotRepository
     public async Task<IEnumerable<StockLot>> GetAvailableLotsAsync(Guid partId, Guid? variantId, Guid warehouseId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.StockLots
-            .Where(x => x.PartId == partId && x.VariantId == variantId && x.WarehouseId == warehouseId && x.QuantityAvailable > 0 && x.Status == "AVAILABLE" && !x.Isdeleted)
+            .Where(x => x.PartId == partId && x.VariantId == variantId && x.WarehouseId == warehouseId && x.QuantityAvailable > 0 && x.Status == StockLotStatus.AVAILABLE && !x.Isdeleted)
             .OrderBy(x => x.ReceivingDate)
             .ToListAsync(cancellationToken);
     }

@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Domain.Entities.HR;
 
 /// <summary>
@@ -12,7 +14,7 @@ public class SalaryAdvance : AuditableEntity
     public decimal Amount { get; private set; }
     public string PaymentMethod { get; private set; } = "CASH";
     public string Notes { get; private set; } = string.Empty;
-    public string Status { get; private set; } = "OUTSTANDING";  // OUTSTANDING, SETTLED
+    public SalaryAdvanceStatus Status { get; private set; } = SalaryAdvanceStatus.OUTSTANDING;
     public decimal RecoveredAmount { get; private set; } = 0;    // Recovered so far via payroll (installments)
     public decimal RemainingAmount => Amount - RecoveredAmount;   // Still owed by the employee
     public Guid? ExpenseId { get; private set; }             // DailyExpense posted when given
@@ -43,7 +45,7 @@ public class SalaryAdvance : AuditableEntity
             Amount = amount,
             PaymentMethod = paymentMethod.Trim().ToUpper(),
             Notes = notes?.Trim() ?? string.Empty,
-            Status = "OUTSTANDING"
+            Status = SalaryAdvanceStatus.OUTSTANDING
         };
     }
 
@@ -51,10 +53,10 @@ public class SalaryAdvance : AuditableEntity
 
     public void Settle(Guid payrollRunId)
     {
-        if (Status != "OUTSTANDING")
+        if (Status != SalaryAdvanceStatus.OUTSTANDING)
             throw new InvalidOperationException($"Cannot settle a {Status} advance");
 
-        Status = "SETTLED";
+        Status = SalaryAdvanceStatus.SETTLED;
         RecoveredAmount = Amount;
         SettledPayrollRunId = payrollRunId;
         SettledAt = DateTime.UtcNow;
@@ -67,7 +69,7 @@ public class SalaryAdvance : AuditableEntity
     /// </summary>
     public void Recover(decimal amount, Guid payrollRunId)
     {
-        if (Status != "OUTSTANDING")
+        if (Status != SalaryAdvanceStatus.OUTSTANDING)
             throw new InvalidOperationException($"Cannot recover a {Status} advance");
         if (amount <= 0)
             throw new ArgumentException("Recovery amount must be greater than zero", nameof(amount));
@@ -77,7 +79,7 @@ public class SalaryAdvance : AuditableEntity
 
         if (RemainingAmount <= 0)
         {
-            Status = "SETTLED";
+            Status = SalaryAdvanceStatus.SETTLED;
             SettledPayrollRunId = payrollRunId;
             SettledAt = DateTime.UtcNow;
         }

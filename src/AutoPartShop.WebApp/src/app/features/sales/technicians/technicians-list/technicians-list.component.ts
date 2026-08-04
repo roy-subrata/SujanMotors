@@ -18,6 +18,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-technicians-list',
@@ -35,6 +36,7 @@ export class TechniciansListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     technicians: TechnicianResponse[] = [];
     loading = false;
@@ -222,11 +224,7 @@ export class TechniciansListComponent implements OnInit {
         });
     }
 
-    getStatusSeverity(status: string): 'success' | 'secondary' {
-        const severityMap: Record<string, 'success' | 'secondary'> = {
-            ACTIVE: 'success',
-            INACTIVE: 'secondary'
-        };
-        return severityMap[status] || 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'technician');
     }
 }

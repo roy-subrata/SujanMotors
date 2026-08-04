@@ -1,4 +1,5 @@
 import 'json.dart';
+import 'status_enums.dart';
 
 class SalesReturn {
   const SalesReturn({
@@ -19,7 +20,7 @@ class SalesReturn {
   final String salesOrderId;
   final String? salesOrderNumber;
   final String reason;
-  final String status;
+  final SalesReturnStatus status;
   final double totalRefundAmount;
   final String refundType;
   final DateTime createdAt;
@@ -31,7 +32,7 @@ class SalesReturn {
         salesOrderId: asString(json['salesOrderId']),
         salesOrderNumber: asStringOrNull(json['salesOrderNumber']),
         reason: asString(json['reason']),
-        status: asString(json['status']),
+        status: SalesReturnStatus.fromWire(asStringOrNull(json['status'])),
         totalRefundAmount: asDouble(json['totalRefundAmount']),
         refundType: asString(json['refundType']),
         createdAt:

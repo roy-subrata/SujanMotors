@@ -1,5 +1,6 @@
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.HR.Dtos;
+using AutoPartShop.Domain.Enums.HR;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories.HR
@@ -11,7 +12,7 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
             var day = date.Date;
 
             var rows = await _dbContext.Employees
-                .Where(e => !e.Isdeleted && e.Status == "ACTIVE")
+                .Where(e => !e.Isdeleted && e.Status == EmployeeStatus.ACTIVE)
                 .OrderBy(e => e.Name)
                 .Select(e => new
                 {
@@ -35,7 +36,7 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                 Department = x.Employee.Department,
                 ShiftName = x.ShiftName,
                 IsMarked = x.Record != null,
-                Status = x.Record != null ? x.Record.Status : string.Empty,
+                Status = x.Record != null ? x.Record.Status : null,
                 CheckInTime = x.Record != null ? x.Record.CheckInTime : null,
                 CheckOutTime = x.Record != null ? x.Record.CheckOutTime : null,
                 Notes = x.Record != null ? x.Record.Notes : string.Empty
@@ -53,18 +54,18 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                 .Select(g => new
                 {
                     EmployeeId = g.Key,
-                    Present = g.Count(a => a.Status == "PRESENT"),
-                    Late = g.Count(a => a.Status == "LATE"),
-                    Half = g.Count(a => a.Status == "HALF_DAY"),
-                    Absent = g.Count(a => a.Status == "ABSENT"),
-                    Leave = g.Count(a => a.Status == "LEAVE"),
-                    Holiday = g.Count(a => a.Status == "HOLIDAY"),
+                    Present = g.Count(a => a.Status == AttendanceStatus.PRESENT),
+                    Late = g.Count(a => a.Status == AttendanceStatus.LATE),
+                    Half = g.Count(a => a.Status == AttendanceStatus.HALF_DAY),
+                    Absent = g.Count(a => a.Status == AttendanceStatus.ABSENT),
+                    Leave = g.Count(a => a.Status == AttendanceStatus.LEAVE),
+                    Holiday = g.Count(a => a.Status == AttendanceStatus.HOLIDAY),
                     Total = g.Count()
                 })
                 .ToListAsync(cancellationToken);
 
             var employees = await _dbContext.Employees
-                .Where(e => !e.Isdeleted && e.Status == "ACTIVE")
+                .Where(e => !e.Isdeleted && e.Status == EmployeeStatus.ACTIVE)
                 .OrderBy(e => e.Name)
                 .Select(e => new { e.Id, e.EmployeeCode, e.Name, e.Department })
                 .ToListAsync(cancellationToken);
@@ -110,7 +111,7 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                     EF.Functions.Like(x.l.Reason, $"%{search}%"));
             }
 
-            if (!string.IsNullOrWhiteSpace(query.Status))
+            if (query.Status is not null)
             {
                 requests = requests.Where(x => x.l.Status == query.Status);
             }

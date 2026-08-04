@@ -28,6 +28,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-invoices-list',
@@ -67,6 +68,7 @@ export class InvoicesListComponent implements OnInit {
     private readonly dialogService = inject(DialogService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
     private activateRoute = inject(ActivatedRoute);
 
     private dialogRef: DynamicDialogRef | null | undefined;
@@ -327,16 +329,8 @@ export class InvoicesListComponent implements OnInit {
         });
     }
 
-    getStatusSeverity(status: string): 'secondary' | 'info' | 'warn' | 'success' | 'danger' {
-        const severityMap: Record<string, 'secondary' | 'info' | 'warn' | 'success' | 'danger'> = {
-            DRAFT: 'secondary',
-            ISSUED: 'info',
-            PARTIALLY_PAID: 'warn',
-            PAID: 'success',
-            OVERDUE: 'danger',
-            CANCELLED: 'secondary'
-        };
-        return severityMap[status] || 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'invoice');
     }
 
     formatCurrency(amount: number): string {

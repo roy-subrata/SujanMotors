@@ -18,6 +18,7 @@ import { Select } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { TextareaModule } from 'primeng/textarea';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
   selector: 'app-invoice-form',
@@ -51,6 +52,7 @@ export class InvoiceFormComponent implements OnInit {
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly statusDisplay = inject(StatusDisplayService);
 
   invoiceForm!: FormGroup;
   paymentForm!: FormGroup;
@@ -322,16 +324,8 @@ export class InvoiceFormComponent implements OnInit {
     window.open(`/sales/invoices/${this.invoiceId()}/print?type=challan`, '_blank');
   }
 
-  getStatusSeverity(status: string): 'secondary' | 'info' | 'warn' | 'success' | 'danger' {
-    const severityMap: Record<string, 'secondary' | 'info' | 'warn' | 'success' | 'danger'> = {
-      DRAFT: 'secondary',
-      ISSUED: 'info',
-      PARTIALLY_PAID: 'warn',
-      PAID: 'success',
-      OVERDUE: 'danger',
-      CANCELLED: 'secondary'
-    };
-    return severityMap[status] || 'secondary';
+  getStatusSeverity(status: string): StatusSeverity {
+    return this.statusDisplay.getSeverity(status, 'invoice');
   }
 
   formatCurrency(amount: number): string {

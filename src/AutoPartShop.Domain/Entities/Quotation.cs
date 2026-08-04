@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -15,7 +17,7 @@ public class Quotation : AuditableEntity
     public string CustomerPhone { get; private set; } = string.Empty;
     public DateTime QuoteDate { get; private set; }
     public DateTime ValidUntil { get; private set; }
-    public string Status { get; private set; } = "DRAFT";  // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED, CONVERTED
+    public QuotationStatus Status { get; private set; } = QuotationStatus.DRAFT;
     public decimal SubTotal { get; private set; } = 0;
     public decimal DiscountPercentage { get; private set; } = 0;
     public decimal DiscountAmount { get; private set; } = 0;
@@ -62,7 +64,7 @@ public class Quotation : AuditableEntity
             ValidUntil = validUntil ?? quoteDate.AddDays(15),
             Notes = notes?.Trim() ?? string.Empty,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
-            Status = "DRAFT"
+            Status = QuotationStatus.DRAFT
         };
     }
 
@@ -107,53 +109,53 @@ public class Quotation : AuditableEntity
 
     public void Send()
     {
-        if (Status != "DRAFT")
+        if (Status != QuotationStatus.DRAFT)
             throw new InvalidOperationException($"Only DRAFT quotations can be sent. Current: {Status}");
 
         if (!LineItems.Any())
             throw new InvalidOperationException("Quotation must have at least one line item");
 
-        Status = "SENT";
+        Status = QuotationStatus.SENT;
     }
 
     public void Accept()
     {
-        if (Status != "SENT")
+        if (Status != QuotationStatus.SENT)
             throw new InvalidOperationException($"Only SENT quotations can be accepted. Current: {Status}");
 
-        Status = "ACCEPTED";
+        Status = QuotationStatus.ACCEPTED;
     }
 
     public void Reject(string reason = "")
     {
-        if (Status != "SENT")
+        if (Status != QuotationStatus.SENT)
             throw new InvalidOperationException($"Only SENT quotations can be rejected. Current: {Status}");
 
-        Status = "REJECTED";
+        Status = QuotationStatus.REJECTED;
         if (!string.IsNullOrWhiteSpace(reason))
             Notes = string.IsNullOrWhiteSpace(Notes) ? $"[Rejected] {reason}" : $"{Notes}\n[Rejected] {reason}";
     }
 
     public void MarkAsExpired()
     {
-        if (Status is "CONVERTED" or "REJECTED" or "EXPIRED")
+        if (Status is QuotationStatus.CONVERTED or QuotationStatus.REJECTED or QuotationStatus.EXPIRED)
             throw new InvalidOperationException($"Cannot expire a {Status} quotation");
 
-        Status = "EXPIRED";
+        Status = QuotationStatus.EXPIRED;
     }
 
     /// <summary>Called once the accepted quote's lines have been copied into a new SalesOrder.</summary>
     public void MarkAsConverted(Guid salesOrderId)
     {
-        if (Status != "ACCEPTED")
+        if (Status != QuotationStatus.ACCEPTED)
             throw new InvalidOperationException($"Only ACCEPTED quotations can be converted. Current: {Status}");
 
         if (salesOrderId == Guid.Empty)
             throw new ArgumentException("SalesOrderId cannot be empty", nameof(salesOrderId));
 
-        Status = "CONVERTED";
+        Status = QuotationStatus.CONVERTED;
         ConvertedToSalesOrderId = salesOrderId;
     }
 
-    public bool IsExpired => Status is not ("CONVERTED" or "REJECTED" or "EXPIRED") && ValidUntil.Date < DateTime.UtcNow.Date;
+    public bool IsExpired => Status is not (QuotationStatus.CONVERTED or QuotationStatus.REJECTED or QuotationStatus.EXPIRED) && ValidUntil.Date < DateTime.UtcNow.Date;
 }

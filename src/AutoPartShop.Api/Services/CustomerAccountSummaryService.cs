@@ -1,5 +1,6 @@
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +41,7 @@ public class CustomerAccountSummaryService : ICustomerAccountSummaryService
             .AsNoTracking()
             .Include(i => i.SalesOrder)
             .Where(i => !i.Isdeleted
-                && i.Status != "CANCELLED"
+                && i.Status != InvoiceStatus.CANCELLED
                 && i.SalesOrder != null
                 && i.SalesOrder.CustomerId == query.CustomerId);
 
@@ -68,7 +69,7 @@ public class CustomerAccountSummaryService : ICustomerAccountSummaryService
         var paymentQuery = _dbContext.CustomerPayments
             .Where(p => !p.Isdeleted
                 && p.CustomerId == query.CustomerId
-                && p.Status == "COMPLETED"
+                && p.Status == CustomerPaymentStatus.COMPLETED
                 && (p.PaymentType == CustomerPaymentType.ADVANCE
                     || p.SourceAdvancePaymentId == null));
 
@@ -103,7 +104,7 @@ public class CustomerAccountSummaryService : ICustomerAccountSummaryService
                 && li.SalesOrder.CustomerId == query.CustomerId
                 && li.SalesOrder.Invoice != null
                 && !li.SalesOrder.Invoice.Isdeleted
-                && li.SalesOrder.Invoice.Status != "CANCELLED");
+                && li.SalesOrder.Invoice.Status != InvoiceStatus.CANCELLED);
 
         if (fromDate.HasValue)
             lineItemsBaseQuery = lineItemsBaseQuery.Where(li => li.SalesOrder!.Invoice!.InvoiceDate >= fromDate.Value);
@@ -125,7 +126,7 @@ public class CustomerAccountSummaryService : ICustomerAccountSummaryService
                 InvoiceId = li.SalesOrder!.Invoice!.Id,
                 InvoiceDate = li.SalesOrder.Invoice.InvoiceDate,
                 InvoiceNumber = li.SalesOrder.Invoice.InvoiceNumber,
-                InvoiceStatus = li.SalesOrder.Invoice.Status,
+                InvoiceStatus = li.SalesOrder.Invoice.Status.ToString(),
                 CustomerVehicleId = li.SalesOrder.CustomerVehicleId,
                 VehicleLabel = li.SalesOrder.VehicleLabel,
                 SalesOrderLineId = li.Id,

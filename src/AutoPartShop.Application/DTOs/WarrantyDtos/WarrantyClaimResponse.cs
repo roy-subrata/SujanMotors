@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.WarrantyDtos;
 
 public class WarrantyClaimResponse
@@ -19,7 +21,7 @@ public class WarrantyClaimResponse
     public DateTime ClaimDate { get; set; }
     public string IssueDescription { get; set; } = string.Empty;
     public string ServiceType { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public WarrantyClaimStatus Status { get; set; }
     public string? RejectionReason { get; set; }
     public DateTime? RejectedDate { get; set; }
     public DateTime? ApprovedDate { get; set; }

@@ -45,7 +45,7 @@ public class QuotationRepository(AutoPartDbContext dbContext) : IQuotationReposi
             dbQuery = dbQuery.Where(q => q.CustomerId == query.CustomerId.Value);
 
         if (!string.IsNullOrWhiteSpace(query.Status))
-            dbQuery = dbQuery.Where(q => q.Status == query.Status);
+            dbQuery = dbQuery.Where(q => q.Status.ToString() == query.Status);
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {

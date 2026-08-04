@@ -19,7 +19,7 @@ public class QuotationConfiguration : IEntityTypeConfiguration<Quotation>
         builder.Property(q => q.CustomerEmail).HasMaxLength(200);
         builder.Property(q => q.CustomerPhone).HasMaxLength(50);
 
-        builder.Property(q => q.Status).IsRequired().HasMaxLength(20);
+        builder.Property(q => q.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
 
         builder.Property(q => q.SubTotal).HasPrecision(18, 2);
         builder.Property(q => q.DiscountPercentage).HasPrecision(18, 2);

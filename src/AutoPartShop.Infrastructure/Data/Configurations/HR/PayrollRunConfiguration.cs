@@ -18,7 +18,8 @@ public class PayrollRunConfiguration : IEntityTypeConfiguration<PayrollRun>
 
         builder.Property(p => p.Status)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(20)
+            .HasConversion<string>();
 
         builder.Property(p => p.Currency)
             .IsRequired()

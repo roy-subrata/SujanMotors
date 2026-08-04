@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -32,6 +33,7 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly statusDisplay = inject(StatusDisplayService);
     private readonly destroy$ = new Subject<void>();
 
     supplierId: string = '';
@@ -147,16 +149,8 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
         });
     }
 
-    getStatusSeverity(status: string): 'secondary' | 'info' | 'success' | 'danger' | 'warn' {
-        switch (status) {
-            case 'PENDING': return 'secondary';
-            case 'PROCESSING': return 'info';
-            case 'COMPLETED': return 'success';
-            case 'FAILED': return 'danger';
-            case 'CANCELLED': return 'danger';
-            case 'REFUNDED': case 'RETURNED': return 'warn';
-            default: return 'info';
-        }
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'supplier-payment');
     }
 
     getLedgerTypeLabel(type: SupplierLedgerTransactionType | string): string {

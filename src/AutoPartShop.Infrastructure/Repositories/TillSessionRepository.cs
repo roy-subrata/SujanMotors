@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,13 +19,13 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
     {
         return await dbContext.TillSessions
             .Include(t => t.CashDrops)
-            .FirstOrDefaultAsync(t => t.CashierId == cashierId && t.Status == "OPEN" && !t.Isdeleted, cancellationToken);
+            .FirstOrDefaultAsync(t => t.CashierId == cashierId && t.Status == TillSessionStatus.OPEN && !t.Isdeleted, cancellationToken);
     }
 
     public async Task<TillSession?> GetLastClosedSessionForTerminalAsync(string terminalLabel, CancellationToken cancellationToken = default)
     {
         return await dbContext.TillSessions
-            .Where(t => t.TerminalLabel == terminalLabel && t.Status == "CLOSED" && !t.Isdeleted)
+            .Where(t => t.TerminalLabel == terminalLabel && t.Status == TillSessionStatus.CLOSED && !t.Isdeleted)
             .OrderByDescending(t => t.ClosedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -52,7 +53,7 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
             dbQuery = dbQuery.Where(t => t.CashierId == query.CashierId.Value);
 
         if (!string.IsNullOrWhiteSpace(query.Status))
-            dbQuery = dbQuery.Where(t => t.Status == query.Status);
+            dbQuery = dbQuery.Where(t => t.Status.ToString() == query.Status);
 
         if (query.FromDate.HasValue)
             dbQuery = dbQuery.Where(t => t.OpenedAt >= query.FromDate.Value);

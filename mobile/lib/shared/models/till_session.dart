@@ -1,4 +1,5 @@
 import 'json.dart';
+import 'status_enums.dart';
 
 /// A cashier's open/close till session, mirroring `TillSessionResponse` from
 /// `GET/POST /api/v1/till-sessions/...`.
@@ -38,7 +39,7 @@ class TillSession {
   final DateTime? closedAt;
   final double openingFloat;
   final double? closingCountedAmount;
-  final String status; // OPEN | CLOSED
+  final TillSessionStatus status;
   final double cashSalesTotal;
   final double cashRefundsTotal;
   final double cashDropsTotal;
@@ -47,8 +48,8 @@ class TillSession {
   final String notes;
   final List<TillCashDrop> cashDrops;
 
-  bool get isOpen => status.toUpperCase() == 'OPEN';
-  bool get isClosed => status.toUpperCase() == 'CLOSED';
+  bool get isOpen => status == TillSessionStatus.open;
+  bool get isClosed => status == TillSessionStatus.closed;
 
   /// Sum of this session's recorded cash drops, computed client-side. Prefer
   /// this over [cashDropsTotal] for an OPEN session — see class doc.
@@ -68,7 +69,9 @@ class TillSession {
             : DateTime.tryParse(asString(json['closedAt']))?.toLocal(),
         openingFloat: asDouble(json['openingFloat']),
         closingCountedAmount: asDoubleOrNull(json['closingCountedAmount']),
-        status: asString(json['status'], fallback: 'OPEN'),
+        status: json['status'] == null
+            ? TillSessionStatus.open
+            : TillSessionStatus.fromWire(asString(json['status'])),
         cashSalesTotal: asDouble(json['cashSalesTotal']),
         cashRefundsTotal: asDouble(json['cashRefundsTotal']),
         cashDropsTotal: asDouble(json['cashDropsTotal']),

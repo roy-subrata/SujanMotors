@@ -4,6 +4,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.QuotationDtos;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -206,7 +207,7 @@ public class QuotationController(
         var quotation = await quotationRepository.GetByIdAsync(id, cancellationToken);
         if (quotation is null) return NotFound(new { message = "Quotation not found" });
 
-        if (quotation.Status != "ACCEPTED")
+        if (quotation.Status != QuotationStatus.ACCEPTED)
             return BadRequest(new { message = $"Only ACCEPTED quotations can be converted. Current: {quotation.Status}" });
 
         try

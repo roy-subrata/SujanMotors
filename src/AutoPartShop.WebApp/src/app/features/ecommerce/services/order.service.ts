@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, of } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { CartItem } from '../models/cart.model';
+import { SalesOrderStatus, SalesOrderPaymentStatus } from 'src/app/shared/models/status.types';
 
 export interface PromoValidationResult {
   valid: boolean;
@@ -49,8 +50,8 @@ export interface EcommerceCheckoutResponse {
   amountPaid: number;
   dueBalance: number;
   currency: string;
-  status: string;
-  paymentStatus: string;
+  status: SalesOrderStatus;
+  paymentStatus: SalesOrderPaymentStatus;
   invoiceNumber: string;
   channel: string;
   discountAmount?: number;

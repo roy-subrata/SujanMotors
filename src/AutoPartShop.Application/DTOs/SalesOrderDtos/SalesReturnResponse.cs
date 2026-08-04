@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.SalesOrderDtos;
 
 public class SalesReturnResponse
@@ -8,7 +10,7 @@ public class SalesReturnResponse
     public string? SalesOrderNumber { get; set; } // Sales Order Number
     public Guid WarehouseId { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty; // PENDING, APPROVED, RECEIVED, REJECTED, PROCESSED
+    public SalesReturnStatus Status { get; set; }
     public decimal TotalRefundAmount { get; set; }
     public string RefundType { get; set; } = "CASH_REFUND"; // CASH_REFUND, STORE_CREDIT
     public string Notes { get; set; } = string.Empty;

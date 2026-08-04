@@ -20,6 +20,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
   selector: 'app-payment-provider-list',
@@ -55,6 +56,7 @@ export class PaymentProviderListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly statusDisplay = inject(StatusDisplayService);
 
   paymentProviders: PaymentProviderResponse[] = [];
   searchTerm: string = '';
@@ -232,13 +234,8 @@ export class PaymentProviderListComponent implements OnInit {
     this.loadPaymentProviders();
   }
 
-  getStatusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' {
-    switch (status?.toUpperCase()) {
-      case 'ACTIVE': return 'success';
-      case 'INACTIVE': return 'warn';
-      case 'DISABLED': return 'danger';
-      default: return 'info';
-    }
+  getStatusSeverity(status: string): StatusSeverity {
+    return this.statusDisplay.getSeverity(status, 'payment-provider');
   }
 
   getAccountDisplay(provider: PaymentProviderResponse): string {

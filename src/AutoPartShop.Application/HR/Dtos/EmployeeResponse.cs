@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Application.HR.Dtos
 {
     public class EmployeeResponse
@@ -25,7 +27,7 @@ namespace AutoPartShop.Application.HR.Dtos
         public decimal CommissionRate { get; set; }
         public string EmergencyContactName { get; set; } = string.Empty;
         public string EmergencyContactPhone { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public EmployeeStatus Status { get; set; }
         public string Notes { get; set; } = string.Empty;
         public string? PhotoUrl { get; set; }
         public Guid? UserId { get; set; }

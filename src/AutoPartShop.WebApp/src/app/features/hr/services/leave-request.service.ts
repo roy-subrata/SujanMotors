@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PaginatedResponse } from './employee.service';
+import { LeaveRequestStatus } from 'src/app/shared/models/status.types';
 
 export interface LeaveRequestResponse {
     id: string;
@@ -14,7 +15,7 @@ export interface LeaveRequestResponse {
     toDate: string;
     totalDays: number;
     reason: string;
-    status: string;
+    status: LeaveRequestStatus;
     decisionBy: string;
     decisionAt: string | null;
     decisionNotes: string;
@@ -38,7 +39,7 @@ export interface UpdateLeaveRequestRequest {
 
 export interface LeaveRequestQuery {
     search?: string;
-    status?: string;
+    status?: LeaveRequestStatus | '';
     employeeId?: string;
     pageSize: number;
     pageNumber: number;
@@ -61,12 +62,12 @@ export class LeaveRequestService {
         return this.http.put<{ id: string }>(`${this.apiUrl}/${id}`, request);
     }
 
-    approveLeaveRequest(id: string, notes = ''): Observable<{ id: string; status: string }> {
-        return this.http.patch<{ id: string; status: string }>(`${this.apiUrl}/${id}/approve`, { notes });
+    approveLeaveRequest(id: string, notes = ''): Observable<{ id: string; status: LeaveRequestStatus }> {
+        return this.http.patch<{ id: string; status: LeaveRequestStatus }>(`${this.apiUrl}/${id}/approve`, { notes });
     }
 
-    rejectLeaveRequest(id: string, notes = ''): Observable<{ id: string; status: string }> {
-        return this.http.patch<{ id: string; status: string }>(`${this.apiUrl}/${id}/reject`, { notes });
+    rejectLeaveRequest(id: string, notes = ''): Observable<{ id: string; status: LeaveRequestStatus }> {
+        return this.http.patch<{ id: string; status: LeaveRequestStatus }>(`${this.apiUrl}/${id}/reject`, { notes });
     }
 
     deleteLeaveRequest(id: string): Observable<void> {

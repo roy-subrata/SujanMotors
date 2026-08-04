@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Domain.Entities.HR;
 
 /// <summary>
@@ -11,7 +13,7 @@ public class PayrollRun : AuditableEntity
     public string RunCode { get; private set; } = string.Empty;
     public int Year { get; private set; }
     public int Month { get; private set; }
-    public string Status { get; private set; } = "DRAFT";  // DRAFT, APPROVED, PAID
+    public PayrollRunStatus Status { get; private set; } = PayrollRunStatus.DRAFT;
     public string Currency { get; private set; } = "BDT";
 
     // Denormalized totals, refreshed whenever payslips change
@@ -51,13 +53,13 @@ public class PayrollRun : AuditableEntity
             Year = year,
             Month = month,
             Notes = notes?.Trim() ?? string.Empty,
-            Status = "DRAFT"
+            Status = PayrollRunStatus.DRAFT
         };
     }
 
     public void EnsureDraft()
     {
-        if (Status != "DRAFT")
+        if (Status != PayrollRunStatus.DRAFT)
             throw new InvalidOperationException($"Payroll run is {Status}; only DRAFT runs can be modified");
     }
 
@@ -72,26 +74,26 @@ public class PayrollRun : AuditableEntity
 
     public void Approve(string approvedBy)
     {
-        if (Status != "DRAFT")
+        if (Status != PayrollRunStatus.DRAFT)
             throw new InvalidOperationException($"Cannot approve a {Status} payroll run");
 
         if (!Payslips.Any(p => !p.Isdeleted))
             throw new InvalidOperationException("Cannot approve a payroll run with no payslips");
 
-        Status = "APPROVED";
+        Status = PayrollRunStatus.APPROVED;
         ApprovedBy = approvedBy?.Trim() ?? string.Empty;
         ApprovedAt = DateTime.UtcNow;
     }
 
     public void MarkPaid(string paidBy, string paymentMethod, Guid expenseId)
     {
-        if (Status != "APPROVED")
+        if (Status != PayrollRunStatus.APPROVED)
             throw new InvalidOperationException($"Cannot pay a {Status} payroll run; approve it first");
 
         if (string.IsNullOrWhiteSpace(paymentMethod))
             throw new ArgumentException("PaymentMethod is required", nameof(paymentMethod));
 
-        Status = "PAID";
+        Status = PayrollRunStatus.PAID;
         PaidBy = paidBy?.Trim() ?? string.Empty;
         PaidAt = DateTime.UtcNow;
         PaymentMethod = paymentMethod.Trim().ToUpper();

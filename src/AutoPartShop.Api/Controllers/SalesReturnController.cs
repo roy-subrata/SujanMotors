@@ -2,6 +2,7 @@
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
@@ -68,13 +69,13 @@ namespace AutoPartShop.Api.Controllers
             if (salesOrder == null)
                 return BadRequest("Sales order not found.");
 
-            var returnableStatuses = new[] { "PARTIALLY_SHIPPED", "SHIPPED", "DELIVERED" };
+            var returnableStatuses = new[] { SalesOrderStatus.PARTIALLY_SHIPPED, SalesOrderStatus.SHIPPED, SalesOrderStatus.DELIVERED };
             if (!returnableStatuses.Contains(salesOrder.Status))
                 return BadRequest($"Cannot create a return for a sales order with status '{salesOrder.Status}'. Only shipped or delivered orders can be returned.");
 
             // Block if any returned line has an active warranty claim to prevent double-refunds.
             var lineIds = request.Lines.Select(l => l.SalesOrderLineId).ToList();
-            var activeClaimStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+            var activeClaimStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
             var conflictingClaim = await _dbContext.Set<WarrantyRegistration>()
                 .Where(w => lineIds.Contains(w.SalesOrderLineId))
                 .Join(_dbContext.Set<WarrantyClaim>(),
@@ -91,7 +92,7 @@ namespace AutoPartShop.Api.Controllers
             // Load existing returns for this sales order to check cumulative quantities
             var existingReturns = await _salesReturnRepository.GetBySalesOrderAsync(request.SalesOrderId);
             var activeReturns = existingReturns
-                .Where(r => r.Status != "REJECTED")
+                .Where(r => r.Status != SalesReturnStatus.REJECTED)
                 .ToList();
 
             var returnNumber = await _codeGenerateService.GenerateAsync("SR");
@@ -150,7 +151,7 @@ namespace AutoPartShop.Api.Controllers
             if (salesReturn == null)
                 return NotFound();
 
-            if (salesReturn.Status != "PENDING")
+            if (salesReturn.Status != SalesReturnStatus.PENDING)
                 return BadRequest("Only pending returns can be updated.");
 
             salesReturn.UpdateNotes(request.Notes);
@@ -206,7 +207,7 @@ namespace AutoPartShop.Api.Controllers
                         return;
                     }
 
-                    if (salesReturn.Status != "PENDING")
+                    if (salesReturn.Status != SalesReturnStatus.PENDING)
                     {
                         await transaction.RollbackAsync(cancellationToken);
                         return;
@@ -232,7 +233,7 @@ namespace AutoPartShop.Api.Controllers
             if (salesReturn == null)
                 return NotFound();
 
-            if (salesReturn.Status != "APPROVED")
+            if (salesReturn.Status != SalesReturnStatus.APPROVED)
                 return BadRequest($"Cannot approve return with current status '{salesReturn.Status}'. Only PENDING returns can be approved.");
 
             return Ok(MapToResponse(salesReturn));
@@ -245,7 +246,7 @@ namespace AutoPartShop.Api.Controllers
             var salesReturn = await _salesReturnRepository.GetByIdAsync(id, cancellationToken);
             if (salesReturn == null)
                 return NotFound();
-            if (salesReturn.Status != "APPROVED")
+            if (salesReturn.Status != SalesReturnStatus.APPROVED)
                 return BadRequest("Only approved returns can be marked as received.");
             salesReturn.MarkAsReceived();
             await _salesReturnRepository.UpdateAsync(salesReturn, cancellationToken);
@@ -259,7 +260,7 @@ namespace AutoPartShop.Api.Controllers
             var salesReturn = await _salesReturnRepository.GetByIdAsync(id, cancellationToken);
             if (salesReturn == null)
                 return NotFound();
-            if (salesReturn.Status != "RECEIVED")
+            if (salesReturn.Status != SalesReturnStatus.RECEIVED)
                 return BadRequest("Only received returns can be processed.");
 
             // Use execution strategy to support SqlServerRetryingExecutionStrategy with transactions
@@ -282,8 +283,8 @@ namespace AutoPartShop.Api.Controllers
                         // row lock that serializes callers; the loser matches 0 rows and aborts. If the
                         // transaction later rolls back, this status change rolls back with it.
                         var claimed = await _dbContext.Set<Domain.Entities.SalesReturn>()
-                            .Where(sr => sr.Id == salesReturn.Id && sr.Status == "RECEIVED" && !sr.Isdeleted)
-                            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, "PROCESSED"), cancellationToken);
+                            .Where(sr => sr.Id == salesReturn.Id && sr.Status == SalesReturnStatus.RECEIVED && !sr.Isdeleted)
+                            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, SalesReturnStatus.PROCESSED), cancellationToken);
                         if (claimed == 0)
                             throw new InvalidOperationException("This return has already been processed.");
 
@@ -591,7 +592,7 @@ namespace AutoPartShop.Api.Controllers
                         return;
                     }
 
-                    if (salesReturn.Status != "PENDING" && salesReturn.Status != "APPROVED" && salesReturn.Status != "RECEIVED" && salesReturn.Status != "PROCESSED")
+                    if (salesReturn.Status != SalesReturnStatus.PENDING && salesReturn.Status != SalesReturnStatus.APPROVED && salesReturn.Status != SalesReturnStatus.RECEIVED && salesReturn.Status != SalesReturnStatus.PROCESSED)
                     {
                         validationError = "Only pending, approved, received, or processed returns can be rejected.";
                         await transaction.RollbackAsync(cancellationToken);
@@ -602,7 +603,7 @@ namespace AutoPartShop.Api.Controllers
                     if (string.IsNullOrWhiteSpace(actor))
                         actor = "system";
 
-                    if (salesReturn.Status == "PROCESSED")
+                    if (salesReturn.Status == SalesReturnStatus.PROCESSED)
                     {
                         // Map each return line back to the variant it was sold under
                         var soLineIds = salesReturn.LineItems.Select(l => l.SalesOrderLineId).Distinct().ToList();

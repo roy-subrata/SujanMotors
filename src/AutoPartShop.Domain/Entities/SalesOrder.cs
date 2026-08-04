@@ -1,3 +1,4 @@
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Events;
 
 namespace AutoPartShop.Domain.Entities;
@@ -22,7 +23,7 @@ public class SalesOrder : AggregateRoot
     public Guid? CustomerVehicleId { get; private set; }  // Optional: customer's vehicle this purchase is for
     public string VehicleLabel { get; private set; } = string.Empty;  // Denormalized vehicle label for display
     public Guid? WarehouseId { get; private set; }  // Dispatch warehouse
-    public string Status { get; private set; } = "PENDING";
+    public SalesOrderStatus Status { get; private set; } = SalesOrderStatus.PENDING;
     // Lifecycle: PENDING → CONFIRMED → DELIVERED  (direct handover, invoice only)
     //        or: PENDING → CONFIRMED → READY_FOR_DELIVERY → DELIVERED  (later delivery, invoice + challan)
     // Legacy statuses retained for backward compat: DRAFT, PAID, PACKED, SHIPPED, PARTIALLY_SHIPPED, COMPLETED, RETURNED
@@ -38,7 +39,7 @@ public class SalesOrder : AggregateRoot
     public decimal TotalAmount { get; private set; } = 0;
     public decimal TaxAmount { get; private set; } = 0;
     public decimal GrandTotal => TotalAmount + TaxAmount;
-    public string PaymentStatus { get; private set; } = "PENDING";  // PENDING, PARTIAL, PAID
+    public SalesOrderPaymentStatus PaymentStatus { get; private set; } = SalesOrderPaymentStatus.PENDING;
     public decimal PaidAmount { get; private set; } = 0;
     public string DeliveryAddress { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
@@ -94,14 +95,14 @@ public class SalesOrder : AggregateRoot
             Notes = notes?.Trim() ?? string.Empty,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
             Channel = normalizedChannel,
-            Status = "PENDING"
+            Status = SalesOrderStatus.PENDING
         };
     }
 
     public void Confirm()
     {
         // Accept PENDING (new) and DRAFT (legacy) as the pre-confirm state
-        if (Status is not ("PENDING" or "DRAFT"))
+        if (Status is not (SalesOrderStatus.PENDING or SalesOrderStatus.DRAFT))
             throw new InvalidOperationException($"Only Pending orders can be confirmed. Current: {Status}");
 
         if (!LineItems.Any())
@@ -110,7 +111,7 @@ public class SalesOrder : AggregateRoot
         if (LineItems.Any(l => l.Quantity <= 0))
             throw new InvalidOperationException("All line items must have a quantity greater than 0");
 
-        Status = "CONFIRMED";
+        Status = SalesOrderStatus.CONFIRMED;
         ConfirmedDate = DateTime.UtcNow;
 
         RaiseEvent(new SaleOrderConfirmedEvent(
@@ -124,44 +125,44 @@ public class SalesOrder : AggregateRoot
     /// </summary>
     public void MarkAsReadyForDelivery()
     {
-        if (Status != "CONFIRMED")
+        if (Status != SalesOrderStatus.CONFIRMED)
             throw new InvalidOperationException($"Order must be Confirmed before marking Ready For Delivery. Current: {Status}");
 
-        Status = "READY_FOR_DELIVERY";
+        Status = SalesOrderStatus.READY_FOR_DELIVERY;
     }
 
     public void MarkAsPaid()
     {
-        if (Status != "CONFIRMED")
+        if (Status != SalesOrderStatus.CONFIRMED)
             throw new InvalidOperationException($"Order must be CONFIRMED before marking as PAID. Current: {Status}");
 
-        Status = "PAID";
+        Status = SalesOrderStatus.PAID;
         PaidDate = DateTime.UtcNow;
     }
 
     public void MarkAsPacked()
     {
-        if (Status != "PAID")
+        if (Status != SalesOrderStatus.PAID)
             throw new InvalidOperationException($"Order must be PAID before marking as PACKED. Current: {Status}");
 
-        Status = "PACKED";
+        Status = SalesOrderStatus.PACKED;
         PackedDate = DateTime.UtcNow;
     }
 
     public void MarkAsPartiallyShipped()
     {
-        if (Status is not ("PAID" or "PACKED" or "PARTIALLY_SHIPPED"))
+        if (Status is not (SalesOrderStatus.PAID or SalesOrderStatus.PACKED or SalesOrderStatus.PARTIALLY_SHIPPED))
             throw new InvalidOperationException($"Order must be PAID or PACKED before shipping. Current: {Status}");
 
-        Status = "PARTIALLY_SHIPPED";
+        Status = SalesOrderStatus.PARTIALLY_SHIPPED;
     }
 
     public void MarkAsShipped()
     {
-        if (Status is not ("PAID" or "PACKED" or "PARTIALLY_SHIPPED"))
+        if (Status is not (SalesOrderStatus.PAID or SalesOrderStatus.PACKED or SalesOrderStatus.PARTIALLY_SHIPPED))
             throw new InvalidOperationException($"Order must be PAID or PACKED before marking as SHIPPED. Current: {Status}");
 
-        Status = "SHIPPED";
+        Status = SalesOrderStatus.SHIPPED;
     }
 
     public void MarkAsDelivered(DateTime? deliveryDate = null)
@@ -169,37 +170,37 @@ public class SalesOrder : AggregateRoot
         // Direct handover: CONFIRMED → DELIVERED (no challan needed)
         // Later delivery:  READY_FOR_DELIVERY → DELIVERED (challan already issued)
         // Legacy paths:    SHIPPED / PARTIALLY_SHIPPED → DELIVERED
-        var allowed = new[] { "CONFIRMED", "READY_FOR_DELIVERY", "SHIPPED", "PARTIALLY_SHIPPED" };
+        var allowed = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.SHIPPED, SalesOrderStatus.PARTIALLY_SHIPPED };
         if (!allowed.Contains(Status))
             throw new InvalidOperationException($"Cannot mark as Delivered from status: {Status}");
 
-        Status = "DELIVERED";
+        Status = SalesOrderStatus.DELIVERED;
         DeliveryDate = deliveryDate ?? DateTime.UtcNow;
     }
 
     public void MarkAsCompleted()
     {
-        if (Status != "DELIVERED")
+        if (Status != SalesOrderStatus.DELIVERED)
             throw new InvalidOperationException($"Order must be DELIVERED before marking as COMPLETED. Current: {Status}");
 
-        Status = "COMPLETED";
+        Status = SalesOrderStatus.COMPLETED;
         CompletedDate = DateTime.UtcNow;
     }
 
     public void Cancel()
     {
-        if (Status is "DELIVERED" or "CANCELLED" or "RETURNED")
+        if (Status is SalesOrderStatus.DELIVERED or SalesOrderStatus.CANCELLED or SalesOrderStatus.RETURNED)
             throw new InvalidOperationException($"Cannot cancel a {Status} order");
 
-        Status = "CANCELLED";
+        Status = SalesOrderStatus.CANCELLED;
     }
 
     public void MarkAsReturned()
     {
-        if (Status is not ("DELIVERED" or "COMPLETED"))
+        if (Status is not (SalesOrderStatus.DELIVERED or SalesOrderStatus.COMPLETED))
             throw new InvalidOperationException($"Only DELIVERED or COMPLETED orders can be returned. Current: {Status}");
 
-        Status = "RETURNED";
+        Status = SalesOrderStatus.RETURNED;
     }
 
     public void CalculateTotal()
@@ -247,7 +248,7 @@ public class SalesOrder : AggregateRoot
             throw new InvalidOperationException("Payment exceeds outstanding amount");
 
         PaidAmount += amount;
-        PaymentStatus = PaidAmount >= GrandTotal ? "PAID" : "PARTIAL";
+        PaymentStatus = PaidAmount >= GrandTotal ? SalesOrderPaymentStatus.PAID : SalesOrderPaymentStatus.PARTIAL;
     }
 
     /// <summary>
@@ -262,7 +263,7 @@ public class SalesOrder : AggregateRoot
             throw new InvalidOperationException("Refund amount cannot exceed paid amount");
 
         PaidAmount -= refundAmount;
-        PaymentStatus = PaidAmount >= GrandTotal ? "PAID" : (PaidAmount > 0 ? "PARTIAL" : "PENDING");
+        PaymentStatus = PaidAmount >= GrandTotal ? SalesOrderPaymentStatus.PAID : (PaidAmount > 0 ? SalesOrderPaymentStatus.PARTIAL : SalesOrderPaymentStatus.PENDING);
     }
 
     public void UpdateNotes(string notes)

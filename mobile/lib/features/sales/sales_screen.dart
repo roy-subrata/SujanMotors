@@ -11,6 +11,7 @@ import '../../core/i18n/strings.dart';
 import '../../shared/format.dart';
 import '../../shared/models/invoice.dart';
 import '../../shared/models/sale_return.dart';
+import '../../shared/models/status_enums.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/design_system.dart';
 import '../../shared/widgets/paged_list_view.dart';
@@ -131,7 +132,9 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                 : _InvoiceList(
                     resetKey: _resetKey,
                     search: _search,
-                    status: _filter == _SalesFilter.paid ? 'PAID' : null,
+                    status: _filter == _SalesFilter.paid
+                        ? InvoiceStatus.paid
+                        : null,
                     hasDue: _filter == _SalesFilter.due,
                     range: _range,
                   ),
@@ -262,7 +265,7 @@ class _InvoiceList extends ConsumerWidget {
 
   final String resetKey;
   final String search;
-  final String? status;
+  final InvoiceStatus? status;
   final bool hasDue;
   final DateTimeRange? range;
 
@@ -343,15 +346,15 @@ class _InvoiceRow extends StatelessWidget {
   /// Maps backend invoice statuses onto the design's pill labels.
   static String _pillLabel(BuildContext context, Invoice inv) {
     final s = S.of(context);
-    switch (inv.status?.toUpperCase()) {
-      case 'PAID':
+    switch (inv.status) {
+      case InvoiceStatus.paid:
         return s.statusPaid;
-      case 'PARTIALLY_PAID':
+      case InvoiceStatus.partiallyPaid:
         return s.statusPartial;
-      case 'CANCELLED':
+      case InvoiceStatus.cancelled:
         return s.statusCancelled;
       default:
-        return inv.outstandingAmount > 0 ? s.due : (inv.status ?? '');
+        return inv.outstandingAmount > 0 ? s.due : s.statusName(inv.status);
     }
   }
 
@@ -416,7 +419,10 @@ class _InvoiceRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    StatusPill(label: _pillLabel(context, invoice)),
+                    StatusPill(
+                      label: _pillLabel(context, invoice),
+                      kind: invoice.status.kind,
+                    ),
                   ],
                 ),
               ],

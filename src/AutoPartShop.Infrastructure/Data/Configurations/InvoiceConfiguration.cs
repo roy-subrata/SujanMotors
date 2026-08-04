@@ -25,6 +25,7 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .HasPrecision(18, 2);
 
         builder.Property(i => i.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

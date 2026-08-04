@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 
 public interface ICustomerPaymentRepository : IBaseRepository<CustomerPayment>
@@ -6,7 +7,7 @@ public interface ICustomerPaymentRepository : IBaseRepository<CustomerPayment>
     Task<CustomerPayment?> GetByTransactionNumberAsync(string transactionNumber, CancellationToken cancellationToken = default);
     Task<IEnumerable<CustomerPayment>> GetByCustomerAsync(Guid customerId, CancellationToken cancellationToken = default);
     Task<IEnumerable<CustomerPayment>> GetByInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<CustomerPayment>> GetByStatusAsync(string status, CancellationToken cancellationToken = default);
+    Task<IEnumerable<CustomerPayment>> GetByStatusAsync(CustomerPaymentStatus status, CancellationToken cancellationToken = default);
     Task<IEnumerable<CustomerPayment>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
     Task<IEnumerable<CustomerPayment>> GetByPaymentMethodAsync(string paymentMethod, CancellationToken cancellationToken = default);
     Task<IEnumerable<CustomerPayment>> GetPendingAsync(CancellationToken cancellationToken = default);

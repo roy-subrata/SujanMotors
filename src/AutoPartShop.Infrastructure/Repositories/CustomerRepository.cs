@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
@@ -93,7 +94,7 @@ public class CustomerRepository : ICustomerRepository
             .FirstOrDefaultAsync(x => x.Email == email.ToLower() && !x.Isdeleted, cancellationToken);
     }
 
-    public async Task<IEnumerable<Customer>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Customer>> GetByStatusAsync(CustomerStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Customers
             .Where(x => x.Status == status && !x.Isdeleted)
@@ -150,7 +151,7 @@ public class CustomerRepository : ICustomerRepository
     {
         return await _dbContext.Customers
             .Include(x => x.CustomerPayments)
-            .Where(x => x.Status == "ACTIVE" && !x.Isdeleted)
+            .Where(x => x.Status == CustomerStatus.ACTIVE && !x.Isdeleted)
             .OrderBy(x => x.CustomerCode)
             .ToListAsync(cancellationToken);
     }

@@ -1,4 +1,6 @@
-﻿namespace AutoPartShop.Application.SaleOrders.Dtos
+﻿using AutoPartShop.Domain.Enums;
+
+namespace AutoPartShop.Application.SaleOrders.Dtos
 {
     public class SaleOrderResponse
     {
@@ -16,7 +18,7 @@
         public string VehicleLabel { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
         public DateTime DeliveryDate { get; set; }
-        public string Status { get; set; } = string.Empty; // DRAFT → CONFIRMED → PAID → PACKED → SHIPPED → COMPLETED | CANCELLED | RETURNED
+        public SalesOrderStatus Status { get; set; }
         public string Channel { get; set; } = string.Empty; // POS | ECOMMERCE | MOBILE | API
         public DateTime? PaidDate { get; set; }
         public DateTime? PackedDate { get; set; }

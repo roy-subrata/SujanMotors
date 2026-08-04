@@ -42,9 +42,9 @@ namespace AutoPartShop.Infrastructure.Repositories
                 paymentsQuery = paymentsQuery.Where(x => x.CustomerId == customerId);
             }
 
-            if (!string.IsNullOrWhiteSpace(query.Status))
+            if (query.Status.HasValue)
             {
-                paymentsQuery = paymentsQuery.Where(x => x.Status == query.Status);
+                paymentsQuery = paymentsQuery.Where(x => x.Status == query.Status.Value);
             }
 
             if (query.FromDate.HasValue && query.ToDate.HasValue)

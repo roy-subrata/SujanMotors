@@ -1,4 +1,6 @@
-﻿namespace AutoPartShop.Application.CustomerPayment.Dtos;
+﻿using AutoPartShop.Domain.Enums;
+
+namespace AutoPartShop.Application.CustomerPayment.Dtos;
 
 public class CustomerPaymentResponse
 {
@@ -16,7 +18,7 @@ public class CustomerPaymentResponse
     public string Currency { get; set; } = "USD";
     public DateTime PaymentDate { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public CustomerPaymentStatus Status { get; set; }
     public string ReferenceNumber { get; set; } = string.Empty;
     public string AuthorizationCode { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
@@ -89,7 +91,7 @@ public class PaymentProviderResponse
     public Guid Id { get; set; }
     public string ProviderName { get; set; } = string.Empty;
     public string ProviderType { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public PaymentProviderStatus Status { get; set; }
     public string BankName { get; set; } = string.Empty;
     public string BankAccountNumber { get; set; } = string.Empty;
     public string BankRoutingNumber { get; set; } = string.Empty;

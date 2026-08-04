@@ -1,5 +1,6 @@
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Repositories;
 
 namespace AutoPartShop.Api.Services;
@@ -50,7 +51,7 @@ public class StockManagementService
             throw new ArgumentException("Goods receipt must have line items", nameof(goodsReceipt));
 
         // Prevent duplicate processing - check if GRN is already accepted
-        if (goodsReceipt.Status == "ACCEPTED")
+        if (goodsReceipt.Status == GoodsReceiptStatus.ACCEPTED)
             throw new InvalidOperationException($"Goods receipt {goodsReceipt.GRNNumber} has already been processed");
 
         try
@@ -96,15 +97,15 @@ public class StockManagementService
                 //  Wrong   -> Quarantine(held, not sellable)
                 await PostBucketAsync(goodsReceipt, grnLine, part, purchaseOrder,
                     qty: grnLine.AcceptedQuantity, baseQty: ToBase(grnLine.AcceptedQuantity, grnLine.AcceptedQuantityInBaseUnit),
-                    baseUnitCost, status: "AVAILABLE", movementReason: "GRN", cancellationToken);
+                    baseUnitCost, status: StockLotStatus.AVAILABLE, movementReason: "GRN", cancellationToken);
 
                 var damagedLot = await PostBucketAsync(goodsReceipt, grnLine, part, purchaseOrder,
                     qty: grnLine.DamagedQuantity, baseQty: ToBase(grnLine.DamagedQuantity, grnLine.DamagedQuantityInBaseUnit),
-                    baseUnitCost, status: "DAMAGED", movementReason: "GRN-DAMAGED", cancellationToken);
+                    baseUnitCost, status: StockLotStatus.DAMAGED, movementReason: "GRN-DAMAGED", cancellationToken);
 
                 var quarantineLot = await PostBucketAsync(goodsReceipt, grnLine, part, purchaseOrder,
                     qty: grnLine.WrongQuantity, baseQty: ToBase(grnLine.WrongQuantity, grnLine.WrongQuantityInBaseUnit),
-                    baseUnitCost, status: "QUARANTINE", movementReason: "GRN-QUARANTINE", cancellationToken);
+                    baseUnitCost, status: StockLotStatus.QUARANTINE, movementReason: "GRN-QUARANTINE", cancellationToken);
 
                 if (damagedLot != null || quarantineLot != null)
                     rejectedLotsByGrnLine[grnLine.Id] = (damagedLot, quarantineLot);
@@ -133,7 +134,7 @@ public class StockManagementService
     /// </summary>
     private async Task<StockLot?> PostBucketAsync(
         GoodsReceipt goodsReceipt, GoodsReceiptLine grnLine, Product part, PurchaseOrder purchaseOrder,
-        int qty, int baseQty, decimal baseUnitCost, string status, string movementReason,
+        int qty, int baseQty, decimal baseUnitCost, StockLotStatus status, string movementReason,
         CancellationToken cancellationToken)
     {
         if (qty <= 0 || baseQty <= 0)
@@ -146,10 +147,10 @@ public class StockManagementService
         // Route the quantity into the correct (non-)sellable bucket
         switch (status)
         {
-            case "DAMAGED":
+            case StockLotStatus.DAMAGED:
                 stockLevel.AddDamagedStock(baseQty, baseQty, movementReason);
                 break;
-            case "QUARANTINE":
+            case StockLotStatus.QUARANTINE:
                 stockLevel.AddQuarantineStock(baseQty, baseQty, movementReason);
                 break;
             default:
@@ -324,7 +325,7 @@ public class StockManagementService
                 // flips only after stock processing succeeds), so include it by id — otherwise the
                 // PO's received quantities lag one receipt behind and it never reaches DELIVERED.
                 var totalAcceptedForLine = purchaseOrder.GoodsReceipts
-                    .Where(gr => gr.Status == "ACCEPTED" || gr.Id == acceptingGrnId)
+                    .Where(gr => gr.Status == GoodsReceiptStatus.ACCEPTED || gr.Id == acceptingGrnId)
                     .SelectMany(gr => gr.LineItems)
                     .Where(l => l.PurchaseOrderLineId == poLine.Id)
                     .Sum(l => l.AcceptedQuantity);
@@ -384,9 +385,9 @@ public class StockManagementService
                     grnLine.PartId, grnLine.VariantId, goodsReceipt.WarehouseId, part.BaseUnitId, cancellationToken);
 
                 // Reverse each bucket out of its inventory status
-                ReverseBucket(stockLevel, "AVAILABLE", grnLine.AcceptedQuantity, ToBase(grnLine.AcceptedQuantity, grnLine.AcceptedQuantityInBaseUnit));
-                ReverseBucket(stockLevel, "DAMAGED", grnLine.DamagedQuantity, ToBase(grnLine.DamagedQuantity, grnLine.DamagedQuantityInBaseUnit));
-                ReverseBucket(stockLevel, "QUARANTINE", grnLine.WrongQuantity, ToBase(grnLine.WrongQuantity, grnLine.WrongQuantityInBaseUnit));
+                ReverseBucket(stockLevel, StockLotStatus.AVAILABLE, grnLine.AcceptedQuantity, ToBase(grnLine.AcceptedQuantity, grnLine.AcceptedQuantityInBaseUnit));
+                ReverseBucket(stockLevel, StockLotStatus.DAMAGED, grnLine.DamagedQuantity, ToBase(grnLine.DamagedQuantity, grnLine.DamagedQuantityInBaseUnit));
+                ReverseBucket(stockLevel, StockLotStatus.QUARANTINE, grnLine.WrongQuantity, ToBase(grnLine.WrongQuantity, grnLine.WrongQuantityInBaseUnit));
                 await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                 // Record a single OUT movement for the whole reversal of this line (base units)
@@ -429,17 +430,17 @@ public class StockManagementService
     /// Removes a quantity from the given stock-level bucket, capped at what's actually on hand so a
     /// reversal can never drive a bucket negative. No-op when quantity is 0.
     /// </summary>
-    private static void ReverseBucket(StockLevel stockLevel, string status, int qty, int baseQty)
+    private static void ReverseBucket(StockLevel stockLevel, StockLotStatus status, int qty, int baseQty)
     {
         if (qty <= 0 || baseQty <= 0)
             return;
 
         switch (status)
         {
-            case "DAMAGED":
+            case StockLotStatus.DAMAGED:
                 stockLevel.RemoveDamagedStock(qty, baseQty, "GRN Reversal");
                 break;
-            case "QUARANTINE":
+            case StockLotStatus.QUARANTINE:
                 stockLevel.RemoveQuarantineStock(qty, baseQty, "GRN Reversal");
                 break;
             default:

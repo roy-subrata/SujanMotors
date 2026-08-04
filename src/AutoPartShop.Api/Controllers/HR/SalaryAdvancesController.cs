@@ -4,6 +4,7 @@ using AutoPartShop.Application.HR;
 using AutoPartShop.Application.HR.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -116,7 +117,7 @@ public class SalaryAdvancesController : ControllerBase
             var advance = await _advanceRepository.GetByIdAsync(id, cancellationToken);
             if (advance is null) return NotFound();
 
-            if (advance.Status != "OUTSTANDING")
+            if (advance.Status != SalaryAdvanceStatus.OUTSTANDING)
                 return BadRequest(new { message = "Only outstanding advances can be cancelled" });
 
             advance.ModifiedBy = _currentUserService.GetCurrentUsername();

@@ -20,6 +20,7 @@ import {
     CreateCustomerVehicleRequest
 } from '../../services/customer-vehicle.service';
 import { AppCurrencyPipe } from '../../../../shared/pipes/app-currency.pipe';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-customer-detail',
@@ -41,6 +42,7 @@ export class CustomerDetailComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly fb = inject(FormBuilder);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     customerId = signal<string>('');
     customer = signal<CustomerResponse | null>(null);
@@ -217,13 +219,8 @@ export class CustomerDetailComponent implements OnInit {
         return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     }
 
-    getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
-        switch (status?.toUpperCase()) {
-            case 'ACTIVE':   return 'success';
-            case 'INACTIVE': return 'secondary';
-            case 'SUSPENDED': return 'danger';
-            default:         return 'info';
-        }
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'customer');
     }
 
     editCustomer(): void {

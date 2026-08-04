@@ -6,6 +6,7 @@ import '../../core/network/dio_provider.dart';
 import '../../shared/models/invoice.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/sale.dart';
+import '../../shared/models/status_enums.dart';
 
 class SalesRepository {
   SalesRepository(this._dio);
@@ -16,7 +17,7 @@ class SalesRepository {
   /// [hasDue] keeps only invoices with an unpaid balance (the "Due" chip).
   Future<PagedChunk<Invoice>> invoices({
     String? search,
-    String? status,
+    InvoiceStatus? status,
     bool hasDue = false,
     DateTime? fromDate,
     DateTime? toDate,
@@ -28,7 +29,7 @@ class SalesRepository {
         'pageNumber': page,
         'pageSize': pageSize,
         if (search != null && search.isNotEmpty) 'searchTerm': search,
-        'status': ?status,
+        'status': ?status?.wire,
         if (hasDue) 'hasDue': true,
         if (fromDate != null)
           'fromDate': fromDate.toIso8601String().substring(0, 10),

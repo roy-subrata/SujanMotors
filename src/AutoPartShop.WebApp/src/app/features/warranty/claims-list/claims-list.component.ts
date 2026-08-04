@@ -37,6 +37,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-claims-list',
@@ -76,6 +77,7 @@ export class ClaimsListComponent implements OnInit {
     private readonly authService = inject(AuthService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     get currentUsername(): string {
         return this.authService.currentUser()?.username || 'admin';
@@ -273,17 +275,8 @@ export class ClaimsListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, this.currencyService.selectedCurrency());
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            'PENDING': 'warn',
-            'UNDER_REVIEW': 'info',
-            'APPROVED': 'success',
-            'REJECTED': 'danger',
-            'IN_PROGRESS': 'info',
-            'COMPLETED': 'success',
-            'CLOSED': 'secondary'
-        };
-        return map[status] || 'info';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'warranty-claim');
     }
 
     getStatusLabel(status: string): string {

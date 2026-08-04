@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 public static class WarrantyTypes
@@ -26,7 +28,7 @@ public class WarrantyRegistration : AuditableEntity
     public int WarrantyPeriodMonths { get; private set; }
     public string WarrantyTerms { get; private set; } = string.Empty;
     public string CertificateNumber { get; private set; } = string.Empty;  // Generated from template
-    public string Status { get; private set; } = "ACTIVE";  // ACTIVE, EXPIRED, CLAIMED, VOID
+    public WarrantyRegistrationStatus Status { get; private set; } = WarrantyRegistrationStatus.ACTIVE;
     public string? VoidReason { get; private set; }
     public DateTime? VoidedDate { get; private set; }
 
@@ -99,7 +101,7 @@ public class WarrantyRegistration : AuditableEntity
             WarrantyType = warrantyType.Trim().ToUpper(),
             WarrantyTerms = warrantyTerms?.Trim() ?? string.Empty,
             CertificateNumber = certificateNumber.Trim().ToUpper(),
-            Status = "ACTIVE",
+            Status = WarrantyRegistrationStatus.ACTIVE,
             CreatedBy = "System",
             ModifiedBy = "System"
         };
@@ -107,13 +109,13 @@ public class WarrantyRegistration : AuditableEntity
 
     public void Void(string reason)
     {
-        if (Status == "VOID")
+        if (Status == WarrantyRegistrationStatus.VOID)
             throw new InvalidOperationException("Warranty is already voided");
 
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("Void reason is required", nameof(reason));
 
-        Status = "VOID";
+        Status = WarrantyRegistrationStatus.VOID;
         VoidReason = reason.Trim();
         VoidedDate = DateTime.UtcNow;
         ModifiedBy = "System";
@@ -121,28 +123,28 @@ public class WarrantyRegistration : AuditableEntity
 
     public void MarkAsClaimed()
     {
-        if (Status == "VOID")
+        if (Status == WarrantyRegistrationStatus.VOID)
             throw new InvalidOperationException("Cannot mark voided warranty as claimed");
 
-        if (Status == "EXPIRED")
+        if (Status == WarrantyRegistrationStatus.EXPIRED)
             throw new InvalidOperationException("Cannot mark expired warranty as claimed");
 
-        Status = "CLAIMED";
+        Status = WarrantyRegistrationStatus.CLAIMED;
         ModifiedBy = "System";
     }
 
     public void CheckAndUpdateExpiry()
     {
-        if (Status == "ACTIVE" && DateTime.UtcNow > WarrantyExpiryDate)
+        if (Status == WarrantyRegistrationStatus.ACTIVE && DateTime.UtcNow > WarrantyExpiryDate)
         {
-            Status = "EXPIRED";
+            Status = WarrantyRegistrationStatus.EXPIRED;
             ModifiedBy = "System";
         }
     }
 
     public bool IsValid()
     {
-        return Status == "ACTIVE" && DateTime.UtcNow <= WarrantyExpiryDate;
+        return Status == WarrantyRegistrationStatus.ACTIVE && DateTime.UtcNow <= WarrantyExpiryDate;
     }
 
     /// <summary>
@@ -151,16 +153,16 @@ public class WarrantyRegistration : AuditableEntity
     /// </summary>
     public void ReactivateAfterClaimRejection()
     {
-        if (Status != "CLAIMED")
+        if (Status != WarrantyRegistrationStatus.CLAIMED)
             return;
 
         if (DateTime.UtcNow > WarrantyExpiryDate)
         {
-            Status = "EXPIRED";
+            Status = WarrantyRegistrationStatus.EXPIRED;
         }
         else
         {
-            Status = "ACTIVE";
+            Status = WarrantyRegistrationStatus.ACTIVE;
         }
         ModifiedBy = "System";
     }
@@ -171,10 +173,10 @@ public class WarrantyRegistration : AuditableEntity
     /// </summary>
     public void ReactivateAfterClaimClosure()
     {
-        if (Status != "CLAIMED")
+        if (Status != WarrantyRegistrationStatus.CLAIMED)
             return;
 
-        Status = DateTime.UtcNow > WarrantyExpiryDate ? "EXPIRED" : "ACTIVE";
+        Status = DateTime.UtcNow > WarrantyExpiryDate ? WarrantyRegistrationStatus.EXPIRED : WarrantyRegistrationStatus.ACTIVE;
         ModifiedBy = "System";
     }
 
@@ -190,14 +192,14 @@ public class WarrantyRegistration : AuditableEntity
         var actor = string.IsNullOrWhiteSpace(modifiedBy) ? "System" : modifiedBy.Trim();
 
         // Don't alter warranty details while a claim is actively in-flight.
-        if (Status == "CLAIMED")
+        if (Status == WarrantyRegistrationStatus.CLAIMED)
             return;
 
         if (!hasWarranty)
         {
-            if (Status == "ACTIVE")
+            if (Status == WarrantyRegistrationStatus.ACTIVE)
             {
-                Status = "VOID";
+                Status = WarrantyRegistrationStatus.VOID;
                 VoidReason = string.IsNullOrWhiteSpace(voidReason)
                     ? "Part warranty was disabled"
                     : voidReason.Trim();
@@ -223,13 +225,13 @@ public class WarrantyRegistration : AuditableEntity
             ? $"CERT-{WarrantyNumber}"
             : $"{warrantyCertificateTemplate.Trim().ToUpper()}-{WarrantyNumber}";
 
-        if (Status == "EXPIRED" && DateTime.UtcNow <= WarrantyExpiryDate)
+        if (Status == WarrantyRegistrationStatus.EXPIRED && DateTime.UtcNow <= WarrantyExpiryDate)
         {
-            Status = "ACTIVE";
+            Status = WarrantyRegistrationStatus.ACTIVE;
         }
-        else if (Status == "ACTIVE" && DateTime.UtcNow > WarrantyExpiryDate)
+        else if (Status == WarrantyRegistrationStatus.ACTIVE && DateTime.UtcNow > WarrantyExpiryDate)
         {
-            Status = "EXPIRED";
+            Status = WarrantyRegistrationStatus.EXPIRED;
         }
 
         ModifiedBy = actor;

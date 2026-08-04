@@ -1,4 +1,5 @@
 ﻿using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
+using AutoPartShop.Domain.Enums;
 
 public class PurchaseOrderResponse
 {
@@ -9,8 +10,8 @@ public class PurchaseOrderResponse
     public string SupplierCode { get; set; } = string.Empty;
     public DateTime OrderDate { get; set; }
     public DateTime DeliveryDate { get; set; }
-    public string PaymentStatus { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty; // DRAFT, SUBMITTED, CONFIRMED, PARTIAL, DELIVERED, CANCELLED
+    public PurchaseOrderPaymentStatus PaymentStatus { get; set; }
+    public PurchaseOrderStatus Status { get; set; }
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TaxPercentage { get; set; }

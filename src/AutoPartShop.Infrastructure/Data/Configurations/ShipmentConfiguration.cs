@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -15,9 +16,10 @@ public class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
             .HasMaxLength(50);
 
         builder.Property(s => s.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20)
-            .HasDefaultValue("PENDING");
+            .HasDefaultValue(ShipmentStatus.PENDING);
 
         builder.Property(s => s.CourierName)
             .HasMaxLength(200);

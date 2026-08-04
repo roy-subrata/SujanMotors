@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -12,7 +14,7 @@ public class Technician : AuditableEntity
     public string ShopName { get; private set; } = string.Empty;
     public string Address { get; private set; } = string.Empty;
     public string City { get; private set; } = string.Empty;
-    public string Status { get; private set; } = "ACTIVE";  // ACTIVE, INACTIVE
+    public TechnicianStatus Status { get; private set; } = TechnicianStatus.ACTIVE;
     public string Notes { get; private set; } = string.Empty;
 
     // Navigation properties
@@ -42,7 +44,7 @@ public class Technician : AuditableEntity
             Address = address?.Trim() ?? string.Empty,
             City = city?.Trim() ?? string.Empty,
             Notes = notes?.Trim() ?? string.Empty,
-            Status = "ACTIVE"
+            Status = TechnicianStatus.ACTIVE
         };
     }
 
@@ -64,6 +66,6 @@ public class Technician : AuditableEntity
         Notes = notes?.Trim() ?? string.Empty;
     }
 
-    public void Activate() => Status = "ACTIVE";
-    public void Deactivate() => Status = "INACTIVE";
+    public void Activate() => Status = TechnicianStatus.ACTIVE;
+    public void Deactivate() => Status = TechnicianStatus.INACTIVE;
 }

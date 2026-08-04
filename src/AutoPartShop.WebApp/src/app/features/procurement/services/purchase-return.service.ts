@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { PurchaseReturnStatus, StockLotStatus } from '@/shared/models/status.types';
 
 export interface PurchaseReturnLineResponse {
   id: string;
@@ -35,7 +36,7 @@ export interface AvailableLotForReturn {
   receivingDate: string;
   expiryDate?: string;
   isFromSameSupplier: boolean;
-  status: string; // AVAILABLE, DAMAGED, QUARANTINE - which inventory bucket the lot belongs to
+  status: StockLotStatus; // which inventory bucket the lot belongs to
 }
 
 /** Draft payload to pre-fill a new return from an accepted Goods Receipt's damaged/wrong lines. */
@@ -74,7 +75,7 @@ export interface PurchaseReturnResponse {
   supplierCode?: string;
   returnDate: string;
   reason: string;
-  status: string; // PENDING, APPROVED, RETURNED, RECEIVED, REJECTED, CREDITED
+  status: PurchaseReturnStatus;
   refundAmount: number;
   creditNoteAmount: number;
   notes?: string;
@@ -196,7 +197,7 @@ export class PurchaseReturnService {
   /**
    * Get purchase returns by status
    */
-  getPurchaseReturnsByStatus(status: string): Observable<PurchaseReturnResponse[]> {
+  getPurchaseReturnsByStatus(status: PurchaseReturnStatus): Observable<PurchaseReturnResponse[]> {
     return this.http.get<PurchaseReturnResponse[]>(`${this.apiUrl}/status/${status}`);
   }
 

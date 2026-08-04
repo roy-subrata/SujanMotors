@@ -33,6 +33,7 @@ public class CustomerPaymentConfiguration : IEntityTypeConfiguration<CustomerPay
             .HasMaxLength(50);
 
         builder.Property(cp => cp.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

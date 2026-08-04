@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PaginatedResponse } from './stock-lot.service';
+import { StockTakeStatus } from '@/shared/models/status.types';
 
 export interface StockTakeResponse {
   id: string;
@@ -11,7 +12,7 @@ export interface StockTakeResponse {
   warehouseName: string;
   categoryId?: string | null;
   categoryName: string;
-  status: 'COUNTING' | 'REVIEW' | 'COMPLETED' | 'CANCELLED';
+  status: StockTakeStatus;
   snapshotDate: string;
   submittedDate?: string | null;
   completedDate?: string | null;
@@ -72,7 +73,7 @@ export interface ApproveStockTakeResponse {
 export interface StockTakeListQuery {
   pageNumber: number;
   pageSize: number;
-  status?: string | null;
+  status?: StockTakeStatus | null;
   warehouseId?: string | null;
   search?: string;
 }
@@ -104,19 +105,19 @@ export class StockTakeService {
     return this.http.put<{ message: string }>(`${this.apiUrl}/${id}/counts`, { counts });
   }
 
-  submit(id: string): Observable<{ id: string; status: string }> {
-    return this.http.post<{ id: string; status: string }>(`${this.apiUrl}/${id}/submit`, {});
+  submit(id: string): Observable<{ id: string; status: StockTakeStatus }> {
+    return this.http.post<{ id: string; status: StockTakeStatus }>(`${this.apiUrl}/${id}/submit`, {});
   }
 
-  reopen(id: string): Observable<{ id: string; status: string }> {
-    return this.http.post<{ id: string; status: string }>(`${this.apiUrl}/${id}/reopen`, {});
+  reopen(id: string): Observable<{ id: string; status: StockTakeStatus }> {
+    return this.http.post<{ id: string; status: StockTakeStatus }>(`${this.apiUrl}/${id}/reopen`, {});
   }
 
   approve(id: string): Observable<ApproveStockTakeResponse> {
     return this.http.post<ApproveStockTakeResponse>(`${this.apiUrl}/${id}/approve`, {});
   }
 
-  cancel(id: string): Observable<{ id: string; status: string }> {
-    return this.http.post<{ id: string; status: string }>(`${this.apiUrl}/${id}/cancel`, {});
+  cancel(id: string): Observable<{ id: string; status: StockTakeStatus }> {
+    return this.http.post<{ id: string; status: StockTakeStatus }>(`${this.apiUrl}/${id}/cancel`, {});
   }
 }

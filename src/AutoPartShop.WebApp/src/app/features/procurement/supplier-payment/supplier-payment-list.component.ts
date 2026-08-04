@@ -14,6 +14,7 @@ import { DatePicker } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { SupplierPaymentService, SupplierPaymentResponse, PaginatedSupplierPaymentResponse, SupplierPaymentQuery } from '../services/supplier-payment.service';
+import { SupplierPaymentStatus } from '@/shared/models/status.types';
 import { StatusBadgeComponent } from '../components/status-badge.component';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { SupplierService } from '../../inventory/services/supplier.service';
@@ -57,7 +58,7 @@ export class SupplierPaymentListComponent implements OnInit {
     loading: boolean = false;
     contextMenuItems: MenuItem[] = [];
     selectedPayment: SupplierPaymentResponse | null = null;
-    filterStatus: string | null = null;
+    filterStatus: SupplierPaymentStatus | null = null;
     dateRange: Date[] = [];
     sortField: string | null = null;
     sortOrder: number | null = null;
@@ -108,7 +109,7 @@ export class SupplierPaymentListComponent implements OnInit {
                 label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
                 command: () => { if (payment) this.edit(payment); },
-                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
+                visible: payment ? payment.status !== 'CANCELLED' : false
             },
             { separator: true },
             {
@@ -134,20 +135,20 @@ export class SupplierPaymentListComponent implements OnInit {
                 label: this.i18n.t('common.actions.reconcile'),
                 icon: 'pi pi-sync',
                 command: () => { if (payment) this.reconcilePayment(payment); },
-                visible: payment ? payment.status === 'CONFIRMED' && !payment.isReconciled : false
+                visible: payment ? payment.status === 'COMPLETED' && !payment.isReconciled : false
             },
             { separator: true },
             {
                 label: this.i18n.t('common.actions.cancel'),
                 icon: 'pi pi-times',
                 command: () => { if (payment) this.cancelPayment(payment); },
-                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
+                visible: payment ? payment.status !== 'COMPLETED' && payment.status !== 'RETURNED' && payment.status !== 'CANCELLED' : false
             },
             {
                 label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
                 command: () => { if (payment) this.deletePayment(payment); },
-                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
+                visible: payment ? payment.status !== 'COMPLETED' && !payment.isReconciled : false
             }
         ];
     }

@@ -1,4 +1,5 @@
 ﻿using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -59,8 +60,9 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                    .IsRequired();
 
             builder.Property(x => x.Status)
+                   .HasConversion<string>()
                    .HasMaxLength(50)
-                   .HasDefaultValue("PENDING")
+                   .HasDefaultValue(SupplierPaymentStatus.PENDING)
                    .IsRequired();
 
             builder.Property(x => x.ReferenceNumber)

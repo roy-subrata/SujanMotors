@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 
 namespace AutoPartShop.Domain.Repositories.HR;
 
@@ -14,5 +15,5 @@ public interface IEmployeeRepository
     // Specialized queries
     Task<Employee?> GetByCodeAsync(string employeeCode, CancellationToken cancellationToken = default);
     Task<Employee?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Employee>> GetByStatusAsync(string status, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Employee>> GetByStatusAsync(EmployeeStatus status, CancellationToken cancellationToken = default);
 }

@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.PurchaseOrders;
 
 public class PurchaseOrderDto
@@ -9,7 +11,7 @@ public class PurchaseOrderDto
     public string SupplierCode { get; set; } = string.Empty;
     public DateTime OrderDate { get; set; }
     public DateTime DeliveryDate { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public PurchaseOrderStatus Status { get; set; }
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TaxPercentage { get; set; }

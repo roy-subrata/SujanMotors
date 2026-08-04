@@ -24,6 +24,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-customer-account-summary',
@@ -54,6 +55,7 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly statusDisplay = inject(StatusDisplayService);
     private readonly destroy$ = new Subject<void>();
 
     // Filter state
@@ -301,21 +303,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
         });
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        switch (status) {
-            case 'PAID':
-                return 'success';
-            case 'ISSUED':
-                return 'info';
-            case 'PARTIALLY_PAID':
-                return 'warn';
-            case 'OVERDUE':
-                return 'danger';
-            case 'CANCELLED':
-                return 'secondary';
-            default:
-                return 'info';
-        }
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'invoice');
     }
 
     ngOnDestroy(): void {

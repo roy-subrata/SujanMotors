@@ -8,6 +8,7 @@ import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/invoice.dart';
+import '../../shared/models/status_enums.dart';
 import '../../shared/widgets/design_system.dart';
 import '../../shared/widgets/state_views.dart';
 import 'customers_repository.dart';
@@ -105,7 +106,15 @@ class _InvoiceBody extends StatelessWidget {
                         ],
                       ),
                     ),
-                    StatusPill(label: inv.status ?? 'ISSUED'),
+                    StatusPill(
+                      label: inv.status == InvoiceStatus.unknown
+                          ? S.of(context).statusName(InvoiceStatus.issued)
+                          : S.of(context).statusName(inv.status),
+                      kind: (inv.status == InvoiceStatus.unknown
+                              ? InvoiceStatus.issued
+                              : inv.status)
+                          .kind,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),

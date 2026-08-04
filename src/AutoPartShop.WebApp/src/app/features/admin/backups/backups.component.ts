@@ -17,6 +17,8 @@ import { BackupService, BackupRecord, DriveStatus } from '../../../shared/servic
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { BackupRecordStatus } from '@/shared/models/status.types';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
   selector: 'app-backups',
@@ -275,6 +277,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
   private readonly backupService = inject(BackupService);
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);
+  private readonly statusDisplayService = inject(StatusDisplayService);
 
   settingsLoading = signal(true);
   settingsSaving = signal(false);
@@ -495,14 +498,8 @@ export class BackupsComponent implements OnInit, OnDestroy {
     return record.status === 'Succeeded' || record.status === 'UploadFailed';
   }
 
-  statusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
-    switch (status) {
-      case 'Succeeded': return 'success';
-      case 'Running': return 'info';
-      case 'UploadFailed': return 'warn';
-      case 'Failed': return 'danger';
-      default: return 'secondary';
-    }
+  statusSeverity(status: BackupRecordStatus): StatusSeverity {
+    return this.statusDisplayService.getSeverity(status, 'backup');
   }
 
   triggerSeverity(trigger: string): 'info' | 'secondary' | 'warn' {

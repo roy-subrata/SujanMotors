@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -5,15 +7,6 @@ namespace AutoPartShop.Domain.Entities;
 /// </summary>
 public sealed class BackupRecord : AuditableEntity
 {
-    public static class Statuses
-    {
-        public const string Pending = "Pending";
-        public const string Running = "Running";
-        public const string Succeeded = "Succeeded";
-        public const string UploadFailed = "UploadFailed";
-        public const string Failed = "Failed";
-    }
-
     public static class TriggerTypes
     {
         public const string Manual = "Manual";
@@ -34,7 +27,7 @@ public sealed class BackupRecord : AuditableEntity
     /// <summary>
     /// Pending, Running, Succeeded, UploadFailed (local backup OK but cloud upload failed), Failed
     /// </summary>
-    public string Status { get; private set; } = Statuses.Pending;
+    public BackupRecordStatus Status { get; private set; } = BackupRecordStatus.Pending;
 
     /// <summary>
     /// Manual, Scheduled, or PreRestore (automatic safety backup taken before a restore)
@@ -68,7 +61,7 @@ public sealed class BackupRecord : AuditableEntity
         {
             FileName = fileName.Trim(),
             TriggerType = triggerType,
-            Status = Statuses.Pending,
+            Status = BackupRecordStatus.Pending,
             StartedAt = DateTime.UtcNow,
             CreatedDate = DateTime.UtcNow,
             ModifiedDate = DateTime.UtcNow,
@@ -80,14 +73,14 @@ public sealed class BackupRecord : AuditableEntity
 
     public void MarkRunning()
     {
-        Status = Statuses.Running;
+        Status = BackupRecordStatus.Running;
         StartedAt = DateTime.UtcNow;
         ModifiedDate = DateTime.UtcNow;
     }
 
     public void MarkSucceeded(long sizeBytes, string? googleDriveFileId)
     {
-        Status = Statuses.Succeeded;
+        Status = BackupRecordStatus.Succeeded;
         SizeBytes = sizeBytes;
         GoogleDriveFileId = googleDriveFileId;
         CompletedAt = DateTime.UtcNow;
@@ -97,7 +90,7 @@ public sealed class BackupRecord : AuditableEntity
 
     public void MarkUploadFailed(long sizeBytes, string error)
     {
-        Status = Statuses.UploadFailed;
+        Status = BackupRecordStatus.UploadFailed;
         SizeBytes = sizeBytes;
         CompletedAt = DateTime.UtcNow;
         ErrorMessage = Truncate(error);
@@ -106,7 +99,7 @@ public sealed class BackupRecord : AuditableEntity
 
     public void MarkFailed(string error)
     {
-        Status = Statuses.Failed;
+        Status = BackupRecordStatus.Failed;
         CompletedAt = DateTime.UtcNow;
         ErrorMessage = Truncate(error);
         ModifiedDate = DateTime.UtcNow;
@@ -124,7 +117,7 @@ public sealed class BackupRecord : AuditableEntity
     /// <summary>
     /// True when the backup produced a usable .bak file (locally and/or on Drive)
     /// </summary>
-    public bool IsRestorable => Status is Statuses.Succeeded or Statuses.UploadFailed;
+    public bool IsRestorable => Status is BackupRecordStatus.Succeeded or BackupRecordStatus.UploadFailed;
 
     private static string Truncate(string error) =>
         error.Length <= 2000 ? error : error[..2000];

@@ -1,5 +1,6 @@
 using AutoPartShop.Application.DTOs.DashboardDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,8 +30,9 @@ public class FinancialSummaryService : IFinancialSummaryService
     private readonly IShopClock _shopClock;
 
     // Statuses that represent no real economic activity and must be excluded from every metric.
-    private static readonly string[] ExcludedSalesStatuses = ["CANCELLED", "RETURNED", "DRAFT"];
-    private static readonly string[] ExcludedPOStatuses = ["DRAFT", "SUBMITTED", "CANCELLED"];
+    private static readonly SalesOrderStatus[] ExcludedSalesStatuses = [SalesOrderStatus.CANCELLED, SalesOrderStatus.RETURNED, SalesOrderStatus.DRAFT];
+    private static readonly PurchaseOrderStatus[] ExcludedPOStatuses =
+        [PurchaseOrderStatus.DRAFT, PurchaseOrderStatus.SUBMITTED, PurchaseOrderStatus.CANCELLED];
 
     public FinancialSummaryService(
         AutoPartDbContext dbContext,
@@ -81,7 +83,7 @@ public class FinancialSummaryService : IFinancialSummaryService
             var converted = await _currencyService.ConvertToBaseAsync(so.TotalAmount, so.Currency, so.SODate, cancellationToken);
             totalSales += converted;
 
-            if (so.PaymentStatus == "PAID")
+            if (so.PaymentStatus == SalesOrderPaymentStatus.PAID)
                 cashSales += converted;
             else
                 creditSales += converted;
@@ -95,7 +97,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         var customerPaymentsList = await _dbContext.CustomerPayments
             .Where(cp => cp.PaymentDate >= startDate && cp.PaymentDate < endDate
                          && !cp.Isdeleted
-                         && cp.Status == "COMPLETED"
+                         && cp.Status == CustomerPaymentStatus.COMPLETED
                          && (cp.PaymentType == CustomerPaymentType.ADVANCE || cp.SourceAdvancePaymentId == null))
             .ToListAsync(cancellationToken);
 
@@ -122,7 +124,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         var supplierPaymentsList = await _dbContext.SupplierPayments
             .Where(sp => sp.PaymentDate >= startDate && sp.PaymentDate < endDate
                          && !sp.Isdeleted
-                         && sp.Status == "COMPLETED"
+                         && sp.Status == SupplierPaymentStatus.COMPLETED
                          && sp.PaymentMethod != "REFUND"
                          && sp.PaymentMethod != "CREDIT_NOTE" // credit notes are returns, not cash outflows
                          && (sp.PaymentType == PaymentType.ADVANCE || sp.SourceAdvancePaymentId == null))
@@ -151,7 +153,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var openInvoiceData = await _dbContext.Invoices
             .Where(i => !i.Isdeleted
-                        && i.Status != "CANCELLED"
+                        && i.Status != InvoiceStatus.CANCELLED
                         && i.SalesOrder != null
                         && !i.SalesOrder.Isdeleted
                         && !ExcludedSalesStatuses.Contains(i.SalesOrder.Status))
@@ -160,7 +162,7 @@ public class FinancialSummaryService : IFinancialSummaryService
                 CustomerId = i.SalesOrder!.CustomerId,
                 GrandTotal = i.SubTotal + i.TaxAmount - i.DiscountAmount,
                 AmountPaid = i.CustomerPayments
-                    .Where(p => p.Status == "COMPLETED")
+                    .Where(p => p.Status == CustomerPaymentStatus.COMPLETED)
                     .Sum(p => (decimal?)p.Amount) ?? 0m,
                 Currency = i.SalesOrder.Currency,
                 SODate = i.SalesOrder.SODate,
@@ -201,7 +203,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var allSupplierPaymentsData = await _dbContext.SupplierPayments
             .Where(x => !x.Isdeleted
-                        && x.Status == "COMPLETED"
+                        && x.Status == SupplierPaymentStatus.COMPLETED
                         && x.PaymentMethod != "REFUND"
                         && x.PaymentMethod != "CREDIT_NOTE" // already counted in allPurchaseReturns; including here would double-reduce the balance
                         && (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null))
@@ -210,7 +212,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         // PurchaseReturn carries no Currency; use the originating PO's currency.
         var allPurchaseReturns = await _dbContext.PurchaseReturns
-            .Where(x => !x.Isdeleted && x.SettlementStatus == "SETTLED" && x.PurchaseOrder != null)
+            .Where(x => !x.Isdeleted && x.SettlementStatus == PurchaseReturnSettlementStatus.SETTLED && x.PurchaseOrder != null)
             .Select(x => new { x.SupplierId, x.SettledAmount, Currency = x.PurchaseOrder!.Currency, x.SettledDate, PODate = x.PurchaseOrder.PODate })
             .ToListAsync(cancellationToken);
 
@@ -259,7 +261,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         var overdueSupplierIds = activePOs
             .Where(po => po.ExpectedDeliveryDate != DateTime.MinValue
                          && po.ExpectedDeliveryDate.Date < today
-                         && (po.Status == "DELIVERED" || po.Status == "PARTIAL"))
+                         && (po.Status == PurchaseOrderStatus.DELIVERED || po.Status == PurchaseOrderStatus.PARTIAL))
             .Select(po => po.SupplierId)
             .ToHashSet();
 
@@ -275,7 +277,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         // CostPrice on StockLot = actual purchase cost stored in base currency at goods-receipt time.
         // Only AVAILABLE lots are sellable; DAMAGED and QUARANTINE are held for return and excluded.
         var inventoryValue = await _dbContext.StockLots
-            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == StockLotStatus.AVAILABLE)
             .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken);
 
         // Low-stock: quantity at or below the configured minimum threshold.
@@ -293,7 +295,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var lowStockValue = lowStockPartIds.Count > 0
             ? await _dbContext.StockLots
-                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE" && lowStockPartIds.Contains(l.PartId))
+                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == StockLotStatus.AVAILABLE && lowStockPartIds.Contains(l.PartId))
                 .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken)
             : 0m;
 

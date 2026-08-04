@@ -11,6 +11,7 @@ using AutoPartShop.Application.SaleOrders.Dtos;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Middleware;
 using Microsoft.AspNetCore.Authorization;
@@ -267,7 +268,7 @@ public class SalesOrderController : ControllerBase
     }
 
     [HttpGet("status/{status}")]
-    public async Task<IActionResult> GetByStatus(string status, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByStatus(SalesOrderStatus status, CancellationToken cancellationToken)
     {
         try
         {
@@ -390,7 +391,7 @@ public class SalesOrderController : ControllerBase
             var order = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Sales order not found" });
 
-            if (order.Status != "DRAFT" && order.Status != "PENDING")
+            if (order.Status != SalesOrderStatus.DRAFT && order.Status != SalesOrderStatus.PENDING)
                 return BadRequest(new { message = "Only draft or pending sales orders can be edited" });
 
             if (request.CustomerId == Guid.Empty || request.WarehouseId == Guid.Empty || string.IsNullOrWhiteSpace(request.CustomerName) || request.DeliveryDate == default)
@@ -505,7 +506,7 @@ public class SalesOrderController : ControllerBase
                     // Confirm, then the order moves through READY_FOR_DELIVERY → PAID → PACKED → SHIPPED —
                     // all of which are cancellable and still hold the deducted stock. Restoring only for
                     // "CONFIRMED" would leak inventory when a later-stage order is cancelled.
-                    var stockDeductedStatuses = new[] { "CONFIRMED", "READY_FOR_DELIVERY", "PAID", "PACKED", "SHIPPED" };
+                    var stockDeductedStatuses = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.PAID, SalesOrderStatus.PACKED, SalesOrderStatus.SHIPPED };
                     if (stockDeductedStatuses.Contains(order.Status))
                     {
                         var lineIds = order.LineItems.Select(l => (Guid?)l.Id).ToList();
@@ -574,14 +575,14 @@ public class SalesOrderController : ControllerBase
                         .Include(i => i.CustomerPayments)
                         .FirstOrDefaultAsync(i => i.SalesOrderId == order.Id && !i.Isdeleted, cancellationToken);
 
-                    if (invoice is not null && invoice.Status is not ("PAID" or "PARTIALLY_PAID" or "CANCELLED"))
+                    if (invoice is not null && invoice.Status is not (InvoiceStatus.PAID or InvoiceStatus.PARTIALLY_PAID or InvoiceStatus.CANCELLED))
                     {
                         invoice.Cancel("Sales order cancelled");
                         invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
                     }
 
                     // Credit customer balance back if balance was charged (i.e. invoice was ISSUED)
-                    if (invoice is { Status: "CANCELLED" } && order.CustomerId != Guid.Empty)
+                    if (invoice is { Status: InvoiceStatus.CANCELLED } && order.CustomerId != Guid.Empty)
                     {
                         var grandTotal = invoice.GrandTotal;
                         if (grandTotal > 0)
@@ -767,7 +768,7 @@ public class SalesOrderController : ControllerBase
                     // Atomic status transition â€” WHERE Status IN ('PENDING','DRAFT') prevents double-confirm.
                     var rowsUpdated = await _dbContext.Set<SalesOrder>()
                         .Where(so => so.Id == order.Id
-                                  && (so.Status == "PENDING" || so.Status == "DRAFT")
+                                  && (so.Status == SalesOrderStatus.PENDING || so.Status == SalesOrderStatus.DRAFT)
                                   && !so.Isdeleted)
                         .ExecuteUpdateAsync(setters => setters
                             .SetProperty(so => so.Status, order.Status)
@@ -921,10 +922,10 @@ public class SalesOrderController : ControllerBase
 
             // If the order is in READY_FOR_DELIVERY state, block direct delivery when a
             // challan has already been ISSUED â€” the challan deliver endpoint must be used instead.
-            if (preCheck.Status == "READY_FOR_DELIVERY")
+            if (preCheck.Status == SalesOrderStatus.READY_FOR_DELIVERY)
             {
                 var hasIssuedChallan = await _dbContext.Challans
-                    .AnyAsync(c => c.SalesOrderId == id && c.Status == "ISSUED" && !c.Isdeleted, cancellationToken);
+                    .AnyAsync(c => c.SalesOrderId == id && c.Status == ChallanStatus.ISSUED && !c.Isdeleted, cancellationToken);
 
                 if (hasIssuedChallan)
                     return BadRequest(ApiError.BusinessRule(
@@ -952,7 +953,7 @@ public class SalesOrderController : ControllerBase
                         .Include(i => i.SalesOrder)
                         .FirstOrDefaultAsync(i => i.SalesOrderId == order.Id && !i.Isdeleted, cancellationToken);
 
-                    if (invoice is { Status: "DRAFT" })
+                    if (invoice is { Status: InvoiceStatus.DRAFT })
                     {
                         invoice.Issue();
                         invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -1005,7 +1006,7 @@ public class SalesOrderController : ControllerBase
     {
         var orders = await _dbContext.SalesOrders
             .Include(so => so.LineItems).ThenInclude(l => l.Part)
-            .Where(so => (so.Status == "CONFIRMED" || so.Status == "READY_FOR_DELIVERY")
+            .Where(so => (so.Status == SalesOrderStatus.CONFIRMED || so.Status == SalesOrderStatus.READY_FOR_DELIVERY)
                       && !so.Isdeleted)
             .OrderBy(so => so.ConfirmedDate)
             .AsNoTracking()
@@ -1024,7 +1025,7 @@ public class SalesOrderController : ControllerBase
             if (order is null) return NotFound(new { message = "Sales order not found" });
 
             // Fix #6: block deletion of confirmed/paid orders to protect stock and financial records
-            if (order.Status != "DRAFT")
+            if (order.Status != SalesOrderStatus.DRAFT)
                 return BadRequest(new
                 {
                     message = $"Cannot delete sales order {order.SONumber} with status '{order.Status}'. Only DRAFT orders can be deleted."
@@ -1233,7 +1234,7 @@ public class SalesOrderController : ControllerBase
                 GrandTotal = invoice.GrandTotal,
                 PaidAmount = invoice.AmountPaid,
                 DueAmount = invoice.OutstandingAmount,
-                Status = invoice.Status,
+                Status = invoice.Status.ToString(),
                 IsQuotation = false,
                 CreatedAt = invoice.InvoiceDate,
                 Lines = salesOrder?.LineItems.Select(l => new QuickSaleResponseLine
@@ -1281,7 +1282,7 @@ public class SalesOrderController : ControllerBase
             var salesOrder = await _salesOrderRepository.GetByIdAsync(invoice.SalesOrderId, cancellationToken);
             if (salesOrder is null) return NotFound(new { message = "Sales order not found for this invoice" });
 
-            var returnableStatuses = new[] { "PARTIALLY_SHIPPED", "SHIPPED", "DELIVERED", "COMPLETED" };
+            var returnableStatuses = new[] { SalesOrderStatus.PARTIALLY_SHIPPED, SalesOrderStatus.SHIPPED, SalesOrderStatus.DELIVERED, SalesOrderStatus.COMPLETED };
             if (!returnableStatuses.Contains(salesOrder.Status))
                 return BadRequest(new { message = $"Cannot return a sales order with status '{salesOrder.Status}'." });
 
@@ -1326,7 +1327,7 @@ public class SalesOrderController : ControllerBase
                 // Calculate already-returned qty for this line across all prior returns
                 var alreadyReturnedQty = await _dbContext.SalesReturns
                     .Where(r => r.SalesOrderId == salesOrder.Id &&
-                                r.Status != "REJECTED" && r.Status != "CANCELLED" &&
+                                r.Status != SalesReturnStatus.REJECTED &&
                                 !r.Isdeleted)
                     .SelectMany(r => r.LineItems)
                     .Where(rl => rl.SalesOrderLineId == orderLine.Id)
@@ -1565,7 +1566,7 @@ public class SalesOrderController : ControllerBase
                 AmountPaid = invoice.AmountPaid,
                 OutstandingAmount = invoice.OutstandingAmount,
                 CustomerBalance = customer.CurrentBalance,
-                Message = payment.Status == "COMPLETED"
+                Message = payment.Status == CustomerPaymentStatus.COMPLETED
                     ? "Payment completed and customer balance updated"
                     : "Payment created as PENDING. Mark as completed to update customer balance.",
                 Invoice = MapToInvoiceResponse(invoice)
@@ -1739,7 +1740,7 @@ public class SalesOrderController : ControllerBase
             .ToList();
 
         var payments = invoice.CustomerPayments
-            .Where(p => p.Status == "COMPLETED")
+            .Where(p => p.Status == CustomerPaymentStatus.COMPLETED)
             .OrderBy(p => p.PaymentDate)
             .Select(p => new InvoicePaymentEntry(
                 PaymentDate: p.PaymentDate,
@@ -1753,7 +1754,7 @@ public class SalesOrderController : ControllerBase
             SalesOrderNumber: so?.SONumber ?? string.Empty,
             InvoiceDate: invoice.InvoiceDate,
             DueDate: invoice.DueDate,
-            Status: invoice.Status,
+            Status: invoice.Status.ToString(),
             CustomerName: so?.CustomerName ?? string.Empty,
             CustomerPhone: so?.CustomerPhone ?? string.Empty,
             CustomerEmail: so?.CustomerEmail ?? string.Empty,
@@ -1833,7 +1834,7 @@ public class SalesOrderController : ControllerBase
             Currency = order.Currency,
             AmountPaid = order.PaidAmount,
             OutstandingAmount = order.GrandTotal - order.PaidAmount,
-            IsOverdue = order.DeliveryDate.HasValue && DateTime.UtcNow > order.DeliveryDate.Value && order.Status != "DELIVERED" && order.Status != "CANCELLED",
+            IsOverdue = order.DeliveryDate.HasValue && DateTime.UtcNow > order.DeliveryDate.Value && order.Status != SalesOrderStatus.DELIVERED && order.Status != SalesOrderStatus.CANCELLED,
             Notes = order.Notes,
             PaidDate = order.PaidDate,
             PackedDate = order.PackedDate,
@@ -2227,7 +2228,7 @@ public class SalesOrderController : ControllerBase
                             var advancePayments = await _customerPaymentRepository.GetByCustomerAsync(request.CustomerId.Value, cancellationToken);
                             var availableAdvance = advancePayments
                                 .Where(p => p.PaymentType == Domain.Entities.CustomerPaymentType.ADVANCE &&
-                                           p.Status == "COMPLETED" && p.RemainingAmount > 0)
+                                           p.Status == CustomerPaymentStatus.COMPLETED && p.RemainingAmount > 0)
                                 .OrderBy(p => p.PaymentDate)
                                 .FirstOrDefault();
 

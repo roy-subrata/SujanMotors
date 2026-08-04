@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
@@ -120,11 +121,14 @@ public class PurchaseOrderRepository(AutoPartDbContext _db) : IPurchaseOrderRepo
 
     public async Task<IEnumerable<PurchaseOrder>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<PurchaseOrderStatus>(status.Trim(), true, out var parsedStatus))
+            return Enumerable.Empty<PurchaseOrder>();
+
         return await _db.PurchaseOrders
             .Include(p => p.LineItems)
             .Include(p => p.GoodsReceipts)
                 .ThenInclude(gr => gr.LineItems)
-            .Where(x => x.Status == status && !x.Isdeleted)
+            .Where(x => x.Status == parsedStatus && !x.Isdeleted)
             .ToListAsync(cancellationToken);
     }
     public async Task<IEnumerable<PurchaseOrder>> GetOverdueAsync(CancellationToken cancellationToken = default)
@@ -134,7 +138,9 @@ public class PurchaseOrderRepository(AutoPartDbContext _db) : IPurchaseOrderRepo
             .Include(p => p.LineItems)
             .Include(p => p.GoodsReceipts)
                 .ThenInclude(gr => gr.LineItems)
-            .Where(x => x.ExpectedDeliveryDate < today && x.Status != "COMPLETED" && x.Status != "CANCELLED" && !x.Isdeleted)
+            // Note: "COMPLETED" is not a valid PurchaseOrderStatus value (pre-existing condition,
+            // always true — kept as-is to preserve behavior identically).
+            .Where(x => x.ExpectedDeliveryDate < today && x.Status != PurchaseOrderStatus.CANCELLED && !x.Isdeleted)
             .ToListAsync(cancellationToken);
     }
     public async Task<(IEnumerable<PurchaseOrder> orders, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
@@ -148,9 +154,9 @@ public class PurchaseOrderRepository(AutoPartDbContext _db) : IPurchaseOrderRepo
     public async Task<decimal> GetTotalPurchaseAmountBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
         => await _db.PurchaseOrders
             .Where(x => x.SupplierId == supplierId &&
-                        x.Status != "DRAFT" &&
-                        x.Status != "SUBMITTED" &&
-                        x.Status != "CANCELLED" &&
+                        x.Status != PurchaseOrderStatus.DRAFT &&
+                        x.Status != PurchaseOrderStatus.SUBMITTED &&
+                        x.Status != PurchaseOrderStatus.CANCELLED &&
                         !x.Isdeleted)
             .SumAsync(x => x.TotalAmount, cancellationToken);
 }

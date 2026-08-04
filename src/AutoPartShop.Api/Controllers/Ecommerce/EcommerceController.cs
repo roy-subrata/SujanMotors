@@ -4,6 +4,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Entities.Ecommerce;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -253,7 +254,7 @@ public class EcommerceController(
                         await _customerPaymentRepository.AddAsync(payment, cancellationToken);
 
                         salesOrder.RecordPayment(effectivePaid);
-                        if (salesOrder.PaymentStatus == "PAID")
+                        if (salesOrder.PaymentStatus == SalesOrderPaymentStatus.PAID)
                             salesOrder.MarkAsPaid();
                         salesOrder.ModifiedBy = "ECOMMERCE";
                         await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
@@ -363,8 +364,8 @@ public class EcommerceController(
 
             if (order is null) return NotFound(new { message = "Order not found." });
             if (order.Channel != "ECOMMERCE") return BadRequest(new { message = "COD collection is only applicable to online (ECOMMERCE) orders." });
-            if (order.PaymentStatus == "PAID") return BadRequest(new { message = "This order has already been fully paid." });
-            if (order.Status == "CANCELLED") return BadRequest(new { message = "Cannot collect payment for a cancelled order." });
+            if (order.PaymentStatus == SalesOrderPaymentStatus.PAID) return BadRequest(new { message = "This order has already been fully paid." });
+            if (order.Status == SalesOrderStatus.CANCELLED) return BadRequest(new { message = "Cannot collect payment for a cancelled order." });
 
             var outstanding = order.GrandTotal - order.PaidAmount;
             if (Math.Abs(request.AmountCollected - outstanding) > 0.01m)
@@ -398,7 +399,7 @@ public class EcommerceController(
                     await _customerPaymentRepository.AddAsync(payment, cancellationToken);
 
                     order.RecordPayment(request.AmountCollected);
-                    if (order.PaymentStatus == "PAID")
+                    if (order.PaymentStatus == SalesOrderPaymentStatus.PAID)
                         order.MarkAsPaid();
                     order.ModifiedBy = collectedBy;
                     await _salesOrderRepository.UpdateAsync(order, cancellationToken);
@@ -673,7 +674,7 @@ public class EcommerceController(
                         await _customerPaymentRepository.AddAsync(payment, cancellationToken);
 
                         salesOrder.RecordPayment(request.AmountPaid);
-                        if (salesOrder.PaymentStatus == "PAID")
+                        if (salesOrder.PaymentStatus == SalesOrderPaymentStatus.PAID)
                             salesOrder.MarkAsPaid();
                         salesOrder.ModifiedBy = salespersonName;
                         await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
@@ -1159,8 +1160,8 @@ public class EcommerceCheckoutResponse
     public decimal AmountPaid { get; set; }
     public decimal DueBalance { get; set; }
     public string Currency { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string PaymentStatus { get; set; } = string.Empty;
+    public SalesOrderStatus Status { get; set; }
+    public SalesOrderPaymentStatus PaymentStatus { get; set; }
     public string InvoiceNumber { get; set; } = string.Empty;
     public string Channel { get; set; } = string.Empty;
     // Salesperson discount (POS only; zero/empty for online orders)

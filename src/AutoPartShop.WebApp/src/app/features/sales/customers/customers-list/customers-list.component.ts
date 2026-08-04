@@ -26,6 +26,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-customers-list',
@@ -61,6 +62,7 @@ export class CustomersListComponent implements OnInit {
     private readonly customerTypeService = inject(CustomerTypeService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -338,14 +340,8 @@ export class CustomersListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, currency);
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const severityMap: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            ACTIVE: 'success',
-            INACTIVE: 'secondary',
-            SUSPENDED: 'warn',
-            BLACKLISTED: 'danger'
-        };
-        return severityMap[status] || 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'customer');
     }
 
     formatStatus(status: string): string {

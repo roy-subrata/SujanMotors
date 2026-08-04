@@ -1,5 +1,6 @@
 ﻿using AutoPartShop.Application.SaleOrders;
 using AutoPartShop.Application.SaleOrders.Dtos;
+using AutoPartShop.Domain.Enums;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,7 +33,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                 salesOrders = salesOrders.Where(x => x.CustomerId == query.CustomerId.Value);
 
             if (!string.IsNullOrWhiteSpace(query.Status))
-                salesOrders = salesOrders.Where(x => x.Status == query.Status);
+                salesOrders = salesOrders.Where(x => x.Status.ToString() == query.Status);
 
             if (!string.IsNullOrWhiteSpace(query.Channel))
                 salesOrders = salesOrders.Where(x => x.Channel == query.Channel.ToUpper());
@@ -78,7 +79,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                     Currency = order.Currency,
                     AmountPaid = order.PaidAmount,
                     OutstandingAmount = order.GrandTotal - order.PaidAmount,
-                    IsOverdue = order.DeliveryDate.HasValue && DateTime.UtcNow > order.DeliveryDate.Value && order.Status != "DELIVERED" && order.Status != "CANCELLED",
+                    IsOverdue = order.DeliveryDate.HasValue && DateTime.UtcNow > order.DeliveryDate.Value && order.Status != SalesOrderStatus.DELIVERED && order.Status != SalesOrderStatus.CANCELLED,
                     Notes = order.Notes,
                     Lines = order.LineItems.Select(l => new SalesOrderLineResponse
                     {
