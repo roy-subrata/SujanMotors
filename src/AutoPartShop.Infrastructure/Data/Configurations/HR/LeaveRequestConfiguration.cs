@@ -29,7 +29,8 @@ public class LeaveRequestConfiguration : IEntityTypeConfiguration<LeaveRequest>
 
         builder.Property(l => l.Status)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(20)
+            .HasConversion<string>();
 
         builder.Property(l => l.DecisionBy)
             .HasMaxLength(100);

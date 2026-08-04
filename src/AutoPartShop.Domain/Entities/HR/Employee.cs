@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Domain.Entities.HR;
 
 /// <summary>
@@ -33,7 +35,7 @@ public class Employee : AuditableEntity
     public string EmergencyContactName { get; private set; } = string.Empty;
     public string EmergencyContactPhone { get; private set; } = string.Empty;
 
-    public string Status { get; private set; } = "ACTIVE";  // ACTIVE, INACTIVE
+    public EmployeeStatus Status { get; private set; } = EmployeeStatus.ACTIVE;
     public string Notes { get; private set; } = string.Empty;
 
     public string? PhotoUrl { get; private set; }  // Profile photo (uploaded via FilesController)
@@ -86,7 +88,7 @@ public class Employee : AuditableEntity
             EmergencyContactName = emergencyContactName?.Trim() ?? string.Empty,
             EmergencyContactPhone = emergencyContactPhone?.Trim() ?? string.Empty,
             Notes = notes?.Trim() ?? string.Empty,
-            Status = "ACTIVE"
+            Status = EmployeeStatus.ACTIVE
         };
     }
 
@@ -140,13 +142,13 @@ public class Employee : AuditableEntity
 
     public void Activate()
     {
-        Status = "ACTIVE";
+        Status = EmployeeStatus.ACTIVE;
         EndDate = null;
     }
 
     public void Deactivate(DateTime? endDate = null)
     {
-        Status = "INACTIVE";
+        Status = EmployeeStatus.INACTIVE;
         EndDate = (endDate ?? DateTime.UtcNow).Date;
     }
 

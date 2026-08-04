@@ -3,6 +3,7 @@ using AutoPartShop.Application.Common;
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.HR.Dtos;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -154,7 +155,7 @@ public class LeaveRequestsController : ControllerBase
             for (var day = leaveRequest.FromDate; day <= leaveRequest.ToDate; day = day.AddDays(1))
             {
                 leaveMarks.Add(AttendanceRecord.Create(
-                    leaveRequest.EmployeeId, day, "LEAVE",
+                    leaveRequest.EmployeeId, day, AttendanceStatus.LEAVE,
                     notes: $"{leaveRequest.LeaveType} leave"));
             }
             await _attendanceRepository.UpsertRangeAsync(leaveMarks, currentUser, cancellationToken);

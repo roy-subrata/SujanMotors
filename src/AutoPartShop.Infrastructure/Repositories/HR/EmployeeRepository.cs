@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.EntityFrameworkCore;
 
@@ -84,7 +85,7 @@ public class EmployeeRepository : IEmployeeRepository
             .FirstOrDefaultAsync(x => x.UserId == userId && !x.Isdeleted, cancellationToken);
     }
 
-    public async Task<IEnumerable<Employee>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Employee>> GetByStatusAsync(EmployeeStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Employees
             .Where(x => x.Status == status && !x.Isdeleted)

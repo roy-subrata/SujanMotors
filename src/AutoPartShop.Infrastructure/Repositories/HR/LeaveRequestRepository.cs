@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.EntityFrameworkCore;
 
@@ -58,7 +59,7 @@ public class LeaveRequestRepository : ILeaveRequestRepository
             .AnyAsync(x => x.EmployeeId == employeeId
                 && !x.Isdeleted
                 && x.Id != excludeId
-                && (x.Status == "PENDING" || x.Status == "APPROVED")
+                && (x.Status == LeaveRequestStatus.PENDING || x.Status == LeaveRequestStatus.APPROVED)
                 && x.FromDate <= to
                 && x.ToDate >= from, cancellationToken);
     }

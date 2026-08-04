@@ -24,7 +24,7 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                         EF.Functions.Like(x.Designation, $"%{search}%"));
             }
 
-            if (!string.IsNullOrWhiteSpace(query.Status))
+            if (query.Status is not null)
             {
                 employees = employees.Where(x => x.Status == query.Status);
             }

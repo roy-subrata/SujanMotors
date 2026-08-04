@@ -3,6 +3,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.HR.Dtos;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -80,8 +81,8 @@ public class AttendanceController : ControllerBase
                 return BadRequest(new { message = "No attendance entries supplied" });
 
             var records = request.Entries
-                .Where(e => !string.IsNullOrWhiteSpace(e.Status))
-                .Select(e => AttendanceRecord.Create(e.EmployeeId, request.Date, e.Status, e.CheckInTime, e.CheckOutTime, e.Notes))
+                .Where(e => e.Status is not null)
+                .Select(e => AttendanceRecord.Create(e.EmployeeId, request.Date, e.Status!.Value, e.CheckInTime, e.CheckOutTime, e.Notes))
                 .ToList();
 
             await _attendanceRepository.UpsertRangeAsync(records, _currentUserService.GetCurrentUsername(), cancellationToken);
@@ -127,7 +128,7 @@ public class AttendanceController : ControllerBase
                 return BadRequest(new { message = "EmployeeCode is required" });
 
             var employee = await _employeeRepository.GetByCodeAsync(request.EmployeeCode.Trim().ToUpper(), cancellationToken);
-            if (employee is null || employee.Status != "ACTIVE")
+            if (employee is null || employee.Status != EmployeeStatus.ACTIVE)
                 return NotFound(new { message = "Unknown or inactive employee code" });
 
             var timestamp = request.Timestamp ?? DateTime.Now;
@@ -138,12 +139,12 @@ public class AttendanceController : ControllerBase
             if (existing is null)
             {
                 // Check-in: shift decides PRESENT vs LATE
-                var status = "PRESENT";
+                var status = AttendanceStatus.PRESENT;
                 if (employee.ShiftId is Guid shiftId)
                 {
                     var shift = await _shiftRepository.GetByIdAsync(shiftId, cancellationToken);
                     if (shift is not null && time > shift.StartTime.Add(TimeSpan.FromMinutes(shift.GraceMinutes)))
-                        status = "LATE";
+                        status = AttendanceStatus.LATE;
                 }
 
                 var record = AttendanceRecord.Create(employee.Id, day, status, checkInTime: time, notes: "Device punch");

@@ -1,10 +1,11 @@
 using AutoPartShop.Application.Common;
+using AutoPartShop.Domain.Enums.HR;
 
 namespace AutoPartShop.Application.HR.Dtos
 {
     public class SalaryAdvanceQuery : BaseQuery
     {
-        public string Status { get; set; } = "";
+        public SalaryAdvanceStatus? Status { get; set; }
         public Guid? EmployeeId { get; set; }
     }
 
@@ -18,7 +19,7 @@ namespace AutoPartShop.Application.HR.Dtos
         public decimal Amount { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public SalaryAdvanceStatus Status { get; set; }
         public DateTime? SettledAt { get; set; }
         public string? SettledRunCode { get; set; }
         public DateTime CreatedAt { get; set; }

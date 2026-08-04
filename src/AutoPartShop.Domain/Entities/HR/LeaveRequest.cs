@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Domain.Entities.HR;
 
 /// <summary>
@@ -12,7 +14,7 @@ public class LeaveRequest : AuditableEntity
     public DateTime ToDate { get; private set; }
     public int TotalDays { get; private set; }
     public string Reason { get; private set; } = string.Empty;
-    public string Status { get; private set; } = "PENDING";  // PENDING, APPROVED, REJECTED, CANCELLED
+    public LeaveRequestStatus Status { get; private set; } = LeaveRequestStatus.PENDING;
     public string DecisionBy { get; private set; } = string.Empty;
     public DateTime? DecisionAt { get; private set; }
     public string DecisionNotes { get; private set; } = string.Empty;
@@ -45,13 +47,13 @@ public class LeaveRequest : AuditableEntity
             ToDate = toDate.Date,
             TotalDays = (toDate.Date - fromDate.Date).Days + 1,
             Reason = reason?.Trim() ?? string.Empty,
-            Status = "PENDING"
+            Status = LeaveRequestStatus.PENDING
         };
     }
 
     public void Update(string leaveType, DateTime fromDate, DateTime toDate, string reason)
     {
-        if (Status != "PENDING")
+        if (Status != LeaveRequestStatus.PENDING)
             throw new InvalidOperationException("Only pending leave requests can be edited");
 
         var normalized = leaveType?.Trim().ToUpper() ?? string.Empty;
@@ -70,10 +72,10 @@ public class LeaveRequest : AuditableEntity
 
     public void Approve(string decisionBy, string notes = "")
     {
-        if (Status != "PENDING")
+        if (Status != LeaveRequestStatus.PENDING)
             throw new InvalidOperationException($"Cannot approve a {Status} leave request");
 
-        Status = "APPROVED";
+        Status = LeaveRequestStatus.APPROVED;
         DecisionBy = decisionBy?.Trim() ?? string.Empty;
         DecisionAt = DateTime.UtcNow;
         DecisionNotes = notes?.Trim() ?? string.Empty;
@@ -81,10 +83,10 @@ public class LeaveRequest : AuditableEntity
 
     public void Reject(string decisionBy, string notes = "")
     {
-        if (Status != "PENDING")
+        if (Status != LeaveRequestStatus.PENDING)
             throw new InvalidOperationException($"Cannot reject a {Status} leave request");
 
-        Status = "REJECTED";
+        Status = LeaveRequestStatus.REJECTED;
         DecisionBy = decisionBy?.Trim() ?? string.Empty;
         DecisionAt = DateTime.UtcNow;
         DecisionNotes = notes?.Trim() ?? string.Empty;
@@ -92,9 +94,9 @@ public class LeaveRequest : AuditableEntity
 
     public void Cancel()
     {
-        if (Status == "REJECTED" || Status == "CANCELLED")
+        if (Status == LeaveRequestStatus.REJECTED || Status == LeaveRequestStatus.CANCELLED)
             throw new InvalidOperationException($"Cannot cancel a {Status} leave request");
 
-        Status = "CANCELLED";
+        Status = LeaveRequestStatus.CANCELLED;
     }
 }

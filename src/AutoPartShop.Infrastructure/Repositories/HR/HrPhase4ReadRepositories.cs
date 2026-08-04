@@ -24,7 +24,7 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                     EF.Functions.Like(x.a.Notes, $"%{search}%"));
             }
 
-            if (!string.IsNullOrWhiteSpace(query.Status))
+            if (query.Status is not null)
             {
                 advances = advances.Where(x => x.a.Status == query.Status);
             }

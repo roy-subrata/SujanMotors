@@ -5,6 +5,7 @@ using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Application.HR.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -107,7 +108,7 @@ public class PayrollController : ControllerBase
             PayrollRun run;
             if (existing is not null)
             {
-                if (existing.Status != "DRAFT")
+                if (existing.Status != PayrollRunStatus.DRAFT)
                     return BadRequest(new { message = $"Payroll for {request.Year}-{request.Month:D2} is already {existing.Status}" });
 
                 // Regenerate: drop existing draft payslips
@@ -124,7 +125,7 @@ public class PayrollController : ControllerBase
                 await _payrollRepository.AddAsync(run, cancellationToken);
             }
 
-            var employees = (await _employeeRepository.GetByStatusAsync("ACTIVE", cancellationToken)).ToList();
+            var employees = (await _employeeRepository.GetByStatusAsync(EmployeeStatus.ACTIVE, cancellationToken)).ToList();
             if (employees.Count == 0)
                 return BadRequest(new { message = "No active employees to run payroll for" });
 
@@ -257,7 +258,7 @@ public class PayrollController : ControllerBase
             var run = await _payrollRepository.GetByIdAsync(id, includePayslips: true, cancellationToken);
             if (run is null) return NotFound();
 
-            if (run.Status != "APPROVED")
+            if (run.Status != PayrollRunStatus.APPROVED)
                 return BadRequest(new { message = $"Cannot pay a {run.Status} payroll run; approve it first" });
 
             if (run.TotalNet <= 0)
@@ -314,7 +315,7 @@ public class PayrollController : ControllerBase
             var run = await _payrollRepository.GetByIdAsync(id, includePayslips: true, cancellationToken);
             if (run is null) return NotFound();
 
-            if (run.Status != "APPROVED" && run.Status != "PAID")
+            if (run.Status != PayrollRunStatus.APPROVED && run.Status != PayrollRunStatus.PAID)
                 return BadRequest(new { message = "Payslips can only be sent for approved or paid runs" });
 
             var employees = (await _employeeRepository.GetAllAsync(cancellationToken)).ToDictionary(e => e.Id);
@@ -410,7 +411,7 @@ public class PayrollController : ControllerBase
             var run = await _payrollRepository.GetByIdAsync(id, includePayslips: false, cancellationToken);
             if (run is null) return NotFound();
 
-            if (run.Status == "PAID")
+            if (run.Status == PayrollRunStatus.PAID)
                 return BadRequest(new { message = "Cannot delete a PAID payroll run" });
 
             await _payrollRepository.DeleteAsync(id, cancellationToken);
