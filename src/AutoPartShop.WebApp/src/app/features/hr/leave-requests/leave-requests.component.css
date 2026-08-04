@@ -32,6 +32,12 @@
   gap: 1rem;
 }
 
+@media (max-width: 480px) {
+  .dialog-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dialog-field {
   display: flex;
   flex-direction: column;

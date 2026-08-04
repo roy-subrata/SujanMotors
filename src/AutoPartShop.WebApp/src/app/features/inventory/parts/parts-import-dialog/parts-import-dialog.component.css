@@ -193,3 +193,24 @@
   border-color: var(--color-warning);
   color: var(--color-warning);
 }
+
+/* Horizontal scroll wrapper so the (fairly wide) review/failures tables
+   never blow out the dialog on a narrow viewport instead of collapsing
+   into a full card-grid — this is a compact, in-memory preview table,
+   not a paginated list page. */
+.import-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .import-summary { flex-wrap: wrap; }
+  .summary-stat { flex: 1 1 45%; }
+
+  .import-actions-row { flex-direction: column; }
+  .import-actions-row .btn-secondary { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  .summary-stat { flex: 1 1 100%; }
+}

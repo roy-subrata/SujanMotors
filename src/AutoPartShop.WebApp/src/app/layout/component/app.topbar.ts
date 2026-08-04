@@ -16,6 +16,8 @@ import { I18nService } from '../../shared/services/i18n.service';
 import { AppBrandingService } from '../../shared/services/app-branding.service';
 import { NotificationHubService, SaleNotificationEvent, ReorderAlertEvent } from '../../shared/services/notification-hub.service';
 import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
+import { UserMenuService } from '../../shared/services/user-menu.service';
+import { getUserInitials } from '../../shared/utils/user-display.util';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { filter } from 'rxjs/operators';
@@ -150,7 +152,7 @@ interface StaffNotification {
                             [label]="getUserInitials()"
                             shape="circle"
                             size="normal"
-                            [style]="{'background-color':'#667eea', 'color': '#ffffff'}">
+                            [style]="{'background-color':'var(--surface2)', 'color': 'var(--text2)', 'border': '1px solid var(--border)'}">
                         </p-avatar>
                     </button>
                     <p-menu
@@ -165,7 +167,7 @@ interface StaffNotification {
                                     [label]="getUserInitials()"
                                     shape="circle"
                                     size="large"
-                                    [style]="{'background-color':'#667eea', 'color': '#ffffff'}">
+                                    [style]="{'background-color':'var(--surface2)', 'color': 'var(--text2)', 'border': '1px solid var(--border)'}">
                                 </p-avatar>
                                 <div class="user-menu-info">
                                     <span class="user-menu-name">{{ user.fullName }}</span>
@@ -480,6 +482,7 @@ export class AppTopbar implements OnInit, OnDestroy {
     private branding = inject(AppBrandingService);
     private notificationHub = inject(NotificationHubService);
     private messageService = inject(MessageService);
+    private userMenuService = inject(UserMenuService);
 
     @ViewChild('notifPanel') notifPanel!: Popover;
 
@@ -493,18 +496,20 @@ export class AppTopbar implements OnInit, OnDestroy {
 
     private hubSub?: Subscription;
     private reorderSub?: Subscription;
+    private routerEventsSub?: Subscription;
+    private translationsSub?: Subscription;
 
     constructor() {
         this.buildUserMenuItems();
         this.updatePageTitle();
 
-        this.router.events.pipe(
+        this.routerEventsSub = this.router.events.pipe(
             filter(event => event instanceof NavigationEnd)
         ).subscribe(() => {
             this.updatePageTitle();
         });
 
-        this.i18n.translationsLoaded$.subscribe(() => {
+        this.translationsSub = this.i18n.translationsLoaded$.subscribe(() => {
             this.buildUserMenuItems();
             this.updatePageTitle();
         });
@@ -522,6 +527,8 @@ export class AppTopbar implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.hubSub?.unsubscribe();
         this.reorderSub?.unsubscribe();
+        this.routerEventsSub?.unsubscribe();
+        this.translationsSub?.unsubscribe();
     }
 
     private onSaleNotification(evt: SaleNotificationEvent): void {
@@ -604,39 +611,7 @@ export class AppTopbar implements OnInit, OnDestroy {
     }
 
     private buildUserMenuItems(): void {
-        this.userMenuItems = [
-            {
-                label: this.i18n.t('topbar.profile'),
-                icon: 'pi pi-user',
-                command: () => this.router.navigate(['/profile'])
-            },
-            {
-                label: this.i18n.t('topbar.settings'),
-                icon: 'pi pi-cog',
-                command: () => this.router.navigate(['/settings'])
-            },
-            {
-                separator: true
-            },
-            {
-                label: this.i18n.t('topbar.documentation'),
-                icon: 'pi pi-book',
-                command: () => window.open('/docs', '_blank')
-            },
-            {
-                label: this.i18n.t('topbar.support'),
-                icon: 'pi pi-headphones',
-                command: () => window.open('/support', '_blank')
-            },
-            {
-                separator: true
-            },
-            {
-                label: this.i18n.t('topbar.logout'),
-                icon: 'pi pi-sign-out',
-                command: () => this.logout()
-            }
-        ];
+        this.userMenuItems = this.userMenuService.buildMenuItems();
     }
 
     updatePageTitle() {
@@ -712,23 +687,12 @@ export class AppTopbar implements OnInit, OnDestroy {
     }
 
     getUserInitials(): string {
-        const user = this.currentUser();
-        if (!user || !user.fullName) return '?';
-        const names = user.fullName.split(' ');
-        if (names.length >= 2) {
-            return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-        }
-        return names[0].substring(0, 2).toUpperCase();
+        return getUserInitials(this.currentUser()?.fullName);
     }
 
     onSearch() {
         if (this.searchQuery.trim()) {
             // TODO: implement global search
         }
-    }
-
-    logout(): void {
-        this.authService.logout();
-        this.router.navigate(['/login']);
     }
 }

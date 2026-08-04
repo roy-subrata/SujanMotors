@@ -54,8 +54,8 @@
     </div>
   </section>
 
-  <!-- ==================== PAYSLIPS ==================== -->
-  <section class="table-section">
+  <!-- ==================== PAYSLIPS (Desktop) ==================== -->
+  <section class="table-section desktop-only">
     <div class="table-container">
       <p-table [value]="run?.payslips || []" [loading]="loading" [scrollable]="true" scrollHeight="flex"
         styleClass="app-table" dataKey="id">
@@ -147,6 +147,110 @@
         </ng-template>
       </p-table>
     </div>
+  </section>
+
+  <!-- ==================== PAYSLIPS (Mobile Cards) ==================== -->
+  <!-- Spreadsheet-like editor: each card shows the read-only summary
+       (attendance, basic, absence deduction, net pay) up top, with the
+       editable adjustment fields grouped below and a per-employee save
+       action — same data as the desktop row, just re-flowed. -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && (!run?.payslips || run!.payslips.length === 0)" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-wallet"></i></div>
+      <h3>No Payslips</h3>
+      <p>Regenerate this payroll run</p>
+    </div>
+
+    <div *ngIf="!loading && run?.payslips?.length" class="cards-grid">
+      <div *ngFor="let payslip of run!.payslips" class="order-card payslip-card">
+
+        <div class="card-header">
+          <span class="card-so-number">{{ payslip.employeeName }}</span>
+          <span class="amount-value">{{ payslip.netPay | number: '1.2-2' }}</span>
+        </div>
+
+        <div class="card-body">
+          <div class="cell-stack">
+            <span class="text-muted code-sub">{{ payslip.employeeCode }} &middot; {{ payslip.designation || '-' }}</span>
+          </div>
+
+          <div class="card-meta">
+            <span class="card-meta-item" pTooltip="Present / Late / Half / Absent / Leave">
+              <i class="pi pi-calendar-check"></i>&nbsp;{{ payslip.presentDays }}/{{ payslip.lateDays }}/{{ payslip.halfDays }}/{{ payslip.absentDays }}/{{ payslip.leaveDays }}
+            </span>
+            <span class="card-meta-item"><i class="pi pi-money-bill"></i>&nbsp;Basic {{ payslip.monthlySalary | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-minus-circle"></i>&nbsp;Absence Ded. {{ payslip.absenceDeduction | number: '1.2-2' }}</span>
+          </div>
+
+          <div class="payslip-adjustments">
+            <div class="attendance-field">
+              <label>Overtime</label>
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.overtimeAmount" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.overtimeAmount | number: '1.2-2' }}</span>
+            </div>
+            <div class="attendance-field">
+              <label>Bonus</label>
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.bonusAmount" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.bonusAmount | number: '1.2-2' }}</span>
+            </div>
+            <div class="attendance-field">
+              <label>Allowance</label>
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.otherAllowance" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.otherAllowance | number: '1.2-2' }}</span>
+            </div>
+            <div class="attendance-field" [pTooltip]="payslip.monthlySalesTotal > 0 ? ('From sales of ' + (payslip.monthlySalesTotal | number: '1.2-2')) : ''">
+              <label>Commission</label>
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.commissionAmount" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.commissionAmount | number: '1.2-2' }}</span>
+            </div>
+            <div class="attendance-field">
+              <label>Advance Ded.</label>
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.advanceDeduction" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.advanceDeduction | number: '1.2-2' }}</span>
+            </div>
+            <div class="attendance-field">
+              <label>Tax Ded.</label>
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.taxDeduction" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.taxDeduction | number: '1.2-2' }}</span>
+            </div>
+            <div class="attendance-field">
+              <label>Other Ded.</label>
+              <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.otherDeduction" mode="decimal" [min]="0"
+                [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
+              <span *ngIf="!isDraft">{{ payslip.otherDeduction | number: '1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer" *ngIf="isDraft">
+          <button class="btn-card-action" pTooltip="Save adjustments" (click)="savePayslip(payslip)"
+            [disabled]="savingPayslipId === payslip.id">
+            <i class="pi" [ngClass]="savingPayslipId === payslip.id ? 'pi-spin pi-spinner' : 'pi-save'"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
   </section>
 
 </app-page-container>

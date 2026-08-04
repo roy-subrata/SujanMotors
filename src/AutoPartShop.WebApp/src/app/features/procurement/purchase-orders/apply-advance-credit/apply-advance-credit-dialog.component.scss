@@ -1,5 +1,26 @@
 .apply-credit-dialog {
             min-width: 800px;
+
+            @media (max-width: 768px) {
+                min-width: 0;
+                width: 100%;
+            }
+        }
+
+        .advance-table-wrapper {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 768px) {
+            .col-hide-md {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .col-hide-sm {
+                display: none;
+            }
         }
 
         .section-title {

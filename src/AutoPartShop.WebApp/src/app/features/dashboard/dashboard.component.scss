@@ -524,10 +524,23 @@
   .insight-strip { grid-template-columns: repeat(3, 1fr); }
   .insight-cell:nth-child(3) { border-right: none; }
   .chart-row { grid-template-columns: 1fr; }
+  // Two 480px-minimum columns need ~1000px+ to sit side by side without
+  // overflowing — stack them here rather than let auto-fit force the row
+  // wider than the viewport.
+  .tables-row { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
   .kpi-row { grid-template-columns: 1fr; }
   .insight-strip { grid-template-columns: repeat(2, 1fr); }
   .insight-cell:nth-child(even) { border-right: none; }
+
+  // Shrink the fixed-px data columns so the row itself fits a phone width
+  // instead of overflowing horizontally (product/customer name column
+  // still gets the remaining space and truncates via .cell-title).
+  .dash-table-head-products { grid-template-columns: 1fr 40px 70px 70px 56px; }
+  .dash-table-head-customers { grid-template-columns: 1fr 46px 80px 64px; }
+  .dash-table-head,
+  .dash-table-row { padding: 0 12px; gap: 4px; }
+  .margin-pill { padding: 2px 6px; font-size: 11px; }
 }

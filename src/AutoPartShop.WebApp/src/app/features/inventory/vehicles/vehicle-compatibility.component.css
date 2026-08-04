@@ -121,4 +121,13 @@
     grid-template-columns: 1fr;
     gap: 1rem;
   }
+
+  ::ng-deep .p-card .p-card-body {
+    padding: 1rem;
+  }
+
+  ::ng-deep .p-card .p-card-header {
+    padding: 0.85rem 1rem;
+    font-size: 1.05rem;
+  }
 }

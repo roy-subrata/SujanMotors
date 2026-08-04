@@ -272,6 +272,10 @@
   ::ng-deep .form-card .p-card-body {
     padding: 0.875rem;
   }
+
+  .vehicle-form .form-row2 {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Vehicles section ─────────────────────────────────────────── */

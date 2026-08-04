@@ -9,6 +9,7 @@ import { MessageService } from 'primeng/api';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { SupplierService, SupplierPerformanceResponse } from '../../inventory/services/supplier.service';
 
 @Component({
@@ -23,7 +24,8 @@ import { SupplierService, SupplierPerformanceResponse } from '../../inventory/se
     ButtonModule,
     PageContainerComponent,
     PageHeaderComponent,
-    FilterBarComponent
+    FilterBarComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService],
   templateUrl: './supplier-performance.component.html'
@@ -38,6 +40,10 @@ export class SupplierPerformanceComponent implements OnInit {
 
   pageSize = 10;
   first = 0;
+
+  get pagedRows(): SupplierPerformanceResponse[] {
+    return this.rows.slice(this.first, this.first + this.pageSize);
+  }
 
   ngOnInit(): void {
     this.loadData();
@@ -64,6 +70,15 @@ export class SupplierPerformanceComponent implements OnInit {
   onSearch(): void {
     this.first = 0;
     this.loadData();
+  }
+
+  goToPage(page: number): void {
+    this.first = (page - 1) * this.pageSize;
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.first = 0;
   }
 
   /** Higher damaged rate = worse quality → warn/danger tag. */

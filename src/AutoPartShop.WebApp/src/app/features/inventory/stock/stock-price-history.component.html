@@ -88,18 +88,18 @@
       </div>
     </div>
 
-    <!-- Lots Table -->
+    <!-- ==================== DESKTOP TABLE ==================== -->
+    <section class="table-section desktop-only">
+    <div class="table-container">
     <p-table
       [value]="priceHistory.lots"
-      [paginator]="true"
+      [paginator]="false"
       [lazy]="true"
       [rows]="pageSize"
       [totalRecords]="totalRecords"
       [first]="first"
-      [rowsPerPageOptions]="pageSizeOptions"
-      (onLazyLoad)="onLazyLoad($event)"
       responsiveLayout="scroll"
-      styleClass="p-datatable-striped"
+      styleClass="app-table"
       [tableStyle]="{ 'min-width': '60rem' }">
 
       <!-- Header -->
@@ -135,26 +135,12 @@
             }
           </td>
           <td class="text-right">
-            <div class="dual-unit-cell">
-              <span class="display-qty">{{ lot.quantityReceived }}</span>
-              <span class="display-unit">{{ lot.unitSymbol || '-' }}</span>
-              <span class="base-qty" *ngIf="lot.baseUnitSymbol">
-                ({{ lot.quantityReceivedInBaseUnit }} {{ lot.baseUnitSymbol }})
-              </span>
-            </div>
+            <span class="display-qty">{{ lot.quantityReceived }}</span>
           </td>
           <td class="text-right">
-            <div class="dual-unit-cell">
-              <span class="display-qty" [ngClass]="lot.quantityAvailable === 0 ? 'text-red-600' : 'text-green-600'">
-                {{ lot.quantityAvailable }}
-              </span>
-              <span class="display-unit" [ngClass]="lot.quantityAvailable === 0 ? 'text-red-600' : 'text-green-600'">
-                {{ lot.unitSymbol || '-' }}
-              </span>
-              <span class="base-qty" *ngIf="lot.baseUnitSymbol">
-                ({{ lot.quantityAvailableInBaseUnit }} {{ lot.baseUnitSymbol }})
-              </span>
-            </div>
+            <span class="display-qty" [ngClass]="lot.quantityAvailable === 0 ? 'text-red-600' : 'text-green-600'">
+              {{ lot.quantityAvailable }}
+            </span>
           </td>
           <td>
             <span class="text-sm">{{ lot.receivingDate | date:'dd-MMM-yyyy' }}</span>
@@ -179,13 +165,91 @@
       <!-- Empty Message -->
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="8" class="text-center py-4">
-            <i class="pi pi-inbox mr-2"></i>
-            No price history found
+          <td colspan="8">
+            <div class="empty-state">
+              <i class="pi pi-inbox"></i>
+              <p>No price history found</p>
+            </div>
           </td>
         </tr>
       </ng-template>
     </p-table>
+    </div>
+    </section>
+
+    <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+    <app-data-pagination
+      [first]="first"
+      [pageSize]="pageSize"
+      [totalRecords]="totalRecords"
+      itemLabel="lots"
+      (pageChange)="goToPage($event)"
+      (pageSizeChange)="onPageSizeChangeHandler($event)">
+    </app-data-pagination>
+
+    <!-- ==================== MOBILE CARDS ==================== -->
+    <section class="cards-section mobile-only">
+
+      <div *ngIf="loading" class="cards-grid">
+        <div *ngFor="let _ of [1,2,3]" class="order-card skeleton-card">
+          <div class="card-header">
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-badge"></div>
+          </div>
+          <div class="card-body">
+            <div class="skeleton skeleton-text-lg"></div>
+            <div class="skeleton skeleton-text-sm"></div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!loading && priceHistory.lots.length === 0" class="empty-state-mobile">
+        <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+        <h3>No Price History</h3>
+        <p>No purchase lots found for this part</p>
+      </div>
+
+      <div *ngIf="!loading && priceHistory.lots.length > 0" class="cards-grid">
+        <div *ngFor="let lot of priceHistory.lots" class="order-card">
+
+          <div class="card-header">
+            <span class="card-so-number">{{ lot.lotNumber }}</span>
+            <span class="status-pill" [attr.data-status]="lot.quantityAvailable === 0 ? 'inactive' : 'active'">
+              {{ lot.quantityAvailable === 0 ? 'Consumed' : 'Available' }}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <div class="cell-stack" *ngIf="lot.supplierName">
+              <span class="cell-secondary">{{ lot.supplierName }}</span>
+            </div>
+            <div class="card-meta">
+              <span class="card-meta-item">
+                <i class="pi pi-tag"></i>&nbsp;Unit Price:
+                @if (priceCodeService.getDisplayPrice(lot.costPrice) !== null) {
+                  <span class="coded-price">{{ priceCodeService.getDisplayPrice(lot.costPrice) }}</span>
+                } @else {
+                  {{ lot.costPrice | currency:currencyCode:'symbol':'1.2-4' }}
+                }
+              </span>
+              <span class="card-meta-item">
+                <i class="pi pi-box"></i>&nbsp;Received: {{ lot.quantityReceived }}
+              </span>
+              <span class="card-meta-item">
+                <i class="pi pi-check-circle"></i>&nbsp;Available: {{ lot.quantityAvailable }}
+              </span>
+              <span class="card-meta-item">
+                <i class="pi pi-calendar"></i>&nbsp;{{ lot.receivingDate | date:'dd-MMM-yyyy' }}
+              </span>
+              <span class="card-meta-item" *ngIf="lot.expiryDate">
+                <i class="pi pi-exclamation-triangle"></i>&nbsp;Expiry: {{ getExpiryDisplay(lot) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
 
     <!-- Insights -->
     <div class="insights-section">

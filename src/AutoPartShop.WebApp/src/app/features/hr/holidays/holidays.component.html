@@ -25,8 +25,8 @@
     </div>
   </app-filter-bar>
 
-  <!-- ==================== DATA TABLE ==================== -->
-  <section class="table-section">
+  <!-- ==================== DATA TABLE (Desktop) ==================== -->
+  <section class="table-section desktop-only">
     <div class="table-container">
       <p-table [value]="holidays" [loading]="loading" [scrollable]="true" scrollHeight="flex"
         styleClass="app-table" dataKey="id">
@@ -67,6 +67,51 @@
         </ng-template>
       </p-table>
     </div>
+  </section>
+
+  <!-- ==================== CARDS (Mobile) ==================== -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && holidays.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-calendar"></i></div>
+      <h3>No Holidays for {{ selectedYear }}</h3>
+      <p>Add Eid, national holidays and other shop closures</p>
+    </div>
+
+    <div *ngIf="!loading && holidays.length > 0" class="cards-grid">
+      <div *ngFor="let holiday of holidays" class="order-card">
+
+        <div class="card-header">
+          <span class="card-so-number">{{ holiday.name }}</span>
+          <span class="text-muted">{{ holiday.date | date: 'EEEE' }}</span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ holiday.date | date: 'dd MMM yyyy' }}</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button class="btn-card-action" pTooltip="Edit" (click)="openEdit(holiday)"><i class="pi pi-pencil"></i></button>
+          <button class="btn-card-action" pTooltip="Delete" (click)="deleteHoliday(holiday)"><i class="pi pi-trash"></i></button>
+        </div>
+      </div>
+    </div>
+
   </section>
 
 </app-page-container>

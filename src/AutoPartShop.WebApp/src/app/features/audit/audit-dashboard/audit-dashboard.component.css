@@ -276,6 +276,15 @@
   font-weight: 500;
 }
 
+/* Recent Activity table — horizontal scroll fallback + column
+   collapsing so the 6-column table never blows out the page width
+   on narrow screens (this is a fixed-size preview table, not a
+   paginated list, so it keeps the table+scroll treatment rather
+   than the shared card-grid pattern). */
+.table-scroll-wrapper {
+  overflow-x: auto;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .header-content {
@@ -290,5 +299,15 @@
   .date-range-picker,
   .entity-dropdown {
     min-width: 100%;
+  }
+
+  .col-property {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .col-user {
+    display: none;
   }
 }

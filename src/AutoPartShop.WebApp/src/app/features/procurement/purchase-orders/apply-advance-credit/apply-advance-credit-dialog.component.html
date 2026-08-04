@@ -2,6 +2,7 @@
             <div class="dialog-content">
                 <h3 class="section-title">Available Advance Payments</h3>
 
+                <div class="advance-table-wrapper">
                 <p-table
                     [value]="availableAdvances"
                     [loading]="isLoading"
@@ -9,14 +10,15 @@
                     selectionMode="single"
                     [(selection)]="selectedAdvance"
                     dataKey="id"
+                    responsiveLayout="scroll"
                     styleClass="p-datatable-sm">
                     <ng-template pTemplate="header">
                         <tr>
                             <th style="width: 3rem"></th>
                             <th>Transaction #</th>
-                            <th>Date</th>
-                            <th>Original Amount</th>
-                            <th>Used</th>
+                            <th class="col-hide-md">Date</th>
+                            <th class="col-hide-sm">Original Amount</th>
+                            <th class="col-hide-sm">Used</th>
                             <th>Available</th>
                         </tr>
                     </ng-template>
@@ -30,9 +32,9 @@
                                 <br>
                                 <small class="text-muted">{{ advance.description }}</small>
                             </td>
-                            <td>{{ formatDate(advance.paymentDate) }}</td>
-                            <td>{{ formatCurrency(advance.amount) }}</td>
-                            <td>
+                            <td class="col-hide-md">{{ formatDate(advance.paymentDate) }}</td>
+                            <td class="col-hide-sm">{{ formatCurrency(advance.amount) }}</td>
+                            <td class="col-hide-sm">
                                 <p-tag severity="info" [value]="formatCurrency(advance.usedAmount)"></p-tag>
                             </td>
                             <td>
@@ -51,6 +53,7 @@
                         </tr>
                     </ng-template>
                 </p-table>
+                </div>
 
                 <div *ngIf="selectedAdvance" class="payment-form" style="margin-top: 1.5rem;">
                     <div class="form-group">

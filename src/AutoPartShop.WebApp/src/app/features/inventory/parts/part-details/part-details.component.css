@@ -497,6 +497,19 @@
 .pf-char-warn { color: var(--color-warning) !important; }
 .pf-toggle-row { display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem; }
 
+/* Compact tables (variant prices / compatible vehicles) never blow out
+   this detail page on a narrow viewport. */
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The inline "column title" span (compatible-vehicles table) only makes
+   sense once PrimeNG's [responsiveLayout]="stack" hides the real <thead>
+   below its breakpoint (see markup: breakpoint="768px") — keep it hidden
+   above that width or every cell shows a redundant label before its value. */
+::ng-deep .p-column-title { display: none; }
+
 @media (max-width: 768px) {
   .pd-header { flex-direction: column; gap: 0.75rem; }
   .pd-title  { font-size: 1.25rem; }
@@ -504,4 +517,16 @@
   .spf-row   { grid-template-columns: 1fr; }
   .tab-content { padding: 1rem; }
   .ol-row { grid-template-columns: 1fr; }
+
+  ::ng-deep .p-column-title {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    min-width: 90px;
+    margin-right: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .info-grid { grid-template-columns: 1fr; }
 }

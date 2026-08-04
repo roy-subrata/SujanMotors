@@ -6,6 +6,7 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { StockLevelResponse } from '../services/stock.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-stock-levels-list',
@@ -15,7 +16,8 @@ import { I18nService } from '@/shared/services/i18n.service';
     TableModule,
     ButtonModule,
     TagModule,
-    TooltipModule
+    TooltipModule,
+    DataPaginationComponent
   ],
   templateUrl: './stock-levels-list.component.html',
   styleUrls: ['./stock-levels-list.component.css']
@@ -33,6 +35,24 @@ export class StockLevelsListComponent {
 
   @Output() adjustClick = new EventEmitter<StockLevelResponse>();
   @Output() pageChange = new EventEmitter<{ page: number; rows: number }>();
+
+  get first(): number {
+    return Math.max(0, (this.currentPage - 1) * this.rows);
+  }
+
+  get totalPages(): number {
+    if (!this.totalRecords || !this.rows) return 0;
+    return Math.ceil(this.totalRecords / this.rows);
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.pageChange.emit({ page, rows: this.rows });
+  }
+
+  onPageSizeChange(newRows: number): void {
+    this.pageChange.emit({ page: 1, rows: newRows });
+  }
 
   onPageChange(event: any): void {
     if (!event || typeof event.first !== 'number' || typeof event.rows !== 'number') {

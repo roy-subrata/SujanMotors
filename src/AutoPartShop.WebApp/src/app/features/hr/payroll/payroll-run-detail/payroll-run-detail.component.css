@@ -100,3 +100,58 @@
     display: none !important;
   }
 }
+
+/* Let the summary bar wrap onto multiple lines on small screens. */
+@media (max-width: 768px) {
+  .summary-bar {
+    gap: 1.25rem;
+    padding: 0.875rem 1rem;
+  }
+}
+
+/* ==================== MOBILE CARDS ==================== */
+/* Spreadsheet-like payslip editor: read-only summary up top (attendance,
+   basic, absence deduction, net pay), editable adjustment fields grouped
+   in a compact 2-column grid below, same fields as the desktop row. */
+.payslip-card {
+  cursor: default;
+}
+
+.payslip-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.payslip-adjustments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border-light);
+}
+
+.payslip-adjustments .attendance-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.payslip-adjustments .attendance-field label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.payslip-adjustments .attendance-field span {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+::ng-deep .cell-number-mobile input {
+  width: 100%;
+  text-align: right;
+  font-size: 13px;
+}

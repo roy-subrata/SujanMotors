@@ -201,4 +201,6 @@
   .inv-body   { padding: 12px 14px; gap: 10px; }
   .inv-header-right { display: none; }
   .summary-grid { grid-template-columns: 1fr 1fr; }
+  .inv-form-grid { grid-template-columns: 1fr; }
+  .inv-form-full { grid-column: span 1; }
 }
