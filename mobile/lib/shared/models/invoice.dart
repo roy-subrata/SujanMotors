@@ -1,4 +1,5 @@
 import 'json.dart';
+import 'status_enums.dart';
 
 /// `InvoiceResponse` from `GET /api/v1/SalesOrder/invoices` — a customer invoice
 /// header. The list endpoint returns no line items; lines are loaded on demand
@@ -18,7 +19,7 @@ class Invoice {
     required this.outstandingAmount,
     required this.isOverdue,
     this.currency,
-    this.status,
+    this.status = InvoiceStatus.unknown,
     this.customerName,
   });
 
@@ -32,7 +33,7 @@ class Invoice {
   final double outstandingAmount;
   final bool isOverdue;
   final String? currency;
-  final String? status;
+  final InvoiceStatus status;
   final String? customerName;
 
   factory Invoice.fromJson(Map<String, dynamic> json) => Invoice(
@@ -48,7 +49,7 @@ class Invoice {
         outstandingAmount: asDouble(json['outstandingAmount']),
         isOverdue: asBool(json['isOverdue']),
         currency: asStringOrNull(json['currency']),
-        status: asStringOrNull(json['status']),
+        status: InvoiceStatus.fromWire(asStringOrNull(json['status'])),
         customerName: asStringOrNull(json['customerName']),
       );
 }

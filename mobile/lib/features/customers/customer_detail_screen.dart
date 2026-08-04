@@ -10,6 +10,7 @@ import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
 import '../../shared/models/invoice.dart';
 import '../../shared/models/sale_return.dart';
+import '../../shared/models/status_enums.dart';
 import '../../shared/widgets/design_system.dart';
 import '../../shared/widgets/state_views.dart';
 import '../sales/sales_returns_repository.dart';
@@ -608,7 +609,14 @@ class _InvoiceRow extends StatelessWidget {
                     ),
                   )
                 else
-                  StatusPill(label: invoice.status ?? 'PENDING'),
+                  StatusPill(
+                    label: invoice.status == InvoiceStatus.unknown
+                        ? S.of(context).pending
+                        : S.of(context).statusName(invoice.status),
+                    kind: invoice.status == InvoiceStatus.unknown
+                        ? StatusKind.warning
+                        : invoice.status.kind,
+                  ),
               ],
             ),
             const SizedBox(width: 8),
@@ -673,8 +681,7 @@ class _PaymentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final method = payment.paymentMethod ?? 'Cash';
-    final isCompleted =
-        (payment.status ?? '').toUpperCase() == 'COMPLETED';
+    final isCompleted = payment.status == CustomerPaymentStatus.completed;
     return Padding(
       padding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -733,7 +740,14 @@ class _PaymentRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              StatusPill(label: payment.status ?? 'PENDING'),
+              StatusPill(
+                label: payment.status == CustomerPaymentStatus.unknown
+                    ? S.of(context).pending
+                    : S.of(context).statusName(payment.status),
+                kind: payment.status == CustomerPaymentStatus.unknown
+                    ? StatusKind.warning
+                    : payment.status.kind,
+              ),
             ],
           ),
         ],
@@ -858,7 +872,10 @@ class _ReturnRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              StatusPill(label: ret.status),
+              StatusPill(
+                label: S.of(context).statusName(ret.status),
+                kind: ret.status.kind,
+              ),
             ],
           ),
         ],

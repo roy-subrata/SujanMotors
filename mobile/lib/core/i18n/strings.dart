@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../shared/models/status_enums.dart';
+
 /// App strings for the supported languages (English / Bengali).
 ///
 /// Usage: `S.of(context).products`. New screens add a getter here with both
@@ -438,8 +440,13 @@ class S {
   String get outstanding => _t('Outstanding', 'বকেয়া');
 
   // ── Statuses / history lists ────────────────────────────────────────────
-  /// Localized label for a backend status code such as "PARTIALLY_PAID".
-  String statusName(String code) => switch (code.toUpperCase()) {
+  /// Localized label for any backend status enum (invoice, customer payment,
+  /// sales return, ...) — shared because their wire values overlap heavily
+  /// (PENDING/PAID/CANCELLED/COMPLETED/...). Values only one domain uses
+  /// (e.g. invoice's PARTIALLY_PAID, payment's REFUNDED) still get a
+  /// dedicated branch; anything else falls back to a humanized form of the
+  /// wire string.
+  String statusName(WireStatus status) => switch (status.wire) {
         'DRAFT' => _t('Draft', 'খসড়া'),
         'ISSUED' => _t('Issued', 'ইস্যুকৃত'),
         'PARTIALLY_PAID' => _t('Partially paid', 'আংশিক পরিশোধিত'),
@@ -450,7 +457,7 @@ class S {
         'PENDING' => _t('Pending', 'অপেক্ষমাণ'),
         'FAILED' => _t('Failed', 'ব্যর্থ'),
         'REFUNDED' => _t('Refunded', 'ফেরত দেওয়া'),
-        _ => _humanize(code),
+        _ => _humanize(status.wire),
       };
 
   static String _humanize(String s) {
@@ -746,14 +753,16 @@ class S {
   String get received => _t('Received', 'গৃহীত');
   String get noStockInOrders => _t(
       'No stock-in orders found.', 'কোনো স্টক-ইন অর্ডার পাওয়া যায়নি।');
-  /// Localized pill label for a purchase-order status code.
-  String poStatusName(String status) => switch (status) {
-        'DELIVERED' => received,
-        'DRAFT' => _t('Draft', 'খসড়া'),
-        'SUBMITTED' || 'CONFIRMED' => pending,
-        'PARTIAL' => statusPartial,
-        'CANCELLED' => statusCancelled,
-        _ => status,
+  /// Localized pill label for a purchase-order status.
+  String poStatusName(PurchaseOrderStatus status) => switch (status) {
+        PurchaseOrderStatus.delivered => received,
+        PurchaseOrderStatus.draft => _t('Draft', 'খসড়া'),
+        PurchaseOrderStatus.submitted ||
+        PurchaseOrderStatus.confirmed =>
+          pending,
+        PurchaseOrderStatus.partial => statusPartial,
+        PurchaseOrderStatus.cancelled => statusCancelled,
+        PurchaseOrderStatus.unknown => status.wire,
       };
   String get submittingOrder =>
       _t('Submitting order...', 'অর্ডার জমা হচ্ছে...');

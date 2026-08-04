@@ -10,6 +10,7 @@ import '../../shared/models/customer_vehicle.dart';
 import '../../shared/models/invoice.dart';
 import '../../shared/models/json.dart';
 import '../../shared/models/paged_response.dart';
+import '../../shared/models/status_enums.dart';
 
 /// One page of customers plus whether more pages remain (for infinite scroll).
 class CustomerPage {
@@ -191,7 +192,7 @@ class CustomersRepository {
   /// [invoiceLines].
   Future<PagedChunk<Invoice>> invoicesPage({
     required String customerId,
-    String? status,
+    InvoiceStatus? status,
     String? search,
     int page = 1,
     int pageSize = 20,
@@ -200,7 +201,7 @@ class CustomersRepository {
       final res = await _dio.get('/SalesOrder/invoices', queryParameters: {
         'customerId': customerId,
         'searchTerm': ?search,
-        'status': ?status,
+        'status': ?status?.wire,
         'pageNumber': page,
         'pageSize': pageSize,
       });
@@ -231,7 +232,7 @@ class CustomersRepository {
   /// (`POST /customer-payments/list`).
   Future<PagedChunk<PaymentHistoryItem>> paymentsPage({
     required String customerId,
-    String? status,
+    CustomerPaymentStatus? status,
     String? search,
     int page = 1,
     int pageSize = 20,
@@ -239,7 +240,7 @@ class CustomersRepository {
     try {
       final res = await _dio.post('/customer-payments/list', data: {
         'customerId': customerId,
-        'status': ?status,
+        'status': ?status?.wire,
         'search': search ?? '',
         'pageNumber': page,
         'pageSize': pageSize,
