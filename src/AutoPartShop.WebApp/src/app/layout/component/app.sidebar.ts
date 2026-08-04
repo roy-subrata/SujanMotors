@@ -1,17 +1,23 @@
-import { Component, ElementRef, computed, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, computed, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 
 import { LayoutService } from '../service/layout.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { AppBrandingService } from '../../shared/services/app-branding.service';
+import { UserMenuService } from '../../shared/services/user-menu.service';
+import { getUserInitials } from '../../shared/utils/user-display.util';
+import { I18nService } from '../../shared/services/i18n.service';
 import { AvatarModule } from 'primeng/avatar';
 import { TooltipModule } from 'primeng/tooltip';
+import { MenuModule } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
 import { AppMenuComponent } from './app-menu/app.menu.component';
 
 @Component({
     selector: 'app-sidebar',
     standalone: true,
-    imports: [CommonModule, AppMenuComponent, AvatarModule, TooltipModule],
+    imports: [CommonModule, AppMenuComponent, AvatarModule, TooltipModule, MenuModule],
     template: `
         <div class="layout-sidebar" [class.collapsed]="isCollapsed()">
             <!-- Logo and Toggle -->
@@ -49,7 +55,11 @@ import { AppMenuComponent } from './app-menu/app.menu.component';
             <div class="sidebar-footer">
                 <!-- User Profile -->
                 @if (currentUser(); as user) {
-                    <div class="user-profile" [pTooltip]="isCollapsed() ? user.fullName : ''" tooltipPosition="right">
+                    <div
+                        class="user-profile"
+                        [pTooltip]="isCollapsed() ? user.fullName : ''"
+                        tooltipPosition="right"
+                        (click)="userMenu.toggle($event)">
                         <p-avatar
                             [label]="getUserInitials()"
                             styleClass="user-avatar"
@@ -63,6 +73,7 @@ import { AppMenuComponent } from './app-menu/app.menu.component';
                             </div>
                         }
                     </div>
+                    <p-menu #userMenu [model]="userMenuItems" [popup]="true" [appendTo]="'body'" [style]="{'min-width': '200px'}"></p-menu>
                 }
             </div>
         </div>
@@ -81,12 +92,26 @@ import { AppMenuComponent } from './app-menu/app.menu.component';
 export class AppSidebar {
     private layoutService = inject(LayoutService);
     private authService = inject(AuthService);
+    private userMenuService = inject(UserMenuService);
+    private i18n = inject(I18nService);
+    private destroyRef = inject(DestroyRef);
     protected branding = inject(AppBrandingService);
 
     isCollapsed = computed(() => this.layoutService.layoutState().staticMenuDesktopInactive);
     currentUser = computed(() => this.authService.currentUser());
 
-    constructor(public el: ElementRef) {}
+    userMenuItems: MenuItem[] = [];
+
+    constructor(public el: ElementRef) {
+        this.buildUserMenuItems();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildUserMenuItems();
+        });
+    }
+
+    private buildUserMenuItems(): void {
+        this.userMenuItems = this.userMenuService.buildMenuItems();
+    }
 
     toggleSidebar() {
         this.layoutService.onMenuToggle();
@@ -97,12 +122,6 @@ export class AppSidebar {
     }
 
     getUserInitials(): string {
-        const user = this.currentUser();
-        if (!user || !user.fullName) return '?';
-        const names = user.fullName.split(' ');
-        if (names.length >= 2) {
-            return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-        }
-        return names[0].substring(0, 2).toUpperCase();
+        return getUserInitials(this.currentUser()?.fullName);
     }
 }
