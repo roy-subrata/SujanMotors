@@ -619,6 +619,9 @@ input[type="number"] {
   .line-item-content { grid-template-columns: 1fr 1fr; }
   .part-field        { grid-column: span 2; }
 
+  .cd-row { grid-template-columns: 1fr; }
+  .cd-row .cd-field:only-child { grid-column: span 1; }
+
   .form-content { padding: 1rem; }
 
   .form-actions {

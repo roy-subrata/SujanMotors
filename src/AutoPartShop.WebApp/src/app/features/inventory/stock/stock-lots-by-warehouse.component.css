@@ -215,6 +215,18 @@
     align-items: flex-start;
     gap: 0.5rem;
   }
+
+  .summary-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
 }
 
 /* Price Code styling */

@@ -2575,6 +2575,14 @@
     flex: none;
   }
 
+  /* The 6-column desktop header has no meaningful alignment once .cart-item
+     collapses to 2 columns below, and its fixed-px columns (464px total)
+     would overflow a phone width on their own — hide it; each collapsed
+     row is self-labeled (unit placeholder, qty +/- buttons, price/total). */
+  .cart-table-header {
+    display: none;
+  }
+
   /* Cart item: collapse to 2-column (info | controls) */
   .cart-item {
     grid-template-columns: 1fr auto;

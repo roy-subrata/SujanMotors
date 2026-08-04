@@ -58,6 +58,27 @@
 .btn-danger-icon { color: var(--color-danger) !important; }
 .text-muted { color: var(--color-text-secondary); opacity: .7; }
 
+/* Secondary line under the part name, shown only once the Code/Location
+   columns are hidden on narrow screens (see .col-hide-mobile below). */
+.line-meta-mobile {
+  display: none;
+  font-size: 12px;
+  color: var(--color-text-secondary, #64748b);
+}
+
 @media (max-width: 768px) {
   .summary-card { min-width: calc(50% - 12px); }
+
+  .lines-toolbar .search-input-wrapper { min-width: 0; max-width: none; }
+
+  /* This stock-take-lines table is a fixed, virtual-scrolled list (not a
+     paginated page), so it keeps the single-table layout and instead
+     drops lower-priority columns to fit a phone screen — the essentials
+     (Part, Expected, Counted, Variance) stay visible and scrollable. */
+  .col-hide-mobile { display: none !important; }
+  .line-meta-mobile { display: block; }
+}
+
+@media (max-width: 480px) {
+  .summary-card { min-width: 100%; }
 }

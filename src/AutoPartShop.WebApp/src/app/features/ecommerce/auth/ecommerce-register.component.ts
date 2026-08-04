@@ -101,6 +101,10 @@ import { extractApiError } from '../../../shared/utils/api-error.util';
     .auth-footer { text-align: center; font-size: 13px; color: #666; margin-top: 16px; }
     .auth-footer a { color: #e53e3e; text-decoration: none; font-weight: 600; }
     .optional-label { font-weight: 400; color: #aaa; font-size: 11px; }
+    @media (max-width: 480px) {
+      .auth-card { padding: 28px 20px; }
+      .form-row { grid-template-columns: 1fr; gap: 0; }
+    }
   `]
 })
 export class EcommerceRegisterComponent implements OnInit, OnDestroy {

@@ -32,7 +32,7 @@
 
   <section class="table-section desktop-only">
     <div class="table-container">
-      <p-table [value]="paymentProviders" [paginator]="true" [rows]="pageSize" [totalRecords]="totalCount"
+      <p-table [value]="paymentProviders" [paginator]="false" [rows]="pageSize" [totalRecords]="totalCount"
         [loading]="loading" (onLazyLoad)="onPageChange($event)" [lazy]="true" [scrollable]="true"
         styleClass="app-table" [globalFilterFields]="['providerName', 'providerType', 'status']">
 
@@ -90,6 +90,66 @@
         </ng-template>
       </p-table>
     </div>
+  </section>
+
+  <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="totalCount"
+    itemLabel="providers"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
+
+  <!-- ==================== CARDS (Mobile) ==================== -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="loading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && paymentProviders.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-credit-card"></i></div>
+      <h3>No Payment Providers Found</h3>
+      <p>Add a new provider to get started</p>
+    </div>
+
+    <div *ngIf="!loading && paymentProviders.length > 0" class="cards-grid">
+      <div *ngFor="let provider of paymentProviders" class="order-card">
+
+        <div class="card-header">
+          <span class="card-so-number">{{ provider.providerName }}</span>
+          <p-tag [value]="provider.status" [severity]="getStatusSeverity(provider.status)"></p-tag>
+        </div>
+
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="card-meta-item"><i class="pi pi-tag"></i>&nbsp;{{ provider.providerType }}</span>
+            <span class="card-meta-item"><i class="pi pi-hashtag"></i>&nbsp;{{ getAccountDisplay(provider) }}</span>
+            <span class="card-meta-item"><i class="pi pi-percentage"></i>&nbsp;{{ provider.transactionFeeType }} ({{ provider.transactionFeeAmount | appCurrency }})</span>
+            <span class="card-meta-item"><i class="pi pi-calendar-clock"></i>&nbsp;{{ provider.settlementDays }} days</span>
+            <span *ngIf="provider.isDefault" class="card-meta-item"><i class="pi pi-star-fill"></i>&nbsp;Default</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button class="btn-card-action" pTooltip="Actions" (click)="showContextMenu($event, provider)">
+            <i class="pi pi-ellipsis-h"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
   </section>
 
   <!-- Context Menu -->

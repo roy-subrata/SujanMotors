@@ -1,116 +1,220 @@
-<p-table
-  [value]="stockLevels"
-  [rows]="rows"
-  [first]="(currentPage - 1) * rows"
+<!-- ==================== DATA TABLE (Desktop) ==================== -->
+<section class="table-section desktop-only">
+  <div class="table-container">
+    <p-table
+      [value]="stockLevels"
+      [lazy]="true"
+      [paginator]="false"
+      [rows]="rows"
+      [first]="first"
+      [totalRecords]="totalRecords"
+      [loading]="loading"
+      responsiveLayout="scroll"
+      [tableStyle]="{ 'min-width': '60rem' }"
+      styleClass="app-table">
+
+      <!-- Header Template -->
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 15%">Part Name</th>
+          <th style="width: 12%">Warehouse</th>
+          <th style="width: 14%" class="text-right">On Hand</th>
+          <th style="width: 12%" class="text-right">Reserved</th>
+          <th style="width: 13%" class="text-right">Available</th>
+          <th style="width: 9%" class="text-right">Damaged</th>
+          <th style="width: 9%" class="text-right">Quarantine</th>
+          <th style="width: 8%" class="text-right">Reorder Level</th>
+          <th style="width: 8%" class="text-right">Reorder Qty</th>
+          <th style="width: 9%">Status</th>
+          <th style="width: 8%">Actions</th>
+        </tr>
+      </ng-template>
+
+      <!-- Data Rows -->
+      <ng-template pTemplate="body" let-stock>
+        <tr>
+          <td>
+            <span class="font-semibold">{{ stock.partName || (getPartInfo ? getPartInfo(stock.partId) : stock.partId) }}</span>
+            <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
+            <span class="variant-tag" *ngIf="stock.variantName">{{ stock.variantName }}</span>
+            <div class="text-gray-500" style="font-size: 0.75rem" *ngIf="stock.variantSku || stock.partSku">{{ stock.variantSku || stock.partSku }}</div>
+          </td>
+          <td>
+            <span class="text-gray-600">{{ stock.warehouseName || (getWarehouseName ? getWarehouseName(stock.warehouseId) : stock.warehouseId) }}</span>
+          </td>
+          <td class="text-right">
+            <div class="dual-unit-cell">
+              <span class="display-qty">{{ stock.quantity }}</span>
+              <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
+              <span class="base-qty" *ngIf="stock.baseUnitSymbol">
+                ({{ stock.quantityInBaseUnit }} {{ stock.baseUnitSymbol }})
+              </span>
+            </div>
+          </td>
+          <td class="text-right">
+            <div class="dual-unit-cell">
+              <span class="display-qty text-orange-600">{{ stock.reservedQuantity }}</span>
+              <span class="display-unit text-orange-600">{{ stock.unitSymbol || '-' }}</span>
+              <span class="base-qty text-gray-500" *ngIf="stock.baseUnitSymbol">
+                ({{ stock.reservedQuantityInBaseUnit }} {{ stock.baseUnitSymbol }})
+              </span>
+            </div>
+          </td>
+          <td class="text-right">
+            <div class="dual-unit-cell">
+              <span class="display-qty font-semibold">{{ stock.availableQuantity }}</span>
+              <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
+              <span class="base-qty" *ngIf="stock.baseUnitSymbol">
+                ({{ stock.availableQuantityInBaseUnit }} {{ stock.baseUnitSymbol }})
+              </span>
+            </div>
+          </td>
+          <td class="text-right">
+            <span class="display-qty" [class.text-red-600]="stock.damagedQuantity > 0" [class.text-gray-400]="!stock.damagedQuantity">{{ stock.damagedQuantity || 0 }}</span>
+          </td>
+          <td class="text-right">
+            <span class="display-qty" [class.text-orange-600]="stock.quarantineQuantity > 0" [class.text-gray-400]="!stock.quarantineQuantity">{{ stock.quarantineQuantity || 0 }}</span>
+          </td>
+          <td class="text-right">
+            <span class="text-gray-600">{{ stock.reorderLevel }}</span>
+          </td>
+          <td class="text-right">
+            <span class="text-gray-600">{{ stock.reorderQuantity }}</span>
+          </td>
+          <td>
+            <p-tag
+              [value]="getStockStatus(stock)"
+              [severity]="getStockSeverity(stock)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-sliders-h"
+                class="p-button-text p-button-sm"
+                pTooltip="Adjust Stock"
+                tooltipPosition="left"
+                (click)="onAdjustClick(stock)">
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Empty Message -->
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="11">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+              <h3>No Stock Levels Found</h3>
+              <p>Try adjusting your filters or search</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="loadingbody">
+        <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+          <td><div class="skeleton skeleton-text"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-actions"></div></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
+  [first]="first"
+  [pageSize]="rows"
   [totalRecords]="totalRecords"
-  [loading]="loading"
-  [paginator]="true"
-  paginatorPosition="bottom"
-  [showCurrentPageReport]="true"
-  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} stock levels"
-  (onPage)="onPageChange($event)"
-  responsiveLayout="scroll"
-  [tableStyle]="{ 'min-width': '60rem' }"
-  styleClass="p-datatable-striped">
+  itemLabel="stock levels"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
-  <!-- Header Template -->
-  <ng-template pTemplate="header">
-    <tr>
-      <th style="width: 15%">Part Name</th>
-      <th style="width: 12%">Warehouse</th>
-      <th style="width: 14%" class="text-right">On Hand</th>
-      <th style="width: 12%" class="text-right">Reserved</th>
-      <th style="width: 13%" class="text-right">Available</th>
-      <th style="width: 9%" class="text-right">Damaged</th>
-      <th style="width: 9%" class="text-right">Quarantine</th>
-      <th style="width: 8%" class="text-right">Reorder Level</th>
-      <th style="width: 8%" class="text-right">Reorder Qty</th>
-      <th style="width: 9%">Status</th>
-      <th style="width: 8%">Actions</th>
-    </tr>
-  </ng-template>
+<!-- ==================== MOBILE CARDS ==================== -->
+<section class="cards-section mobile-only">
 
-  <!-- Data Rows -->
-  <ng-template pTemplate="body" let-stock>
-    <tr>
-      <td>
-        <span class="font-semibold">{{ stock.partName || (getPartInfo ? getPartInfo(stock.partId) : stock.partId) }}</span>
-        <small *ngIf="stock.partLocalName" class="part-row-local d-block">{{ stock.partLocalName }}</small>
-        <span class="variant-tag" *ngIf="stock.variantName">{{ stock.variantName }}</span>
-        <div class="text-gray-500" style="font-size: 0.75rem" *ngIf="stock.variantSku || stock.partSku">{{ stock.variantSku || stock.partSku }}</div>
-      </td>
-      <td>
-        <span class="text-gray-600">{{ stock.warehouseName || (getWarehouseName ? getWarehouseName(stock.warehouseId) : stock.warehouseId) }}</span>
-      </td>
-      <td class="text-right">
-        <div class="dual-unit-cell">
-          <span class="display-qty">{{ stock.quantity }}</span>
-          <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
-          <span class="base-qty" *ngIf="stock.baseUnitSymbol">
-            ({{ stock.quantityInBaseUnit }} {{ stock.baseUnitSymbol }})
+  <div *ngIf="loading" class="cards-grid">
+    <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+      <div class="card-header">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+      <div class="card-body">
+        <div class="skeleton skeleton-text-lg"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && stockLevels.length === 0" class="empty-state-mobile">
+    <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+    <h3>No Stock Levels</h3>
+    <p>Try adjusting your filters or search</p>
+  </div>
+
+  <div *ngIf="!loading && stockLevels.length > 0" class="cards-grid">
+    <div *ngFor="let stock of stockLevels" class="order-card">
+
+      <div class="card-header">
+        <span class="card-so-number">{{ stock.partName || (getPartInfo ? getPartInfo(stock.partId) : stock.partId) }}</span>
+        <span class="status-pill" [attr.data-status]="getStockSeverity(stock)">
+          {{ getStockStatus(stock) }}
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div class="cell-stack" *ngIf="stock.variantName || stock.variantSku || stock.partSku">
+          <span class="cell-secondary" *ngIf="stock.variantName">{{ stock.variantName }}</span>
+          <span class="cell-secondary" *ngIf="stock.variantSku || stock.partSku">{{ stock.variantSku || stock.partSku }}</span>
+        </div>
+        <div class="card-meta">
+          <span class="card-meta-item">
+            <i class="pi pi-building"></i>&nbsp;{{ stock.warehouseName || (getWarehouseName ? getWarehouseName(stock.warehouseId) : stock.warehouseId) }}
+          </span>
+          <span class="card-meta-item">
+            <i class="pi pi-box"></i>&nbsp;On Hand: {{ stock.quantity }} {{ stock.unitSymbol || '' }}
+          </span>
+          <span class="card-meta-item">
+            <i class="pi pi-check-circle"></i>&nbsp;Available: {{ stock.availableQuantity }} {{ stock.unitSymbol || '' }}
+          </span>
+          <span class="card-meta-item" *ngIf="stock.reservedQuantity">
+            <i class="pi pi-lock"></i>&nbsp;Reserved: {{ stock.reservedQuantity }} {{ stock.unitSymbol || '' }}
+          </span>
+          <span class="card-meta-item" *ngIf="stock.damagedQuantity">
+            <i class="pi pi-exclamation-circle"></i>&nbsp;Damaged: {{ stock.damagedQuantity }}
+          </span>
+          <span class="card-meta-item" *ngIf="stock.quarantineQuantity">
+            <i class="pi pi-ban"></i>&nbsp;Quarantine: {{ stock.quarantineQuantity }}
           </span>
         </div>
-      </td>
-      <td class="text-right">
-        <div class="dual-unit-cell">
-          <span class="display-qty text-orange-600">{{ stock.reservedQuantity }}</span>
-          <span class="display-unit text-orange-600">{{ stock.unitSymbol || '-' }}</span>
-          <span class="base-qty text-gray-500" *ngIf="stock.baseUnitSymbol">
-            ({{ stock.reservedQuantityInBaseUnit }} {{ stock.baseUnitSymbol }})
-          </span>
-        </div>
-      </td>
-      <td class="text-right">
-        <div class="dual-unit-cell">
-          <span class="display-qty font-semibold">{{ stock.availableQuantity }}</span>
-          <span class="display-unit">{{ stock.unitSymbol || '-' }}</span>
-          <span class="base-qty" *ngIf="stock.baseUnitSymbol">
-            ({{ stock.availableQuantityInBaseUnit }} {{ stock.baseUnitSymbol }})
-          </span>
-        </div>
-      </td>
-      <td class="text-right">
-        <span class="display-qty" [class.text-red-600]="stock.damagedQuantity > 0" [class.text-gray-400]="!stock.damagedQuantity">{{ stock.damagedQuantity || 0 }}</span>
-      </td>
-      <td class="text-right">
-        <span class="display-qty" [class.text-orange-600]="stock.quarantineQuantity > 0" [class.text-gray-400]="!stock.quarantineQuantity">{{ stock.quarantineQuantity || 0 }}</span>
-      </td>
-      <td class="text-right">
-        <span class="text-gray-600">{{ stock.reorderLevel }}</span>
-      </td>
-      <td class="text-right">
-        <span class="text-gray-600">{{ stock.reorderQuantity }}</span>
-      </td>
-      <td>
-        <p-tag
-          [value]="getStockStatus(stock)"
-          [severity]="getStockSeverity(stock)">
-        </p-tag>
-      </td>
-      <td>
-        <div class="action-buttons">
-          <button
-            pButton
-            pRipple
-            type="button"
-            icon="pi pi-sliders-h"
-            class="p-button-text p-button-sm"
-            pTooltip="Adjust Stock"
-            tooltipPosition="left"
-            (click)="onAdjustClick(stock)">
-          </button>
-        </div>
-      </td>
-    </tr>
-  </ng-template>
+      </div>
 
-  <!-- Empty Message -->
-  <ng-template pTemplate="emptymessage">
-    <tr>
-      <td colspan="11" class="text-center py-4">
-        <i class="pi pi-inbox mr-2"></i>
-        No stock levels found.
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
+      <div class="card-footer">
+        <div class="card-amount">
+          <span class="amount-label">Reorder Level</span>
+          <span class="amount-value">{{ stock.reorderLevel }}</span>
+        </div>
+        <button class="btn-card-action" (click)="onAdjustClick(stock)">
+          <i class="pi pi-sliders-h"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</section>

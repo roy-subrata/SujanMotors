@@ -1,120 +1,212 @@
 <p-toast></p-toast>
 
-<p-table
-  [value]="parts"
-  [rows]="rows"
+<!-- ==================== DATA TABLE (Desktop) ==================== -->
+<section class="table-section desktop-only">
+  <div class="table-container">
+    <p-table
+      [value]="parts"
+      [rows]="rows"
+      [first]="(currentPage - 1) * rows"
+      [totalRecords]="totalRecords"
+      [loading]="loading"
+      [lazy]="true"
+      [paginator]="false"
+      [globalFilterFields]="['name', 'sku', 'partNumber']"
+      (onLazyLoad)="onPageChange($event)"
+      [tableStyle]="{ 'min-width': '50rem' }"
+      styleClass="p-datatable-striped">
+
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="sku" style="width: 9%">SKU <p-sortIcon field="sku"></p-sortIcon></th>
+          <th pSortableColumn="name" style="width: 16%">Name <p-sortIcon field="name"></p-sortIcon></th>
+          <th pSortableColumn="partNumber" style="width: 9%">Part No. <p-sortIcon field="partNumber"></p-sortIcon></th>
+          <th style="width: 9%">Category</th>
+          <th style="width: 8%">Brand</th>
+          <th style="width: 7%">Unit</th>
+          <th style="width: 8%">Cost Price</th>
+          <th style="width: 10%">Selling Price</th>
+          <th style="width: 5%">Margin</th>
+          <th style="width: 5%">Status</th>
+          <th style="width: 8%">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-part>
+        <tr>
+          <td><span class="font-semibold">{{ part.sku }}</span></td>
+
+          <td>
+            <div class="part-name">{{ part.name }}</div>
+            <small *ngIf="part.localName" class="text-gray-600 d-block">{{ part.localName }}</small>
+            <small class="text-gray-500">{{ part.description }}</small>
+            <small *ngIf="part.vehicleFit" class="text-gray-400 d-block">Fits: {{ part.vehicleFit }}</small>
+          </td>
+
+          <td>{{ part.partNumber || '—' }}</td>
+
+          <td><span class="category-badge">{{ part.categoryName }}</span></td>
+
+          <td>
+            <span *ngIf="part.brandName; else noBrand" class="brand-badge">{{ part.brandName }}</span>
+            <ng-template #noBrand><span class="text-gray-400">—</span></ng-template>
+          </td>
+
+          <td>
+            <span *ngIf="part.unitName; else noUnit" class="unit-badge">{{ part.unitName }}</span>
+            <ng-template #noUnit><span class="text-gray-400">—</span></ng-template>
+          </td>
+
+          <td class="text-right">
+            <span [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">
+              {{ formatCostPrice(part.costPrice) }}
+            </span>
+          </td>
+
+          <td class="price-cell">
+            <span *ngIf="part.effectiveSellingPrice > 0" class="price-value-tag">
+              {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
+              <span *ngIf="part.isVariant" class="price-source-dot" pTooltip="Variant price"></span>
+            </span>
+            <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
+          </td>
+
+          <td class="text-center">
+            <ng-container *ngIf="priceCodeService.showActualPrice() || !priceCodeService.isConfigured()">
+              <span *ngIf="part.effectiveSellingPrice > 0" class="margin-badge"
+                [ngClass]="part.effectiveSellingPrice >= part.costPrice ? 'positive' : 'negative'">
+                {{ calculateMargin(part.effectiveCostPrice, part.effectiveSellingPrice) }}
+              </span>
+              <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
+            </ng-container>
+            <span *ngIf="!priceCodeService.showActualPrice() && priceCodeService.isConfigured()" class="text-gray-400">—</span>
+          </td>
+
+          <td>
+            <p-tag [value]="part.isActive ? 'Active' : 'Inactive'" [severity]="getStatusSeverity(part.isActive)"></p-tag>
+          </td>
+
+          <td>
+            <div class="action-buttons">
+              <button
+                pButton pRipple type="button"
+                icon="pi pi-ellipsis-v"
+                class="p-button-text p-button-sm"
+                pTooltip="Actions" tooltipPosition="left"
+                (contextmenu)="showContextMenu($event, part)"
+                (click)="showContextMenu($event, part)">
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="11">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+              <h3>No Parts Found</h3>
+              <p>Click "New Part" to create one.</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="loadingbody">
+        <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-actions"></div></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</section>
+
+<!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+<app-data-pagination
   [first]="(currentPage - 1) * rows"
+  [pageSize]="rows"
   [totalRecords]="totalRecords"
-  [loading]="loading"
-  [lazy]="true"
-  [paginator]="true"
-  [globalFilterFields]="['name', 'sku', 'partNumber']"
-  paginatorPosition="bottom"
-  [showCurrentPageReport]="true"
-  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} parts"
-  (onLazyLoad)="onPageChange($event)"
-  responsiveLayout="scroll"
-  [tableStyle]="{ 'min-width': '50rem' }"
-  styleClass="p-datatable-striped">
+  itemLabel="parts"
+  (pageChange)="goToPage($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-data-pagination>
 
-  <ng-template pTemplate="header">
-    <tr>
-      <th pSortableColumn="sku" style="width: 9%">SKU <p-sortIcon field="sku"></p-sortIcon></th>
-      <th pSortableColumn="name" style="width: 16%">Name <p-sortIcon field="name"></p-sortIcon></th>
-      <th pSortableColumn="partNumber" style="width: 9%">Part No. <p-sortIcon field="partNumber"></p-sortIcon></th>
-      <th style="width: 9%">Category</th>
-      <th style="width: 8%">Brand</th>
-      <th style="width: 7%">Unit</th>
-      <th style="width: 8%">Cost Price</th>
-      <th style="width: 10%">Selling Price</th>
-      <th style="width: 5%">Margin</th>
-      <th style="width: 5%">Status</th>
-      <th style="width: 8%">Actions</th>
-    </tr>
-  </ng-template>
+<!-- ==================== MOBILE CARDS ==================== -->
+<section class="cards-section mobile-only">
 
-  <ng-template pTemplate="body" let-part>
-    <tr>
-      <td><span class="font-semibold">{{ part.sku }}</span></td>
+  <div *ngIf="loading" class="cards-grid">
+    <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+      <div class="card-header">
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-badge"></div>
+      </div>
+      <div class="card-body">
+        <div class="skeleton skeleton-text-lg"></div>
+        <div class="skeleton skeleton-text-sm"></div>
+      </div>
+    </div>
+  </div>
 
-      <td>
-        <div class="part-name">{{ part.name }}</div>
-        <small *ngIf="part.localName" class="text-gray-600 d-block">{{ part.localName }}</small>
-        <small class="text-gray-500">{{ part.description }}</small>
-        <small *ngIf="part.vehicleFit" class="text-gray-400 d-block">Fits: {{ part.vehicleFit }}</small>
-      </td>
+  <div *ngIf="!loading && parts.length === 0" class="empty-state-mobile">
+    <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+    <h3>No Parts Found</h3>
+    <p>Click "New Part" to create one.</p>
+  </div>
 
-      <td>{{ part.partNumber || '—' }}</td>
+  <div *ngIf="!loading && parts.length > 0" class="cards-grid">
+    <div *ngFor="let part of parts" class="order-card" (click)="onViewDetailsClick(part)">
 
-      <td><span class="category-badge">{{ part.categoryName }}</span></td>
-
-      <td>
-        <span *ngIf="part.brandName; else noBrand" class="brand-badge">{{ part.brandName }}</span>
-        <ng-template #noBrand><span class="text-gray-400">—</span></ng-template>
-      </td>
-
-      <td>
-        <span *ngIf="part.unitName; else noUnit" class="unit-badge">{{ part.unitName }}</span>
-        <ng-template #noUnit><span class="text-gray-400">—</span></ng-template>
-      </td>
-
-      <td class="text-right">
-        <span [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">
-          {{ formatCostPrice(part.costPrice) }}
-        </span>
-      </td>
-
-      <td class="price-cell">
-        <span *ngIf="part.effectiveSellingPrice > 0" class="price-value-tag">
-          {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
-          <span *ngIf="part.isVariant" class="price-source-dot" pTooltip="Variant price"></span>
-        </span>
-        <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
-      </td>
-
-      <td class="text-center">
-        <ng-container *ngIf="priceCodeService.showActualPrice() || !priceCodeService.isConfigured()">
-          <span *ngIf="part.effectiveSellingPrice > 0" class="margin-badge"
-            [ngClass]="part.effectiveSellingPrice >= part.costPrice ? 'positive' : 'negative'">
-            {{ calculateMargin(part.effectiveCostPrice, part.effectiveSellingPrice) }}
-          </span>
-          <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
-        </ng-container>
-        <span *ngIf="!priceCodeService.showActualPrice() && priceCodeService.isConfigured()" class="text-gray-400">—</span>
-      </td>
-
-      <td>
+      <div class="card-header">
+        <span class="card-so-number">{{ part.sku }}</span>
         <p-tag [value]="part.isActive ? 'Active' : 'Inactive'" [severity]="getStatusSeverity(part.isActive)"></p-tag>
-      </td>
+      </div>
 
-      <td>
-        <div class="action-buttons">
-          <button
-            pButton pRipple type="button"
-            icon="pi pi-ellipsis-v"
-            class="p-button-text p-button-sm"
-            pTooltip="Actions" tooltipPosition="left"
-            (contextmenu)="showContextMenu($event, part)"
-            (click)="showContextMenu($event, part)">
-          </button>
+      <div class="card-body">
+        <div class="cell-stack" style="margin-bottom: 10px">
+          <span class="cell-primary">{{ part.name }}</span>
+          <span *ngIf="part.localName" class="cell-secondary">{{ part.localName }}</span>
+          <span *ngIf="part.vehicleFit" class="cell-secondary">Fits: {{ part.vehicleFit }}</span>
         </div>
-      </td>
-    </tr>
-  </ng-template>
 
-  <ng-template pTemplate="emptymessage">
-    <tr>
-      <td colspan="11" class="text-center py-4">
-        <i class="pi pi-inbox mr-2"></i>
-        No parts found. Click "New Part" to create one.
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
+        <div class="card-meta">
+          <span class="card-meta-item"><i class="pi pi-hashtag"></i>&nbsp;{{ part.partNumber || '—' }}</span>
+          <span class="card-meta-item"><i class="pi pi-sitemap"></i>&nbsp;{{ part.categoryName }}</span>
+          <span *ngIf="part.brandName" class="card-meta-item"><i class="pi pi-tag"></i>&nbsp;{{ part.brandName }}</span>
+          <span *ngIf="part.unitName" class="card-meta-item"><i class="pi pi-box"></i>&nbsp;{{ part.unitName }}</span>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="card-amount">
+          <span class="amount-label">Selling Price</span>
+          <span class="amount-value" *ngIf="part.effectiveSellingPrice > 0">
+            {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
+          </span>
+          <span class="amount-value" *ngIf="part.effectiveSellingPrice === 0">—</span>
+        </div>
+        <button class="btn-card-action"
+                (click)="showContextMenu($event, part); $event.stopPropagation()">
+          <i class="pi pi-ellipsis-h"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</section>
 
 <!-- Context Menu -->
 <p-contextMenu #contextMenu [model]="contextMenuItems" [appendTo]="'body'"></p-contextMenu>
 
 <!-- Confirm Dialog -->
 <p-confirmDialog></p-confirmDialog>
-

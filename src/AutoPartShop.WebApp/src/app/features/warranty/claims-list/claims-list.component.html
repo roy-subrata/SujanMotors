@@ -237,6 +237,128 @@
     </p-table>
     </div>
   </section>
+
+  <!-- ==================== CLAIMS CARDS (Mobile) ==================== -->
+  <section class="cards-section mobile-only">
+
+    <div *ngIf="isLoading" class="cards-grid">
+      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
+        <div class="card-header">
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-badge"></div>
+        </div>
+        <div class="card-body">
+          <div class="skeleton skeleton-text-lg"></div>
+          <div class="skeleton skeleton-text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading && filteredClaims.length === 0" class="empty-state-mobile">
+      <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+      <h3>No Warranty Claims Found</h3>
+      <p>Try adjusting your filters or create a new claim</p>
+      <button pButton type="button" label="Create New Claim" icon="pi pi-plus"
+        class="p-button-outlined p-button-sm" (click)="openCreateDialog()"></button>
+    </div>
+
+    <div *ngIf="!isLoading && filteredClaims.length > 0" class="cards-grid">
+      <div *ngFor="let claim of filteredClaims" class="order-card">
+
+        <div class="card-header">
+          <a class="card-so-number link-text" (click)="openDetailDialog(claim)">{{ claim.claimNumber }}</a>
+          <p-tag [value]="getStatusLabel(claim.status)" [severity]="getStatusSeverity(claim.status)"></p-tag>
+        </div>
+
+        <div class="card-body">
+          <div class="cell-stack">
+            <span class="cell-primary">{{ claim.warrantyNumber }}</span>
+            <span class="cell-secondary">{{ claim.partName }}<span *ngIf="claim.partLocalName"> — {{ claim.partLocalName }}</span> ({{ claim.partSKU }})</span>
+          </div>
+          <div class="cell-stack">
+            <span class="cell-primary">{{ claim.customerName }}</span>
+            <span class="cell-secondary">{{ claim.customerPhone }}</span>
+          </div>
+          <div class="card-meta">
+            <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ formatDate(claim.claimDate) }}</span>
+            <span class="card-meta-item"><i class="pi pi-shield"></i>&nbsp;{{ getCoverageTypeLabel(claim.warrantyCoverageType) }}</span>
+            <span class="card-meta-item"><i class="pi pi-wrench"></i>&nbsp;{{ getResolutionMethodLabel(claim.serviceType) }}</span>
+            <span *ngIf="claim.technicianName" class="card-meta-item"><i class="pi pi-user"></i>&nbsp;{{ claim.technicianName }}</span>
+            <span *ngIf="claim.isOpen" class="card-meta-item" [class]="getDaysOpenClass(claim.daysOpen)"><i class="pi pi-hourglass"></i>&nbsp;{{ claim.daysOpen }}d open</span>
+            <span *ngIf="!claim.isOpen" class="card-meta-item cell-secondary">Closed</span>
+            <span *ngIf="claim.serviceCost" class="card-meta-item"><i class="pi pi-dollar"></i>&nbsp;{{ formatCurrency(claim.serviceCost) }}</span>
+          </div>
+        </div>
+
+        <div class="card-footer" style="flex-wrap: wrap; row-gap: 0.35rem;">
+          <button *ngIf="canRunQuickFlow(claim)" pButton type="button" [icon]="getQuickFlowIcon(claim)"
+            class="p-button-sm p-button-success" [label]="getQuickFlowLabel(claim)"
+            pTooltip="Move claim to the next standard step" tooltipPosition="top" (click)="runQuickFlow(claim)"></button>
+
+          <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-text p-button-secondary"
+            pTooltip="View Details" tooltipPosition="top" (click)="openDetailDialog(claim)"></button>
+
+          <button pButton type="button" icon="pi pi-print" class="p-button-sm p-button-text p-button-secondary"
+            pTooltip="Print claim" tooltipPosition="top" (click)="printClaim(claim)"></button>
+
+          <button *ngIf="canSubmitForReview(claim)" pButton type="button" icon="pi pi-send"
+            class="p-button-sm p-button-text p-button-info" pTooltip="Submit for Review" tooltipPosition="top"
+            (click)="submitForReview(claim)"></button>
+
+          <button *ngIf="canApprove(claim)" pButton type="button" icon="pi pi-check"
+            class="p-button-sm p-button-text p-button-success" pTooltip="Approve" tooltipPosition="top"
+            (click)="openApproveDialog(claim)"></button>
+
+          <button *ngIf="canReject(claim)" pButton type="button" icon="pi pi-times"
+            class="p-button-sm p-button-text p-button-danger" pTooltip="Reject" tooltipPosition="top"
+            (click)="openRejectDialog(claim)"></button>
+
+          <button *ngIf="canAssignTechnician(claim)" pButton type="button" icon="pi pi-user-plus"
+            class="p-button-sm p-button-text p-button-info" pTooltip="Assign Technician" tooltipPosition="top"
+            (click)="openAssignDialog(claim)"></button>
+
+          <button *ngIf="canStartService(claim)" pButton type="button" icon="pi pi-play"
+            class="p-button-sm p-button-text p-button-info" pTooltip="Start Service (no technician)" tooltipPosition="top"
+            (click)="startService(claim)"></button>
+
+          <button *ngIf="canUpdateServiceCost(claim)" pButton type="button" icon="pi pi-dollar"
+            class="p-button-sm p-button-text p-button-info" pTooltip="Update Repair Cost" tooltipPosition="top"
+            (click)="openServiceCostUpdate(claim)"></button>
+
+          <button *ngIf="canComplete(claim)" pButton type="button" icon="pi pi-check-circle"
+            class="p-button-sm p-button-text p-button-success" pTooltip="Complete Claim" tooltipPosition="top"
+            (click)="openCompleteDialog(claim)"></button>
+
+          <button *ngIf="canOpenSendDefective(claim)" pButton type="button" icon="pi pi-send"
+            class="p-button-sm p-button-text p-button-warning" pTooltip="Send Defective to Vendor" tooltipPosition="top"
+            (click)="openSendDefectiveDialog(claim)"></button>
+
+          <button *ngIf="canOpenReceiveReplacement(claim)" pButton type="button" icon="pi pi-download"
+            class="p-button-sm p-button-text p-button-help" pTooltip="Receive Replacement from Vendor" tooltipPosition="top"
+            (click)="openReceiveReplacementDialog(claim)"></button>
+
+          <button *ngIf="claim.canScrapDefectiveItem" pButton type="button" icon="pi pi-trash"
+            class="p-button-sm p-button-text p-button-danger" pTooltip="Scrap defective (write off)" tooltipPosition="top"
+            (click)="scrapDefective(claim)"></button>
+          <button *ngIf="claim.canRestockDefectiveItem" pButton type="button" icon="pi pi-undo"
+            class="p-button-sm p-button-text p-button-secondary" pTooltip="Return defective to sellable stock" tooltipPosition="top"
+            (click)="restockDefective(claim)"></button>
+
+          <button *ngIf="claim.canSendForRepair" pButton type="button" icon="pi pi-truck"
+            class="p-button-sm p-button-text p-button-warning" pTooltip="Send for Repair" tooltipPosition="top"
+            (click)="openSendForRepairDialog(claim)"></button>
+          <button *ngIf="claim.canReceiveFromRepair" pButton type="button" icon="pi pi-box"
+            class="p-button-sm p-button-text p-button-help" pTooltip="Receive Repaired Item" tooltipPosition="top"
+            (click)="receiveFromRepair(claim)"></button>
+
+          <button *ngIf="canClose(claim)" pButton type="button" icon="pi pi-lock"
+            class="p-button-sm p-button-text p-button-secondary" pTooltip="Close Claim" tooltipPosition="top"
+            (click)="openCloseDialog(claim)"></button>
+        </div>
+      </div>
+    </div>
+
+  </section>
 </app-page-container>
 
 <!-- ==================== DETAIL DIALOG ==================== -->

@@ -124,13 +124,15 @@
         class="p-button-sm p-button-outlined" (click)="clearLedgerFilters()"></button>
     </div>
 
+    <!-- ==================== DESKTOP TABLE ==================== -->
+    <div class="ledger-table-wrapper desktop-only">
     <p-table
       [value]="ledgerEntries"
       [paginator]="true"
       [rows]="10"
       [loading]="ledgerLoading"
       responsiveLayout="scroll"
-      styleClass="p-datatable-striped">
+      styleClass="app-table">
       <ng-template pTemplate="header">
         <tr>
           <th>Date</th>
@@ -176,6 +178,80 @@
         </tr>
       </ng-template>
     </p-table>
+    </div>
+
+    <!-- ==================== MOBILE CARDS ==================== -->
+    <div class="cards-section mobile-only">
+      <div *ngIf="ledgerLoading" class="cards-grid">
+        <div *ngFor="let _ of [1,2,3]" class="order-card skeleton-card">
+          <div class="card-header">
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-badge"></div>
+          </div>
+          <div class="card-body">
+            <div class="skeleton skeleton-text-lg"></div>
+            <div class="skeleton skeleton-text-sm"></div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!ledgerLoading && ledgerEntries.length === 0" class="empty-state-mobile">
+        <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+        <h3>No Transactions</h3>
+        <p>No ledger entries found for this supplier</p>
+      </div>
+
+      <div *ngIf="!ledgerLoading && ledgerEntries.length > 0" class="cards-grid">
+        <div *ngFor="let entry of pagedLedgerEntries" class="order-card">
+
+          <div class="card-header">
+            <span class="card-so-number">{{ entry.referenceNumber }}</span>
+            <p-tag
+              [value]="getLedgerTypeLabel(entry.transactionType)"
+              [severity]="getLedgerTypeSeverity(entry.transactionType)"
+              [style]="{'font-size': '0.75rem'}">
+            </p-tag>
+          </div>
+
+          <div class="card-body">
+            <div class="cell-stack" *ngIf="entry.description">
+              <span class="cell-secondary">{{ entry.description }}</span>
+            </div>
+            <div class="card-meta">
+              <span class="card-meta-item">
+                <i class="pi pi-calendar"></i>&nbsp;{{ formatDate(entry.transactionDate) }}
+              </span>
+              <span class="card-meta-item" *ngIf="entry.debitAmount > 0">
+                <i class="pi pi-arrow-up" style="color: var(--color-danger);"></i>&nbsp;Debit: {{ formatCurrency(entry.debitAmount) }}
+              </span>
+              <span class="card-meta-item" *ngIf="entry.creditAmount > 0">
+                <i class="pi pi-arrow-down" style="color: var(--color-success);"></i>&nbsp;Credit: {{ formatCurrency(entry.creditAmount) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <div class="card-amount">
+              <span class="amount-label">Balance</span>
+              <span class="amount-value" [style.color]="entry.runningBalance > 0 ? 'var(--color-danger)' : 'var(--color-success)'">
+                {{ formatCurrency(entry.runningBalance) }}
+              </span>
+            </div>
+            <p-tag [value]="entry.status" [severity]="getStatusSeverity(entry.status)"></p-tag>
+          </div>
+        </div>
+      </div>
+
+      <app-data-pagination
+        *ngIf="ledgerEntries.length > 0"
+        [first]="ledgerMobileFirst"
+        [pageSize]="ledgerMobilePageSize"
+        [totalRecords]="ledgerEntries.length"
+        itemLabel="transactions"
+        (pageChange)="goToLedgerPage($event)"
+        (pageSizeChange)="onLedgerMobilePageSizeChange($event)">
+      </app-data-pagination>
+    </div>
   </div>
 
   <!-- Legacy fallback: show link to list when no ledger -->

@@ -746,6 +746,16 @@
   .price-code-layout {
     grid-template-columns: 1fr;
   }
+
+  .preview-mapping {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .preview-mapping {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .price-code-form-panel {

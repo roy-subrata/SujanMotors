@@ -19,6 +19,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-payment-provider-list',
@@ -38,7 +39,8 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
     AppCurrencyPipe,
     PageContainerComponent,
     PageHeaderComponent,
-    FilterBarComponent
+    FilterBarComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './payment-provider-list.component.html',
@@ -211,6 +213,22 @@ export class PaymentProviderListComponent implements OnInit {
   onPageChange(event: any): void {
     this.pageNumber = (event.first / event.rows) + 1;
     this.pageSize = event.rows;
+    this.loadPaymentProviders();
+  }
+
+  get first(): number {
+    return Math.max(0, (this.pageNumber - 1) * this.pageSize);
+  }
+
+  goToPage(page: number): void {
+    if (page < 1) return;
+    this.pageNumber = page;
+    this.loadPaymentProviders();
+  }
+
+  onPageSizeChange(newRows: number): void {
+    this.pageSize = newRows;
+    this.pageNumber = 1;
     this.loadPaymentProviders();
   }
 
