@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -18,7 +20,7 @@ public class Customer : AuditableEntity
     public string State { get; private set; } = string.Empty;
     public string PostalCode { get; private set; } = string.Empty;
     public string Country { get; private set; } = string.Empty;
-    public string Status { get; private set; } = "ACTIVE";  // ACTIVE, INACTIVE, SUSPENDED, BLACKLISTED
+    public CustomerStatus Status { get; private set; } = CustomerStatus.ACTIVE;
     public string CustomerType { get; private set; } = "RETAIL";  // RETAIL, WHOLESALE, CORPORATE
     public decimal CurrentBalance { get; private set; } = 0;  // Outstanding balance (invoices - payments)
     public string Notes { get; private set; } = string.Empty;
@@ -35,27 +37,27 @@ public class Customer : AuditableEntity
     // TotalPaid = ONLY new money received (excludes payments created from advance)
     public decimal TotalPaid =>
         CustomerPayments?
-            .Where(p => p.Status == "COMPLETED" &&
+            .Where(p => p.Status == CustomerPaymentStatus.COMPLETED &&
                        (p.PaymentType == CustomerPaymentType.ADVANCE || // Original advance payments
                         p.SourceAdvancePaymentId == null))              // New regular payments (not from advance)
             .Sum(p => p.Amount) ?? 0;
 
     public decimal AccountBalance =>
         CustomerPayments?
-            .Where(p => p.Status == "COMPLETED" && p.InvoiceId == null)
+            .Where(p => p.Status == CustomerPaymentStatus.COMPLETED && p.InvoiceId == null)
             .Sum(p => p.Amount) ?? 0;
 
     // Available advance balance (sum of remaining amounts from advance payments)
     public decimal AdvanceAmount =>
         CustomerPayments?
             .Where(p => p.PaymentType == CustomerPaymentType.ADVANCE &&
-                       p.Status == "COMPLETED" &&
+                       p.Status == CustomerPaymentStatus.COMPLETED &&
                        p.RemainingAmount > 0)
             .Sum(p => p.RemainingAmount) ?? 0;
 
     public int PendingPaymentsCount =>
         CustomerPayments?
-            .Count(p => p.Status == "PENDING") ?? 0;
+            .Count(p => p.Status == CustomerPaymentStatus.PENDING) ?? 0;
 
     private Customer() { }
 
@@ -95,7 +97,7 @@ public class Customer : AuditableEntity
             PostalCode = postalCode?.Trim() ?? string.Empty,
             Country = country?.Trim() ?? string.Empty,
             CustomerType = customerType.ToUpper(),
-            Status = "ACTIVE",
+            Status = CustomerStatus.ACTIVE,
             Notes = notes?.Trim() ?? string.Empty
         };
     }
@@ -125,30 +127,30 @@ public class Customer : AuditableEntity
 
     public bool CanPlaceOrder()
     {
-        return Status == "ACTIVE";
+        return Status == CustomerStatus.ACTIVE;
     }
 
     public void Activate()
     {
-        if (Status == "BLACKLISTED")
+        if (Status == CustomerStatus.BLACKLISTED)
             throw new InvalidOperationException("Cannot activate a blacklisted customer");
 
-        Status = "ACTIVE";
+        Status = CustomerStatus.ACTIVE;
     }
 
     public void Deactivate()
     {
-        Status = "INACTIVE";
+        Status = CustomerStatus.INACTIVE;
     }
 
     public void Suspend()
     {
-        Status = "SUSPENDED";
+        Status = CustomerStatus.SUSPENDED;
     }
 
     public void Blacklist()
     {
-        Status = "BLACKLISTED";
+        Status = CustomerStatus.BLACKLISTED;
     }
 
     public void UpdateBasicInfo(string firstName, string lastName, string companyName = "")

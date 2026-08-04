@@ -5,6 +5,7 @@ using AutoPartShop.Application.CustomerPayment;
 using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -147,18 +148,18 @@ public class CustomerPaymentController : ControllerBase
             if (customer is null) return NotFound();
 
             var payments = await _repository.GetByCustomerAsync(customerId, cancellationToken);
-            var completed = payments.Where(p => p.Status == "COMPLETED").ToList();
-            var pending = payments.Where(p => p.Status == "PENDING").ToList();
-            var failed = payments.Where(p => p.Status == "FAILED").ToList();
+            var completed = payments.Where(p => p.Status == CustomerPaymentStatus.COMPLETED).ToList();
+            var pending = payments.Where(p => p.Status == CustomerPaymentStatus.PENDING).ToList();
+            var failed = payments.Where(p => p.Status == CustomerPaymentStatus.FAILED).ToList();
 
             // Get invoices for this customer directly via sales order relationship
             var customerInvoices = await _dbContext.Invoices
                 .Include(i => i.SalesOrder)
                 .Include(i => i.CustomerPayments)
                 .Where(i => !i.Isdeleted && i.SalesOrder != null && i.SalesOrder.CustomerId == customerId
-                            && i.SalesOrder.Status != "CANCELLED"
-                            && i.SalesOrder.Status != "RETURNED"
-                            && i.SalesOrder.Status != "DRAFT")
+                            && i.SalesOrder.Status != SalesOrderStatus.CANCELLED
+                            && i.SalesOrder.Status != SalesOrderStatus.RETURNED
+                            && i.SalesOrder.Status != SalesOrderStatus.DRAFT)
                 .ToListAsync(cancellationToken);
 
             // Calculate invoice totals
@@ -189,7 +190,7 @@ public class CustomerPaymentController : ControllerBase
                     Id = p.Id,
                     Amount = p.Amount,
                     PaymentDate = p.PaymentDate,
-                    Status = p.Status,
+                    Status = p.Status.ToString(),
                     PaymentMethod = p.PaymentMethod,
                     PaymentType = (PaymentType)(int)p.PaymentType, // Convert CustomerPaymentType to PaymentType enum
                     InvoiceNumber = p.Invoice?.InvoiceNumber ?? string.Empty,
@@ -464,10 +465,10 @@ public class CustomerPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound();
 
-            if (payment.Status == "REFUNDED")
+            if (payment.Status == CustomerPaymentStatus.REFUNDED)
                 return BadRequest(new { message = "Payment has already been refunded" });
 
-            if (payment.Status != "COMPLETED")
+            if (payment.Status != CustomerPaymentStatus.COMPLETED)
                 return BadRequest(new { message = $"Only completed payments can be refunded. Current status: {payment.Status}" });
 
             if (payment.Amount <= 0 || payment.PaymentMethod == "REFUND")
@@ -476,7 +477,7 @@ public class CustomerPaymentController : ControllerBase
             if (payment.PaymentType == CustomerPaymentType.ADVANCE)
             {
                 var derivedPayments = await _dbContext.CustomerPayments
-                    .Where(p => p.SourceAdvancePaymentId == payment.Id && p.Status == "COMPLETED" && !p.Isdeleted)
+                    .Where(p => p.SourceAdvancePaymentId == payment.Id && p.Status == CustomerPaymentStatus.COMPLETED && !p.Isdeleted)
                     .AnyAsync(cancellationToken);
                 if (derivedPayments)
                     return BadRequest(new { message = "Cannot refund an advance payment that has already been applied to invoices. Reverse the invoice applications first." });
@@ -629,7 +630,7 @@ public class CustomerPaymentController : ControllerBase
             if (payment is null) return NotFound();
 
             // Prevent deleting payments that have already affected balances
-            if (payment.Status == "COMPLETED" || payment.Status == "REFUNDED")
+            if (payment.Status == CustomerPaymentStatus.COMPLETED || payment.Status == CustomerPaymentStatus.REFUNDED)
                 return BadRequest(new { message = $"Cannot delete a {payment.Status} payment. Cancel or refund it instead." });
 
             await _repository.DeleteAsync(id, cancellationToken);
@@ -773,7 +774,7 @@ public class CustomerPaymentController : ControllerBase
 
             var availableAdvances = payments
                 .Where(p => p.PaymentType == CustomerPaymentType.ADVANCE &&
-                           p.Status == "COMPLETED" &&
+                           p.Status == CustomerPaymentStatus.COMPLETED &&
                            p.RemainingAmount > 0)
                 .OrderByDescending(p => p.PaymentDate)
                 .Select(p => new AvailableCustomerAdvancePayment

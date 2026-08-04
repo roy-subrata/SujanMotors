@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 
 namespace AutoPartShop.Domain.Repositories;
 
@@ -22,7 +23,7 @@ public interface ICustomerCreditNoteRepository
 public class CustomerCreditNoteQuery
 {
     public Guid? CustomerId { get; set; }
-    public string? Status { get; set; }
+    public CustomerCreditNoteStatus? Status { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }

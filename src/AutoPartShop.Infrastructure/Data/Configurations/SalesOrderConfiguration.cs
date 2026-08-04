@@ -34,6 +34,7 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .HasPrecision(18, 2);
 
         builder.Property(so => so.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(30);
 
@@ -47,6 +48,7 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .IsRequired(false);
 
         builder.Property(so => so.PaymentStatus)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

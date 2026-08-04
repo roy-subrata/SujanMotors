@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,7 +31,7 @@ public class ChallanRepository(AutoPartDbContext _db) : IChallanRepository
             .OrderByDescending(c => c.CreatedDate)
             .ToListAsync(ct);
 
-    public async Task<IEnumerable<Challan>> GetByStatusAsync(string status, CancellationToken ct = default) =>
+    public async Task<IEnumerable<Challan>> GetByStatusAsync(ChallanStatus status, CancellationToken ct = default) =>
         await _db.Challans
             .Include(c => c.SalesOrder)
             .Include(c => c.Lines)
@@ -40,7 +41,7 @@ public class ChallanRepository(AutoPartDbContext _db) : IChallanRepository
 
     public async Task<bool> HasPendingChallanAsync(Guid salesOrderId, CancellationToken ct = default) =>
         await _db.Challans.AnyAsync(
-            c => c.SalesOrderId == salesOrderId && c.Status != "DELIVERED" && !c.Isdeleted, ct);
+            c => c.SalesOrderId == salesOrderId && c.Status != ChallanStatus.DELIVERED && !c.Isdeleted, ct);
 
     public async Task AddAsync(Challan entity, CancellationToken ct = default)
     {

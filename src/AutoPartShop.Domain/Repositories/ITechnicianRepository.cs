@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 
 namespace AutoPartShop.Domain.Repositories;
 
@@ -13,7 +14,7 @@ public interface ITechnicianRepository
 
     // Specialized queries
     Task<Technician?> GetByCodeAsync(string technicianCode, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Technician>> GetByStatusAsync(string status, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Technician>> GetByStatusAsync(TechnicianStatus status, CancellationToken cancellationToken = default);
     Task<(IEnumerable<Technician> technicians, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
     Task<(IEnumerable<Technician> technicians, int totalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 }

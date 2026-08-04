@@ -34,8 +34,8 @@ public class CustomerDebitNoteRepository(AutoPartDbContext dbContext) : ICustome
         if (query.CustomerId.HasValue)
             dbQuery = dbQuery.Where(dn => dn.CustomerId == query.CustomerId.Value);
 
-        if (!string.IsNullOrWhiteSpace(query.Status))
-            dbQuery = dbQuery.Where(dn => dn.Status == query.Status);
+        if (query.Status.HasValue)
+            dbQuery = dbQuery.Where(dn => dn.Status == query.Status.Value);
 
         var totalCount = await dbQuery.CountAsync(cancellationToken);
         var debitNotes = await dbQuery

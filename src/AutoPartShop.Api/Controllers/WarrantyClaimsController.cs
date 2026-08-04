@@ -317,7 +317,7 @@ public class WarrantyClaimsController : ControllerBase
             // Cross-flow: block if this sold line was already refunded via a sales return.
             var salesReturns = await _salesReturnRepository.GetBySalesOrderAsync(warranty.SalesOrderId, cancellationToken);
             var refundedReturn = salesReturns
-                .Where(r => r.Status == "PROCESSED" && r.RefundAmount > 0)
+                .Where(r => r.Status == SalesReturnStatus.PROCESSED && r.RefundAmount > 0)
                 .FirstOrDefault(r => r.LineItems.Any(li => li.SalesOrderLineId == warranty.SalesOrderLineId));
 
             if (refundedReturn != null)

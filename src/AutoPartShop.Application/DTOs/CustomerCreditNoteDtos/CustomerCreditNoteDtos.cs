@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.CustomerCreditNoteDtos;
 
 /// <summary>
@@ -21,7 +23,7 @@ public class CustomerCreditNoteResponse
     public string Currency { get; set; } = "USD";
     public DateTime IssueDate { get; set; }
     public DateTime? ExpiryDate { get; set; }
-    public string Status { get; set; } = "AVAILABLE";
+    public CustomerCreditNoteStatus Status { get; set; } = CustomerCreditNoteStatus.AVAILABLE;
     public string Notes { get; set; } = string.Empty;
     public string IssuedBy { get; set; } = string.Empty;
     public string CreatedBy { get; set; } = string.Empty;
@@ -45,7 +47,7 @@ public class ApplyCustomerCreditNoteRequest
 public class CustomerCreditNoteListQuery
 {
     public Guid? CustomerId { get; set; }
-    public string? Status { get; set; }
+    public CustomerCreditNoteStatus? Status { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }

@@ -23,6 +23,7 @@ public class SalesReturnConfiguration : IEntityTypeConfiguration<SalesReturn>
             .HasDefaultValue("CASH_REFUND");
 
         builder.Property(sr => sr.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

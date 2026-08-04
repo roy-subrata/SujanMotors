@@ -1,4 +1,6 @@
-﻿namespace AutoPartShop.Application.Customers.Dtos
+﻿using AutoPartShop.Domain.Enums;
+
+namespace AutoPartShop.Application.Customers.Dtos
 {
     public class CustomerResponse
     {
@@ -18,7 +20,7 @@
         public string PostalCode { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
         public string CustomerType { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public CustomerStatus Status { get; set; }
         public decimal CurrentBalance { get; set; }
         public decimal AdvanceAmount { get; set; }
         public decimal DueAmount { get; set; }

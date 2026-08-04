@@ -43,6 +43,7 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasPrecision(18, 2);
 
         builder.Property(c => c.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

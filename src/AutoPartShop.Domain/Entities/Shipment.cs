@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 public class Shipment : AuditableEntity
@@ -6,7 +8,7 @@ public class Shipment : AuditableEntity
     public Guid SalesOrderId { get; private set; }
     public string? CourierName { get; private set; }
     public string? TrackingNumber { get; private set; }
-    public string Status { get; private set; } = "PENDING";  // PENDING → DISPATCHED → IN_TRANSIT → DELIVERED | FAILED
+    public ShipmentStatus Status { get; private set; } = ShipmentStatus.PENDING;
     public DateTime? EstimatedDeliveryDate { get; private set; }
     public DateTime? DispatchedDate { get; private set; }
     public DateTime? DeliveredDate { get; private set; }
@@ -42,13 +44,13 @@ public class Shipment : AuditableEntity
             TrackingNumber = trackingNumber?.Trim(),
             EstimatedDeliveryDate = estimatedDeliveryDate,
             Notes = notes?.Trim() ?? string.Empty,
-            Status = "PENDING"
+            Status = ShipmentStatus.PENDING
         };
     }
 
     public void Dispatch(string? trackingNumber = null, string? courierName = null)
     {
-        if (Status != "PENDING")
+        if (Status != ShipmentStatus.PENDING)
             throw new InvalidOperationException($"Only PENDING shipments can be dispatched. Current: {Status}");
 
         if (!Lines.Any())
@@ -60,36 +62,36 @@ public class Shipment : AuditableEntity
         if (!string.IsNullOrWhiteSpace(courierName))
             CourierName = courierName.Trim();
 
-        Status = "DISPATCHED";
+        Status = ShipmentStatus.DISPATCHED;
         DispatchedDate = DateTime.UtcNow;
     }
 
     public void MarkInTransit()
     {
-        if (Status != "DISPATCHED")
+        if (Status != ShipmentStatus.DISPATCHED)
             throw new InvalidOperationException($"Shipment must be DISPATCHED before marking IN_TRANSIT. Current: {Status}");
 
-        Status = "IN_TRANSIT";
+        Status = ShipmentStatus.IN_TRANSIT;
     }
 
     public void MarkDelivered()
     {
-        if (Status is not ("DISPATCHED" or "IN_TRANSIT"))
+        if (Status is not (ShipmentStatus.DISPATCHED or ShipmentStatus.IN_TRANSIT))
             throw new InvalidOperationException($"Shipment must be DISPATCHED or IN_TRANSIT to be delivered. Current: {Status}");
 
-        Status = "DELIVERED";
+        Status = ShipmentStatus.DELIVERED;
         DeliveredDate = DateTime.UtcNow;
     }
 
     public void MarkFailed(string reason)
     {
-        if (Status is "DELIVERED" or "FAILED")
+        if (Status is ShipmentStatus.DELIVERED or ShipmentStatus.FAILED)
             throw new InvalidOperationException($"Cannot fail a {Status} shipment");
 
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("Failure reason is required", nameof(reason));
 
-        Status = "FAILED";
+        Status = ShipmentStatus.FAILED;
         FailedDate = DateTime.UtcNow;
         FailureReason = reason.Trim();
     }
