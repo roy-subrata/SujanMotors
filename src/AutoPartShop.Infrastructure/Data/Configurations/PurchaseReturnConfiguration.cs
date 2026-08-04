@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -21,14 +22,16 @@ public class PurchaseReturnConfiguration : IEntityTypeConfiguration<PurchaseRetu
             .HasPrecision(18, 2);
 
         builder.Property(pr => pr.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 
         // Settlement tracking fields
         builder.Property(pr => pr.SettlementStatus)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20)
-            .HasDefaultValue("PENDING");
+            .HasDefaultValue(PurchaseReturnSettlementStatus.PENDING);
 
         builder.Property(pr => pr.SettledAmount)
             .HasPrecision(18, 2)

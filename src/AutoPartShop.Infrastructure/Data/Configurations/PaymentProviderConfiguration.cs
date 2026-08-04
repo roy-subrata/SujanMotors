@@ -21,6 +21,7 @@ internal class PaymentProviderConfiguration : IEntityTypeConfiguration<PaymentPr
             .HasMaxLength(50);
 
         builder.Property(p => p.Status)
+            .HasConversion<string>()
             .HasMaxLength(20);
 
         builder.Property(p => p.ApiKey)

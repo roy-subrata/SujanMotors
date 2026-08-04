@@ -17,10 +17,12 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                 .HasMaxLength(50);
 
             builder.Property(p => p.Status)
+                .HasConversion<string>()
                 .IsRequired()
                 .HasMaxLength(20);
 
             builder.Property(p => p.PaymentStatus)
+                .HasConversion<string>()
                 .IsRequired()
                 .HasMaxLength(20);
 
@@ -127,6 +129,7 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                 .HasMaxLength(50);
 
             builder.Property(g => g.Status)
+                .HasConversion<string>()
                 .IsRequired()
                 .HasMaxLength(20);
 
