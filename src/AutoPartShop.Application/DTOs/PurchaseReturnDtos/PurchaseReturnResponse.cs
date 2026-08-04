@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.PurchaseReturnDtos;
 
 public class PurchaseReturnResponse
@@ -11,7 +13,7 @@ public class PurchaseReturnResponse
     public string? SupplierCode { get; set; }
     public DateTime ReturnDate { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public PurchaseReturnStatus Status { get; set; }
     public decimal RefundAmount { get; set; }
     public decimal CreditNoteAmount { get; set; }
     public string Notes { get; set; } = string.Empty;
@@ -21,7 +23,7 @@ public class PurchaseReturnResponse
     public string ReceivedBy { get; set; } = string.Empty;
 
     // Settlement tracking fields
-    public string SettlementStatus { get; set; } = string.Empty;
+    public PurchaseReturnSettlementStatus SettlementStatus { get; set; }
     public decimal SettledAmount { get; set; }
     public DateTime? SettledDate { get; set; }
     public string SettlementMethod { get; set; } = string.Empty;

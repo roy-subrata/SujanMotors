@@ -3,6 +3,7 @@ using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Application.DTOs.PurchaseReturnDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
@@ -276,7 +277,7 @@ public class PurchaseReturnController : ControllerBase
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            if (purchaseReturn.Status != "PENDING")
+            if (purchaseReturn.Status != PurchaseReturnStatus.PENDING)
                 return BadRequest(new { message = "Only pending purchase returns can be edited" });
 
             if (request.Lines == null || request.Lines.Count == 0)
@@ -768,7 +769,7 @@ public class PurchaseReturnController : ControllerBase
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            if (purchaseReturn.SettlementStatus == "SETTLED")
+            if (purchaseReturn.SettlementStatus == PurchaseReturnSettlementStatus.SETTLED)
                 return BadRequest(new { message = "Purchase return has already been settled" });
 
             // Settle the return
@@ -986,7 +987,7 @@ public class PurchaseReturnController : ControllerBase
             if (purchaseReturn is null)
                 return NotFound(new { message = "Purchase return not found" });
 
-            if (purchaseReturn.Status != "PENDING")
+            if (purchaseReturn.Status != PurchaseReturnStatus.PENDING)
                 return BadRequest(new { message = $"Only PENDING returns can be deleted. Current status: {purchaseReturn.Status}" });
 
             await _purchaseReturnRepository.DeleteAsync(id, cancellationToken);

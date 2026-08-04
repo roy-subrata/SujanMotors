@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -30,7 +32,7 @@ public class Supplier : AuditableEntity
     public decimal AdvanceAmount =>
         SupplierPayments?
             .Where(p => p.PaymentType == PaymentType.ADVANCE &&
-                       p.Status == "COMPLETED" &&
+                       p.Status == SupplierPaymentStatus.COMPLETED &&
                        p.RemainingAmount > 0)
             .Sum(p => p.RemainingAmount) ?? 0;
 

@@ -1,6 +1,7 @@
 using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Application.SupplierPayment.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Repositories;
 
 namespace AutoPartShop.Api.Services;
@@ -73,15 +74,15 @@ public class SupplierPaymentSummaryService
 
         // Count outstanding invoices
         int outstandingInvoiceCount = regularPayments
-            .Count(p => p.Status != "COMPLETED" && p.Status != "CANCELLED");
+            .Count(p => p.Status != SupplierPaymentStatus.COMPLETED && p.Status != SupplierPaymentStatus.CANCELLED);
 
         // Count completed payments
-        int completedPayments = allPayments.Count(p => p.Status == "COMPLETED");
-        int pendingPayments = allPayments.Count(p => p.Status == "PENDING");
-        int failedPayments = allPayments.Count(p => p.Status == "FAILED");
-        int processingPayments = allPayments.Count(p => p.Status == "PROCESSING");
-        int cancelledPayments = allPayments.Count(p => p.Status == "CANCELLED");
-        int returnedPayments = allPayments.Count(p => p.Status == "RETURNED" || p.PaymentMethod == "REFUND");
+        int completedPayments = allPayments.Count(p => p.Status == SupplierPaymentStatus.COMPLETED);
+        int pendingPayments = allPayments.Count(p => p.Status == SupplierPaymentStatus.PENDING);
+        int failedPayments = allPayments.Count(p => p.Status == SupplierPaymentStatus.FAILED);
+        int processingPayments = allPayments.Count(p => p.Status == SupplierPaymentStatus.PROCESSING);
+        int cancelledPayments = allPayments.Count(p => p.Status == SupplierPaymentStatus.CANCELLED);
+        int returnedPayments = allPayments.Count(p => p.Status == SupplierPaymentStatus.RETURNED || p.PaymentMethod == "REFUND");
 
         // Calculate total refunds (from purchase returns)
         decimal totalRefunds = CalculateTotalRefunds(allPayments);
@@ -156,7 +157,7 @@ public class SupplierPaymentSummaryService
         // Excludes payments created from advance (to prevent double-counting)
         // PENDING payments are commitments but not yet cleared
         return payments
-            .Where(p => p.Status == "COMPLETED" &&
+            .Where(p => p.Status == SupplierPaymentStatus.COMPLETED &&
                        (p.PaymentType == PaymentType.ADVANCE ||  // Original advance payments
                         p.SourceAdvancePaymentId == null))       // New regular payments (not from advance)
             .Sum(p => p.Amount);
@@ -168,7 +169,7 @@ public class SupplierPaymentSummaryService
         // Include ALL completed regular payments (including those from advance credit)
         // because they ALL reduce the purchase order balance and supplier current balance
         return regularPayments
-            .Where(p => p.Status == "COMPLETED")
+            .Where(p => p.Status == SupplierPaymentStatus.COMPLETED)
             .Sum(p => p.Amount);
     }
 
@@ -179,7 +180,7 @@ public class SupplierPaymentSummaryService
         // Use RemainingAmount instead of Amount to reflect actual available advance credit
         return payments
             .Where(p => p.PaymentType == PaymentType.ADVANCE &&
-                       p.Status == "COMPLETED" &&
+                       p.Status == SupplierPaymentStatus.COMPLETED &&
                        p.RemainingAmount > 0)
             .Sum(p => p.RemainingAmount);
     }
@@ -187,7 +188,7 @@ public class SupplierPaymentSummaryService
     private decimal CalculateTotalFees(IEnumerable<SupplierPayment> payments)
     {
         return payments
-            .Where(p => p.Status == "COMPLETED")
+            .Where(p => p.Status == SupplierPaymentStatus.COMPLETED)
             .Sum(p => p.PaymentFee);
     }
 
@@ -196,7 +197,7 @@ public class SupplierPaymentSummaryService
         // Calculate total refunds from purchase returns
         // Refund payments have PaymentMethod == "REFUND" and Status == "RETURNED"
         return payments
-            .Where(p => p.PaymentMethod == "REFUND" || p.Status == "RETURNED")
+            .Where(p => p.PaymentMethod == "REFUND" || p.Status == SupplierPaymentStatus.RETURNED)
             .Sum(p => p.Amount);
     }
 
@@ -209,10 +210,9 @@ public class SupplierPaymentSummaryService
         // IMPORTANT: Only include CONFIRMED or later POs to match supplier balance accounting
         // DRAFT and SUBMITTED POs are not yet committed and don't affect supplier balance
         var purchaseOrders = (await _purchaseOrderRepository.GetBySuppliersAsync(supplierId, cancellationToken))
-            .Where(po => po.Status != "DRAFT" &&
-                        po.Status != "SUBMITTED" &&
-                        po.Status != "CANCELLED" &&
-                        po.Status != "CLOSED")
+            .Where(po => po.Status != PurchaseOrderStatus.DRAFT &&
+                        po.Status != PurchaseOrderStatus.SUBMITTED &&
+                        po.Status != PurchaseOrderStatus.CANCELLED)
             .ToList();
 
         // Calculate total amount from all confirmed/active purchase orders
@@ -235,11 +235,11 @@ public class SupplierPaymentSummaryService
 
         return new PaymentStatusBreakdown
         {
-            Pending = paymentList.Count(p => p.Status == "PENDING"),
-            Completed = paymentList.Count(p => p.Status == "COMPLETED"),
-            Failed = paymentList.Count(p => p.Status == "FAILED"),
-            Processing = paymentList.Count(p => p.Status == "PROCESSING"),
-            Cancelled = paymentList.Count(p => p.Status == "CANCELLED"),
+            Pending = paymentList.Count(p => p.Status == SupplierPaymentStatus.PENDING),
+            Completed = paymentList.Count(p => p.Status == SupplierPaymentStatus.COMPLETED),
+            Failed = paymentList.Count(p => p.Status == SupplierPaymentStatus.FAILED),
+            Processing = paymentList.Count(p => p.Status == SupplierPaymentStatus.PROCESSING),
+            Cancelled = paymentList.Count(p => p.Status == SupplierPaymentStatus.CANCELLED),
             Reconciled = paymentList.Count(p => p.IsReconciled)
         };
     }
@@ -256,7 +256,7 @@ public class SupplierPaymentSummaryService
                 Id = p.Id,
                 Amount = p.Amount,
                 PaymentDate = p.PaymentDate,
-                Status = p.Status,
+                Status = p.Status.ToString(),
                 PaymentMethod = p.PaymentMethod,
                 PaymentType = p.PaymentType,
                 InvoiceNumber = p.InvoiceNumber,

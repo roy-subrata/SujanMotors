@@ -1,5 +1,6 @@
 using AutoPartShop.Application.Suppliers;
 using AutoPartShop.Application.Suppliers.Dtos;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
@@ -12,7 +13,7 @@ public class SupplierPerformanceReadRepository(AutoPartDbContext _db) : ISupplie
         // Flat per-GRN aggregation over ACCEPTED receipts, joined to PO -> Supplier.
         // Grouped in memory afterwards (reports are low-volume).
         var rows = await (
-            from g in _db.GoodsReceipts.Where(g => g.Status == "ACCEPTED" && !g.Isdeleted)
+            from g in _db.GoodsReceipts.Where(g => g.Status == GoodsReceiptStatus.ACCEPTED && !g.Isdeleted)
             join po in _db.PurchaseOrders on g.PurchaseOrderId equals po.Id
             join s in _db.Suppliers on po.SupplierId equals s.Id
             select new

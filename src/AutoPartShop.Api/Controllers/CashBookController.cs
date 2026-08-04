@@ -1,5 +1,6 @@
 ﻿using AutoPartShop.Api.Common;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Data;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -62,7 +63,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
 
         var priorSupplierTotal = await _db.SupplierPayments
-            .Where(p => p.PaymentDate < dateFrom && p.Status == "COMPLETED")
+            .Where(p => p.PaymentDate < dateFrom && p.Status == SupplierPaymentStatus.COMPLETED)
             .SumAsync(p => (decimal?)(p.NetAmount > 0 ? p.NetAmount : p.Amount), ct) ?? 0m;
 
         var priorDepositTotal = await _db.CashDeposits
@@ -91,7 +92,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         // â”€â”€ Supplier payments (cash out) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var supplierPayments = await _db.SupplierPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
-                     && p.Status == "COMPLETED")
+                     && p.Status == SupplierPaymentStatus.COMPLETED)
             .Include(p => p.Supplier)
             .AsNoTracking()
             .OrderBy(p => p.PaymentDate)
@@ -183,7 +184,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             PaymentMethod = p.PaymentMethod,
             Amount = p.NetAmount > 0 ? p.NetAmount : p.Amount,
             Currency = p.Currency,
-            Status = p.Status,
+            Status = p.Status.ToString(),
             Notes = null
         }));
 

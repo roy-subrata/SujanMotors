@@ -1,5 +1,6 @@
 using AutoPartShop.Application.DTOs.DashboardDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,7 +31,8 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     // Statuses that represent no real economic activity and must be excluded from every metric.
     private static readonly string[] ExcludedSalesStatuses = ["CANCELLED", "RETURNED", "DRAFT"];
-    private static readonly string[] ExcludedPOStatuses = ["DRAFT", "SUBMITTED", "CANCELLED"];
+    private static readonly PurchaseOrderStatus[] ExcludedPOStatuses =
+        [PurchaseOrderStatus.DRAFT, PurchaseOrderStatus.SUBMITTED, PurchaseOrderStatus.CANCELLED];
 
     public FinancialSummaryService(
         AutoPartDbContext dbContext,
@@ -122,7 +124,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         var supplierPaymentsList = await _dbContext.SupplierPayments
             .Where(sp => sp.PaymentDate >= startDate && sp.PaymentDate < endDate
                          && !sp.Isdeleted
-                         && sp.Status == "COMPLETED"
+                         && sp.Status == SupplierPaymentStatus.COMPLETED
                          && sp.PaymentMethod != "REFUND"
                          && sp.PaymentMethod != "CREDIT_NOTE" // credit notes are returns, not cash outflows
                          && (sp.PaymentType == PaymentType.ADVANCE || sp.SourceAdvancePaymentId == null))
@@ -201,7 +203,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var allSupplierPaymentsData = await _dbContext.SupplierPayments
             .Where(x => !x.Isdeleted
-                        && x.Status == "COMPLETED"
+                        && x.Status == SupplierPaymentStatus.COMPLETED
                         && x.PaymentMethod != "REFUND"
                         && x.PaymentMethod != "CREDIT_NOTE" // already counted in allPurchaseReturns; including here would double-reduce the balance
                         && (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null))
@@ -210,7 +212,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         // PurchaseReturn carries no Currency; use the originating PO's currency.
         var allPurchaseReturns = await _dbContext.PurchaseReturns
-            .Where(x => !x.Isdeleted && x.SettlementStatus == "SETTLED" && x.PurchaseOrder != null)
+            .Where(x => !x.Isdeleted && x.SettlementStatus == PurchaseReturnSettlementStatus.SETTLED && x.PurchaseOrder != null)
             .Select(x => new { x.SupplierId, x.SettledAmount, Currency = x.PurchaseOrder!.Currency, x.SettledDate, PODate = x.PurchaseOrder.PODate })
             .ToListAsync(cancellationToken);
 
@@ -259,7 +261,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         var overdueSupplierIds = activePOs
             .Where(po => po.ExpectedDeliveryDate != DateTime.MinValue
                          && po.ExpectedDeliveryDate.Date < today
-                         && (po.Status == "DELIVERED" || po.Status == "PARTIAL"))
+                         && (po.Status == PurchaseOrderStatus.DELIVERED || po.Status == PurchaseOrderStatus.PARTIAL))
             .Select(po => po.SupplierId)
             .ToHashSet();
 

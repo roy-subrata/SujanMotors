@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -11,7 +13,7 @@ public class PurchaseReturn : AuditableEntity
     public Guid SupplierId { get; private set; }
     public DateTime ReturnDate { get; private set; }
     public string Reason { get; private set; } = string.Empty;  // DAMAGED, DEFECTIVE, WRONG_ITEM, EXCESS_STOCK, QUALITY_ISSUE, etc.
-    public string Status { get; private set; } = "PENDING";  // PENDING, APPROVED, RETURNED, RECEIVED, REJECTED, CREDITED
+    public PurchaseReturnStatus Status { get; private set; } = PurchaseReturnStatus.PENDING;
     public decimal RefundAmount { get; private set; } = 0;
     public decimal CreditNoteAmount { get; private set; } = 0;  // Amount credited by supplier
     public string Notes { get; private set; } = string.Empty;
@@ -21,7 +23,7 @@ public class PurchaseReturn : AuditableEntity
     public string ReceivedBy { get; private set; } = string.Empty;
 
     // Settlement tracking fields - for financial reconciliation
-    public string SettlementStatus { get; private set; } = "PENDING";  // PENDING, SETTLED
+    public PurchaseReturnSettlementStatus SettlementStatus { get; private set; } = PurchaseReturnSettlementStatus.PENDING;
     public decimal SettledAmount { get; private set; } = 0;
     public DateTime? SettledDate { get; private set; }
     public string SettlementMethod { get; private set; } = string.Empty;  // CREDIT, CASH, BANK_TRANSFER
@@ -59,7 +61,7 @@ public class PurchaseReturn : AuditableEntity
             SupplierId = supplierId,
             ReturnDate = returnDate ?? DateTime.UtcNow,
             Reason = reason.Trim(),
-            Status = "PENDING",
+            Status = PurchaseReturnStatus.PENDING,
             Notes = notes?.Trim() ?? string.Empty
         };
     }
@@ -77,41 +79,41 @@ public class PurchaseReturn : AuditableEntity
 
     public void Approve(string approvedBy)
     {
-        if (Status != "PENDING")
+        if (Status != PurchaseReturnStatus.PENDING)
             throw new InvalidOperationException("Only pending returns can be approved");
 
         if (string.IsNullOrWhiteSpace(approvedBy))
             throw new ArgumentException("ApprovedBy cannot be empty", nameof(approvedBy));
 
-        Status = "APPROVED";
+        Status = PurchaseReturnStatus.APPROVED;
         ApprovedBy = approvedBy.Trim();
         ApprovedDate = DateTime.UtcNow;
     }
 
     public void MarkAsReturned()
     {
-        if (Status != "APPROVED")
+        if (Status != PurchaseReturnStatus.APPROVED)
             throw new InvalidOperationException("Only approved returns can be marked as returned");
 
-        Status = "RETURNED";
+        Status = PurchaseReturnStatus.RETURNED;
     }
 
     public void MarkAsReceived(string receivedBy)
     {
-        if (Status != "RETURNED")
+        if (Status != PurchaseReturnStatus.RETURNED)
             throw new InvalidOperationException("Only returned items can be marked as received");
 
         if (string.IsNullOrWhiteSpace(receivedBy))
             throw new ArgumentException("ReceivedBy cannot be empty", nameof(receivedBy));
 
-        Status = "RECEIVED";
+        Status = PurchaseReturnStatus.RECEIVED;
         ReceivedDate = DateTime.UtcNow;
         ReceivedBy = receivedBy.Trim();
     }
 
     public void IssueCreditNote(decimal creditAmount)
     {
-        if (Status is not ("RETURNED" or "RECEIVED"))
+        if (Status is not (PurchaseReturnStatus.RETURNED or PurchaseReturnStatus.RECEIVED))
             throw new InvalidOperationException($"Credit notes can only be issued for RETURNED or RECEIVED purchase returns. Current status: {Status}");
 
         if (creditAmount <= 0)
@@ -121,11 +123,11 @@ public class PurchaseReturn : AuditableEntity
             throw new InvalidOperationException("Credit amount cannot exceed refund amount");
 
         CreditNoteAmount = creditAmount;
-        Status = "CREDITED";
+        Status = PurchaseReturnStatus.CREDITED;
 
         // Issuing a credit note IS the financial settlement (CREDIT method)
         // This reduces the supplier balance in the ledger
-        SettlementStatus = "SETTLED";
+        SettlementStatus = PurchaseReturnSettlementStatus.SETTLED;
         SettledAmount = creditAmount;
         SettledDate = DateTime.UtcNow;
         SettlementMethod = "CREDIT";
@@ -134,10 +136,10 @@ public class PurchaseReturn : AuditableEntity
 
     public void Reject(string reason = "")
     {
-        if (Status is "RETURNED" or "RECEIVED" or "CREDITED")
+        if (Status is PurchaseReturnStatus.RETURNED or PurchaseReturnStatus.RECEIVED or PurchaseReturnStatus.CREDITED)
             throw new InvalidOperationException($"Cannot reject a {Status} return — stock has already been moved back to the supplier. Create a new Goods Receipt to receive the goods back into stock.");
 
-        Status = "REJECTED";
+        Status = PurchaseReturnStatus.REJECTED;
         Notes = reason?.Trim() ?? string.Empty;
     }
 
@@ -159,7 +161,7 @@ public class PurchaseReturn : AuditableEntity
     /// <param name="notes">Optional settlement notes</param>
     public void SettleReturn(decimal amount, string method, string notes = "")
     {
-        if (Status != "RETURNED" && Status != "RECEIVED" && Status != "CREDITED")
+        if (Status != PurchaseReturnStatus.RETURNED && Status != PurchaseReturnStatus.RECEIVED && Status != PurchaseReturnStatus.CREDITED)
             throw new InvalidOperationException("Only returned, received, or credited returns can be settled");
 
         if (amount <= 0)
@@ -171,7 +173,7 @@ public class PurchaseReturn : AuditableEntity
         if (string.IsNullOrWhiteSpace(method))
             throw new ArgumentException("Settlement method cannot be empty", nameof(method));
 
-        SettlementStatus = "SETTLED";
+        SettlementStatus = PurchaseReturnSettlementStatus.SETTLED;
         SettledAmount = amount;
         SettledDate = DateTime.UtcNow;
         SettlementMethod = method.Trim().ToUpper();
@@ -192,5 +194,5 @@ public class PurchaseReturn : AuditableEntity
     /// <summary>
     /// Check if this return has been financially settled
     /// </summary>
-    public bool IsSettled => SettlementStatus == "SETTLED";
+    public bool IsSettled => SettlementStatus == PurchaseReturnSettlementStatus.SETTLED;
 }
