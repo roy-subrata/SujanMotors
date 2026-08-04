@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.StockDtos;
 
 public class CreateStockTakeRequest
@@ -28,7 +30,7 @@ public class StockTakeResponse
     public string WarehouseName { get; set; } = string.Empty;
     public Guid? CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public StockTakeStatus Status { get; set; }
     public DateTime SnapshotDate { get; set; }
     public DateTime? SubmittedDate { get; set; }
     public DateTime? CompletedDate { get; set; }

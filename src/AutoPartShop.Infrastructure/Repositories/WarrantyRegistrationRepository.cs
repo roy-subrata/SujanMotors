@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -100,7 +101,7 @@ public class WarrantyRegistrationRepository(AutoPartDbContext _db) : IWarrantyRe
         return await _db.WarrantyRegistrations
             .Include(w => w.Part)
             .Include(w => w.Customer)
-            .Where(w => w.Status == "ACTIVE" && !w.Isdeleted)
+            .Where(w => w.Status == WarrantyRegistrationStatus.ACTIVE && !w.Isdeleted)
             .OrderBy(w => w.WarrantyExpiryDate)
             .ToListAsync(cancellationToken);
     }
@@ -110,7 +111,7 @@ public class WarrantyRegistrationRepository(AutoPartDbContext _db) : IWarrantyRe
         return await _db.WarrantyRegistrations
             .Include(w => w.Part)
             .Include(w => w.Customer)
-            .Where(w => w.Status == "EXPIRED" && !w.Isdeleted)
+            .Where(w => w.Status == WarrantyRegistrationStatus.EXPIRED && !w.Isdeleted)
             .OrderByDescending(w => w.WarrantyExpiryDate)
             .ToListAsync(cancellationToken);
     }
@@ -121,7 +122,7 @@ public class WarrantyRegistrationRepository(AutoPartDbContext _db) : IWarrantyRe
         return await _db.WarrantyRegistrations
             .Include(w => w.Part)
             .Include(w => w.Customer)
-            .Where(w => w.Status == "ACTIVE"
+            .Where(w => w.Status == WarrantyRegistrationStatus.ACTIVE
                 && w.WarrantyExpiryDate <= expiryThreshold
                 && w.WarrantyExpiryDate >= DateTime.UtcNow
                 && !w.Isdeleted)
@@ -159,8 +160,9 @@ public class WarrantyRegistrationRepository(AutoPartDbContext _db) : IWarrantyRe
 
         if (!string.IsNullOrWhiteSpace(status))
         {
-            var normalizedStatus = status.ToUpper();
-            query = query.Where(w => w.Status == normalizedStatus);
+            query = Enum.TryParse<WarrantyRegistrationStatus>(status.Trim().ToUpperInvariant(), out var normalizedStatus)
+                ? query.Where(w => w.Status == normalizedStatus)
+                : query.Where(w => false);
         }
 
         if (customerId.HasValue)

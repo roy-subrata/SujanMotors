@@ -5,6 +5,7 @@ using AutoPartShop.Application.Services;
 using AutoPartShop.Application.Stock;
 using AutoPartShop.Application.Stock.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -518,7 +519,7 @@ public class StockController : ControllerBase
                         .Where(l => l.PartId == request.PartId
                                  && l.VariantId == request.VariantId
                                  && l.WarehouseId == request.FromWarehouseId
-                                 && l.Status == "AVAILABLE"
+                                 && l.Status == StockLotStatus.AVAILABLE
                                  && l.QuantityAvailableInBaseUnit > 0
                                  && !l.Isdeleted)
                         .OrderBy(l => l.ExpiryDate)
@@ -564,7 +565,7 @@ public class StockController : ControllerBase
                             warrantyType: srcLot.WarrantyType,
                             warrantyTerms: srcLot.WarrantyTerms,
                             variantId: srcLot.VariantId,
-                            status: "AVAILABLE");
+                            status: StockLotStatus.AVAILABLE);
                         destLot.CreatedBy = currentUser;
                         destLot.ModifiedBy = currentUser;
                         _dbContext.StockLots.Add(destLot);

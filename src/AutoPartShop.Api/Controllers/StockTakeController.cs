@@ -3,6 +3,7 @@ using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.StockDtos;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -69,7 +70,7 @@ public class StockTakeController : ControllerBase
         // both adjust the same stock levels, double-applying variances.
         var openTake = await _dbContext.StockTakes
             .Where(st => st.WarehouseId == request.WarehouseId
-                && (st.Status == "COUNTING" || st.Status == "REVIEW") && !st.Isdeleted)
+                && (st.Status == StockTakeStatus.COUNTING || st.Status == StockTakeStatus.REVIEW) && !st.Isdeleted)
             .Select(st => st.StockTakeNumber)
             .FirstOrDefaultAsync(cancellationToken);
         if (openTake != null)
@@ -92,7 +93,7 @@ public class StockTakeController : ControllerBase
 
             // Latest available lot cost per (part, variant) — values the variance at review time.
             var lots = await _dbContext.StockLots
-                .Where(l => l.WarehouseId == request.WarehouseId && l.Status == "AVAILABLE"
+                .Where(l => l.WarehouseId == request.WarehouseId && l.Status == StockLotStatus.AVAILABLE
                     && l.IsActive && !l.Isdeleted)
                 .OrderByDescending(l => l.ReceivingDate)
                 .Select(l => new { l.PartId, l.VariantId, l.CostPriceInBaseUnit, l.QuantityAvailableInBaseUnit })
@@ -162,8 +163,9 @@ public class StockTakeController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(status))
         {
-            var normalized = status.Trim().ToUpper();
-            query = query.Where(st => st.Status == normalized);
+            query = Enum.TryParse<StockTakeStatus>(status.Trim().ToUpperInvariant(), out var normalized)
+                ? query.Where(st => st.Status == normalized)
+                : query.Where(st => false);
         }
 
         if (warehouseId.HasValue && warehouseId.Value != Guid.Empty)
@@ -271,7 +273,7 @@ public class StockTakeController : ControllerBase
         if (stockTake == null)
             return NotFound(new { message = "Stock take not found" });
 
-        if (stockTake.Status != "COUNTING")
+        if (stockTake.Status != StockTakeStatus.COUNTING)
             return BadRequest(new { message = $"Counts can only be recorded while the stock take is in COUNTING. Current: {stockTake.Status}" });
 
         var linesById = stockTake.Lines.ToDictionary(l => l.Id);
@@ -361,7 +363,7 @@ public class StockTakeController : ControllerBase
         if (stockTake == null)
             return NotFound(new { message = "Stock take not found" });
 
-        if (stockTake.Status != "REVIEW")
+        if (stockTake.Status != StockTakeStatus.REVIEW)
             return BadRequest(new { message = $"Only a stock take in REVIEW can be approved. Current: {stockTake.Status}" });
 
         var username = _currentUserService.GetCurrentUsername();
@@ -383,7 +385,7 @@ public class StockTakeController : ControllerBase
                     .Include(st => st.Lines)
                     .FirstAsync(st => st.Id == id && !st.Isdeleted, cancellationToken);
 
-                if (take.Status != "REVIEW")
+                if (take.Status != StockTakeStatus.REVIEW)
                 {
                     await tx.RollbackAsync(cancellationToken);
                     failure = BadRequest(new { message = $"Only a stock take in REVIEW can be approved. Current: {take.Status}" });

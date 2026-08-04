@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Services;
@@ -90,7 +91,7 @@ public class StockAdjustmentApplier
                 .Where(l => l.PartId == stockLevel.PartId
                     && l.VariantId == stockLevel.VariantId
                     && l.WarehouseId == stockLevel.WarehouseId
-                    && l.Status == "AVAILABLE"
+                    && l.Status == StockLotStatus.AVAILABLE
                     && l.IsActive && !l.Isdeleted
                     && l.QuantityAvailableInBaseUnit > 0)
                 .OrderBy(l => l.ReceivingDate)
@@ -118,7 +119,7 @@ public class StockAdjustmentApplier
             .Where(l => l.PartId == stockLevel.PartId
                 && l.VariantId == stockLevel.VariantId
                 && l.WarehouseId == stockLevel.WarehouseId
-                && l.Status == "AVAILABLE"
+                && l.Status == StockLotStatus.AVAILABLE
                 && l.IsActive && !l.Isdeleted)
             .OrderByDescending(l => l.ReceivingDate)
             .FirstOrDefaultAsync(cancellationToken);

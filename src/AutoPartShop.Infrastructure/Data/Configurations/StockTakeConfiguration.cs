@@ -18,6 +18,7 @@ public class StockTakeConfiguration : IEntityTypeConfiguration<StockTake>
             .HasMaxLength(30);
 
         builder.Property(st => st.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

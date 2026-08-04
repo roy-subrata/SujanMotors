@@ -2,6 +2,7 @@
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
@@ -74,7 +75,7 @@ namespace AutoPartShop.Api.Controllers
 
             // Block if any returned line has an active warranty claim to prevent double-refunds.
             var lineIds = request.Lines.Select(l => l.SalesOrderLineId).ToList();
-            var activeClaimStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+            var activeClaimStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
             var conflictingClaim = await _dbContext.Set<WarrantyRegistration>()
                 .Where(w => lineIds.Contains(w.SalesOrderLineId))
                 .Join(_dbContext.Set<WarrantyClaim>(),
