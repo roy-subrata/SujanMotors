@@ -153,11 +153,11 @@ const DOMAIN_SEVERITY_OVERRIDES: Partial<Record<StatusDomain, Record<string, Sta
     REJECTED: 'danger'
   },
   // features/procurement/components/status-badge.component.ts → getPaymentSeverity
+  // COMPLETED and RETURNED are intentionally absent: they fall through to the generic
+  // default-category table (COMPLETED -> success, RETURNED -> danger), which already matches.
   payment: {
     PENDING: 'secondary',
     PROCESSING: 'info',
-    CONFIRMED: 'warn',
-    RECONCILED: 'success',
     FAILED: 'danger',
     CANCELLED: 'danger'
   },

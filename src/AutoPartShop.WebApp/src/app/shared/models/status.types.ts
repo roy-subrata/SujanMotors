@@ -109,26 +109,14 @@ export type PurchaseReturnStatus =
 /** `AutoPartShop.Domain.Enums.PurchaseReturnSettlementStatus` */
 export type PurchaseReturnSettlementStatus = 'PENDING' | 'SETTLED';
 
-/**
- * `AutoPartShop.Domain.Enums.SupplierPaymentStatus`
- * NOTE (task #8 flag): the backend enum only has the 6 values below — 'CONFIRMED' and
- * 'RECONCILED' do NOT exist on the wire (see `SupplierPayment.ConfirmReceipt()`, which sets
- * `ConfirmedDate`/`ConfirmedBy` but never changes `Status`). They're kept here only because
- * `features/procurement/supplier-payment/supplier-payment-list.component.ts` and
- * `status-badge.component.ts`'s `payment` domain still compare against them — that looks like
- * dead/stale frontend code from before a backend rename. Left in to avoid breaking those
- * (out-of-scope) call sites; recommend a follow-up cleanup to delete the dead branches and
- * shrink this back down to the true 6-value backend enum.
- */
+/** `AutoPartShop.Domain.Enums.SupplierPaymentStatus` */
 export type SupplierPaymentStatus =
   | 'PENDING'
   | 'PROCESSING'
   | 'COMPLETED'
   | 'FAILED'
   | 'CANCELLED'
-  | 'RETURNED'
-  | 'CONFIRMED'
-  | 'RECONCILED';
+  | 'RETURNED';
 
 /** `AutoPartShop.Domain.Enums.PaymentProviderStatus` */
 export type PaymentProviderStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
