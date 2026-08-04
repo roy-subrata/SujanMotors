@@ -493,18 +493,20 @@ export class AppTopbar implements OnInit, OnDestroy {
 
     private hubSub?: Subscription;
     private reorderSub?: Subscription;
+    private routerEventsSub?: Subscription;
+    private translationsSub?: Subscription;
 
     constructor() {
         this.buildUserMenuItems();
         this.updatePageTitle();
 
-        this.router.events.pipe(
+        this.routerEventsSub = this.router.events.pipe(
             filter(event => event instanceof NavigationEnd)
         ).subscribe(() => {
             this.updatePageTitle();
         });
 
-        this.i18n.translationsLoaded$.subscribe(() => {
+        this.translationsSub = this.i18n.translationsLoaded$.subscribe(() => {
             this.buildUserMenuItems();
             this.updatePageTitle();
         });
@@ -522,6 +524,8 @@ export class AppTopbar implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.hubSub?.unsubscribe();
         this.reorderSub?.unsubscribe();
+        this.routerEventsSub?.unsubscribe();
+        this.translationsSub?.unsubscribe();
     }
 
     private onSaleNotification(evt: SaleNotificationEvent): void {
