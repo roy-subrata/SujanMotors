@@ -15,6 +15,7 @@ import { AuthService } from '../../shared/services/auth.service';
 import { I18nService } from '../../shared/services/i18n.service';
 import { AppBrandingService } from '../../shared/services/app-branding.service';
 import { NotificationHubService, SaleNotificationEvent, ReorderAlertEvent } from '../../shared/services/notification-hub.service';
+import { InboxNotificationService } from '../../features/notifications/inbox-notifications.service';
 import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
 import { UserMenuService } from '../../shared/services/user-menu.service';
 import { getUserInitials } from '../../shared/utils/user-display.util';
@@ -135,6 +136,7 @@ interface StaffNotification {
                             }
                         </div>
                         <div class="notif-panel-footer">
+                            <button type="button" class="text-btn small" (click)="openInbox()">View all</button>
                             <button type="button" class="text-btn small" (click)="clearAll()">Clear all</button>
                         </div>
                     }
@@ -481,6 +483,7 @@ export class AppTopbar implements OnInit, OnDestroy {
     private i18n = inject(I18nService);
     private branding = inject(AppBrandingService);
     private notificationHub = inject(NotificationHubService);
+    private inboxService = inject(InboxNotificationService);
     private messageService = inject(MessageService);
     private userMenuService = inject(UserMenuService);
 
@@ -489,13 +492,15 @@ export class AppTopbar implements OnInit, OnDestroy {
     currentUser = computed(() => this.authService.currentUser());
     pageTitle = signal('Dashboard');
     notifications = signal<StaffNotification[]>([]);
-    unreadCount = computed(() => this.notifications().filter(n => !n.isRead).length);
+    inboxUnread = signal(0);
+    unreadCount = computed(() => this.notifications().filter(n => !n.isRead).length + this.inboxUnread());
     searchQuery = '';
 
     userMenuItems: MenuItem[] = [];
 
     private hubSub?: Subscription;
     private reorderSub?: Subscription;
+    private inboxSub?: Subscription;
     private routerEventsSub?: Subscription;
     private translationsSub?: Subscription;
 
@@ -522,11 +527,16 @@ export class AppTopbar implements OnInit, OnDestroy {
         this.reorderSub = this.notificationHub.reorderAlert$.subscribe(evt => {
             this.onReorderAlert(evt);
         });
+        this.inboxSub = this.inboxService.unreadCount$.subscribe(count => {
+            this.inboxUnread.set(count);
+        });
+        this.inboxService.refreshUnreadCount();
     }
 
     ngOnDestroy(): void {
         this.hubSub?.unsubscribe();
         this.reorderSub?.unsubscribe();
+        this.inboxSub?.unsubscribe();
         this.routerEventsSub?.unsubscribe();
         this.translationsSub?.unsubscribe();
     }
@@ -574,6 +584,9 @@ export class AppTopbar implements OnInit, OnDestroy {
 
         this.notifications.update(ns => [notif, ...ns].slice(0, 20));
 
+        // The alert was also persisted server-side into the staff inbox — re-sync the badge.
+        this.inboxService.refreshUnreadCount();
+
         this.messageService.add({
             key:      'sale-notification',
             severity: 'warn',
@@ -593,6 +606,15 @@ export class AppTopbar implements OnInit, OnDestroy {
 
     markAllAsRead(): void {
         this.notifications.update(ns => ns.map(n => ({ ...n, isRead: true })));
+        this.inboxService.markAllRead().subscribe({
+            next: () => this.inboxService.refreshUnreadCount(),
+            error: () => this.inboxService.refreshUnreadCount()
+        });
+    }
+
+    openInbox(): void {
+        this.notifPanel.hide();
+        this.router.navigate(['/notifications']);
     }
 
     clearAll(): void {

@@ -63,4 +63,11 @@ public class LeaveRequestRepository : ILeaveRequestRepository
                 && x.FromDate <= to
                 && x.ToDate >= from, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<LeaveRequest>> GetByEmployeeAsync(Guid employeeId, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.LeaveRequests
+            .Where(x => x.EmployeeId == employeeId && !x.Isdeleted)
+            .ToListAsync(cancellationToken);
+    }
 }

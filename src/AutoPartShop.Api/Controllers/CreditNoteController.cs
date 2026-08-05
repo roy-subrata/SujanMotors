@@ -24,6 +24,7 @@ public class CreditNoteController : ControllerBase
     private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly ILogger<CreditNoteController> _logger;
 
     public CreditNoteController(
@@ -33,6 +34,7 @@ public class CreditNoteController : ControllerBase
         ISupplierPaymentRepository supplierPaymentRepository,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
+        ICurrencyConversionService currencyConversionService,
         ILogger<CreditNoteController> logger)
     {
         _creditNoteRepository = creditNoteRepository;
@@ -41,6 +43,7 @@ public class CreditNoteController : ControllerBase
         _supplierPaymentRepository = supplierPaymentRepository;
         _dbContext = dbContext;
         _currentUserService = currentUserService;
+        _currencyConversionService = currencyConversionService;
         _logger = logger;
     }
 
@@ -188,8 +191,11 @@ public class CreditNoteController : ControllerBase
                     sourceAdvancePaymentId: creditNote.Id,  // Link to credit note
                     paymentProviderId: defaultProvider.Id,
                     amount: request.AmountToApply,
-                    description: $"Applied credit note {creditNote.CreditNoteNumber} to PO {purchaseOrder.PONumber}"
+                    description: $"Applied credit note {creditNote.CreditNoteNumber} to PO {purchaseOrder.PONumber}",
+                    currency: creditNote.Currency
                 );
+                var supplierCreditFx = await _currencyConversionService.ConvertToBaseWithRateAsync(supplierPayment.Amount, supplierPayment.Currency, supplierPayment.PaymentDate, cancellationToken);
+                supplierPayment.SetFxBaseAmount(supplierCreditFx.BaseAmount, supplierCreditFx.RateToBase);
                 await _supplierPaymentRepository.AddAsync(supplierPayment, cancellationToken);
             }
 

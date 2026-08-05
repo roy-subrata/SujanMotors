@@ -42,6 +42,9 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                 .HasMaxLength(3)
                 .HasDefaultValue("BDT");
 
+            builder.Property(p => p.BaseTotalAmount).HasColumnType("decimal(18,2)");
+            builder.Property(p => p.FxRateToBase).HasColumnType("decimal(18,6)");
+
             // Supplier
             builder.HasOne(p => p.Supplier)
                 .WithMany()

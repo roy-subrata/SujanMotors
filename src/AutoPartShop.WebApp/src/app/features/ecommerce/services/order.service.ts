@@ -86,6 +86,14 @@ export class OrderService {
     );
   }
 
+  /** Collect the outstanding cash for a Cash-on-Delivery online order (at delivery). */
+  collectCod(soNumber: string, amountCollected: number, paymentReference?: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/orders/${soNumber}/collect-cod`, {
+      amountCollected,
+      paymentReference: paymentReference ?? ''
+    });
+  }
+
   checkout(
     formData: {
       customerName: string; customerEmail: string; customerPhone: string;

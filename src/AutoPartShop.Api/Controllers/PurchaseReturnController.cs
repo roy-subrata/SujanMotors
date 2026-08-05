@@ -29,6 +29,7 @@ public class PurchaseReturnController : ControllerBase
     private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<PurchaseReturnController> _logger;
 
@@ -42,6 +43,7 @@ public class PurchaseReturnController : ControllerBase
         ISupplierPaymentRepository supplierPaymentRepository,
         ICurrentUserService currentUserService,
         ICodeGenerateService codeGenerateService,
+        ICurrencyConversionService currencyConversionService,
         AutoPartDbContext dbContext,
         ILogger<PurchaseReturnController> logger)
     {
@@ -54,6 +56,7 @@ public class PurchaseReturnController : ControllerBase
         _supplierPaymentRepository = supplierPaymentRepository;
         _currentUserService = currentUserService;
         _codeGenerateService = codeGenerateService;
+        _currencyConversionService = currencyConversionService;
         _dbContext = dbContext;
         _logger = logger;
     }
@@ -380,8 +383,9 @@ public class PurchaseReturnController : ControllerBase
 
                 var variantId = purchaseReturn.PurchaseOrder?.LineItems
                     .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
-                var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, variantId, cancellationToken);
-                var stockLevel = stockLevels.FirstOrDefault();
+                var (stockLevel, stockLevelError) = await ResolveStockLevelForLineAsync(purchaseReturn, line, variantId, cancellationToken);
+                if (stockLevelError != null)
+                    return BadRequest(new { message = stockLevelError });
                 if (stockLevel == null)
                     return BadRequest(new { message = $"No stock level found for part {line.PartId}. Cannot process return." });
 
@@ -420,8 +424,9 @@ public class PurchaseReturnController : ControllerBase
 
                         var variantId = purchaseReturn.PurchaseOrder?.LineItems
                             .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
-                        var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, variantId, cancellationToken);
-                        var stockLevel = stockLevels.FirstOrDefault();
+                        var (stockLevel, stockLevelError) = await ResolveStockLevelForLineAsync(purchaseReturn, line, variantId, cancellationToken);
+                        if (stockLevelError != null)
+                            throw new InvalidOperationException(stockLevelError);
 
                         if (stockLevel != null)
                         {
@@ -683,8 +688,11 @@ public class PurchaseReturnController : ControllerBase
                             paymentMethod: "CREDIT_NOTE",
                             transactionNumber: creditNoteNumber,
                             referenceNumber: purchaseReturn.ReturnNumber,
-                            paymentDate: DateTime.UtcNow
+                            paymentDate: DateTime.UtcNow,
+                            currency: currency
                         );
+                        var creditNoteFx = await _currencyConversionService.ConvertToBaseWithRateAsync(supplierPayment.Amount, supplierPayment.Currency, supplierPayment.PaymentDate, cancellationToken);
+                        supplierPayment.SetFxBaseAmount(creditNoteFx.BaseAmount, creditNoteFx.RateToBase);
                         supplierPayment.MarkAsAdvance();
                         supplierPayment.MarkAsProcessed(currentUser);
                         supplierPayment.ConfirmReceipt(currentUser); // advance to COMPLETED so it surfaces in GetAvailableAdvanceCreditAsync
@@ -808,13 +816,24 @@ public class PurchaseReturnController : ControllerBase
         Guid partId,
         [FromQuery] Guid? supplierId = null,
         [FromQuery] string? bucket = null,
+        [FromQuery] Guid? warehouseId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            // Get stock levels for the part to find the warehouse
-            var stockLevels = await _stockLevelRepository.GetByPartAsync(partId, cancellationToken);
-            var stockLevel = stockLevels.FirstOrDefault();
+            // Get stock levels for the part to find the warehouse.
+            // Prefer the caller-supplied warehouse (the return's GRN/PO warehouse); otherwise fall back
+            // to the first available stock level (legacy behaviour when the warehouse is not yet known).
+            StockLevel? stockLevel;
+            if (warehouseId.HasValue && warehouseId != Guid.Empty)
+            {
+                stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(partId, warehouseId.Value, cancellationToken);
+            }
+            else
+            {
+                var stockLevels = await _stockLevelRepository.GetByPartAsync(partId, cancellationToken);
+                stockLevel = stockLevels.FirstOrDefault();
+            }
 
             if (stockLevel == null)
             {
@@ -1033,6 +1052,42 @@ public class PurchaseReturnController : ControllerBase
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Resolves the stock level a return line must draw down, keyed to the line's warehouse:
+    /// - lines with a selected lot use the lot's own warehouse (physical stock lives there);
+    /// - lines without a lot draw from the warehouse the goods were received into (the originating
+    ///   GoodsReceipt, falling back to the PurchaseOrder's expected-delivery warehouse for manual returns).
+    /// Returns a non-null error string when the warehouse cannot be determined or no stock level exists there,
+    /// so callers never fall back to an arbitrary warehouse (which corrupts multi-warehouse stock).
+    /// </summary>
+    private async Task<(StockLevel? StockLevel, string? Error)> ResolveStockLevelForLineAsync(
+        PurchaseReturn purchaseReturn, PurchaseReturnLine line, Guid? variantId, CancellationToken cancellationToken)
+    {
+        Guid? warehouseId;
+        if (line.StockLotId.HasValue)
+        {
+            var lot = await _stockLotRepository.GetByIdAsync(line.StockLotId.Value, cancellationToken);
+            if (lot == null)
+                return (null, $"Selected stock lot not found for part {line.Part?.Name ?? line.PartId.ToString()}.");
+            warehouseId = lot.WarehouseId;
+        }
+        else
+        {
+            warehouseId = purchaseReturn.GoodsReceipt?.WarehouseId
+                ?? purchaseReturn.PurchaseOrder?.WarehouseId;
+        }
+
+        if (warehouseId == null || warehouseId == Guid.Empty)
+            return (null, $"Could not determine the return warehouse for part {line.Part?.Name ?? line.PartId.ToString()}. Link the return to a goods receipt or set a warehouse on the purchase order.");
+
+        var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+            line.PartId, variantId, warehouseId.Value, cancellationToken);
+        if (stockLevel == null)
+            return (null, $"No stock level found for part {line.Part?.Name ?? line.PartId.ToString()} at the return warehouse. Cannot process return.");
+
+        return (stockLevel, null);
     }
 
     /// <summary>

@@ -66,6 +66,7 @@ public class WarrantyService(
     ICustomerRepository customerRepository,
     ICustomerPaymentRepository customerPaymentRepository,
     ICustomerCreditNoteRepository customerCreditNoteRepository,
+    ICurrencyConversionService currencyConversionService,
     AutoPartDbContext dbContext) : IWarrantyService
 {
     private const string WarrantyReplacementOutReason = "WARRANTY_REPLACEMENT_OUT";
@@ -504,10 +505,6 @@ public class WarrantyService(
             var customer = await customerRepository.GetByIdAsync(claim.CustomerId, ct)
                 ?? throw new InvalidOperationException("Customer not found for refund processing");
 
-            customer.UpdateBalance(-effectiveRefundAmount);
-            customer.ModifiedBy = actor;
-            await customerRepository.UpdateAsync(customer, ct);
-
             var refundPayment = CustomerPayment.Create(
                 customerId: claim.CustomerId,
                 paymentProviderId: null,
@@ -515,7 +512,10 @@ public class WarrantyService(
                 paymentMethod: "REFUND",
                 transactionNumber: $"WREFUND-{claim.ClaimNumber}",
                 referenceNumber: referenceNumber ?? claim.ClaimNumber,
-                paymentDate: DateTime.UtcNow);
+                paymentDate: DateTime.UtcNow,
+                currency: salesOrder.Currency);
+            var warrantyRefundFx = await currencyConversionService.ConvertToBaseWithRateAsync(refundPayment.Amount, refundPayment.Currency, refundPayment.PaymentDate, ct);
+            refundPayment.SetFxBaseAmount(warrantyRefundFx.BaseAmount, warrantyRefundFx.RateToBase);
 
             refundPayment.LinkToWarrantyClaim(claim.Id);
             refundPayment.MarkAsCompleted();
@@ -523,6 +523,12 @@ public class WarrantyService(
             refundPayment.ModifiedBy = actor;
             refundPayment.UpdateNotes($"Warranty cash refund for claim {claim.ClaimNumber}. {refundNotes}".Trim());
             await customerPaymentRepository.AddAsync(refundPayment, ct);
+
+            // Refund payment's Amount/BaseAmount are negative (money out), so passing it straight
+            // to UpdateBalance reduces what the customer owes.
+            customer.UpdateBalance(refundPayment.BaseAmount ?? refundPayment.Amount);
+            customer.ModifiedBy = actor;
+            await customerRepository.UpdateAsync(customer, ct);
 
             salesOrder.ProcessRefund(effectiveRefundAmount);
             salesOrder.ModifiedBy = actor;

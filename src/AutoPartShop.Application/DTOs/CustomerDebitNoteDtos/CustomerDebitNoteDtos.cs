@@ -12,6 +12,12 @@ public class CreateCustomerDebitNoteRequest
     public string Notes { get; set; } = string.Empty;
 }
 
+public class SettleCustomerDebitNoteRequest
+{
+    public string? PaymentMethod { get; set; }
+    public string? ReferenceNumber { get; set; }
+}
+
 public class CustomerDebitNoteResponse
 {
     public Guid Id { get; set; }

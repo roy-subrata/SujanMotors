@@ -329,6 +329,34 @@ export class InvoicesListComponent implements OnInit {
         });
     }
 
+    cancelInvoice(invoice: InvoiceResponse): void {
+        this.confirmationService.confirm({
+            message: this.i18n.t('invoices.messages.cancelConfirm', { number: invoice.invoiceNumber }),
+            header: this.i18n.t('common.actions.cancelInvoice'),
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                this.invoiceService.cancelInvoice(invoice.id).subscribe({
+                    next: () => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('invoices.messages.cancelSuccess')
+                        });
+                        this.loadInvoices();
+                    },
+                    error: (err) => {
+                        const detail = err?.error?.message || this.i18n.t('invoices.messages.cancelFailed');
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.i18n.t('common.messages.error'),
+                            detail
+                        });
+                    }
+                });
+            }
+        });
+    }
+
     getStatusSeverity(status: string): StatusSeverity {
         return this.statusDisplay.getSeverity(status, 'invoice');
     }
@@ -368,6 +396,14 @@ export class InvoicesListComponent implements OnInit {
                 label: this.i18n.t('common.actions.issueInvoice'),
                 icon: 'pi pi-check-circle',
                 command: () => this.issueInvoice(invoice)
+            });
+        }
+
+        if (this.canCancelInvoice(invoice)) {
+            items.push({
+                label: this.i18n.t('common.actions.cancelInvoice'),
+                icon: 'pi pi-times-circle',
+                command: () => this.cancelInvoice(invoice)
             });
         }
 
@@ -474,6 +510,12 @@ export class InvoicesListComponent implements OnInit {
 
     canRecordPayment(invoice: InvoiceResponse): boolean {
         return invoice.status !== 'CANCELLED' && invoice.status !== 'DRAFT';
+    }
+
+    canCancelInvoice(invoice: InvoiceResponse): boolean {
+        return invoice.status !== 'CANCELLED'
+            && invoice.status !== 'PAID'
+            && invoice.status !== 'PARTIALLY_PAID';
     }
 
     viewSalesOrder(invoice: InvoiceResponse): void {

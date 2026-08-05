@@ -544,28 +544,49 @@ public class StockController : ControllerBase
                         _dbContext.StockLotMovements.Add(srcLotMovement);
 
                         var destLotNumber = await _codeGenerateService.GenerateAsync("LOT", cancellationToken);
-                        var destLot = StockLot.Create(
-                            lotNumber: destLotNumber,
-                            partId: srcLot.PartId,
-                            warehouseId: request.ToWarehouseId,
-                            supplierId: srcLot.SupplierId,
-                            goodsReceiptLineId: srcLot.GoodsReceiptLineId,
-                            quantityReceived: drawBase,
-                            costPrice: srcLot.CostPrice,
-                            receivingDate: srcLot.ReceivingDate,
-                            manufacturerLotNumber: srcLot.ManufacturerLotNumber,
-                            expiryDate: srcLot.ExpiryDate,
-                            currency: srcLot.Currency,
-                            notes: $"Transferred from {fromWarehouse.Name} lot {srcLot.LotNumber} ({transferReference})",
-                            unitId: srcLot.UnitId,
-                            quantityReceivedInBaseUnit: drawBase,
-                            costPriceInBaseUnit: srcLot.CostPriceInBaseUnit,
-                            hasWarranty: srcLot.HasWarranty,
-                            warrantyPeriodMonths: srcLot.WarrantyPeriodMonths,
-                            warrantyType: srcLot.WarrantyType,
-                            warrantyTerms: srcLot.WarrantyTerms,
-                            variantId: srcLot.VariantId,
-                            status: StockLotStatus.AVAILABLE);
+                        var destLot = srcLot.SupplierId.HasValue
+                            ? StockLot.Create(
+                                lotNumber: destLotNumber,
+                                partId: srcLot.PartId,
+                                warehouseId: request.ToWarehouseId,
+                                supplierId: srcLot.SupplierId.Value,
+                                goodsReceiptLineId: srcLot.GoodsReceiptLineId,
+                                quantityReceived: drawBase,
+                                costPrice: srcLot.CostPrice,
+                                receivingDate: srcLot.ReceivingDate,
+                                manufacturerLotNumber: srcLot.ManufacturerLotNumber,
+                                expiryDate: srcLot.ExpiryDate,
+                                currency: srcLot.Currency,
+                                notes: $"Transferred from {fromWarehouse.Name} lot {srcLot.LotNumber} ({transferReference})",
+                                unitId: srcLot.UnitId,
+                                quantityReceivedInBaseUnit: drawBase,
+                                costPriceInBaseUnit: srcLot.CostPriceInBaseUnit,
+                                hasWarranty: srcLot.HasWarranty,
+                                warrantyPeriodMonths: srcLot.WarrantyPeriodMonths,
+                                warrantyType: srcLot.WarrantyType,
+                                warrantyTerms: srcLot.WarrantyTerms,
+                                variantId: srcLot.VariantId,
+                                status: StockLotStatus.AVAILABLE)
+                            : StockLot.CreateFromAdjustment(
+                                lotNumber: destLotNumber,
+                                partId: srcLot.PartId,
+                                warehouseId: request.ToWarehouseId,
+                                quantityReceived: drawBase,
+                                costPrice: srcLot.CostPrice,
+                                receivingDate: srcLot.ReceivingDate,
+                                manufacturerLotNumber: srcLot.ManufacturerLotNumber,
+                                expiryDate: srcLot.ExpiryDate,
+                                currency: srcLot.Currency,
+                                notes: $"Transferred from {fromWarehouse.Name} lot {srcLot.LotNumber} ({transferReference})",
+                                unitId: srcLot.UnitId,
+                                quantityReceivedInBaseUnit: drawBase,
+                                costPriceInBaseUnit: srcLot.CostPriceInBaseUnit,
+                                hasWarranty: srcLot.HasWarranty,
+                                warrantyPeriodMonths: srcLot.WarrantyPeriodMonths,
+                                warrantyType: srcLot.WarrantyType,
+                                warrantyTerms: srcLot.WarrantyTerms,
+                                variantId: srcLot.VariantId,
+                                status: StockLotStatus.AVAILABLE);
                         destLot.CreatedBy = currentUser;
                         destLot.ModifiedBy = currentUser;
                         _dbContext.StockLots.Add(destLot);

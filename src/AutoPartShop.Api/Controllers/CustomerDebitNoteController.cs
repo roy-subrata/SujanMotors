@@ -3,6 +3,7 @@ using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerDebitNoteDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -22,6 +23,7 @@ public class CustomerDebitNoteController(
     ICustomerRepository customerRepository,
     ICodeGenerateService codeGenerateService,
     ICurrentUserService currentUserService,
+    ICurrencyConversionService currencyService,
     AutoPartDbContext dbContext,
     ILogger<CustomerDebitNoteController> logger) : ControllerBase
 {
@@ -47,7 +49,31 @@ public class CustomerDebitNoteController(
             debitNote.CreatedBy = username;
             debitNote.ModifiedBy = username;
 
-            await debitNoteRepository.AddAsync(debitNote, cancellationToken);
+            // A debit note is a supplementary bill: it increases what the customer owes immediately
+            // (mirror image of a credit note reducing it). Settling the note records the payment
+            // and reduces the balance; cancelling an un-settled note reverses this.
+            //
+            // Persist the note and the balance bump in one transaction and convert before saving so
+            // a failed FX lookup or save can't leave an issued note that never hit the balance.
+            var strategy = dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    var dnFx = await currencyService.ConvertToBaseWithRateAsync(debitNote.TotalAmount, debitNote.Currency, debitNote.IssueDate, cancellationToken);
+                    await debitNoteRepository.AddAsync(debitNote, cancellationToken);
+                    customer.UpdateBalance(dnFx.BaseAmount);
+                    customer.ModifiedBy = username;
+                    await customerRepository.UpdateAsync(customer, cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             return CreatedAtAction(nameof(GetById), new { id = debitNote.Id }, await MapToResponseAsync(debitNote, cancellationToken));
         }
@@ -95,21 +121,81 @@ public class CustomerDebitNoteController(
 
     [HttpPatch("{id:guid}/settle")]
     [HasPermission(Permissions.SalesEdit)]
-    public async Task<IActionResult> Settle(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Settle(
+        Guid id,
+        [FromBody] SettleCustomerDebitNoteRequest? request = null,
+        CancellationToken cancellationToken = default)
     {
         var debitNote = await debitNoteRepository.GetByIdAsync(id, cancellationToken);
         if (debitNote is null) return NotFound(new { message = "Customer debit note not found" });
 
+        var customer = await customerRepository.GetByIdAsync(debitNote.CustomerId, cancellationToken);
+        if (customer is null) return NotFound(new { message = "Customer not found" });
+
         try
         {
-            debitNote.MarkAsSettled();
-            debitNote.ModifiedBy = currentUserService.GetCurrentUsername();
-            await debitNoteRepository.UpdateAsync(debitNote, cancellationToken);
+            var username = currentUserService.GetCurrentUsername();
+            var strategy = dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    debitNote = await debitNoteRepository.GetByIdAsync(id, cancellationToken)
+                        ?? throw new InvalidOperationException("Customer debit note not found");
+                    debitNote.MarkAsSettled();
+                    debitNote.ModifiedBy = username;
+
+                    // Record the customer's payment so the settlement is more than bookkeeping:
+                    // a completed CustomerPayment appears in the payments trail and reduces balance.
+                    var defaultProvider = await dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
+                    var paymentMethod = string.IsNullOrWhiteSpace(request?.PaymentMethod) ? "CASH" : request.PaymentMethod.Trim().ToUpper();
+                    var payment = CustomerPayment.Create(
+                        customerId: debitNote.CustomerId,
+                        paymentProviderId: defaultProvider?.Id,
+                        amount: debitNote.TotalAmount,
+                        paymentMethod: paymentMethod,
+                        referenceNumber: string.IsNullOrWhiteSpace(request?.ReferenceNumber) ? debitNote.DebitNoteNumber : request.ReferenceNumber,
+                        currency: debitNote.Currency);
+                    if (debitNote.InvoiceId.HasValue)
+                        payment.LinkToInvoice(debitNote.InvoiceId.Value);
+                    var settleFx = await currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, debitNote.IssueDate, cancellationToken);
+                    payment.SetFxBaseAmount(settleFx.BaseAmount, settleFx.RateToBase);
+                    payment.MarkAsSettled(username);
+                    payment.CreatedBy = username;
+                    payment.ModifiedBy = username;
+                    payment.UpdateNotes($"Payment for debit note {debitNote.DebitNoteNumber}. Reason: {debitNote.Reason}");
+                    dbContext.CustomerPayments.Add(payment);
+
+                    customer.UpdateBalance(-(payment.BaseAmount ?? payment.Amount));
+                    customer.ModifiedBy = username;
+
+                    await debitNoteRepository.UpdateAsync(debitNote, cancellationToken);
+                    await customerRepository.UpdateAsync(customer, cancellationToken);
+                    await dbContext.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
             return Ok(await MapToResponseAsync(debitNote, cancellationToken));
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error settling customer debit note: {NoteId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while settling the debit note");
         }
     }
 
@@ -122,9 +208,43 @@ public class CustomerDebitNoteController(
 
         try
         {
+            var username = currentUserService.GetCurrentUsername();
+            var wasIssued = debitNote.Status == CustomerDebitNoteStatus.ISSUED;
             debitNote.Cancel(reason ?? string.Empty);
-            debitNote.ModifiedBy = currentUserService.GetCurrentUsername();
-            await debitNoteRepository.UpdateAsync(debitNote, cancellationToken);
+            debitNote.ModifiedBy = username;
+
+            // Cancelling an un-settled note removes the charge it added to the customer's balance.
+            // Only reverse when the note actually transitions ISSUED → CANCELLED so a repeated
+            // cancel call can't reverse the balance twice, and do it in a transaction so a failed
+            // save can't persist a cancelled note with the charge still on the balance.
+            var strategy = dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    if (wasIssued)
+                    {
+                        var customer = await customerRepository.GetByIdAsync(debitNote.CustomerId, cancellationToken);
+                        if (customer is not null)
+                        {
+                            var cancelFx = await currencyService.ConvertToBaseWithRateAsync(debitNote.TotalAmount, debitNote.Currency, debitNote.IssueDate, cancellationToken);
+                            customer.UpdateBalance(-cancelFx.BaseAmount);
+                            customer.ModifiedBy = username;
+                            await customerRepository.UpdateAsync(customer, cancellationToken);
+                        }
+                    }
+
+                    await debitNoteRepository.UpdateAsync(debitNote, cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
             return Ok(await MapToResponseAsync(debitNote, cancellationToken));
         }
         catch (InvalidOperationException ex)

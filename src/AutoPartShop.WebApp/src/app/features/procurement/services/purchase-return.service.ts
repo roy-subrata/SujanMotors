@@ -269,14 +269,18 @@ export class PurchaseReturnService {
    * @param partId The part ID
    * @param supplierId Optional supplier ID to prioritize lots from same supplier
    * @param bucket Optional inventory bucket filter (AVAILABLE, DAMAGED, QUARANTINE)
+   * @param warehouseId Optional warehouse the return draws from (scopes lots to that warehouse)
    */
-  getAvailableLotsForReturn(partId: string, supplierId?: string, bucket?: string): Observable<AvailableLotForReturn[]> {
+  getAvailableLotsForReturn(partId: string, supplierId?: string, bucket?: string, warehouseId?: string | null): Observable<AvailableLotForReturn[]> {
     let params = new HttpParams();
     if (supplierId) {
       params = params.set('supplierId', supplierId);
     }
     if (bucket) {
       params = params.set('bucket', bucket);
+    }
+    if (warehouseId) {
+      params = params.set('warehouseId', warehouseId);
     }
     return this.http.get<AvailableLotForReturn[]>(`${this.apiUrl}/available-lots/${partId}`, { params });
   }

@@ -19,7 +19,9 @@ public class SupplierPayment : AuditableEntity
     public decimal Amount { get; private set; }
     public decimal PaymentFee { get; private set; } = 0;  // Fee charged by provider
     public decimal NetAmount { get; private set; }  // Amount - Fee
-    public string Currency { get; private set; } = "USD";
+    public string Currency { get; private set; } = "BDT";
+    public decimal? BaseAmount { get; private set; }  // Amount converted to base currency at payment time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseAmount was captured (1 = same as base)
     public DateTime PaymentDate { get; private set; }
     public string PaymentMethod { get; private set; } = string.Empty;  // BANK_TRANSFER, CHECK, CASH, CRYPTO, etc.
     public SupplierPaymentStatus Status { get; private set; } = SupplierPaymentStatus.PENDING;
@@ -49,7 +51,8 @@ public class SupplierPayment : AuditableEntity
     private SupplierPayment() { }
 
     public static SupplierPayment Create(Guid supplierId, Guid paymentProviderId, decimal amount,
-        string paymentMethod, string transactionNumber = "", string referenceNumber = "", DateTime? paymentDate = null)
+        string paymentMethod, string transactionNumber = "", string referenceNumber = "", DateTime? paymentDate = null,
+        string currency = "BDT")
     {
         if (supplierId == Guid.Empty)
             throw new ArgumentException("SupplierId cannot be empty", nameof(supplierId));
@@ -78,6 +81,7 @@ public class SupplierPayment : AuditableEntity
             TransactionNumber = finalTransactionNumber,
             ReferenceNumber = referenceNumber?.Trim() ?? string.Empty,
             PaymentDate = paymentDate ?? DateTime.UtcNow,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
             Status = SupplierPaymentStatus.PENDING
         };
     }
@@ -104,6 +108,22 @@ public class SupplierPayment : AuditableEntity
 
         PaymentFee = feeAmount;
         NetAmount = Amount - PaymentFee;
+    }
+
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="Amount"/> at payment time so balances
+    /// and reports stay stable even if exchange rates change later.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        if (baseAmount < 0)
+            throw new ArgumentException("Base amount cannot be negative", nameof(baseAmount));
+
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseAmount = baseAmount;
+        FxRateToBase = rateToBase;
     }
 
     public void SetAuthorizationCode(string code)
@@ -234,7 +254,8 @@ public class SupplierPayment : AuditableEntity
         Guid sourceAdvancePaymentId,
         Guid paymentProviderId,
         decimal amount,
-        string description)
+        string description,
+        string currency = "BDT")
     {
         if (supplierId == Guid.Empty)
             throw new ArgumentException("SupplierId cannot be empty", nameof(supplierId));
@@ -264,7 +285,8 @@ public class SupplierPayment : AuditableEntity
             Status = SupplierPaymentStatus.COMPLETED,  // Applied advances are immediately completed
             PaymentType = PaymentType.REGULAR,
             Description = description.Trim(),
-            RemainingAmount = 0
+            RemainingAmount = 0,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
     }
 }

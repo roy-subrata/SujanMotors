@@ -67,7 +67,8 @@
     "holidays": "ছুটির দিন",
     "payroll": "বেতন",
     "shifts": "শিফট",
-    "salaryAdvances": "বেতন অগ্রিম"
+    "salaryAdvances": "বেতন অগ্রিম",
+    "notifications": "বিজ্ঞপ্তি"
   },
   "topbar": {
     "profile": "আমার প্রোফাইল",
@@ -160,6 +161,7 @@
       "confirmOrder": "অর্ডার নিশ্চিত করুন",
       "manageCompatibility": "সামঞ্জস্যতা পরিচালনা",
       "issueInvoice": "চালান ইস্যু করুন",
+      "cancelInvoice": "চালান বাতিল করুন",
       "viewSalesOrder": "বিক্রয় অর্ডার দেখুন",
       "viewConfirmPayments": "পেমেন্ট দেখুন / নিশ্চিত করুন",
       "toggleStatus": "অবস্থা পরিবর্তন করুন",
@@ -492,6 +494,18 @@
       "confirmOrderFailed": "বিক্রয় অর্ডার নিশ্চিত করতে ব্যর্থ হয়েছে",
       "createSuccess": "বিক্রয় অর্ডার সফলভাবে তৈরি হয়েছে",
       "updateSuccess": "বিক্রয় অর্ডার সফলভাবে আপডেট হয়েছে"
+    },
+    "codCollection": {
+      "title": "ক্যাশ অন ডেলিভারি আদায় করুন",
+      "action": "কোড আদায় করুন",
+      "outstandingLabel": "বকেয়া ব্যালেন্স",
+      "amountLabel": "আদায়কৃত পরিমাণ",
+      "referenceLabel": "পেমেন্ট রেফারেন্স (ঐচ্ছিক)",
+      "referencePlaceholder": "যেমন: ডেলিভারিতে নগদ প্রাপ্ত",
+      "collectButton": "পেমেন্ট আদায় করুন",
+      "invalidAmount": "অনুগ্রহ করে আদায়ের জন্য সঠিক পরিমাণ লিখুন।",
+      "collectSuccess": "{{amount}} কোড পেমেন্ট আদায় করা হয়েছে।",
+      "collectFailed": "কোড পেমেন্ট আদায় করতে ব্যর্থ হয়েছে।"
     }
   },
   "supplierPayments": {
@@ -616,6 +630,9 @@
       "issueConfirm": "আপনি কি নিশ্চিত যে চালান {{number}} ইস্যু করতে চান?",
       "issueSuccess": "চালান সফলভাবে ইস্যু হয়েছে",
       "issueFailed": "চালান ইস্যু করতে ব্যর্থ হয়েছে",
+      "cancelConfirm": "আপনি কি নিশ্চিত যে চালান {{number}} বাতিল করতে চান? বকেয়া পরিমাণ গ্রাহকের ব্যালেন্সে ফেরত দেওয়া হবে। এটি পূর্বাবস্থায় ফেরানো যাবে না।",
+      "cancelSuccess": "চালান সফলভাবে বাতিল হয়েছে",
+      "cancelFailed": "চালান বাতিল করতে ব্যর্থ হয়েছে",
       "exportNoData": "রপ্তানির জন্য কোনো চালান নেই",
       "exportCSVSuccess": "চালান CSV-এ রপ্তানি হয়েছে",
       "exportJSONSuccess": "চালান JSON-এ রপ্তানি হয়েছে",
@@ -886,6 +903,17 @@
       "deleteFailed": "যন্ত্রাংশ মুছতে ব্যর্থ হয়েছে",
       "createSuccess": "যন্ত্রাংশ সফলভাবে তৈরি হয়েছে",
       "updateSuccess": "যন্ত্রাংশ সফলভাবে আপডেট হয়েছে"
+    }
+  },
+  "notifications": {
+    "title": "বিজ্ঞপ্তি",
+    "types": {
+      "reorderAlert": "রিঅর্ডার সতর্কতা"
+    },
+    "messages": {
+      "loadFailed": "বিজ্ঞপ্তি লোড করা যায়নি",
+      "markAllReadSuccess": "সব বিজ্ঞপ্তি পঠিত হিসেবে চিহ্নিত হয়েছে",
+      "markAllReadFailed": "বিজ্ঞপ্তি পঠিত হিসেবে চিহ্নিত করা যায়নি"
     }
   }
 }

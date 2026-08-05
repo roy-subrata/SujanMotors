@@ -67,7 +67,7 @@ public class AvailableLotForReturnDto
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
     public string PartSku { get; set; } = string.Empty;
-    public Guid SupplierId { get; set; }
+    public Guid? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public int QuantityAvailable { get; set; }
     public decimal CostPrice { get; set; }

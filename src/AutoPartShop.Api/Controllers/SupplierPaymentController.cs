@@ -30,6 +30,7 @@ public class SupplierPaymentController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<SupplierPaymentController> _logger;
+    private readonly ICurrencyConversionService _currencyService;
 
     public SupplierPaymentController(
         ISupplierPaymentRepository repository,
@@ -39,7 +40,8 @@ public class SupplierPaymentController : ControllerBase
         SupplierPaymentSummaryService summaryService,
         ICurrentUserService currentUserService,
         AutoPartDbContext dbContext,
-        ILogger<SupplierPaymentController> logger)
+        ILogger<SupplierPaymentController> logger,
+        ICurrencyConversionService currencyService)
     {
         _repository = repository;
         _purchaseOrderRepository = purchaseOrderRepository;
@@ -49,6 +51,7 @@ public class SupplierPaymentController : ControllerBase
         _supplierPaymentReadRespository = supplierPaymentReadRespository;
         _dbContext = dbContext;
         _logger = logger;
+        _currencyService = currencyService;
     }
 
     [HttpGet]
@@ -271,7 +274,10 @@ public class SupplierPaymentController : ControllerBase
                     return BadRequest(new { message = $"Payment amount ({request.Amount:N2}) exceeds the accepted value of goods receipt {grn.GRNNumber} ({acceptedValue:N2}). Rejected/damaged items are excluded from the supplier invoice." });
             }
 
-            var payment = SupplierPayment.Create(request.SupplierId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate);
+            var payment = SupplierPayment.Create(request.SupplierId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate, request.Currency);
+
+            var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+            payment.SetFxBaseAmount(paymentFx.BaseAmount, paymentFx.RateToBase);
 
             if (request.PurchaseOrderId.HasValue)
                 payment.LinkToPurchaseOrder(request.PurchaseOrderId.Value);
@@ -802,8 +808,12 @@ public class SupplierPaymentController : ControllerBase
                 request.SourceAdvancePaymentId,
                 advancePayment.PaymentProviderId,
                 request.Amount,
-                description
+                description,
+                advancePayment.Currency
             );
+
+            var advanceFx = await _currencyService.ConvertToBaseWithRateAsync(request.Amount, advancePayment.Currency, DateTime.UtcNow, cancellationToken);
+            newPayment.SetFxBaseAmount(advanceFx.BaseAmount, advanceFx.RateToBase);
 
             newPayment.CreatedBy = currentUser;
             newPayment.ModifiedBy = currentUser;

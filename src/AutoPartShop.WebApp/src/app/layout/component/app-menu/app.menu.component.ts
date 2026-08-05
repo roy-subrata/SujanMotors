@@ -46,6 +46,13 @@ export class AppMenuComponent implements OnInit {
                 routerLink: ['/']
             },
 
+            // ==================== NOTIFICATIONS ====================
+            {
+                label: this.i18n.t('menu.notifications'),
+                icon: 'pi pi-bell',
+                routerLink: ['/notifications']
+            },
+
             // ==================== CATALOG ====================
             {
                 label: this.i18n.t('menu.catalog'),

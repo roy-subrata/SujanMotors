@@ -32,6 +32,7 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { GenerateProformaDialogComponent } from '../../proforma-invoices/generate-proforma-dialog/generate-proforma-dialog.component';
 import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service';
+import { CollectCodDialogComponent } from '../collect-cod-dialog/collect-cod-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 import { SalesOrderStatus } from '@/shared/models/status.types';
 
@@ -61,7 +62,8 @@ import { SalesOrderStatus } from '@/shared/models/status.types';
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
-        GenerateProformaDialogComponent
+        GenerateProformaDialogComponent,
+        CollectCodDialogComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './sales-orders-list.component.html',
@@ -101,6 +103,10 @@ export class SalesOrdersListComponent implements OnInit {
     // "Generate Proforma" dialog — pre-selected with the order the action was triggered from.
     generateProformaDialogVisible = false;
     selectedOrderForProforma: SalesOrderResponse | null = null;
+
+    // "Collect COD" dialog — for unpaid online (ECOMMERCE) orders.
+    collectCodDialogVisible = false;
+    selectedOrderForCod: SalesOrderResponse | null = null;
 
     Math = Math;
 
@@ -161,6 +167,12 @@ export class SalesOrdersListComponent implements OnInit {
                 icon: 'pi pi-check-circle',
                 command: () => this.confirmOrder(order),
                 visible: order.status === 'DRAFT' || order.status === 'PENDING'
+            },
+            {
+                label: this.i18n.t('salesOrders.codCollection.action'),
+                icon: 'pi pi-money-bill',
+                command: () => this.openCollectCod(order),
+                visible: order.channel === 'ECOMMERCE' && order.outstandingAmount > 0
             },
             { separator: true },
             {
@@ -291,6 +303,15 @@ export class SalesOrdersListComponent implements OnInit {
 
     onProformaGenerated(_proforma: ProformaInvoiceResponse): void {
         // No refresh needed — a proforma is a read-only wrapper and doesn't change the order itself.
+    }
+
+    openCollectCod(order: SalesOrderResponse): void {
+        this.selectedOrderForCod = order;
+        this.collectCodDialogVisible = true;
+    }
+
+    onCodCollected(): void {
+        this.loadData();
     }
 
     confirmOrder(order: SalesOrderResponse): void {

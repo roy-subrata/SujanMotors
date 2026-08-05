@@ -301,7 +301,7 @@ public class ChallanController(
                         }
                         else
                         {
-                            customer.UpdateBalance(invoice.GrandTotal);
+                            customer.UpdateBalance(invoice.BaseGrandTotal ?? invoice.GrandTotal);
                             customer.ModifiedBy = _currentUser.GetCurrentUsername();
                         }
 

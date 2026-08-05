@@ -15,7 +15,7 @@ export interface StockLotResponse {
   displayName?: string | null;
   warehouseId: string;
   warehouseName: string;
-  supplierId: string;
+  supplierId: string | null;
   supplierName: string;
   quantityReceived: number;
   quantityReceivedInBaseUnit: number;
@@ -59,7 +59,7 @@ export interface FifoLotInfoResponse {
 export interface StockLotHistoryItem {
   lotId: string;
   lotNumber: string;
-  supplierId: string;
+  supplierId: string | null;
   supplierName: string;
   quantityReceived: number;
   quantityAvailable: number;

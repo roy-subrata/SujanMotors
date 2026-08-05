@@ -130,6 +130,9 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     // Notification audit trail
     public DbSet<NotificationLog> NotificationLogs { get; set; }
 
+    // Persistent staff inbox notifications (reorder alerts, etc.)
+    public DbSet<InboxNotification> InboxNotifications { get; set; }
+
     // Uploaded binaries (product media, employee photos/documents)
     public DbSet<StoredFile> StoredFiles { get; set; }
 

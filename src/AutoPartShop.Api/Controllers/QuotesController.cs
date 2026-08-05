@@ -22,6 +22,7 @@ public class QuotesController : ControllerBase
     private readonly IProductRepository _productRepository;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly ILogger<QuotesController> _logger;
 
     public QuotesController(
@@ -29,12 +30,14 @@ public class QuotesController : ControllerBase
         IProductRepository productRepository,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
+        ICurrencyConversionService currencyConversionService,
         ILogger<QuotesController> logger)
     {
         _salesOrderRepository = salesOrderRepository;
         _productRepository = productRepository;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
+        _currencyConversionService = currencyConversionService;
         _logger = logger;
     }
 
@@ -88,6 +91,8 @@ public class QuotesController : ControllerBase
 
             quote.CalculateTotal();
             quote.SetTax(request.VatAmount);
+            var quoteFx = await _currencyConversionService.ConvertToBaseWithRateAsync(quote.GrandTotal, quote.Currency, quote.SODate, cancellationToken);
+            quote.SetFxBaseAmount(quoteFx.BaseAmount, quoteFx.RateToBase);
             quote.CreatedBy = _currentUserService.GetCurrentUsername();
             quote.ModifiedBy = _currentUserService.GetCurrentUsername();
 

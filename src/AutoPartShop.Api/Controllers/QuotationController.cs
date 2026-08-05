@@ -25,6 +25,7 @@ public class QuotationController(
     ICodeGenerateService codeGenerateService,
     ICurrentUserService currentUserService,
     IUnitConversionService unitConversionService,
+    ICurrencyConversionService currencyConversionService,
     AutoPartDbContext dbContext,
     ILogger<QuotationController> logger) : ControllerBase
 {
@@ -252,6 +253,9 @@ public class QuotationController(
                     order.SetDiscountPercentage(quotation.DiscountPercentage);
                     order.CalculateTotal();
                     order.SetTax(quotation.TaxAmount);
+
+                    var orderFx = await currencyConversionService.ConvertToBaseWithRateAsync(order.GrandTotal, order.Currency, order.SODate, cancellationToken);
+                    order.SetFxBaseAmount(orderFx.BaseAmount, orderFx.RateToBase);
 
                     var username = currentUserService.GetCurrentUsername();
                     order.SetCashier(currentUserService.GetCurrentUserGuid(), username);

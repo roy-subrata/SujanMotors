@@ -1,3 +1,4 @@
+using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +14,12 @@ namespace AutoPartShop.Api.Services;
 public class StockAdjustmentApplier
 {
     private readonly AutoPartDbContext _dbContext;
+    private readonly ICodeGenerateService _codeGenerateService;
 
-    public StockAdjustmentApplier(AutoPartDbContext dbContext)
+    public StockAdjustmentApplier(AutoPartDbContext dbContext, ICodeGenerateService codeGenerateService)
     {
         _dbContext = dbContext;
+        _codeGenerateService = codeGenerateService;
     }
 
     public sealed record AdjustmentOutcome(StockMovement Movement, int LotsTouched, bool LotSyncSkipped);
@@ -25,8 +28,8 @@ public class StockAdjustmentApplier
     /// Adjusts the given (tracked) stock level by <paramref name="deltaBaseUnits"/> and mirrors the
     /// change into stock lots: decreases consume AVAILABLE lots FIFO (oldest first, matching how
     /// sales consume cost); increases go into the newest active lot (capacity raised so the add
-    /// isn't capped). Increases with no existing lot skip lot sync — a lot cannot be fabricated
-    /// without a supplier/goods-receipt — and report <c>LotSyncSkipped</c>.
+    /// isn't capped). Increases with no existing lot create a supplier-less adjustment lot so the
+    /// found stock stays sellable and costed (previously it was orphaned from lot tracking).
     /// Throws InvalidOperationException when a decrease exceeds sellable stock.
     /// </summary>
     public async Task<AdjustmentOutcome> ApplyAsync(
@@ -40,6 +43,7 @@ public class StockAdjustmentApplier
         Guid? unitId = null,
         Guid? referenceId = null,
         string referenceType = "StockAdjustment",
+        decimal? costPriceOverride = null,
         CancellationToken cancellationToken = default)
     {
         if (deltaQuantity == 0 || deltaBaseUnits == 0)
@@ -69,7 +73,8 @@ public class StockAdjustmentApplier
         stockLevel.ModifiedBy = username;
 
         var (lotsTouched, skipped) = await SyncLotsAsync(
-            stockLevel, deltaBaseUnits, reason, referenceNumber, username, referenceId, referenceType, cancellationToken);
+            stockLevel, deltaBaseUnits, reason, referenceNumber, username, referenceId, referenceType,
+            costPriceOverride, cancellationToken);
 
         return new AdjustmentOutcome(movement, lotsTouched, skipped);
     }
@@ -82,6 +87,7 @@ public class StockAdjustmentApplier
         string username,
         Guid? referenceId,
         string referenceType,
+        decimal? costPriceOverride,
         CancellationToken cancellationToken)
     {
         if (deltaBaseUnits < 0)
@@ -124,13 +130,53 @@ public class StockAdjustmentApplier
             .OrderByDescending(l => l.ReceivingDate)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (newestLot == null)
-            return (0, true); // no lot to attach found stock to — level adjusted, lot sync skipped
+        if (newestLot != null)
+        {
+            newestLot.IncreaseCapacity(deltaBaseUnits, deltaBaseUnits);
+            newestLot.AddStock(deltaBaseUnits, deltaBaseUnits, reason);
+            newestLot.ModifiedBy = username;
+            await AddLotMovementAsync(newestLot, deltaBaseUnits, reason, referenceNumber, username, referenceId, referenceType, cancellationToken);
+            return (1, false);
+        }
 
-        newestLot.IncreaseCapacity(deltaBaseUnits, deltaBaseUnits);
-        newestLot.AddStock(deltaBaseUnits, deltaBaseUnits, reason);
-        newestLot.ModifiedBy = username;
-        await AddLotMovementAsync(newestLot, deltaBaseUnits, reason, referenceNumber, username, referenceId, referenceType, cancellationToken);
+        // No existing lot to absorb found stock — create a supplier-less adjustment lot so the
+        // quantity is sellable and FIFO-costed instead of being orphaned from lot tracking.
+        var part = await _dbContext.Parts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == stockLevel.PartId, cancellationToken);
+
+        var variant = stockLevel.VariantId.HasValue
+            ? await _dbContext.ProductVariants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(v => v.Id == stockLevel.VariantId.Value, cancellationToken)
+            : null;
+
+        decimal cost = costPriceOverride > 0
+            ? costPriceOverride.Value
+            : variant?.CostPrice > 0
+                ? variant.CostPrice
+                : part?.CostPrice ?? 0;
+        string currency = variant?.Currency ?? part?.CostPriceCurrency ?? "BDT";
+
+        var lotNumber = await _codeGenerateService.GenerateAsync("ADJ", cancellationToken);
+        var adjustmentLot = StockLot.CreateFromAdjustment(
+            lotNumber: lotNumber,
+            partId: stockLevel.PartId,
+            warehouseId: stockLevel.WarehouseId,
+            quantityReceived: deltaBaseUnits,
+            costPrice: cost,
+            receivingDate: DateTime.UtcNow,
+            currency: currency,
+            notes: $"{reason} ({referenceNumber}) — stock found during adjustment",
+            unitId: stockLevel.UnitId,
+            quantityReceivedInBaseUnit: deltaBaseUnits,
+            costPriceInBaseUnit: cost,
+            variantId: stockLevel.VariantId,
+            status: StockLotStatus.AVAILABLE);
+        adjustmentLot.CreatedBy = username;
+        adjustmentLot.ModifiedBy = username;
+        await _dbContext.StockLots.AddAsync(adjustmentLot, cancellationToken);
+        await AddLotMovementAsync(adjustmentLot, deltaBaseUnits, reason, referenceNumber, username, referenceId, referenceType, cancellationToken);
         return (1, false);
     }
 

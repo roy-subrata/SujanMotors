@@ -16,6 +16,7 @@ public class CreateSupplierPaymentRequest
     public string ReferenceNumber { get; set; } = string.Empty;
     public string InvoiceNumber { get; set; } = string.Empty;
     public DateTime? PaymentDate { get; set; }
+    public string Currency { get; set; } = "BDT";
     public string Notes { get; set; } = string.Empty;
     public PaymentType PaymentType { get; set; } = PaymentType.REGULAR;
     public string Description { get; set; } = string.Empty;  // For advance payments

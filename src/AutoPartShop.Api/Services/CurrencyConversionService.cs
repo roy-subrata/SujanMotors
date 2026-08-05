@@ -5,6 +5,11 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 
 /// <summary>
+/// Result of a base-currency conversion, carrying both the converted amount and the rate applied.
+/// </summary>
+public readonly record struct FxConversionResult(decimal BaseAmount, decimal RateToBase);
+
+/// <summary>
 /// Service implementation for currency conversion
 /// </summary>
 public class CurrencyConversionService : ICurrencyConversionService
@@ -116,6 +121,36 @@ public class CurrencyConversionService : ICurrencyConversionService
     {
         var baseCurrency = await GetBaseCurrencyAsync(cancellationToken);
         return await ConvertAsync(amount, fromCurrency, baseCurrency, effectiveDate, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task<FxConversionResult> ConvertToBaseWithRateAsync(
+        decimal amount,
+        string fromCurrency,
+        DateTime? effectiveDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var baseCurrency = await GetBaseCurrencyAsync(cancellationToken);
+
+        var normalizedFrom = fromCurrency?.Trim().ToUpper() ?? throw new ArgumentNullException(nameof(fromCurrency));
+
+        // Same currency — no conversion needed.
+        if (normalizedFrom == baseCurrency)
+            return new FxConversionResult(amount, 1m);
+
+        var date = effectiveDate ?? DateTime.UtcNow.Date;
+
+        var rate = await GetExchangeRateInternalAsync(normalizedFrom, baseCurrency, date, cancellationToken);
+        if (rate == null)
+            throw new InvalidOperationException($"No exchange rate found for {normalizedFrom} to {baseCurrency} on {date:yyyy-MM-dd}");
+
+        // Round to the target (base) currency's configured decimal places using banker's rounding,
+        // mirroring ConvertAsync so stored base amounts match what the report used to compute on the fly.
+        var targetCurrency = await _currencyRepository.GetByCodeAsync(baseCurrency, cancellationToken);
+        var decimalPlaces = targetCurrency?.DecimalPlaces ?? DefaultDecimalPlaces;
+        var baseAmount = Math.Round(amount * rate.Value, decimalPlaces, MidpointRounding.ToEven);
+
+        return new FxConversionResult(baseAmount, rate.Value);
     }
 
     /// <inheritdoc/>

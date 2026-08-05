@@ -143,12 +143,13 @@ public class StockLotController(
                          .Skip((pageNumber - 1) * pageSize)
                          .Take(pageSize))
             {
-                // Try cache first, then load from DB
-                if (!supplierCache.TryGetValue(l.SupplierId, out var supplierName))
+                // Try cache first, then load from DB (adjustment lots have no supplier)
+                string? supplierName = null;
+                if (l.SupplierId.HasValue && !supplierCache.TryGetValue(l.SupplierId.Value, out supplierName))
                 {
-                    var supplier = await _supplierRepository.GetByIdAsync(l.SupplierId, cancellationToken);
+                    var supplier = await _supplierRepository.GetByIdAsync(l.SupplierId.Value, cancellationToken);
                     supplierName = supplier?.Name ?? string.Empty;
-                    supplierCache[l.SupplierId] = supplierName;
+                    supplierCache[l.SupplierId.Value] = supplierName;
                 }
 
                 lotItems.Add(new StockLotHistoryItem
@@ -156,7 +157,7 @@ public class StockLotController(
                     LotId = l.Id,
                     LotNumber = l.LotNumber,
                     SupplierId = l.SupplierId,
-                    SupplierName = supplierName,
+                    SupplierName = supplierName ?? string.Empty,
                     QuantityReceived = l.QuantityReceived,
                     QuantityAvailable = l.QuantityAvailable,
                     CostPrice = l.CostPrice,
@@ -433,10 +434,11 @@ public class StockLotController(
             warehouseCache[lot.WarehouseId] = warehouse;
         }
 
-        if (!supplierCache.TryGetValue(lot.SupplierId, out var supplier))
+        Supplier? supplier = null;
+        if (lot.SupplierId.HasValue && !supplierCache.TryGetValue(lot.SupplierId.Value, out supplier))
         {
-            supplier = await _supplierRepository.GetByIdAsync(lot.SupplierId, cancellationToken);
-            supplierCache[lot.SupplierId] = supplier;
+            supplier = await _supplierRepository.GetByIdAsync(lot.SupplierId.Value, cancellationToken);
+            supplierCache[lot.SupplierId.Value] = supplier;
         }
 
         // Load unit info

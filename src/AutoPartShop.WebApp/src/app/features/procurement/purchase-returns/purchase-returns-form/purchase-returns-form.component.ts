@@ -397,10 +397,11 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!forceRefresh && this.availableLotsMap.has(partId)) return;
 
     const supplierId = this.selectedPurchaseOrder?.supplierId;
+    const warehouseId = this.selectedPurchaseOrder?.warehouseId;
 
     this.loadingLotsMap.set(partId, true);
     // Load all buckets for the part; the per-line Source dropdown filters client-side.
-    this.prService.getAvailableLotsForReturn(partId, supplierId).subscribe({
+    this.prService.getAvailableLotsForReturn(partId, supplierId, undefined, warehouseId).subscribe({
       next: (lots) => {
         this.availableLotsMap.set(partId, lots);
         this.loadingLotsMap.set(partId, false);

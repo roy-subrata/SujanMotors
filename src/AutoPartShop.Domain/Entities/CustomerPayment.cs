@@ -28,6 +28,8 @@ public class CustomerPayment : AuditableEntity
     public decimal PaymentFee { get; private set; } = 0;  // Fee charged by provider
     public decimal NetAmount { get; private set; }  // Amount - Fee
     public string Currency { get; private set; } = "BDT";
+    public decimal? BaseAmount { get; private set; }  // Amount converted to base currency at payment time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseAmount was captured (1 = same as base)
     public DateTime PaymentDate { get; private set; }
     public string PaymentMethod { get; private set; } = string.Empty;  // CREDIT_CARD, BANK_TRANSFER, CHECK, CASH, etc.
     public CustomerPaymentStatus Status { get; private set; } = CustomerPaymentStatus.PENDING;
@@ -110,6 +112,21 @@ public class CustomerPayment : AuditableEntity
 
         PaymentFee = feeAmount;
         NetAmount = Amount - PaymentFee;
+    }
+
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="Amount"/> at payment time so balances
+    /// and reports stay stable even if exchange rates change later.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        // BaseAmount mirrors the payment's own Amount, which is legitimately negative for cash
+        // refunds (money going out) — so only the rate is range-checked here.
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseAmount = baseAmount;
+        FxRateToBase = rateToBase;
     }
 
     public void SetAuthorizationCode(string code)

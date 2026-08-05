@@ -261,6 +261,9 @@ builder.Services.AddScoped<IReorderAlertBroadcaster, SignalRReorderAlertBroadcas
 builder.Services.AddScoped<ReorderAlertScanner>();
 builder.Services.AddHostedService<ReorderAlertService>();
 
+// Automatic warranty expiry: marks ACTIVE warranties EXPIRED once their expiry date passes.
+builder.Services.AddHostedService<WarrantyExpiryService>();
+
 // Scheduled database backups (schedule read from BACKUP:* application settings)
 builder.Services.AddHostedService<BackupSchedulerService>();
 

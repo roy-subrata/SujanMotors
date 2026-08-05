@@ -48,4 +48,13 @@ namespace AutoPartShop.Application.HR.Dtos
     {
         public string Notes { get; set; } = string.Empty;
     }
+
+    public class LeaveBalanceItem
+    {
+        public string LeaveType { get; set; } = string.Empty;
+        public decimal? Entitlement { get; set; }
+        public int UsedDays { get; set; }
+        public int PendingDays { get; set; }
+        public decimal? RemainingDays { get; set; }
+    }
 }

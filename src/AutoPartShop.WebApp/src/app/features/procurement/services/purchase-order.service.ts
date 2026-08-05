@@ -36,6 +36,7 @@ export interface PurchaseOrderResponse {
     supplierId: string;
     supplierName?: string;
     supplierCode?: string;
+    warehouseId?: string | null;
     orderDate: string;
     deliveryDate: string;
     paymentTerms?: string;

@@ -52,7 +52,8 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
         builder.HasOne(sl => sl.Supplier)
             .WithMany()
             .HasForeignKey(sl => sl.SupplierId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);  // adjustment lots have no supplier provenance
 
         builder.HasOne(sl => sl.Unit)
             .WithMany()

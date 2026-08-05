@@ -30,6 +30,7 @@ public class CustomerPaymentController : ControllerBase
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<CustomerPaymentController> _logger;
+    private readonly ICurrencyConversionService _currencyService;
 
     public CustomerPaymentController(
         ICustomerPaymentRepository repository,
@@ -40,7 +41,8 @@ public class CustomerPaymentController : ControllerBase
         IApplicationSettingsRepository settingsRepository,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
-        ILogger<CustomerPaymentController> logger)
+        ILogger<CustomerPaymentController> logger,
+        ICurrencyConversionService currencyService)
     {
         _repository = repository;
         _customerRepository = customerRepository;
@@ -51,6 +53,7 @@ public class CustomerPaymentController : ControllerBase
         _dbContext = dbContext;
         _currentUserService = currentUserService;
         _logger = logger;
+        _currencyService = currencyService;
     }
 
 
@@ -245,6 +248,8 @@ public class CustomerPaymentController : ControllerBase
                 return BadRequest(new { message = "Payment method is required" });
 
             var payment = CustomerPayment.Create(request.CustomerId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate, request.Currency);
+            var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+            payment.SetFxBaseAmount(paymentFx.BaseAmount, paymentFx.RateToBase);
             if (request.InvoiceId.HasValue)
                 payment.LinkToInvoice(request.InvoiceId.Value);
             // Advance credit: mark before any completion (MarkAsAdvance requires a
@@ -275,7 +280,7 @@ public class CustomerPaymentController : ControllerBase
                         // reduces the running balance later, when applied to an invoice
                         // (apply-advance-credit). Reducing it here too would double-count.
                         if (!request.IsAdvance)
-                            customer.UpdateBalance(-request.Amount);
+                            customer.UpdateBalance(-(payment.BaseAmount ?? payment.Amount));
                         customer.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                         await _repository.AddAsync(payment, cancellationToken);
@@ -380,7 +385,12 @@ public class CustomerPaymentController : ControllerBase
                         throw new InvalidOperationException("Customer not found");
 
                     // Decrease customer balance (negative because payment reduces debt)
-                    customer.UpdateBalance(-payment.Amount);
+                    if (!payment.BaseAmount.HasValue)
+                    {
+                        var completionFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+                        payment.SetFxBaseAmount(completionFx.BaseAmount, completionFx.RateToBase);
+                    }
+                    customer.UpdateBalance(-(payment.BaseAmount ?? payment.Amount));
                     customer.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                     await _repository.UpdateAsync(payment, cancellationToken);
@@ -497,7 +507,7 @@ public class CustomerPaymentController : ControllerBase
                         throw new InvalidOperationException("Customer not found");
 
                     // Increase customer balance (reverting the payment)
-                    customer.UpdateBalance(payment.Amount);
+                    customer.UpdateBalance(payment.BaseAmount ?? payment.Amount);
                     customer.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                     await _repository.UpdateAsync(payment, cancellationToken);
@@ -855,8 +865,12 @@ public class CustomerPaymentController : ControllerBase
                 request.SourceAdvancePaymentId,
                 advancePayment.PaymentProviderId,
                 request.Amount,
-                request.Description ?? $"Applied from advance payment {advancePayment.TransactionNumber}"
+                request.Description ?? $"Applied from advance payment {advancePayment.TransactionNumber}",
+                advancePayment.Currency
             );
+
+            var advanceAppliedFx = await _currencyService.ConvertToBaseWithRateAsync(request.Amount, advancePayment.Currency, DateTime.UtcNow, cancellationToken);
+            newPayment.SetFxBaseAmount(advanceAppliedFx.BaseAmount, advanceAppliedFx.RateToBase);
 
             newPayment.CreatedBy = _currentUserService.GetCurrentUsername();
 
@@ -882,7 +896,7 @@ public class CustomerPaymentController : ControllerBase
                     invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                     // Update customer balance (reduce the amount owed)
-                    customer.UpdateBalance(-request.Amount);
+                    customer.UpdateBalance(-(newPayment.BaseAmount ?? request.Amount));
                     customer.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                     // Save all changes

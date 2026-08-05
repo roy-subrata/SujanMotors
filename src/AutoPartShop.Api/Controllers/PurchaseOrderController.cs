@@ -34,6 +34,7 @@ public class PurchaseOrderController : ControllerBase
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
     private readonly AutoPartDbContext _dbContext;
+    private readonly ICurrencyConversionService _currencyService;
 
     public PurchaseOrderController(
         IPurchaseOrderRepository purchaseOrderRepository,
@@ -46,7 +47,8 @@ public class PurchaseOrderController : ControllerBase
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         AutoPartDbContext dbContext,
-        ILogger<PurchaseOrderController> logger)
+        ILogger<PurchaseOrderController> logger,
+        ICurrencyConversionService currencyService)
     {
         _purchaseOrderRepository = purchaseOrderRepository;
         _goodsReceiptRepository = goodsReceiptRepository;
@@ -59,6 +61,7 @@ public class PurchaseOrderController : ControllerBase
         _purchaseOrderReadRepository = purchaseOrderReadRepository;
         _dbContext = dbContext;
         _logger = logger;
+        _currencyService = currencyService;
     }
 
     [HttpGet]
@@ -351,6 +354,9 @@ public class PurchaseOrderController : ControllerBase
             // Calculate totals based on line items and tax/discount
             order.CalculateTotal();
 
+            var poFx = await _currencyService.ConvertToBaseWithRateAsync(order.TotalAmount, order.Currency, order.PODate, cancellationToken);
+            order.SetFxBaseAmount(poFx.BaseAmount, poFx.RateToBase);
+
             var currentUser = _currentUserService.GetCurrentUsername();
             order.CreatedBy = currentUser;
             order.ModifiedBy = currentUser;
@@ -445,6 +451,9 @@ public class PurchaseOrderController : ControllerBase
 
             // Domain handles line item sync (business logic)
             order.SyncLineItems(lineItemDataList);
+
+            var updatedPoFx = await _currencyService.ConvertToBaseWithRateAsync(order.TotalAmount, order.Currency, order.PODate, cancellationToken);
+            order.SetFxBaseAmount(updatedPoFx.BaseAmount, updatedPoFx.RateToBase);
 
             order.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -1217,6 +1226,7 @@ public class PurchaseOrderController : ControllerBase
             SupplierId = order.SupplierId,
             SupplierName = order.Supplier is not null ? order.Supplier.Name : string.Empty,
             SupplierCode = order.Supplier is not null ? order.Supplier.Code : string.Empty,
+            WarehouseId = order.WarehouseId,
             OrderDate = order.PODate,
             DeliveryDate = order.ExpectedDeliveryDate,
             Status = order.Status,

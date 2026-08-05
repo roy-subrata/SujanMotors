@@ -1,0 +1,169 @@
+<p-toast></p-toast>
+
+<app-page-container>
+  <app-page-header
+    [title]="pageTitle()"
+    subtitle="Reorder alerts and system notifications"
+    [count]="totalCount" countLabel="notifications" countIcon="pi pi-bell">
+    <ng-container actions>
+      <button class="btn-primary" (click)="markAllRead()" [disabled]="unreadCount() === 0">
+        <i class="pi pi-check-double"></i><span>Mark all read</span>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <div class="flex justify-content-between align-items-center mb-3">
+    <p-selectButton
+      [options]="filterOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="unreadFilter"
+      (ngModelChange)="onFilterChange($event)"
+      aria-label="Filter notifications">
+    </p-selectButton>
+    <span class="text-sm" style="color: var(--text-color-secondary)">
+      <i class="pi pi-bell"></i> {{ unreadCount() }} unread
+    </span>
+  </div>
+
+  <section class="table-section desktop-only">
+    <div class="table-container">
+      <p-table
+        [value]="notifications()"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="pageSize"
+        [totalRecords]="totalCount"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [scrollable]="true"
+        [lazy]="true"
+        (onLazyLoad)="onLazyLoad($event)"
+        styleClass="app-table">
+
+        <ng-template pTemplate="header">
+          <tr>
+            <th style="width: 4rem"></th>
+            <th>Type</th>
+            <th>Notification</th>
+            <th>Received</th>
+            <th style="width: 10rem">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-n>
+          <tr [class]="n.isRead ? '' : 'inbox-row-unread'">
+            <td>
+              @if (!n.isRead) {
+                <span class="unread-dot" pTooltip="Unread"></span>
+              }
+            </td>
+            <td>
+              <p-tag
+                [value]="typeLabel(n.type)"
+                [severity]="n.type === 'REORDER_ALERT' ? 'warn' : 'info'"
+                styleClass="text-xs">
+              </p-tag>
+            </td>
+            <td class="cursor-pointer" (click)="openNotification(n)">
+              <p class="inbox-title m-0">{{ n.title }}</p>
+              <small style="color: var(--text-color-secondary)">{{ n.message }}</small>
+            </td>
+            <td style="color: var(--text-color-secondary)" class="text-sm">{{ timeAgo(n.createdDate) }}</td>
+            <td>
+              <div class="flex gap-2">
+                @if (n.type === 'REORDER_ALERT') {
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-eye"
+                    class="p-button-rounded p-button-text p-button-sm"
+                    pTooltip="View items"
+                    (click)="showDetails(n)">
+                  </button>
+                }
+                @if (n.isRead) {
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-eye-slash"
+                    class="p-button-rounded p-button-text p-button-sm"
+                    pTooltip="Mark as unread"
+                    (click)="markRead(n, false)">
+                  </button>
+                } @else {
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-check"
+                    class="p-button-rounded p-button-text p-button-sm"
+                    pTooltip="Mark as read"
+                    (click)="markRead(n)">
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="5" class="text-center py-8" style="color: var(--text-color-secondary)">
+              <i class="pi pi-bell-slash mr-2"></i>No notifications found
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </section>
+
+  <p-dialog
+    [(visible)]="detailVisible"
+    [header]="selected?.title ?? 'Notification'"
+    [modal]="true"
+    [style]="{width: '620px'}"
+    [closable]="true">
+    @if (selectedPayload; as payload) {
+      <div class="mb-3 text-sm" style="color: var(--text-color-secondary)">
+        {{ payload.itemCount }} item(s) at or below reorder level
+      </div>
+      <div class="table-container" style="max-height: 320px; overflow: auto;">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left" style="color: var(--text-color-secondary); border-bottom: 1px solid var(--surface-border);">
+              <th class="py-2 pr-3">Part</th>
+              <th class="py-2 pr-3">Warehouse</th>
+              <th class="py-2 pr-3 text-right">Available</th>
+              <th class="py-2 text-right">Reorder Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of payload.items; track item.stockLevelId) {
+              <tr style="border-bottom: 1px solid var(--surface-border);">
+                <td class="py-2 pr-3 font-semibold">{{ item.partName }}</td>
+                <td class="py-2 pr-3">{{ item.warehouseName }}</td>
+                <td class="py-2 pr-3 text-right">{{ item.quantityAvailable }}</td>
+                <td class="py-2 text-right">{{ item.reorderQuantity }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="py-4 text-sm" style="color: var(--text-color-secondary)">
+        {{ selected?.message }}
+      </div>
+    }
+    <div class="flex justify-content-end gap-2 mt-4">
+      @if (selected?.routerLink) {
+        <button
+          pButton
+          type="button"
+          label="Open"
+          icon="pi pi-external-link"
+          (click)="openNotification(selected!)">
+        </button>
+      }
+      <button pButton type="button" label="Close" class="p-button-text" (click)="detailVisible = false"></button>
+    </div>
+  </p-dialog>
+</app-page-container>

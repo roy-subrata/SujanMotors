@@ -67,7 +67,8 @@
     "holidays": "Holidays",
     "payroll": "Payroll",
     "shifts": "Shifts",
-    "salaryAdvances": "Salary Advances"
+    "salaryAdvances": "Salary Advances",
+    "notifications": "Notifications"
   },
   "topbar": {
     "profile": "My Profile",
@@ -160,6 +161,7 @@
       "confirmOrder": "Confirm Order",
       "manageCompatibility": "Manage Compatibility",
       "issueInvoice": "Issue Invoice",
+      "cancelInvoice": "Cancel Invoice",
       "viewSalesOrder": "View Sales Order",
       "viewConfirmPayments": "View / Confirm Payments",
       "toggleStatus": "Toggle Status",
@@ -492,6 +494,18 @@
       "confirmOrderFailed": "Failed to confirm sales order",
       "createSuccess": "Sales order created successfully",
       "updateSuccess": "Sales order updated successfully"
+    },
+    "codCollection": {
+      "title": "Collect COD Payment",
+      "action": "Collect COD",
+      "outstandingLabel": "Outstanding Balance",
+      "amountLabel": "Amount Collected",
+      "referenceLabel": "Payment Reference (optional)",
+      "referencePlaceholder": "e.g. Cash received at delivery",
+      "collectButton": "Collect Payment",
+      "invalidAmount": "Please enter a valid amount to collect.",
+      "collectSuccess": "COD payment of {{amount}} collected.",
+      "collectFailed": "Failed to collect COD payment."
     }
   },
   "supplierPayments": {
@@ -616,6 +630,9 @@
       "issueConfirm": "Are you sure you want to issue Invoice {{number}}?",
       "issueSuccess": "Invoice issued successfully",
       "issueFailed": "Failed to issue invoice",
+      "cancelConfirm": "Are you sure you want to cancel Invoice {{number}}? The outstanding balance will be credited back to the customer. This cannot be undone.",
+      "cancelSuccess": "Invoice cancelled successfully",
+      "cancelFailed": "Failed to cancel invoice",
       "exportNoData": "No invoices available to export",
       "exportCSVSuccess": "Invoices exported as CSV",
       "exportJSONSuccess": "Invoices exported as JSON",
@@ -886,6 +903,17 @@
       "deleteFailed": "Failed to delete part",
       "createSuccess": "Part created successfully",
       "updateSuccess": "Part updated successfully"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "types": {
+      "reorderAlert": "Reorder Alert"
+    },
+    "messages": {
+      "loadFailed": "Failed to load notifications",
+      "markAllReadSuccess": "All notifications marked as read",
+      "markAllReadFailed": "Failed to mark notifications as read"
     }
   }
 }

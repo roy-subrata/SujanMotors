@@ -456,56 +456,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.ToTable("Brands", (string)null);
                 });
 
-            modelBuilder.Entity("AutoPartShop.Domain.Entities.CartReservation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsReleased")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("PartId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ProductVariantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("SessionId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpiresAt");
-
-                    b.HasIndex("PartId");
-
-                    b.HasIndex("SessionId");
-
-                    b.HasIndex("SessionId", "PartId", "ProductVariantId");
-
-                    b.ToTable("CartReservations");
-                });
-
             modelBuilder.Entity("AutoPartShop.Domain.Entities.CashDeposit", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1368,6 +1318,10 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal?>("BaseAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1382,6 +1336,10 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("FxRateToBase")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<Guid?>("InvoiceId")
                         .HasColumnType("uniqueidentifier");
@@ -1746,6 +1704,56 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.HasIndex("PartId", "ProductVariantId");
 
                     b.ToTable("Discounts");
+                });
+
+            modelBuilder.Entity("AutoPartShop.Domain.Entities.Ecommerce.CartReservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsReleased")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("PartId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ProductVariantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("PartId");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("SessionId", "PartId", "ProductVariantId");
+
+                    b.ToTable("CartReservations");
                 });
 
             modelBuilder.Entity("AutoPartShop.Domain.Entities.ExchangeRate", b =>
@@ -2121,6 +2129,14 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<decimal?>("AnnualLeaveEntitlement")
+                        .HasPrecision(10, 1)
+                        .HasColumnType("decimal(10,1)");
+
+                    b.Property<decimal?>("CasualLeaveEntitlement")
+                        .HasPrecision(10, 1)
+                        .HasColumnType("decimal(10,1)");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2235,6 +2251,10 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.Property<Guid?>("ShiftId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("SickLeaveEntitlement")
+                        .HasPrecision(10, 1)
+                        .HasColumnType("decimal(10,1)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2737,11 +2757,78 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.ToTable("Shifts", "hr");
                 });
 
+            modelBuilder.Entity("AutoPartShop.Domain.Entities.InboxNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Isdeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PayloadJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("QueryParamsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RouterLink")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Type");
+
+                    b.HasIndex("IsRead", "CreatedDate");
+
+                    b.ToTable("InboxNotifications");
+                });
+
             modelBuilder.Entity("AutoPartShop.Domain.Entities.Invoice", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("BaseGrandTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
@@ -2763,6 +2850,10 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("FxRateToBase")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<DateTime>("InvoiceDate")
                         .HasColumnType("datetime2");
@@ -3992,6 +4083,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<DateTime?>("ApprovedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("BaseTotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -4027,6 +4121,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
 
                     b.Property<DateTime>("ExpectedDeliveryDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("FxRateToBase")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<bool>("Isdeleted")
                         .HasColumnType("bit");
@@ -4610,6 +4707,10 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal?>("BaseGrandTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<Guid?>("CashierId")
                         .HasColumnType("uniqueidentifier");
 
@@ -4676,6 +4777,10 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Property<decimal>("DiscountPercentage")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("FxRateToBase")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<bool>("Isdeleted")
                         .HasColumnType("bit");
@@ -5342,7 +5447,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasDefaultValue("AVAILABLE");
 
-                    b.Property<Guid>("SupplierId")
+                    b.Property<Guid?>("SupplierId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("UnitId")
@@ -5902,6 +6007,9 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<decimal?>("BaseAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("ConfirmedBy")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -5922,12 +6030,15 @@ namespace AutoPartsShop.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
-                        .HasDefaultValue("USD");
+                        .HasDefaultValue("BDT");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("FxRateToBase")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<Guid?>("GoodsReceiptId")
                         .HasColumnType("uniqueidentifier");
@@ -7162,17 +7273,6 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("AutoPartShop.Domain.Entities.CartReservation", b =>
-                {
-                    b.HasOne("AutoPartShop.Domain.Entities.Product", "Part")
-                        .WithMany()
-                        .HasForeignKey("PartId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Part");
-                });
-
             modelBuilder.Entity("AutoPartShop.Domain.Entities.Category", b =>
                 {
                     b.HasOne("AutoPartShop.Domain.Entities.Category", "ParentCategory")
@@ -7371,6 +7471,17 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.Navigation("Part");
 
                     b.Navigation("ProductVariant");
+                });
+
+            modelBuilder.Entity("AutoPartShop.Domain.Entities.Ecommerce.CartReservation", b =>
+                {
+                    b.HasOne("AutoPartShop.Domain.Entities.Product", "Part")
+                        .WithMany()
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Part");
                 });
 
             modelBuilder.Entity("AutoPartShop.Domain.Entities.ExchangeRate", b =>
@@ -8125,8 +8236,7 @@ namespace AutoPartsShop.Infrastructure.Migrations
                     b.HasOne("AutoPartShop.Domain.Entities.Supplier", "Supplier")
                         .WithMany()
                         .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("AutoPartShop.Domain.Entities.Unit", "Unit")
                         .WithMany()

@@ -23,6 +23,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
             .Include(x => x.PurchaseOrder)
                 .ThenInclude(po => po!.LineItems)
                     .ThenInclude(pol => pol.Variant)
+            .Include(x => x.GoodsReceipt)
             .Where(x => !x.Isdeleted)
             .OrderByDescending(x => x.ReturnDate)
             .ToListAsync(cancellationToken);
@@ -37,6 +38,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
             .Include(x => x.PurchaseOrder)
                 .ThenInclude(po => po!.LineItems)
                     .ThenInclude(pol => pol.Variant)
+            .Include(x => x.GoodsReceipt)
             .FirstOrDefaultAsync(x => x.Id == id && !x.Isdeleted, cancellationToken);
     }
 

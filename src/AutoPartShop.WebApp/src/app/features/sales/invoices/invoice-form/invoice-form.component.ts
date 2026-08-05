@@ -135,8 +135,9 @@ export class InvoiceFormComponent implements OnInit {
     this.loadingSalesOrders.set(true);
     this.salesOrderService.getAllSalesOrders().subscribe({
       next: (orders) => {
-        // Filter only confirmed orders that don't have invoices yet
-        const availableOrders = orders.filter(o => o.status === 'CONFIRMED' || o.status === 'PENDING');
+        // Only confirmed orders can be invoiced (matches the backend rule).
+        const excluded = ['PENDING', 'DRAFT', 'CANCELLED', 'RETURNED'];
+        const availableOrders = orders.filter(o => !excluded.includes(o.status));
         this.salesOrders.set(availableOrders);
         this.loadingSalesOrders.set(false);
       },
@@ -223,10 +224,11 @@ export class InvoiceFormComponent implements OnInit {
         });
       },
       error: (err: any) => {
+        const detail = err?.error?.message || 'Failed to create invoice';
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to create invoice'
+          detail
         });
         this.saving.set(false);
       }

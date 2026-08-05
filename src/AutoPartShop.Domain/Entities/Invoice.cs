@@ -21,6 +21,8 @@ public class Invoice : AuditableEntity
     public InvoiceStatus Status { get; private set; } = InvoiceStatus.DRAFT;
     public string Notes { get; private set; } = string.Empty;
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
+    public decimal? BaseGrandTotal { get; private set; }  // GrandTotal converted to base currency at invoice time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseGrandTotal was captured (1 = same as base)
 
     // Navigation properties
     public SalesOrder? SalesOrder { get; set; }
@@ -131,6 +133,22 @@ public class Invoice : AuditableEntity
             throw new ArgumentException("Invalid discount amount", nameof(amount));
 
         DiscountAmount = amount;
+    }
+
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="GrandTotal"/> at issue time so reports
+    /// stay stable even if exchange rates change later.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        if (baseAmount < 0)
+            throw new ArgumentException("Base amount cannot be negative", nameof(baseAmount));
+
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseGrandTotal = baseAmount;
+        FxRateToBase = rateToBase;
     }
 
     public void UpdateNotes(string notes)

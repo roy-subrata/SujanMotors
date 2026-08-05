@@ -34,6 +34,12 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .HasMaxLength(3)
             .HasDefaultValue("BDT");
 
+        builder.Property(i => i.BaseGrandTotal)
+            .HasPrecision(18, 2);
+
+        builder.Property(i => i.FxRateToBase)
+            .HasPrecision(18, 6);
+
         // Ignore computed properties
         builder.Ignore(i => i.AmountPaid);
         builder.Ignore(i => i.TotalAmount);

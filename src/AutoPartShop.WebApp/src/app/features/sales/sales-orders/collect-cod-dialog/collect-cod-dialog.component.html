@@ -1,0 +1,65 @@
+<p-dialog
+  [header]="i18n.t('salesOrders.codCollection.title')"
+  [(visible)]="visible"
+  [modal]="true"
+  [closable]="true"
+  [dismissableMask]="true"
+  [style]="{ width: '420px' }"
+  appendTo="body"
+  (onShow)="onShow()"
+  (onHide)="onHide()">
+
+  <div class="cod-dialog" *ngIf="order">
+    <div class="cod-order">
+      <span class="cod-order-number">{{ order.soNumber }}</span>
+      <span class="cod-order-label">{{ i18n.t('salesOrders.codCollection.outstandingLabel') }}</span>
+      <span class="cod-order-amount">{{ formatCurrency(order.outstandingAmount) }}</span>
+    </div>
+
+    <div class="cod-field">
+      <label class="cod-label">{{ i18n.t('salesOrders.codCollection.amountLabel') }}</label>
+      <p-inputnumber
+        [(ngModel)]="amount"
+        [min]="0.01"
+        [step]="0.01"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="2"
+        [style]="{ width: '100%' }"
+        appendTo="body">
+      </p-inputnumber>
+    </div>
+
+    <div class="cod-field">
+      <label class="cod-label">{{ i18n.t('salesOrders.codCollection.referenceLabel') }}</label>
+      <input
+        type="text"
+        pInputText
+        [(ngModel)]="paymentReference"
+        [placeholder]="i18n.t('salesOrders.codCollection.referencePlaceholder')"
+        class="cod-input" />
+    </div>
+
+    <div *ngIf="error" class="cod-error">
+      <i class="pi pi-exclamation-circle"></i>
+      {{ error }}
+    </div>
+
+    <div class="cod-actions">
+      <p-button
+        [label]="i18n.t('common.actions.cancel')"
+        icon="pi pi-times"
+        styleClass="p-button-text"
+        [disabled]="saving"
+        (onClick)="onHide()">
+      </p-button>
+      <p-button
+        [label]="i18n.t('salesOrders.codCollection.collectButton')"
+        icon="pi pi-money-bill"
+        [loading]="saving"
+        [disabled]="!amount || amount <= 0"
+        styleClass="p-button-success"
+        (onClick)="submit()">
+      </p-button>
+    </div>
+  </div>
+</p-dialog>

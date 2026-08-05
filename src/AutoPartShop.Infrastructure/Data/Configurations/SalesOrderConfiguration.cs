@@ -66,6 +66,12 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .HasMaxLength(3)
             .HasDefaultValue("BDT");
 
+        builder.Property(so => so.BaseGrandTotal)
+            .HasPrecision(18, 2);
+
+        builder.Property(so => so.FxRateToBase)
+            .HasPrecision(18, 6);
+
         builder.Property(so => so.Channel)
             .IsRequired()
             .HasMaxLength(20)

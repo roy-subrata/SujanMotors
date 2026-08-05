@@ -116,6 +116,15 @@ public class WarrantyRegistrationRepository(AutoPartDbContext _db) : IWarrantyRe
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<WarrantyRegistration>> GetDueForExpiryAsync(DateTime asOf, CancellationToken cancellationToken = default)
+    {
+        return await _db.WarrantyRegistrations
+            .Where(w => w.Status == WarrantyRegistrationStatus.ACTIVE
+                && w.WarrantyExpiryDate < asOf
+                && !w.Isdeleted)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<WarrantyRegistration>> GetExpiringWarrantiesAsync(int daysFromNow, CancellationToken cancellationToken = default)
     {
         var expiryThreshold = DateTime.UtcNow.AddDays(daysFromNow);

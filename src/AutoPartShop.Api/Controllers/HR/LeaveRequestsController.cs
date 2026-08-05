@@ -64,6 +64,59 @@ public class LeaveRequestsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Leave balance per type for an employee. Used = approved days; pending days are shown
+    /// separately because they only consume entitlement once approved.
+    /// </summary>
+    [HttpGet("balance/{employeeId:guid}")]
+    public async Task<IActionResult> GetBalance(Guid employeeId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var employee = await _employeeRepository.GetByIdAsync(employeeId, cancellationToken);
+            if (employee is null) return NotFound(new { message = "Employee not found" });
+
+            var requests = await _leaveRequestRepository.GetByEmployeeAsync(employeeId, cancellationToken);
+
+            var approvedDays = requests
+                .Where(r => r.Status == LeaveRequestStatus.APPROVED)
+                .GroupBy(r => r.LeaveType)
+                .ToDictionary(g => g.Key, g => g.Sum(r => r.TotalDays));
+            var pendingDays = requests
+                .Where(r => r.Status == LeaveRequestStatus.PENDING)
+                .GroupBy(r => r.LeaveType)
+                .ToDictionary(g => g.Key, g => g.Sum(r => r.TotalDays));
+
+            var balance = new List<LeaveBalanceItem>();
+            foreach (var type in new[] { "ANNUAL", "CASUAL", "SICK", "UNPAID" })
+            {
+                var entitlement = employee.GetLeaveEntitlement(type);
+                var used = approvedDays.GetValueOrDefault(type);
+                balance.Add(new LeaveBalanceItem
+                {
+                    LeaveType = type,
+                    Entitlement = entitlement,
+                    UsedDays = used,
+                    PendingDays = pendingDays.GetValueOrDefault(type),
+                    RemainingDays = entitlement.HasValue ? entitlement.Value - used : null
+                });
+            }
+
+            return Ok(new
+            {
+                EmployeeId = employee.Id,
+                employee.EmployeeCode,
+                employee.Name,
+                Balance = balance
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting leave balance for employee {EmployeeId}", employeeId);
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(CreateLeaveRequestRequest request, CancellationToken cancellationToken)
     {
@@ -143,6 +196,25 @@ public class LeaveRequestsController : ControllerBase
         {
             var leaveRequest = await _leaveRequestRepository.GetByIdAsync(id, cancellationToken);
             if (leaveRequest is null) return NotFound();
+
+            // Enforce per-employee entitlements at approval time (creation stays permissive).
+            var employee = await _employeeRepository.GetByIdAsync(leaveRequest.EmployeeId, cancellationToken);
+            if (employee is null) return BadRequest(new { message = "Employee not found" });
+
+            var entitlement = employee.GetLeaveEntitlement(leaveRequest.LeaveType);
+            if (entitlement.HasValue)
+            {
+                var employeeRequests = await _leaveRequestRepository.GetByEmployeeAsync(leaveRequest.EmployeeId, cancellationToken);
+                var usedDays = employeeRequests
+                    .Where(r => r.Status == LeaveRequestStatus.APPROVED && r.LeaveType == leaveRequest.LeaveType)
+                    .Sum(r => r.TotalDays);
+                var remaining = entitlement.Value - usedDays;
+                if (leaveRequest.TotalDays > remaining)
+                    return BadRequest(new
+                    {
+                        message = $"Insufficient {leaveRequest.LeaveType} leave balance. Entitlement: {entitlement} day(s), already used: {usedDays}, remaining: {Math.Max(0, remaining)}, requested: {leaveRequest.TotalDays}."
+                    });
+            }
 
             var currentUser = _currentUserService.GetCurrentUsername();
             leaveRequest.Approve(currentUser, request?.Notes ?? string.Empty);

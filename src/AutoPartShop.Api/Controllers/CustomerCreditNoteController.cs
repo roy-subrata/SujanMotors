@@ -28,6 +28,7 @@ public class CustomerCreditNoteController : ControllerBase
     private readonly ICustomerPaymentRepository _customerPaymentRepository;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly ILogger<CustomerCreditNoteController> _logger;
 
     public CustomerCreditNoteController(
@@ -38,6 +39,7 @@ public class CustomerCreditNoteController : ControllerBase
         ICustomerPaymentRepository customerPaymentRepository,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
+        ICurrencyConversionService currencyConversionService,
         ILogger<CustomerCreditNoteController> logger)
     {
         _creditNoteRepository = creditNoteRepository;
@@ -47,6 +49,7 @@ public class CustomerCreditNoteController : ControllerBase
         _customerPaymentRepository = customerPaymentRepository;
         _dbContext = dbContext;
         _currentUserService = currentUserService;
+        _currencyConversionService = currencyConversionService;
         _logger = logger;
     }
 
@@ -321,8 +324,11 @@ public class CustomerCreditNoteController : ControllerBase
                             sourceAdvancePaymentId: creditNote.Id,
                             paymentProviderId: defaultProvider.Id,
                             amount: request.AmountToApply,
-                            description: $"Applied credit note {creditNote.CreditNoteNumber} to invoice"
+                            description: $"Applied credit note {creditNote.CreditNoteNumber} to invoice",
+                            currency: creditNote.Currency
                         );
+                        var creditApplyFx = await _currencyConversionService.ConvertToBaseWithRateAsync(customerPayment.Amount, customerPayment.Currency, customerPayment.PaymentDate, cancellationToken);
+                        customerPayment.SetFxBaseAmount(creditApplyFx.BaseAmount, creditApplyFx.RateToBase);
                         customerPayment.CreatedBy = _currentUserService.GetCurrentUsername();
                         customerPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
                         _dbContext.CustomerPayments.Add(customerPayment);

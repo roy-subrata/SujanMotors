@@ -1,7 +1,9 @@
 using AutoPartShop.Application.DTOs.Notification;
 using AutoPartShop.Application.Interfaces;
+using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace AutoPartShop.Api.Services;
 
@@ -59,7 +61,54 @@ public class ReorderAlertScanner(
         };
 
         await _broadcaster.BroadcastAsync(evt, cancellationToken);
+
+        // Persist a staff inbox notification so the alert survives a refresh and can be acted on
+        // from the Notifications inbox (the SignalR broadcast is transient by design).
+        await PersistInboxNotificationAsync(evt, cancellationToken);
+
         _logger.LogInformation("Reorder alert broadcast: {Count} item(s) at/below reorder level.", evt.ItemCount);
         return evt;
+    }
+
+    private async Task PersistInboxNotificationAsync(ReorderAlertEvent evt, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var plural = evt.ItemCount == 1 ? "item" : "items";
+            var topNames = string.Join(", ", evt.Items.Take(3).Select(i => i.PartName));
+            var more = evt.ItemCount > 3 ? $" +{evt.ItemCount - 3} more" : string.Empty;
+
+            var inbox = InboxNotification.Create(
+                type: "REORDER_ALERT",
+                title: $"Low Stock — {evt.ItemCount} {plural} to reorder",
+                message: $"{topNames}{more}",
+                routerLink: "/inventory/stock",
+                queryParamsJson: "{\"tab\":\"low\"}",
+                payloadJson: JsonSerializer.Serialize(new
+                {
+                    itemCount = evt.ItemCount,
+                    occurredAt = evt.OccurredAt,
+                    items = evt.Items.Select(i => new
+                    {
+                        i.StockLevelId,
+                        i.PartId,
+                        i.VariantId,
+                        i.PartName,
+                        i.Sku,
+                        i.WarehouseName,
+                        i.QuantityAvailable,
+                        i.ReorderLevel,
+                        i.ReorderQuantity
+                    })
+                }));
+
+            _db.InboxNotifications.Add(inbox);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Persistence is best-effort — a failure must never break the real-time broadcast path.
+            _logger.LogError(ex, "Failed to persist reorder alert inbox notification.");
+        }
     }
 }

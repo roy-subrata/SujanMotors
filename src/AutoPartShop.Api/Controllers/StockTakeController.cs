@@ -447,6 +447,7 @@ public class StockTakeController : ControllerBase
                         username,
                         referenceId: line.Id,
                         referenceType: "StockTakeLine",
+                        costPriceOverride: line.UnitCost,
                         cancellationToken: cancellationToken);
 
                     response.AdjustmentsApplied++;

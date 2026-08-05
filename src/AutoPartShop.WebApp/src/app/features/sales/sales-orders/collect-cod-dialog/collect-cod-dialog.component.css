@@ -1,0 +1,64 @@
+.cod-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cod-order {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--surface-ground, #f8f9fa);
+}
+
+.cod-order-number {
+  font-weight: 600;
+  color: var(--text-color, #212529);
+}
+
+.cod-order-label {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary, #6c757d);
+}
+
+.cod-order-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color, #3b82f6);
+}
+
+.cod-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.cod-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+}
+
+.cod-input {
+  width: 100%;
+}
+
+.cod-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.cod-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}

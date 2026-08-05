@@ -139,6 +139,9 @@ public static class Dependency
         services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
         services.AddScoped<IApplicationSettingsRepository, ApplicationSettingsRepository>();
 
+        // Persistent staff inbox notifications (reorder alerts, etc.)
+        services.AddScoped<IInboxNotificationRepository, InboxNotificationRepository>();
+
         // Warranty repositories
         services.AddScoped<IWarrantyRegistrationRepository, WarrantyRegistrationRepository>();
         services.AddScoped<IWarrantyClaimRepository, WarrantyClaimRepository>();

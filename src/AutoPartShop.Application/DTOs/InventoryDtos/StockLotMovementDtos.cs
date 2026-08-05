@@ -79,7 +79,7 @@ public class LotSummaryItem
 {
     public Guid LotId { get; set; }
     public string LotNumber { get; set; } = string.Empty;
-    public Guid SupplierId { get; set; }
+    public Guid? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public int QuantityOnHand { get; set; }
     public int QuantityAvailable { get; set; }

@@ -155,6 +155,7 @@ public class EmployeesController : ControllerBase
             );
 
             employee.UpdateCompensation(request.ShiftId, request.MonthlyTaxDeduction, request.CommissionRate);
+            employee.UpdateLeaveEntitlements(request.AnnualLeaveEntitlement, request.CasualLeaveEntitlement, request.SickLeaveEntitlement);
 
             if (request.UserId is Guid userId)
             {
@@ -212,6 +213,7 @@ public class EmployeesController : ControllerBase
             );
 
             employee.UpdateCompensation(request.ShiftId, request.MonthlyTaxDeduction, request.CommissionRate);
+            employee.UpdateLeaveEntitlements(request.AnnualLeaveEntitlement, request.CasualLeaveEntitlement, request.SickLeaveEntitlement);
 
             if (request.UserId is Guid userId)
             {
@@ -385,6 +387,9 @@ public class EmployeesController : ControllerBase
         ShiftId = e.ShiftId,
         MonthlyTaxDeduction = e.MonthlyTaxDeduction,
         CommissionRate = e.CommissionRate,
+        AnnualLeaveEntitlement = e.AnnualLeaveEntitlement,
+        CasualLeaveEntitlement = e.CasualLeaveEntitlement,
+        SickLeaveEntitlement = e.SickLeaveEntitlement,
         EmergencyContactName = e.EmergencyContactName,
         EmergencyContactPhone = e.EmergencyContactPhone,
         Status = e.Status,

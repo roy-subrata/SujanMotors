@@ -49,6 +49,7 @@ public class SalesOrderController : ControllerBase
     private readonly ITillSessionRepository _tillSessionRepository;
     private readonly IPermissionCheckService _permissionCheckService;
     private readonly IStockConsumptionService _stockConsumptionService;
+    private readonly ICurrencyConversionService _currencyService;
 
     public SalesOrderController(
         ISalesOrderRepository salesOrderRepository,
@@ -71,7 +72,8 @@ public class SalesOrderController : ControllerBase
         AutoPartDbContext dbContext,
         ITillSessionRepository tillSessionRepository,
         IPermissionCheckService permissionCheckService,
-        IStockConsumptionService stockConsumptionService)
+        IStockConsumptionService stockConsumptionService,
+        ICurrencyConversionService currencyService)
     {
         _salesOrderRepository = salesOrderRepository;
         _saleOrderReadRepository = saleOrderReadRepository;
@@ -94,6 +96,7 @@ public class SalesOrderController : ControllerBase
         _tillSessionRepository = tillSessionRepository;
         _permissionCheckService = permissionCheckService;
         _stockConsumptionService = stockConsumptionService;
+        _currencyService = currencyService;
     }
 
     private static bool IsWalkIn(Customer? customer) =>
@@ -350,6 +353,9 @@ public class SalesOrderController : ControllerBase
                     order.SetDiscountPercentage(request.Discount);
                     order.CalculateTotal();
 
+                    var fx = await _currencyService.ConvertToBaseWithRateAsync(order.GrandTotal, order.Currency, order.SODate, cancellationToken);
+                    order.SetFxBaseAmount(fx.BaseAmount, fx.RateToBase);
+
                     var cashierUsername = _currentUserService.GetCurrentUsername();
                     order.SetCashier(_currentUserService.GetCurrentUserGuid(), cashierUsername);
                     order.CreatedBy = cashierUsername;
@@ -425,6 +431,8 @@ public class SalesOrderController : ControllerBase
                 var discountAmount = order.DiscountAmount;
                 var totalAmount = order.TotalAmount;
 
+                var fx = await _currencyService.ConvertToBaseWithRateAsync(order.GrandTotal, request.Currency, order.SODate, cancellationToken);
+
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
                 var updated = await _dbContext.Set<SalesOrder>()
@@ -446,6 +454,8 @@ public class SalesOrderController : ControllerBase
                         .SetProperty(so => so.DiscountAmount, discountAmount)
                         .SetProperty(so => so.TotalAmount, totalAmount)
                         .SetProperty(so => so.TaxAmount, order.TaxAmount)
+                        .SetProperty(so => so.BaseGrandTotal, fx.BaseAmount)
+                        .SetProperty(so => so.FxRateToBase, fx.RateToBase)
                         .SetProperty(so => so.ModifiedBy, _currentUserService.GetCurrentUsername())
                         .SetProperty(so => so.ModifiedDate, DateTime.UtcNow),
                         cancellationToken);
@@ -584,7 +594,7 @@ public class SalesOrderController : ControllerBase
                     // Credit customer balance back if balance was charged (i.e. invoice was ISSUED)
                     if (invoice is { Status: InvoiceStatus.CANCELLED } && order.CustomerId != Guid.Empty)
                     {
-                        var grandTotal = invoice.GrandTotal;
+                        var grandTotal = invoice.BaseGrandTotal ?? invoice.GrandTotal;
                         if (grandTotal > 0)
                         {
                             var customer = await _customerRepository.GetByIdAsync(order.CustomerId, cancellationToken);
@@ -793,10 +803,14 @@ public class SalesOrderController : ControllerBase
                             invoiceNumber, order.Id,
                             order.SubTotal, order.TaxAmount,
                             dueDate: DateTime.UtcNow.AddDays(30),
-                            notes: order.Notes);
+                            notes: order.Notes,
+                            currency: order.Currency);
 
                         if (order.DiscountAmount > 0)
                             invoice.SetDiscount(order.DiscountAmount);
+
+                        var invoiceFx = await _currencyService.ConvertToBaseWithRateAsync(invoice.GrandTotal, invoice.Currency, invoice.InvoiceDate, cancellationToken);
+                        invoice.SetFxBaseAmount(invoiceFx.BaseAmount, invoiceFx.RateToBase);
 
                         invoice.CreatedBy = _currentUserService.GetCurrentUsername();
                         invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -964,7 +978,7 @@ public class SalesOrderController : ControllerBase
                             var customer = await _customerRepository.GetByIdAsync(order.CustomerId, cancellationToken);
                             if (customer != null)
                             {
-                                customer.UpdateBalance(invoice.GrandTotal);
+                                customer.UpdateBalance(invoice.BaseGrandTotal ?? invoice.GrandTotal);
                                 customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                                 // GetByIdAsync uses AsNoTracking â€” must attach explicitly so
                                 // SaveChangesAsync persists the balance change.
@@ -1122,8 +1136,24 @@ public class SalesOrderController : ControllerBase
             if (existingSO == null)
                 return NotFound(new { message = "Sales order not found." });
 
+            // Invoice can only be raised against a confirmed order. Block DRAFT/PENDING/CANCELLED/RETURNED.
+            var invoicableStatuses = new[]
+            {
+                SalesOrderStatus.CONFIRMED,
+                SalesOrderStatus.READY_FOR_DELIVERY,
+                SalesOrderStatus.PAID,
+                SalesOrderStatus.PACKED,
+                SalesOrderStatus.PARTIALLY_SHIPPED,
+                SalesOrderStatus.SHIPPED,
+                SalesOrderStatus.DELIVERED,
+                SalesOrderStatus.COMPLETED
+            };
+            if (!invoicableStatuses.Contains(existingSO.Status))
+                return BadRequest(new { message = $"Invoices can only be created for confirmed sales orders. Current order status: {existingSO.Status}" });
+
+            // A cancelled invoice can be replaced by a fresh one (the cancelled record is excluded from revenue).
             var existingInvoice = await _dbContext.Invoices
-                .FirstOrDefaultAsync(i => i.SalesOrderId == request.SalesOrderId && !i.Isdeleted, cancellationToken);
+                .FirstOrDefaultAsync(i => i.SalesOrderId == request.SalesOrderId && !i.Isdeleted && i.Status != InvoiceStatus.CANCELLED, cancellationToken);
             if (existingInvoice != null)
                 return Conflict(new { message = $"Invoice {existingInvoice.InvoiceNumber} already exists for this sales order." });
 
@@ -1140,10 +1170,14 @@ public class SalesOrderController : ControllerBase
                 request.SubTotal,
                 request.TaxAmount,
                 request.DueDate,
-                request.Notes
+                request.Notes,
+                existingSO.Currency
             );
             invoice.CreatedBy = _currentUserService.GetCurrentUsername();
             invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+            var invoiceFx = await _currencyService.ConvertToBaseWithRateAsync(invoice.GrandTotal, invoice.Currency, invoice.InvoiceDate, cancellationToken);
+            invoice.SetFxBaseAmount(invoiceFx.BaseAmount, invoiceFx.RateToBase);
 
             await _invoiceRepository.AddAsync(invoice, cancellationToken);
 
@@ -1422,7 +1456,7 @@ public class SalesOrderController : ControllerBase
 
                     inv.Issue();
                     inv.ModifiedBy = _currentUserService.GetCurrentUsername();
-                    cust.UpdateBalance(inv.GrandTotal);
+                    cust.UpdateBalance(inv.BaseGrandTotal ?? inv.GrandTotal);
                     cust.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                     await _invoiceRepository.UpdateAsync(inv, cancellationToken);
@@ -1497,6 +1531,8 @@ public class SalesOrderController : ControllerBase
                         currency: invoice.SalesOrder?.Currency ?? "BDT"
                     );
                     payment.LinkToInvoice(invoice.Id);
+                    var recordPaymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, effectivePaymentDate, cancellationToken);
+                    payment.SetFxBaseAmount(recordPaymentFx.BaseAmount, recordPaymentFx.RateToBase);
                     payment.CreatedBy = _currentUserService.GetCurrentUsername();
                     payment.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -1506,7 +1542,7 @@ public class SalesOrderController : ControllerBase
 
                         var cust = await _customerRepository.GetByIdAsync(invoice.SalesOrder!.CustomerId, cancellationToken)
                             ?? throw new InvalidOperationException("Customer not found");
-                        cust.UpdateBalance(-request.Amount);
+                        cust.UpdateBalance(-(payment.BaseAmount ?? request.Amount));
                         cust.ModifiedBy = _currentUserService.GetCurrentUsername();
                         customer = cust; // surface the updated balance in the response
 
@@ -1584,6 +1620,93 @@ public class SalesOrderController : ControllerBase
         {
             _logger.LogError(ex, "Error recording payment: {InvoiceId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while recording the payment", error = ex.Message, innerError = ex.InnerException?.Message });
+        }
+    }
+
+    /// <summary>
+    /// Cancels a non-paid invoice and reverses its accounting side effects.
+    /// - Blocked when the invoice has completed payments (must be refunded first).
+    /// - Pending/processing payments linked to the invoice are cancelled.
+    /// - The customer balance charged at issue is credited back.
+    /// The sales order itself is left intact so a fresh invoice can be raised.
+    /// </summary>
+    [HttpPatch("invoices/{id:guid}/cancel")]
+    [HasPermission(Permissions.SalesEdit)]
+    public async Task<IActionResult> CancelInvoice(Guid id, [FromBody] CancelInvoiceRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            Invoice invoice = null!;
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    invoice = await _dbContext.Invoices
+                        .Include(i => i.CustomerPayments)
+                        .Include(i => i.SalesOrder)
+                        .FirstOrDefaultAsync(i => i.Id == id && !i.Isdeleted, cancellationToken)
+                        ?? throw new InvalidOperationException("Invoice not found");
+
+                    if (invoice.Status == InvoiceStatus.CANCELLED)
+                        throw new InvalidOperationException("Invoice is already cancelled");
+
+                    if (invoice.CustomerPayments.Any(p => p.Status == CustomerPaymentStatus.COMPLETED))
+                        throw new InvalidOperationException("Cannot cancel an invoice that has completed payments. Refund or reverse the payments first.");
+
+                    var wasChargedToBalance = invoice.Status != InvoiceStatus.DRAFT;
+                    var reason = request?.Reason?.Trim() ?? "Invoice cancelled";
+
+                    var salesOrder = invoice.SalesOrder;
+
+                    // Pending payments were never completed, so they never moved the customer balance
+                    // or the sales-order paid amount - cancelling the rows is sufficient.
+                    foreach (var payment in invoice.CustomerPayments
+                        .Where(p => p.Status is CustomerPaymentStatus.PENDING or CustomerPaymentStatus.PROCESSING or CustomerPaymentStatus.FAILED)
+                        .ToList())
+                    {
+                        if (payment.Status is CustomerPaymentStatus.PENDING or CustomerPaymentStatus.PROCESSING)
+                            payment.Cancel();
+                        payment.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    }
+
+                    invoice.Cancel(reason);
+                    invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    // Credit back the balance charged at issue (DRAFT invoices never charged it).
+                    if (wasChargedToBalance && salesOrder is not null && salesOrder.CustomerId != Guid.Empty)
+                    {
+                        var customer = await _customerRepository.GetByIdAsync(salesOrder.CustomerId, cancellationToken);
+                        if (customer is not null)
+                        {
+                            customer.UpdateBalance(-(invoice.BaseGrandTotal ?? invoice.GrandTotal));
+                            customer.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _customerRepository.UpdateAsync(customer, cancellationToken);
+                        }
+                    }
+
+                    await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            return Ok(MapToInvoiceResponse(invoice));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling invoice: {InvoiceId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while cancelling the invoice" });
         }
     }
 
@@ -2200,6 +2323,9 @@ public class SalesOrderController : ControllerBase
                     salesOrder.CreatedBy = quickSaleCashier;
                     salesOrder.ModifiedBy = quickSaleCashier;
 
+                    var quickSaleFx = await _currencyService.ConvertToBaseWithRateAsync(salesOrder.GrandTotal, salesOrder.Currency, salesOrder.SODate, cancellationToken);
+                    salesOrder.SetFxBaseAmount(quickSaleFx.BaseAmount, quickSaleFx.RateToBase);
+
                     await _salesOrderRepository.AddAsync(salesOrder, cancellationToken);
 
                     if (request.SaveAsQuotation)
@@ -2209,12 +2335,15 @@ public class SalesOrderController : ControllerBase
                     }
 
                     var invoice = Invoice.Create(invoiceNumber, salesOrder.Id, salesOrder.SubTotal,
-                        request.VatAmount, DateTime.UtcNow.AddDays(30), request.Notes);
+                        request.VatAmount, DateTime.UtcNow.AddDays(30), request.Notes, salesOrder.Currency);
                     invoice.Issue();
 
                     // Propagate discount so Invoice.GrandTotal matches the actual payable amount
                     if (request.DiscountAmount > 0)
                         invoice.SetDiscount(request.DiscountAmount);
+
+                    var quickSaleInvoiceFx = await _currencyService.ConvertToBaseWithRateAsync(invoice.GrandTotal, invoice.Currency, invoice.InvoiceDate, cancellationToken);
+                    invoice.SetFxBaseAmount(quickSaleInvoiceFx.BaseAmount, quickSaleInvoiceFx.RateToBase);
 
                     invoice.CreatedBy = _currentUserService.GetCurrentUsername();
                     invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -2277,12 +2406,13 @@ public class SalesOrderController : ControllerBase
                             "Add payment line(s) â€” including a DUE line for any unpaid balance â€” that account for the full amount.");
 
                     decimal manualPaymentAmount = 0;
+                    decimal manualPaymentBaseAmount = 0;
                     if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
                     {
                         var customerForBalance = await _customerRepository.GetByIdAsync(request.CustomerId.Value, cancellationToken);
                         if (customerForBalance != null)
                         {
-                            customerForBalance.UpdateBalance(invoice.GrandTotal);
+                            customerForBalance.UpdateBalance(invoice.BaseGrandTotal ?? invoice.GrandTotal);
                             if (advancePaymentAmount > 0)
                                 customerForBalance.UpdateBalance(-advancePaymentAmount);
 
@@ -2295,6 +2425,8 @@ public class SalesOrderController : ControllerBase
                                         request.CustomerId.Value, null, payment.Amount,
                                         payment.Method ?? "CASH", transactionNumber, payment.Reference ?? "", DateTime.UtcNow,
                                         currency: salesOrder.Currency ?? "BDT");
+                                    var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(customerPayment.Amount, customerPayment.Currency, customerPayment.PaymentDate, cancellationToken);
+                                    customerPayment.SetFxBaseAmount(paymentFx.BaseAmount, paymentFx.RateToBase);
                                     customerPayment.LinkToInvoice(invoice.Id);
                                     customerPayment.CreatedBy = _currentUserService.GetCurrentUsername();
                                     customerPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -2303,6 +2435,7 @@ public class SalesOrderController : ControllerBase
                                         customerPayment.MarkAsCompleted();
                                         customerPayment.MarkAsSettled("System");
                                         manualPaymentAmount += payment.Amount;
+                                        manualPaymentBaseAmount += paymentFx.BaseAmount;
                                         _logger.LogInformation("Completed CASH payment {TransactionNumber} for {Amount}", transactionNumber, payment.Amount);
                                     }
                                     else
@@ -2311,8 +2444,8 @@ public class SalesOrderController : ControllerBase
                                     }
                                     await _customerPaymentRepository.AddAsync(customerPayment, cancellationToken);
                                 }
-                                if (manualPaymentAmount > 0)
-                                    customerForBalance.UpdateBalance(-manualPaymentAmount);
+                                if (manualPaymentBaseAmount > 0)
+                                    customerForBalance.UpdateBalance(-manualPaymentBaseAmount);
                             }
 
                             customerForBalance.ModifiedBy = _currentUserService.GetCurrentUsername();

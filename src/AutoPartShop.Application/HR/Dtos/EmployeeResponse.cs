@@ -25,6 +25,9 @@ namespace AutoPartShop.Application.HR.Dtos
         public string? ShiftName { get; set; }
         public decimal MonthlyTaxDeduction { get; set; }
         public decimal CommissionRate { get; set; }
+        public decimal? AnnualLeaveEntitlement { get; set; }
+        public decimal? CasualLeaveEntitlement { get; set; }
+        public decimal? SickLeaveEntitlement { get; set; }
         public string EmergencyContactName { get; set; } = string.Empty;
         public string EmergencyContactPhone { get; set; } = string.Empty;
         public EmployeeStatus Status { get; set; }

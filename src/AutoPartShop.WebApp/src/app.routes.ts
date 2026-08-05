@@ -27,6 +27,10 @@ export const appRoutes: Routes = [
             { path: '', component: DashboardComponent },
             { path: 'financial-dashboard', component: DashboardComponent },
             {
+                path: 'notifications',
+                loadChildren: () => import('./app/features/notifications/notifications.routes').then(m => m.notificationsRoutes)
+            },
+            {
                 path: 'inventory',
                 loadChildren: () => import('./app/features/inventory/inventory.routes').then(m => m.inventoryRoutes),
                 canActivate: [permissionGuard],

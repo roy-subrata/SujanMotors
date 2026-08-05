@@ -44,6 +44,8 @@ public class SalesOrder : AggregateRoot
     public string DeliveryAddress { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
+    public decimal? BaseGrandTotal { get; private set; }  // GrandTotal converted to base currency at sale time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseGrandTotal was captured (1 = same as base)
     public string Channel { get; private set; } = "POS";  // POS | ECOMMERCE | MOBILE | API
 
     // Navigation properties
@@ -197,10 +199,18 @@ public class SalesOrder : AggregateRoot
 
     public void MarkAsReturned()
     {
-        if (Status is not (SalesOrderStatus.DELIVERED or SalesOrderStatus.COMPLETED))
-            throw new InvalidOperationException($"Only DELIVERED or COMPLETED orders can be returned. Current: {Status}");
+        if (Status is not (SalesOrderStatus.DELIVERED or SalesOrderStatus.COMPLETED or SalesOrderStatus.SHIPPED or SalesOrderStatus.PARTIALLY_SHIPPED))
+            throw new InvalidOperationException($"Only DELIVERED, COMPLETED, SHIPPED or PARTIALLY_SHIPPED orders can be returned. Current: {Status}");
 
         Status = SalesOrderStatus.RETURNED;
+    }
+
+    public void RevertFromReturned()
+    {
+        if (Status != SalesOrderStatus.RETURNED)
+            throw new InvalidOperationException($"Only RETURNED orders can be reverted to DELIVERED. Current: {Status}");
+
+        Status = SalesOrderStatus.DELIVERED;
     }
 
     public void CalculateTotal()
@@ -297,6 +307,22 @@ public class SalesOrder : AggregateRoot
         {
             Currency = currency.Trim().ToUpper();
         }
+    }
+
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="GrandTotal"/> at transaction time so
+    /// reports and balances stay stable even if exchange rates change later. Call after totals are final.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        if (baseAmount < 0)
+            throw new ArgumentException("Base amount cannot be negative", nameof(baseAmount));
+
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseGrandTotal = baseAmount;
+        FxRateToBase = rateToBase;
     }
 
     public void SetTechnician(Guid? technicianId, string? technicianName)

@@ -28,6 +28,7 @@ public class EcommerceController(
     IStockConsumptionService _stockConsumptionService,
     IDiscountResolutionService _discountResolutionService,
     IProductRepository _productRepository,
+    ICurrencyConversionService _currencyService,
     ILogger<EcommerceController> _logger) : ControllerBase
 {
     // ── Promo Code Validation (public — called before checkout) ─────────────
@@ -181,6 +182,9 @@ public class EcommerceController(
             if (promoDiscountAmount > 0)
                 salesOrder.ApplyAdditionalDiscount(promoDiscountAmount);
 
+            var checkoutSoFx = await _currencyService.ConvertToBaseWithRateAsync(salesOrder.GrandTotal, salesOrder.Currency, salesOrder.SODate, cancellationToken);
+            salesOrder.SetFxBaseAmount(checkoutSoFx.BaseAmount, checkoutSoFx.RateToBase);
+
             salesOrder.Confirm();
             salesOrder.CreatedBy = "ECOMMERCE";
             salesOrder.ModifiedBy = "ECOMMERCE";
@@ -208,6 +212,7 @@ public class EcommerceController(
                 : string.Empty;
 
             decimal paidAmount = 0;
+            decimal? paymentBaseAmount = null;
             Invoice? savedInvoice = null;
 
             var strategy = _dbContext.Database.CreateExecutionStrategy();
@@ -235,6 +240,8 @@ public class EcommerceController(
                         salesOrder.TaxAmount, DateTime.UtcNow.AddDays(30),
                         request.Notes ?? string.Empty, salesOrder.Currency);
                     invoice.Issue();
+                    var invoiceFx = await _currencyService.ConvertToBaseWithRateAsync(invoice.GrandTotal, invoice.Currency, invoice.InvoiceDate, cancellationToken);
+                    invoice.SetFxBaseAmount(invoiceFx.BaseAmount, invoiceFx.RateToBase);
                     invoice.CreatedBy = "ECOMMERCE";
                     invoice.ModifiedBy = "ECOMMERCE";
                     await _invoiceRepository.AddAsync(invoice, cancellationToken);
@@ -245,7 +252,11 @@ public class EcommerceController(
                     {
                         var payment = CustomerPayment.Create(
                             customer.Id, null, effectivePaid, paymentMode,
-                            transactionNumber, request.PaymentReference ?? string.Empty, DateTime.UtcNow);
+                            transactionNumber, request.PaymentReference ?? string.Empty, DateTime.UtcNow,
+                            currency: salesOrder.Currency);
+                        var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+                        payment.SetFxBaseAmount(paymentFx.BaseAmount, paymentFx.RateToBase);
+                        paymentBaseAmount = paymentFx.BaseAmount;
                         payment.LinkToInvoice(invoice.Id);
                         payment.MarkAsCompleted();
                         payment.MarkAsSettled("ECOMMERCE");
@@ -262,7 +273,7 @@ public class EcommerceController(
                     }
 
                     // Update customer outstanding balance
-                    customer.UpdateBalance(salesOrder.GrandTotal - effectivePaid);
+                    customer.UpdateBalance((salesOrder.BaseGrandTotal ?? salesOrder.GrandTotal) - (paymentBaseAmount ?? effectivePaid));
                     customer.ModifiedBy = "ECOMMERCE";
                     await _customerRepository.UpdateAsync(customer, cancellationToken);
 
@@ -390,7 +401,10 @@ public class EcommerceController(
                 {
                     var payment = CustomerPayment.Create(
                         order.CustomerId, null, request.AmountCollected, "CASH",
-                        transactionNumber, request.PaymentReference ?? string.Empty, DateTime.UtcNow);
+                        transactionNumber, request.PaymentReference ?? string.Empty, DateTime.UtcNow,
+                        currency: order.Currency);
+                    var codFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+                    payment.SetFxBaseAmount(codFx.BaseAmount, codFx.RateToBase);
                     payment.LinkToInvoice(invoice.Id);
                     payment.MarkAsCompleted();
                     payment.MarkAsSettled(collectedBy);
@@ -404,7 +418,7 @@ public class EcommerceController(
                     order.ModifiedBy = collectedBy;
                     await _salesOrderRepository.UpdateAsync(order, cancellationToken);
 
-                    customer.UpdateBalance(-request.AmountCollected);
+                    customer.UpdateBalance(-(payment.BaseAmount ?? request.AmountCollected));
                     customer.ModifiedBy = collectedBy;
                     await _customerRepository.UpdateAsync(customer, cancellationToken);
 
@@ -611,6 +625,9 @@ public class EcommerceController(
             if (promoDiscountAmountPos > 0)
                 salesOrder.ApplyAdditionalDiscount(promoDiscountAmountPos);
 
+            var posSoFx = await _currencyService.ConvertToBaseWithRateAsync(salesOrder.GrandTotal, salesOrder.Currency, salesOrder.SODate, cancellationToken);
+            salesOrder.SetFxBaseAmount(posSoFx.BaseAmount, posSoFx.RateToBase);
+
             if (request.AmountPaid > salesOrder.GrandTotal)
                 return BadRequest(new { message = $"Amount paid ({request.AmountPaid:N2}) cannot exceed order total ({salesOrder.GrandTotal:N2})" });
 
@@ -627,6 +644,7 @@ public class EcommerceController(
                 : string.Empty;
 
             decimal paidAmount = 0;
+            decimal? posPaymentBase = null;
 
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
@@ -657,6 +675,9 @@ public class EcommerceController(
                     if (salesOrder.DiscountAmount > 0)
                         invoice.SetDiscount(salesOrder.DiscountAmount);
 
+                    var posInvoiceFx = await _currencyService.ConvertToBaseWithRateAsync(invoice.GrandTotal, invoice.Currency, invoice.InvoiceDate, cancellationToken);
+                    invoice.SetFxBaseAmount(posInvoiceFx.BaseAmount, posInvoiceFx.RateToBase);
+
                     invoice.CreatedBy = salespersonName;
                     invoice.ModifiedBy = salespersonName;
                     await _invoiceRepository.AddAsync(invoice, cancellationToken);
@@ -665,13 +686,17 @@ public class EcommerceController(
                     {
                         var payment = CustomerPayment.Create(
                             customer.Id, null, request.AmountPaid, paymentMode,
-                            transactionNumber, request.PaymentReference ?? string.Empty, DateTime.UtcNow);
+                            transactionNumber, request.PaymentReference ?? string.Empty, DateTime.UtcNow,
+                            currency: salesOrder.Currency);
+                        var posPaymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+                        payment.SetFxBaseAmount(posPaymentFx.BaseAmount, posPaymentFx.RateToBase);
                         payment.LinkToInvoice(invoice.Id);
                         payment.MarkAsCompleted();
                         payment.MarkAsSettled(salespersonName);
                         payment.CreatedBy = salespersonName;
                         payment.ModifiedBy = salespersonName;
                         await _customerPaymentRepository.AddAsync(payment, cancellationToken);
+                        posPaymentBase = posPaymentFx.BaseAmount;
 
                         salesOrder.RecordPayment(request.AmountPaid);
                         if (salesOrder.PaymentStatus == SalesOrderPaymentStatus.PAID)
@@ -681,7 +706,7 @@ public class EcommerceController(
                         paidAmount = request.AmountPaid;
                     }
 
-                    customer.UpdateBalance(salesOrder.GrandTotal - paidAmount);
+                    customer.UpdateBalance((salesOrder.BaseGrandTotal ?? salesOrder.GrandTotal) - (posPaymentBase ?? paidAmount));
                     customer.ModifiedBy = salespersonName;
                     await _customerRepository.UpdateAsync(customer, cancellationToken);
 

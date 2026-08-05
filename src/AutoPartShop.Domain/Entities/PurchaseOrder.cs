@@ -29,6 +29,8 @@ public class PurchaseOrder : AuditableEntity
     public string ApprovedBy { get; private set; } = string.Empty;
     public DateTime? ApprovedDate { get; private set; }
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
+    public decimal? BaseTotalAmount { get; private set; }  // TotalAmount converted to base currency at PO time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseTotalAmount was captured (1 = same as base)
 
     // Navigation properties
     public Supplier? Supplier { get; set; }
@@ -251,6 +253,22 @@ public class PurchaseOrder : AuditableEntity
     public void UpdateNotes(string notes)
     {
         Notes = notes?.Trim() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="TotalAmount"/> at PO time so reports
+    /// stay stable even if exchange rates change later. Call after totals are final.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        if (baseAmount < 0)
+            throw new ArgumentException("Base amount cannot be negative", nameof(baseAmount));
+
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseTotalAmount = baseAmount;
+        FxRateToBase = rateToBase;
     }
 
     public void UpdateExpectedDeliveryDate(DateTime date)

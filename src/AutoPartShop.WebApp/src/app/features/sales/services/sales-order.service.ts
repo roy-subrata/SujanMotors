@@ -67,6 +67,7 @@ export interface SalesOrderResponse {
     orderDate: string;
     deliveryDate: string;
     status: SalesOrderStatus;
+    channel?: string;
     subTotal: number;
     taxAmount: number;
     discount: number;

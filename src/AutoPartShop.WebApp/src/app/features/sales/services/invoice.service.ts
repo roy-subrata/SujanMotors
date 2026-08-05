@@ -101,6 +101,10 @@ export class InvoiceService {
     return this.http.patch<InvoiceResponse>(`${this.apiUrl}/${id}/issue`, {});
   }
 
+  cancelInvoice(id: string, reason?: string): Observable<InvoiceResponse> {
+    return this.http.patch<InvoiceResponse>(`${this.apiUrl}/${id}/cancel`, { reason: reason ?? '' });
+  }
+
   recordPayment(id: string, request: RecordPaymentRequest): Observable<InvoiceResponse> {
     return this.http.patch<InvoiceResponse>(`${this.apiUrl}/${id}/payment`, request);
   }
