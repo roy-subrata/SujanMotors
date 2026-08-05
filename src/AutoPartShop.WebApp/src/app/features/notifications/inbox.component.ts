@@ -196,6 +196,8 @@ export class InboxComponent implements OnInit {
     switch (type) {
       case 'REORDER_ALERT':
         return this.i18n.t('notifications.types.reorderAlert');
+      case 'SALE':
+        return this.i18n.t('notifications.types.sale');
       default:
         return type;
     }

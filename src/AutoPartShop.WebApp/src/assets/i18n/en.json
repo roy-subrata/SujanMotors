@@ -908,7 +908,8 @@
   "notifications": {
     "title": "Notifications",
     "types": {
-      "reorderAlert": "Reorder Alert"
+      "reorderAlert": "Reorder Alert",
+      "sale": "Sale"
     },
     "messages": {
       "loadFailed": "Failed to load notifications",

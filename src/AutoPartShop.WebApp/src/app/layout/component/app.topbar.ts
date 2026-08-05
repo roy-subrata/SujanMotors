@@ -15,7 +15,7 @@ import { AuthService } from '../../shared/services/auth.service';
 import { I18nService } from '../../shared/services/i18n.service';
 import { AppBrandingService } from '../../shared/services/app-branding.service';
 import { NotificationHubService, SaleNotificationEvent, ReorderAlertEvent } from '../../shared/services/notification-hub.service';
-import { InboxNotificationService } from '../../features/notifications/inbox-notifications.service';
+import { InboxNotificationService, InboxNotification } from '../../features/notifications/inbox-notifications.service';
 import { LanguageSwitcherComponent } from '../../shared/components/language-switcher/language-switcher.component';
 import { UserMenuService } from '../../shared/services/user-menu.service';
 import { getUserInitials } from '../../shared/utils/user-display.util';
@@ -137,7 +137,6 @@ interface StaffNotification {
                         </div>
                         <div class="notif-panel-footer">
                             <button type="button" class="text-btn small" (click)="openInbox()">View all</button>
-                            <button type="button" class="text-btn small" (click)="clearAll()">Clear all</button>
                         </div>
                     }
                 </div>
@@ -493,7 +492,9 @@ export class AppTopbar implements OnInit, OnDestroy {
     pageTitle = signal('Dashboard');
     notifications = signal<StaffNotification[]>([]);
     inboxUnread = signal(0);
-    unreadCount = computed(() => this.notifications().filter(n => !n.isRead).length + this.inboxUnread());
+    // The inbox is the single source of truth for the badge: every broadcast (sale or reorder)
+    // is persisted server-side, so counting the transient SignalR entries here too would double-count.
+    unreadCount = computed(() => this.inboxUnread());
     searchQuery = '';
 
     userMenuItems: MenuItem[] = [];
@@ -530,7 +531,7 @@ export class AppTopbar implements OnInit, OnDestroy {
         this.inboxSub = this.inboxService.unreadCount$.subscribe(count => {
             this.inboxUnread.set(count);
         });
-        this.inboxService.refreshUnreadCount();
+        this.reloadInbox();
     }
 
     ngOnDestroy(): void {
@@ -542,19 +543,7 @@ export class AppTopbar implements OnInit, OnDestroy {
     }
 
     private onSaleNotification(evt: SaleNotificationEvent): void {
-        const notif: StaffNotification = {
-            id: crypto.randomUUID(),
-            type: 'sale',
-            title: `New Sale — ${evt.soNumber}`,
-            description: `${evt.customerName} · ${evt.saleChannel} · ${evt.currency} ${evt.grandTotal.toFixed(2)}`,
-            icon: 'pi-shopping-cart',
-            occurredAt: new Date(evt.occurredAt),
-            isRead: false,
-            routerLink: '/sales/sales-orders/view',
-            queryParams: { id: evt.salesOrderId }
-        };
-
-        this.notifications.update(ns => [notif, ...ns].slice(0, 20));
+        this.reloadInbox();
 
         this.messageService.add({
             key:      'sale-notification',
@@ -567,25 +556,8 @@ export class AppTopbar implements OnInit, OnDestroy {
 
     private onReorderAlert(evt: ReorderAlertEvent): void {
         const plural = evt.itemCount === 1 ? 'item' : 'items';
-        const topNames = evt.items.slice(0, 3).map(i => i.partName).join(', ');
-        const more = evt.itemCount > 3 ? ` +${evt.itemCount - 3} more` : '';
 
-        const notif: StaffNotification = {
-            id: crypto.randomUUID(),
-            type: 'reorder',
-            title: `Low Stock — ${evt.itemCount} ${plural} to reorder`,
-            description: `${topNames}${more}`,
-            icon: 'pi-exclamation-triangle',
-            occurredAt: new Date(evt.occurredAt),
-            isRead: false,
-            routerLink: '/inventory/stock',
-            queryParams: { tab: 'low' }
-        };
-
-        this.notifications.update(ns => [notif, ...ns].slice(0, 20));
-
-        // The alert was also persisted server-side into the staff inbox — re-sync the badge.
-        this.inboxService.refreshUnreadCount();
+        this.reloadInbox();
 
         this.messageService.add({
             key:      'sale-notification',
@@ -597,18 +569,23 @@ export class AppTopbar implements OnInit, OnDestroy {
     }
 
     onNotifClick(n: StaffNotification): void {
-        this.notifications.update(ns =>
-            ns.map(x => x.id === n.id ? { ...x, isRead: true } : x)
-        );
+        if (!n.isRead) {
+            this.inboxService.markRead(n.id, true).subscribe({
+                next: () => {
+                    this.notifications.update(ns => ns.map(x => x.id === n.id ? { ...x, isRead: true } : x));
+                    this.inboxService.refreshUnreadCount();
+                },
+                error: () => { /* non-critical */ }
+            });
+        }
         this.notifPanel.hide();
         this.router.navigate([n.routerLink], n.queryParams ? { queryParams: n.queryParams } : {});
     }
 
     markAllAsRead(): void {
-        this.notifications.update(ns => ns.map(n => ({ ...n, isRead: true })));
         this.inboxService.markAllRead().subscribe({
-            next: () => this.inboxService.refreshUnreadCount(),
-            error: () => this.inboxService.refreshUnreadCount()
+            next: () => this.reloadInbox(),
+            error: () => this.reloadInbox()
         });
     }
 
@@ -617,9 +594,28 @@ export class AppTopbar implements OnInit, OnDestroy {
         this.router.navigate(['/notifications']);
     }
 
-    clearAll(): void {
-        this.notifications.set([]);
-        this.notifPanel.hide();
+    /** Pull the latest persisted inbox notifications into the bell dropdown. */
+    private reloadInbox(): void {
+        this.inboxService.getNotifications({ page: 1, pageSize: 20 }).subscribe({
+            next: res => this.notifications.set(res.data.map(n => this.mapInboxToStaff(n))),
+            error: () => { /* keep the current list */ }
+        });
+        this.inboxService.refreshUnreadCount();
+    }
+
+    private mapInboxToStaff(n: InboxNotification): StaffNotification {
+        const reorder = n.type === 'REORDER_ALERT';
+        return {
+            id: n.id,
+            type: reorder ? 'reorder' : 'sale',
+            title: n.title,
+            description: n.message,
+            icon: reorder ? 'pi-exclamation-triangle' : 'pi-shopping-cart',
+            occurredAt: new Date(n.createdDate),
+            isRead: n.isRead,
+            routerLink: n.routerLink || '/notifications',
+            queryParams: n.queryParamsJson ? JSON.parse(n.queryParamsJson) : undefined
+        };
     }
 
     timeAgo(date: Date): string {

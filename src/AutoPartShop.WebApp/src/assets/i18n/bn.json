@@ -908,7 +908,8 @@
   "notifications": {
     "title": "বিজ্ঞপ্তি",
     "types": {
-      "reorderAlert": "রিঅর্ডার সতর্কতা"
+      "reorderAlert": "রিঅর্ডার সতর্কতা",
+      "sale": "বিক্রয়"
     },
     "messages": {
       "loadFailed": "বিজ্ঞপ্তি লোড করা যায়নি",
