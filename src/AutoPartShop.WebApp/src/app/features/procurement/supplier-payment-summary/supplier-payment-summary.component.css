@@ -22,26 +22,6 @@
   padding: 1.5rem;
 }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.header-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.header-subtitle {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  margin: 0.25rem 0 0 0;
-}
-
 .loading-state {
   margin-top: 1rem;
 }
@@ -236,12 +216,6 @@
     padding: 1rem;
   }
 
-  .header-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
   .metrics-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -254,9 +228,5 @@
 
   .metrics-grid {
     grid-template-columns: 1fr;
-  }
-
-  .header-title {
-    font-size: 18px;
   }
 }

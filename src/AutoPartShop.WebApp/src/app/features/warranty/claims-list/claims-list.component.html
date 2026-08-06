@@ -83,10 +83,8 @@
   <!-- Claims Table -->
   <section class="table-section desktop-only">
     <div class="table-container">
-    <p-table [value]="filteredClaims" [loading]="isLoading" [paginator]="true" [rows]="10"
-      [rowsPerPageOptions]="[10, 25, 50]" [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} claims"
-      [scrollable]="true" styleClass="app-table" [sortField]="'claimDate'" [sortOrder]="-1">
+    <p-table [value]="pagedClaims" [loading]="isLoading" [paginator]="false"
+      [scrollable]="true" styleClass="app-table">
       <ng-template #header>
         <tr>
           <th>Claim #</th>
@@ -263,7 +261,7 @@
     </div>
 
     <div *ngIf="!isLoading && filteredClaims.length > 0" class="cards-grid">
-      <div *ngFor="let claim of filteredClaims" class="order-card">
+      <div *ngFor="let claim of pagedClaims" class="order-card">
 
         <div class="card-header">
           <a class="card-so-number link-text" (click)="openDetailDialog(claim)">{{ claim.claimNumber }}</a>
@@ -359,6 +357,15 @@
     </div>
 
   </section>
+
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="filteredClaims.length"
+    itemLabel="claims"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
 </app-page-container>
 
 <!-- ==================== DETAIL DIALOG ==================== -->

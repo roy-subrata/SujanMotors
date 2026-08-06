@@ -1,16 +1,19 @@
-<p-toast></p-toast>
+<app-page-container>
+  <p-toast></p-toast>
 
-<div class="container">
-  <!-- Header Section -->
+  <app-page-header
+    [title]="supplierName"
+    subtitle="Payment Summary">
+    <ng-container actions>
+      <button class="btn-icon" pTooltip="Back" tooltipPosition="bottom" (click)="goBack()">
+        <i class="pi pi-arrow-left"></i>
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <div class="container">
+  <!-- Summary Card -->
   <div class="header-card">
-    <div class="header-content">
-      <div>
-        <h2 class="header-title">{{ supplierName }}</h2>
-        <p class="header-subtitle">Payment Summary</p>
-      </div>
-      <button pButton type="button" icon="pi pi-arrow-left" (click)="goBack()" [text]="true" label="Back"></button>
-    </div>
-
     <!-- Loading State -->
     <div *ngIf="loading" class="loading-state">
       <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
@@ -127,9 +130,8 @@
     <!-- ==================== DESKTOP TABLE ==================== -->
     <div class="ledger-table-wrapper desktop-only">
     <p-table
-      [value]="ledgerEntries"
-      [paginator]="true"
-      [rows]="10"
+      [value]="pagedLedgerEntries"
+      [paginator]="false"
       [loading]="ledgerLoading"
       responsiveLayout="scroll"
       styleClass="app-table">
@@ -241,17 +243,17 @@
           </div>
         </div>
       </div>
-
-      <app-data-pagination
-        *ngIf="ledgerEntries.length > 0"
-        [first]="ledgerMobileFirst"
-        [pageSize]="ledgerMobilePageSize"
-        [totalRecords]="ledgerEntries.length"
-        itemLabel="transactions"
-        (pageChange)="goToLedgerPage($event)"
-        (pageSizeChange)="onLedgerMobilePageSizeChange($event)">
-      </app-data-pagination>
     </div>
+
+    <app-data-pagination
+      *ngIf="ledgerEntries.length > 0"
+      [first]="ledgerFirst"
+      [pageSize]="ledgerViewPageSize"
+      [totalRecords]="ledgerEntries.length"
+      itemLabel="transactions"
+      (pageChange)="goToLedgerPage($event)"
+      (pageSizeChange)="onLedgerPageSizeChange($event)">
+    </app-data-pagination>
   </div>
 
   <!-- Legacy fallback: show link to list when no ledger -->
@@ -262,4 +264,5 @@
     </div>
     <p class="empty-hint">Navigate to the payments list for full payment history with search, filters, and actions.</p>
   </div>
-</div>
+  </div>
+</app-page-container>

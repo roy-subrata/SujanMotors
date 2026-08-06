@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { TabsModule } from 'primeng/tabs';
@@ -20,6 +20,7 @@ import { PriceCodeService } from '../../shared/services/price-code.service';
 import { AppSettingsService, NotificationSettings } from '../../shared/services/app-settings.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-admin-settings',
@@ -42,7 +43,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     TooltipModule,
     ToggleSwitchModule,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './admin-settings.component.html',
@@ -68,6 +70,25 @@ export class AdminSettingsComponent implements OnInit {
   usersLoading = signal(false);
   rolesLoading = signal(false);
   permissionsLoading = signal(false);
+
+  // Pagination (client-side slice — each tab's table is a fully-loaded array)
+  usersFirst = signal(0);
+  usersPageSize = signal(10);
+  pagedUsers = computed(() => this.users().slice(this.usersFirst(), this.usersFirst() + this.usersPageSize()));
+  goToUsersPage(page: number): void { this.usersFirst.set((page - 1) * this.usersPageSize()); }
+  onUsersPageSizeChange(size: number): void { this.usersPageSize.set(size); this.usersFirst.set(0); }
+
+  rolesFirst = signal(0);
+  rolesPageSize = signal(10);
+  pagedRoles = computed(() => this.roles().slice(this.rolesFirst(), this.rolesFirst() + this.rolesPageSize()));
+  goToRolesPage(page: number): void { this.rolesFirst.set((page - 1) * this.rolesPageSize()); }
+  onRolesPageSizeChange(size: number): void { this.rolesPageSize.set(size); this.rolesFirst.set(0); }
+
+  permissionsFirst = signal(0);
+  permissionsPageSize = signal(10);
+  pagedPermissions = computed(() => this.permissions().slice(this.permissionsFirst(), this.permissionsFirst() + this.permissionsPageSize()));
+  goToPermissionsPage(page: number): void { this.permissionsFirst.set((page - 1) * this.permissionsPageSize()); }
+  onPermissionsPageSizeChange(size: number): void { this.permissionsPageSize.set(size); this.permissionsFirst.set(0); }
 
   // Dialog states
   userDialogVisible = signal(false);

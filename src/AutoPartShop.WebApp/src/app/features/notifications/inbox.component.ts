@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { TableModule, TableLazyLoadEvent } from 'primeng/table';
+import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { BadgeModule } from 'primeng/badge';
 import { DialogModule } from 'primeng/dialog';
@@ -15,6 +15,7 @@ import { MessageService } from 'primeng/api';
 import { I18nService } from '@/shared/services/i18n.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import {
   InboxNotificationService,
   InboxNotification,
@@ -36,7 +37,8 @@ import {
     ToastModule,
     TooltipModule,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService],
   templateUrl: './inbox.component.html',
@@ -66,6 +68,12 @@ import {
       border-radius: 50%;
       background-color: var(--primary-color);
     }
+
+    .unread-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
   `]
 })
 export class InboxComponent implements OnInit {
@@ -80,6 +88,7 @@ export class InboxComponent implements OnInit {
   totalCount = 0;
   page = 1;
   pageSize = 20;
+  first = 0;
   unreadOnly = signal(false);
   unreadFilter: 'ALL' | 'UNREAD' = 'ALL';
   filterOptions = [
@@ -96,6 +105,7 @@ export class InboxComponent implements OnInit {
   pageTitle = computed(() => this.i18n.t('notifications.title'));
 
   ngOnInit(): void {
+    this.load();
     this.service.unreadCount$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(count => this.unreadCount.set(count));
@@ -127,14 +137,20 @@ export class InboxComponent implements OnInit {
   onFilterChange(value: 'ALL' | 'UNREAD'): void {
     this.unreadOnly.set(value === 'UNREAD');
     this.page = 1;
+    this.first = 0;
     this.load();
   }
 
-  onLazyLoad(event: TableLazyLoadEvent): void {
-    const first = event.first ?? 0;
-    const rows = event.rows ?? this.pageSize;
-    this.page = Math.floor(first / rows) + 1;
-    this.pageSize = rows;
+  goToPage(page: number): void {
+    this.page = page;
+    this.first = (page - 1) * this.pageSize;
+    this.load();
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.page = 1;
+    this.first = 0;
     this.load();
   }
 

@@ -16,14 +16,9 @@
     <section class="table-section desktop-only">
         <div class="table-container">
     <p-table
-        [value]="expenses()"
+        [value]="pagedExpenses()"
         [loading]="loading()"
-        [paginator]="true"
-        [rows]="10"
-        [rowsPerPageOptions]="[10, 25, 50]"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} expenses"
-        [globalFilterFields]="['description', 'category', 'vendorName', 'paymentMethod']"
+        [paginator]="false"
         [scrollable]="true"
         styleClass="app-table"
     >
@@ -112,7 +107,7 @@
         </div>
 
         <div *ngIf="!loading() && expenses().length > 0" class="cards-grid">
-            <div *ngFor="let expense of expenses()" class="order-card">
+            <div *ngFor="let expense of pagedExpenses()" class="order-card">
 
                 <div class="card-header">
                     <span class="card-so-number">{{ expense.description }}</span>
@@ -137,6 +132,15 @@
         </div>
 
     </section>
+
+    <app-data-pagination
+        [first]="first()"
+        [pageSize]="pageSize()"
+        [totalRecords]="expenses().length"
+        itemLabel="expenses"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+    </app-data-pagination>
 
 <!-- Add/Edit Expense Dialog -->
 <p-dialog

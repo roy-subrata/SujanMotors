@@ -18,6 +18,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { CurrencyService, Currency, ExchangeRate } from '../../../shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-exchange-rates-list',
@@ -37,7 +38,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     CheckboxModule,
     InputTextModule,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -59,11 +61,9 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
       <section class="table-section desktop-only">
         <div class="table-container">
       <p-table
-        [value]="exchangeRates()"
+        [value]="pagedExchangeRates()"
         [loading]="loading()"
-        [paginator]="true"
-        [rows]="15"
-        [rowsPerPageOptions]="[15, 30, 50]"
+        [paginator]="false"
         [scrollable]="true"
         styleClass="app-table">
 
@@ -139,6 +139,15 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
       </p-table>
         </div>
       </section>
+
+      <app-data-pagination
+        [first]="first()"
+        [pageSize]="pageSize()"
+        [totalRecords]="exchangeRates().length"
+        itemLabel="exchange rates"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+      </app-data-pagination>
 
       <!-- Exchange Rate Dialog -->
       <p-dialog
@@ -321,6 +330,12 @@ export class ExchangeRatesListComponent implements OnInit {
   currencies = signal<Currency[]>([]);
   loading = signal(false);
   saving = signal(false);
+
+  first = signal(0);
+  pageSize = signal(15);
+  pagedExchangeRates = computed(() => this.exchangeRates().slice(this.first(), this.first() + this.pageSize()));
+  goToPage(page: number): void { this.first.set((page - 1) * this.pageSize()); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.first.set(0); }
   dialogVisible = false;
   isEditing = false;
   currentRateId: string | null = null;

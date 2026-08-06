@@ -21,8 +21,9 @@
       (ngModelChange)="onFilterChange($event)"
       aria-label="Filter notifications">
     </p-selectButton>
-    <span class="text-sm" style="color: var(--text-color-secondary)">
-      <i class="pi pi-bell"></i> {{ unreadCount() }} unread
+    <span class="text-sm unread-indicator" style="color: var(--text-color-secondary)">
+      <i class="pi pi-bell"></i>
+      <span>{{ unreadCount() }} unread</span>
     </span>
   </div>
 
@@ -31,13 +32,8 @@
       <p-table
         [value]="notifications()"
         [loading]="loading()"
-        [paginator]="true"
-        [rows]="pageSize"
-        [totalRecords]="totalCount"
-        [rowsPerPageOptions]="[10, 20, 50]"
+        [paginator]="false"
         [scrollable]="true"
-        [lazy]="true"
-        (onLazyLoad)="onLazyLoad($event)"
         styleClass="app-table">
 
         <ng-template pTemplate="header">
@@ -115,6 +111,15 @@
       </p-table>
     </div>
   </section>
+
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="totalCount"
+    itemLabel="notifications"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
 
   <p-dialog
     [(visible)]="detailVisible"

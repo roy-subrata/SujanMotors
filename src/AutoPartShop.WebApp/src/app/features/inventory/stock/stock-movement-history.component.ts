@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
@@ -15,6 +15,7 @@ import { map } from 'rxjs/operators';
 import { StockService, StockMovementResponse } from '../services/stock.service';
 import { PartService } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-stock-movement-history',
@@ -30,7 +31,8 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     ToastModule,
     InputTextModule,
     SelectModule,
-    DatePicker
+    DatePicker,
+    DataPaginationComponent
   ],
   providers: [MessageService],
   template: `
@@ -130,13 +132,8 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 
       <p-table
         [value]="movements"
-        [rows]="pageSize"
-        [paginator]="true"
-        [lazy]="true"
+        [paginator]="false"
         [loading]="loading"
-        [totalRecords]="totalRecords"
-        [first]="first"
-        (onLazyLoad)="onLazyLoad($event)"
         responsiveLayout="scroll"
         styleClass="p-datatable-striped">
 
@@ -211,6 +208,15 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
           </tr>
         </ng-template>
       </p-table>
+
+      <app-data-pagination
+        [first]="first"
+        [pageSize]="pageSize"
+        [totalRecords]="totalRecords"
+        itemLabel="movements"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+      </app-data-pagination>
     </p-card>
   `,
   styles: [`
@@ -606,10 +612,15 @@ export class StockMovementHistoryComponent implements OnInit {
     });
   }
 
-  onLazyLoad(event: TableLazyLoadEvent): void {
-    this.first = event.first ?? 0;
-    this.pageSize = event.rows ?? 10;
-    this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+  goToPage(page: number): void {
+    this.pageNumber = page;
+    this.first = (page - 1) * this.pageSize;
+    this.loadMovements();
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.resetPagination();
     this.loadMovements();
   }
 

@@ -37,6 +37,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
@@ -61,6 +62,7 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
+        DataPaginationComponent,
         LazyAutocompleteComponent
     ],
     providers: [MessageService],
@@ -93,6 +95,21 @@ export class ClaimsListComponent implements OnInit {
     isLoading = false;
     searchText = '';
     selectedStatus = '';
+
+    first = 0;
+    pageSize = 10;
+    get pagedClaims(): WarrantyClaimResponse[] {
+        return this.filteredClaims.slice(this.first, this.first + this.pageSize);
+    }
+
+    goToPage(page: number): void {
+        this.first = (page - 1) * this.pageSize;
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.first = 0;
+    }
 
     totalPending = 0;
     totalUnderReview = 0;
@@ -256,6 +273,8 @@ export class ClaimsListComponent implements OnInit {
             const matchesStatus = !this.selectedStatus || claim.status === this.selectedStatus;
             return matchesSearch && matchesStatus;
         });
+        this.filteredClaims.sort((a, b) => new Date(b.claimDate).getTime() - new Date(a.claimDate).getTime());
+        this.first = 0;
     }
 
     onSearch(): void { this.applyFilters(); }

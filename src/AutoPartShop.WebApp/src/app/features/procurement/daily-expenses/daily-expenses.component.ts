@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -24,6 +24,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { EXPENSE_PAYMENT_METHODS, PaymentMethodOption } from '../../../shared/constants/payment-methods.constants';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
     selector: 'app-daily-expenses',
@@ -43,7 +44,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         ConfirmDialogModule,
         CheckboxModule,
         PageContainerComponent,
-        PageHeaderComponent
+        PageHeaderComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './daily-expenses.component.html',
@@ -58,6 +60,19 @@ export class DailyExpensesComponent implements OnInit {
     expenses = signal<DailyExpenseResponse[]>([]);
     categories = signal<ExpenseCategory[]>([]);
     loading = signal(false);
+
+    first = signal(0);
+    pageSize = signal(10);
+    pagedExpenses = computed(() => this.expenses().slice(this.first(), this.first() + this.pageSize()));
+
+    goToPage(page: number): void {
+        this.first.set((page - 1) * this.pageSize());
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize.set(size);
+        this.first.set(0);
+    }
 
     displayDialog = false;
     isEditMode = false;

@@ -65,8 +65,8 @@
             </div>
 
             <div class="table-card">
-              <p-table [value]="users()" [loading]="usersLoading()" responsiveLayout="scroll"
-                [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]"
+              <p-table [value]="pagedUsers()" [loading]="usersLoading()" responsiveLayout="scroll"
+                [paginator]="false"
                 [rowHover]="true" styleClass="settings-table">
                 <ng-template pTemplate="header">
                   <tr>
@@ -130,6 +130,14 @@
                   </tr>
                 </ng-template>
               </p-table>
+              <app-data-pagination
+                [first]="usersFirst()"
+                [pageSize]="usersPageSize()"
+                [totalRecords]="users().length"
+                itemLabel="users"
+                (pageChange)="goToUsersPage($event)"
+                (pageSizeChange)="onUsersPageSizeChange($event)">
+              </app-data-pagination>
             </div>
           </div>
         </p-tabpanel>
@@ -149,8 +157,8 @@
             </div>
 
             <div class="table-card">
-              <p-table [value]="roles()" [loading]="rolesLoading()" responsiveLayout="scroll"
-                [paginator]="true" [rows]="10" [rowHover]="true" styleClass="settings-table">
+              <p-table [value]="pagedRoles()" [loading]="rolesLoading()" responsiveLayout="scroll"
+                [paginator]="false" [rowHover]="true" styleClass="settings-table">
                 <ng-template pTemplate="header">
                   <tr>
                     <th>Role</th>
@@ -201,6 +209,14 @@
                   </tr>
                 </ng-template>
               </p-table>
+              <app-data-pagination
+                [first]="rolesFirst()"
+                [pageSize]="rolesPageSize()"
+                [totalRecords]="roles().length"
+                itemLabel="roles"
+                (pageChange)="goToRolesPage($event)"
+                (pageSizeChange)="onRolesPageSizeChange($event)">
+              </app-data-pagination>
             </div>
           </div>
         </p-tabpanel>
@@ -220,8 +236,8 @@
             </div>
 
             <div class="table-card">
-              <p-table [value]="permissions()" [loading]="permissionsLoading()" responsiveLayout="scroll"
-                [paginator]="true" [rows]="10" [rowHover]="true" styleClass="settings-table">
+              <p-table [value]="pagedPermissions()" [loading]="permissionsLoading()" responsiveLayout="scroll"
+                [paginator]="false" [rowHover]="true" styleClass="settings-table">
                 <ng-template pTemplate="header">
                   <tr>
                     <th>Permission</th>
@@ -255,6 +271,14 @@
                   </tr>
                 </ng-template>
               </p-table>
+              <app-data-pagination
+                [first]="permissionsFirst()"
+                [pageSize]="permissionsPageSize()"
+                [totalRecords]="permissions().length"
+                itemLabel="permissions"
+                (pageChange)="goToPermissionsPage($event)"
+                (pageSizeChange)="onPermissionsPageSizeChange($event)">
+              </app-data-pagination>
             </div>
           </div>
         </p-tabpanel>

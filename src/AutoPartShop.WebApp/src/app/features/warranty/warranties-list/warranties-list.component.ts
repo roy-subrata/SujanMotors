@@ -18,6 +18,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { WarrantyService, WarrantyRegistrationResponse, CreateWarrantyRegistrationRequest } from '../services/warranty.service';
 import { SalesOrderService, SalesOrderResponse, SalesOrderLineResponse } from '../../sales/services/sales-order.service';
 import { InvoiceService } from '../../sales/services/invoice.service';
@@ -48,7 +49,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         ConfirmDialogModule,
         PageContainerComponent,
         PageHeaderComponent,
-        FilterBarComponent
+        FilterBarComponent,
+        DataPaginationComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './warranties-list.component.html',
@@ -76,6 +78,21 @@ export class WarrantiesListComponent implements OnInit {
     isLoading = false;
     searchText = '';
     selectedStatus = '';
+
+    first = 0;
+    pageSize = 10;
+    get pagedWarranties(): WarrantyRegistrationResponse[] {
+        return this.filteredWarranties.slice(this.first, this.first + this.pageSize);
+    }
+
+    goToPage(page: number): void {
+        this.first = (page - 1) * this.pageSize;
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.first = 0;
+    }
 
     totalActive = 0;
     totalExpiringSoon = 0;
@@ -170,6 +187,7 @@ export class WarrantiesListComponent implements OnInit {
 
             return matchesSearch && matchesStatus;
         });
+        this.first = 0;
     }
 
     onSearch(): void {

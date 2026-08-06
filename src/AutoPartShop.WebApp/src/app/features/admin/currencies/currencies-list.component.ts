@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, DestroyRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { I18nService } from '../../../shared/services/i18n.service';
@@ -16,6 +16,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { CurrencyService, Currency } from '../../../shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-currencies-list',
@@ -33,7 +34,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     ToastModule,
     ConfirmDialogModule,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    DataPaginationComponent
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -55,12 +57,9 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
       <section class="table-section desktop-only">
         <div class="table-container">
       <p-table
-        [value]="currencies()"
+        [value]="pagedCurrencies()"
         [loading]="loading()"
-        [paginator]="true"
-        [rows]="10"
-        [rowsPerPageOptions]="[10, 25, 50]"
-        [globalFilterFields]="['code', 'name', 'symbol']"
+        [paginator]="false"
         [scrollable]="true"
         styleClass="app-table">
 
@@ -154,6 +153,15 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
       </p-table>
         </div>
       </section>
+
+      <app-data-pagination
+        [first]="first()"
+        [pageSize]="pageSize()"
+        [totalRecords]="currencies().length"
+        itemLabel="currencies"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+      </app-data-pagination>
 
       <!-- Currency Dialog -->
       <p-dialog
@@ -365,6 +373,12 @@ export class CurrenciesListComponent implements OnInit {
   currencies = signal<Currency[]>([]);
   loading = signal(false);
   saving = signal(false);
+
+  first = signal(0);
+  pageSize = signal(10);
+  pagedCurrencies = computed(() => this.currencies().slice(this.first(), this.first() + this.pageSize()));
+  goToPage(page: number): void { this.first.set((page - 1) * this.pageSize()); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.first.set(0); }
   dialogVisible = false;
   isEditing = false;
   currentCurrencyId: string | null = null;

@@ -17,11 +17,13 @@ import { SupplierPaymentService, SupplierPaymentHistorySummary } from '../servic
 import { SupplierLedgerService, SupplierLedgerSummaryDto, SupplierLedgerTransactionType, SupplierLedgerEntryDto, SupplierLedgerQueryDto } from '../services/supplier-ledger.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
     selector: 'app-supplier-payment-summary',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, SkeletonModule, ToastModule, TableModule, TagModule, Select, DatePicker, DataPaginationComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, SkeletonModule, ToastModule, TableModule, TagModule, Select, DatePicker, DataPaginationComponent, PageContainerComponent, PageHeaderComponent],
     providers: [MessageService],
     templateUrl: './supplier-payment-summary.component.html',
     styleUrls: ['./supplier-payment-summary.component.css']
@@ -53,23 +55,23 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
     ledgerTotalCount = 0;
     filtersActive = false;
 
-    // Mobile card pagination — slices ledgerEntries client-side the same way
-    // the desktop p-table's own [paginator]="true" [rows]="10" does, so both
-    // views page through the same in-memory list identically.
-    ledgerMobileFirst = 0;
-    ledgerMobilePageSize = 10;
+    // Shared desktop+mobile pagination — slices ledgerEntries client-side so both
+    // views page through the same in-memory list identically. Distinct from
+    // ledgerPageNumber/ledgerPageSize above, which drive the server-side filtered query.
+    ledgerFirst = 0;
+    ledgerViewPageSize = 10;
 
     get pagedLedgerEntries(): SupplierLedgerEntryDto[] {
-        return this.ledgerEntries.slice(this.ledgerMobileFirst, this.ledgerMobileFirst + this.ledgerMobilePageSize);
+        return this.ledgerEntries.slice(this.ledgerFirst, this.ledgerFirst + this.ledgerViewPageSize);
     }
 
     goToLedgerPage(page: number): void {
-        this.ledgerMobileFirst = (page - 1) * this.ledgerMobilePageSize;
+        this.ledgerFirst = (page - 1) * this.ledgerViewPageSize;
     }
 
-    onLedgerMobilePageSizeChange(size: number): void {
-        this.ledgerMobilePageSize = size;
-        this.ledgerMobileFirst = 0;
+    onLedgerPageSizeChange(size: number): void {
+        this.ledgerViewPageSize = size;
+        this.ledgerFirst = 0;
     }
 
     transactionTypeOptions = [
@@ -110,7 +112,7 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
                     this.ledgerSummary = ledgerSummary;
                     this.ledgerEntries = ledgerSummary.entries || [];
                     this.ledgerTotalCount = ledgerSummary.entries?.length || 0;
-                    this.ledgerMobileFirst = 0;
+                    this.ledgerFirst = 0;
                     this.supplierName = ledgerSummary.supplierName || paymentSummary.supplierName;
                     this.loading = false;
                 },
@@ -196,7 +198,7 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
         this.ledgerDateRange = [];
         this.filtersActive = false;
         this.ledgerPageNumber = 1;
-        this.ledgerMobileFirst = 0;
+        this.ledgerFirst = 0;
         if (this.ledgerSummary) {
             this.ledgerEntries = this.ledgerSummary.entries || [];
             this.ledgerTotalCount = this.ledgerSummary.entries?.length || 0;
@@ -221,7 +223,7 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
             next: (result) => {
                 this.ledgerEntries = result.entries;
                 this.ledgerTotalCount = result.totalCount;
-                this.ledgerMobileFirst = 0;
+                this.ledgerFirst = 0;
                 this.ledgerLoading = false;
             },
             error: (err) => {

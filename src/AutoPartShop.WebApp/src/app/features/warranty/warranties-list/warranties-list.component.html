@@ -71,13 +71,9 @@
   <section class="table-section desktop-only">
     <div class="table-container">
     <p-table
-      [value]="filteredWarranties"
+      [value]="pagedWarranties"
       [loading]="isLoading"
-      [paginator]="true"
-      [rows]="10"
-      [rowsPerPageOptions]="[10, 25, 50]"
-      [showCurrentPageReport]="true"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} warranties"
+      [paginator]="false"
       [scrollable]="true"
       styleClass="app-table">
       <ng-template #header>
@@ -185,7 +181,7 @@
     </div>
 
     <div *ngIf="!isLoading && filteredWarranties.length > 0" class="cards-grid">
-      <div *ngFor="let warranty of filteredWarranties" class="order-card">
+      <div *ngFor="let warranty of pagedWarranties" class="order-card">
 
         <div class="card-header">
           <a class="card-so-number link-text" (click)="openDetailDialog(warranty)">{{ warranty.warrantyNumber }}</a>
@@ -227,6 +223,15 @@
     </div>
 
   </section>
+
+  <app-data-pagination
+    [first]="first"
+    [pageSize]="pageSize"
+    [totalRecords]="filteredWarranties.length"
+    itemLabel="warranties"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-data-pagination>
 </app-page-container>
 
 <!-- Create Warranty Registration Dialog -->
