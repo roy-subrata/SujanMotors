@@ -228,6 +228,9 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.Converters.Add(
+           new AutoPartShop.Api.Common.LenientNullableEnumConverterFactory()
+       );
+        options.JsonSerializerOptions.Converters.Add(
            new JsonStringEnumConverter()
        );
     });
