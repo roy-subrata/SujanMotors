@@ -42,7 +42,11 @@ export class SalaryAdvanceService {
     private readonly apiUrl = `${environment.apiUrl}/v1/salaryadvances`;
 
     getAdvances(query: SalaryAdvanceQuery): Observable<PaginatedResponse<SalaryAdvanceResponse>> {
-        return this.http.post<PaginatedResponse<SalaryAdvanceResponse>>(`${this.apiUrl}/list`, query);
+        // Backend Status is a nullable enum — '' (the "All Statuses" sentinel) fails
+        // JSON deserialization, so drop it rather than send an empty string.
+        const { status, ...rest } = query;
+        const body: SalaryAdvanceQuery = status ? query : rest;
+        return this.http.post<PaginatedResponse<SalaryAdvanceResponse>>(`${this.apiUrl}/list`, body);
     }
 
     giveAdvance(request: GiveAdvanceRequest): Observable<{ id: string }> {

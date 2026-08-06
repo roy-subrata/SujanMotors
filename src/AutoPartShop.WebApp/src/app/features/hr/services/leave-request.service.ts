@@ -51,7 +51,11 @@ export class LeaveRequestService {
     private readonly apiUrl = `${environment.apiUrl}/v1/leaverequests`;
 
     getLeaveRequests(query: LeaveRequestQuery): Observable<PaginatedResponse<LeaveRequestResponse>> {
-        return this.http.post<PaginatedResponse<LeaveRequestResponse>>(`${this.apiUrl}/list`, query);
+        // Backend Status is a nullable enum — '' (the "All Statuses" sentinel) fails
+        // JSON deserialization, so drop it rather than send an empty string.
+        const { status, ...rest } = query;
+        const body: LeaveRequestQuery = status ? query : rest;
+        return this.http.post<PaginatedResponse<LeaveRequestResponse>>(`${this.apiUrl}/list`, body);
     }
 
     createLeaveRequest(request: CreateLeaveRequestRequest): Observable<{ id: string }> {

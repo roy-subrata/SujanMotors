@@ -94,7 +94,11 @@ export class EmployeeService {
     }
 
     getEmployees(query: EmployeeQuery): Observable<PaginatedResponse<EmployeeResponse>> {
-        return this.http.post<PaginatedResponse<EmployeeResponse>>(`${this.apiUrl}/list`, query);
+        // Backend Status is a nullable enum — '' (the "All Statuses" sentinel) fails
+        // JSON deserialization, so drop it rather than send an empty string.
+        const { status, ...rest } = query;
+        const body: EmployeeQuery = status ? query : rest;
+        return this.http.post<PaginatedResponse<EmployeeResponse>>(`${this.apiUrl}/list`, body);
     }
 
     getEmployeeById(id: string): Observable<EmployeeResponse> {
