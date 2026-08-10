@@ -4,7 +4,6 @@ public class CreatePartRequest
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;       // Short summary (max 255 chars)
-    public string? RichDescription { get; set; }                  // Full HTML/markdown for product pages
     public string? PartNumber { get; set; }   // Manufacturer's catalog code — optional; SKU is auto-generated and identifies the part
     public Guid CategoryId { get; set; }
     public Guid? BrandId { get; set; }

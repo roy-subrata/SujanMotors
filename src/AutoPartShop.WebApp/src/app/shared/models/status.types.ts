@@ -73,9 +73,6 @@ export type CustomerStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'BLACKLISTED'
 /** `AutoPartShop.Domain.Enums.ChallanStatus` */
 export type ChallanStatus = 'DRAFT' | 'ISSUED' | 'DELIVERED';
 
-/** `AutoPartShop.Domain.Enums.ShipmentStatus` */
-export type ShipmentStatus = 'PENDING' | 'DISPATCHED' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
-
 /** `AutoPartShop.Domain.Enums.TillSessionStatus` */
 export type TillSessionStatus = 'OPEN' | 'CLOSED';
 

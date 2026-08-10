@@ -5,7 +5,6 @@ using AutoPartShop.Application.DTOs.PartDtos;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Application.Parts;
 using AppProductResponse = AutoPartShop.Application.Parts.Dtos.ProductResponse;
-using AppProductPublicResponse = AutoPartShop.Application.Parts.Dtos.ProductPublicResponse;
 using AppProductQuery = AutoPartShop.Application.Parts.Dtos.ProductQuery;
 using SemanticSearchRequest = AutoPartShop.Application.Parts.Dtos.SemanticSearchRequest;
 using AutoPartShop.Domain.Entities;
@@ -22,13 +21,13 @@ namespace AutoPartShop.Api.Controllers;
 /// <summary>
 /// Products API â€” v1.
 /// All list/search is handled by GET / with query parameters.
-/// Authenticated callers receive CostPrice in pricing objects; anonymous callers do not.
 /// Variants always contains at least one entry; products with no explicit variants receive a
 /// synthesized "Default" variant built from the base product.
 /// </summary>
 [Route("api/v1/products")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class ProductsController : ControllerBase
 {
     private readonly IProductRepository _productRepository;
@@ -115,18 +114,8 @@ public class ProductsController : ControllerBase
             query.Sorts = [new SortOption { Field = sortBy, Direction = sortDirection ?? "asc" }];
         }
 
-        var isAdmin = User.Identity?.IsAuthenticated == true;
-
-        if (isAdmin)
-        {
-            var (items, total) = await _productReadRepository.FindAllAsync(query, cancellationToken);
-            return Ok(PagedApiResponse<AppProductResponse>.Create(items, total, page, pageSize));
-        }
-        else
-        {
-            var (items, total) = await _productReadRepository.FindAllPublicAsync(query, cancellationToken);
-            return Ok(PagedApiResponse<AppProductPublicResponse>.Create(items, total, page, pageSize));
-        }
+        var (items, total) = await _productReadRepository.FindAllAsync(query, cancellationToken);
+        return Ok(PagedApiResponse<AppProductResponse>.Create(items, total, page, pageSize));
     }
 
     // â”€â”€ Single â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -144,8 +133,7 @@ public class ProductsController : ControllerBase
         if (part is null)
             return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
 
-        var isAdmin = User.Identity?.IsAuthenticated == true;
-        return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin)));
+        return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
     }
 
     // â”€â”€ Code lookup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -329,8 +317,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Typeahead suggestions for the spec editor. field=label returns distinct
     /// labels used across the catalog; field=value returns distinct values
-    /// (optionally scoped to a label key) so staff converge on consistent terms
-    /// — the thing that keeps ecommerce facets clean later.
+    /// (optionally scoped to a label key) so staff converge on consistent terms.
     /// </summary>
     [HttpGet("specifications/suggestions")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -393,7 +380,7 @@ public class ProductsController : ControllerBase
         var part = Product.Create(
             request.Name, partNumber, sku, request.CategoryId,
             request.BrandId, request.BaseUnitId, request.UnitId,
-            request.Description, request.RichDescription,
+            request.Description,
             request.CostPrice, request.SellingPrice, request.MinimumStock,
             request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
@@ -456,7 +443,7 @@ public class ProductsController : ControllerBase
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
             request.Barcode, request.Tags, request.ProductType,
             request.IsPerishable, request.WeightKg,
-            request.TaxCode, request.RichDescription, request.OemNumber, request.LocalName);
+            request.TaxCode, request.OemNumber, request.LocalName);
         part.SetPartNumber(string.IsNullOrWhiteSpace(request.PartNumber)
             ? null
             : PartNumber.Create(request.PartNumber));
@@ -635,7 +622,6 @@ public class ProductsController : ControllerBase
             Id = part.Id,
             Name = part.Name,
             Description = part.Description,
-            RichDescription = part.RichDescription,
             PartNumber = part.PartNumber?.Value ?? string.Empty,
             SKU = part.SKU,
             OemNumber = part.OemNumber,
@@ -765,7 +751,7 @@ public class ProductsController : ControllerBase
     // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
-    /// Sellable stock for a part = on-hand minus reservations (e.g. open ecommerce carts),
+    /// Sellable stock for a part = on-hand minus reservations,
     /// read from StockLevel which is the source of truth for availability. When
     /// <paramref name="variantId"/> is supplied only that variant is counted, so two variants of
     /// the same part never report each other's stock; otherwise all variants are summed.

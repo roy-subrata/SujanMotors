@@ -6,12 +6,12 @@
       <div class="ul-logo-mark">{{ brandInitials }}</div>
       <div class="ul-logo-text">
         <span class="ul-logo-title">{{ branding.appName() }}</span>
-        <span class="ul-logo-sub">{{ mode === 'staff' ? 'Management System' : 'Sign in to shop' }}</span>
+        <span class="ul-logo-sub">Management System</span>
       </div>
     </div>
 
     <h2 class="ul-heading">Sign in</h2>
-    <p class="ul-sub">{{ mode === 'staff' ? 'Enter your staff credentials to continue.' : 'Sign in to shop and track your orders.' }}</p>
+    <p class="ul-sub">Enter your staff credentials to continue.</p>
 
     <!-- Error banner -->
     <div class="ul-error" *ngIf="error()">
@@ -58,8 +58,8 @@
         <span class="ul-field-error" *ngIf="errors['password']">{{ errors['password'] }}</span>
       </div>
 
-      <!-- Remember me — staff only -->
-      <div class="ul-remember" *ngIf="mode === 'staff'">
+      <!-- Remember me -->
+      <div class="ul-remember">
         <label class="ul-checkbox-label">
           <input type="checkbox" [(ngModel)]="rememberMe" />
           <span>Remember me</span>
@@ -68,8 +68,7 @@
 
       <!-- Submit -->
       <button
-        class="ul-submit"
-        [class.ul-submit-staff]="mode === 'staff'"
+        class="ul-submit ul-submit-staff"
         (click)="submit()"
         [disabled]="loading()"
         type="button"
@@ -81,15 +80,7 @@
 
     <!-- Footer -->
     <div class="ul-footer">
-      <ng-container *ngIf="mode === 'customer'">
-        <span>New here?</span>
-        <a routerLink="/shop/register" [queryParams]="returnUrl ? { returnUrl } : {}">Create an account</a>
-        <span class="ul-sep">·</span>
-        <a routerLink="/shop"><i class="pi pi-arrow-left"></i> Back to Shop</a>
-      </ng-container>
-      <ng-container *ngIf="mode === 'staff'">
-        Need access? <a href="javascript:void(0)">Contact administrator</a>
-      </ng-container>
+      Need access? <a href="javascript:void(0)">Contact administrator</a>
     </div>
 
   </div>

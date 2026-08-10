@@ -9,15 +9,12 @@ import { roleGuard } from './app/shared/guards/role.guard';
 import { permissionGuard } from './app/shared/guards/permission.guard';
 
 export const appRoutes: Routes = [
-    // Login - standalone (no layout) — shared unified login, staff mode default
-    { path: 'login', component: UnifiedLoginComponent, data: { mode: 'staff' } },
+    // Login - standalone (no layout) — staff sign in
+    { path: 'login', component: UnifiedLoginComponent },
 
     // Quick Sale (POS) - standalone layout (no sidebar/header) — auth required
     { path: 'quick-sale-shortcut', component: QuickSaleShortcutComponent, canActivate: [authGuard] },
     { path: 'pos', component: QuickSaleShortcutComponent, canActivate: [authGuard] },
-
-    // E-commerce storefront - public module
-    { path: 'shop', loadChildren: () => import('./app/features/ecommerce/ecommerce.routes').then(m => m.ecommerceRoutes) },
 
     {
         path: '',

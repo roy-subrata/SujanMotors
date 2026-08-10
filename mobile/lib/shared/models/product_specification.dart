@@ -2,7 +2,7 @@ import 'json.dart';
 
 /// A simple descriptive product spec (Label/Value), from
 /// `GET /products/{id}/specifications`. The normalized [key] is server-derived
-/// and used for ecommerce facet grouping; the editor only touches label/value.
+/// and used for consistent grouping; the editor only touches label/value.
 class ProductSpecification {
   const ProductSpecification({
     required this.label,

@@ -23,7 +23,6 @@ import { CategoryService, CategoryResponse } from '../../services/category.servi
 import { UnitService, UnitResponse } from '../../services/unit.service';
 import { BrandService, BrandResponse } from '../../services/brand.service';
 import { VehicleService, VehicleResponse, CreatePartCompatibilityRequest } from '../../services/vehicle.service';
-import { CatalogEntryService, CatalogEntryResponse, UpsertCatalogEntryRequest } from '../../services/catalog-entry.service';
 import { ProductVariantManagerComponent } from '../product-variant-manager/product-variant-manager.component';
 
 import { forkJoin, of, tap } from 'rxjs';
@@ -63,7 +62,6 @@ export class PartFormComponent implements OnInit {
     private readonly unitService = inject(UnitService);
     private readonly brandService = inject(BrandService);
     private readonly vehicleService = inject(VehicleService);
-    private readonly catalogEntryService = inject(CatalogEntryService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly formBuilder = inject(FormBuilder);
@@ -71,7 +69,6 @@ export class PartFormComponent implements OnInit {
     private readonly route = inject(ActivatedRoute);
 
     partForm!: FormGroup;
-    catalogEntryForm!: FormGroup;
     compatibilityForm!: FormGroup;
 
     isEditMode = false;
@@ -126,7 +123,6 @@ export class PartFormComponent implements OnInit {
 
     constructor() {
         this.initializeForm();
-        this.initializeCatalogEntryForm();
         this.initializeCompatibilityForm();
     }
 
@@ -147,12 +143,10 @@ export class PartFormComponent implements OnInit {
             if (this.partId) {
                 this.loadPart(this.partId);
                 this.loadCompatibleVehicles();
-                this.loadCatalogEntry(this.partId);
             }
 
             if (this.isViewMode) {
                 this.partForm.disable();
-                this.catalogEntryForm.disable();
                 this.compatibilityForm.disable();
             }
         });
@@ -169,25 +163,6 @@ export class PartFormComponent implements OnInit {
         });
     }
 
-    private loadCatalogEntry(partId: string): void {
-        this.catalogEntryService.get(partId).subscribe({
-            next: (entry) => {
-                if (entry) {
-                    this.catalogEntryForm.patchValue({
-                        slug: entry.slug,
-                        shortDescription: entry.shortDescription,
-                        isPublished: entry.isPublished,
-                        isFeatured: entry.isFeatured,
-                        featuredRank: entry.featuredRank,
-                        metaTitle: entry.metaTitle ?? '',
-                        metaDescription: entry.metaDescription ?? ''
-                    });
-                }
-            },
-            error: () => { /* catalog entry is optional, silently ignore */ }
-        });
-    }
-
     private populateForm(part: PartResponse): void {
         this.existingCostPrice = part.costPrice ?? 0;
         this.selectedCategory = this.categories.find(c => c.id === part.categoryId) || null;
@@ -198,7 +173,6 @@ export class PartFormComponent implements OnInit {
         this.partForm.patchValue({
             name: part.name,
             description: part.description,
-            richDescription: part.richDescription || '',
             partNumber: part.partNumber,
             oemNumber: part.oemNumber || null,
             localName: part.localName || null,
@@ -230,7 +204,6 @@ export class PartFormComponent implements OnInit {
         this.partForm = this.formBuilder.group({
             name: ['', [Validators.required, Validators.maxLength(200)]],
             description: [''],
-            richDescription: [''],
             // Optional — some brands don't publish a catalog part number; SKU identifies the part
             partNumber: ['', [Validators.maxLength(30)]],
             oemNumber: [null, [Validators.maxLength(100)]],
@@ -269,44 +242,6 @@ export class PartFormComponent implements OnInit {
             periodCtrl?.updateValueAndValidity();
             typeCtrl?.updateValueAndValidity();
         });
-
-        // Auto-generate slug from part name
-        this.partForm.get('name')?.valueChanges.subscribe(name => {
-            if (!this.isEditMode) {
-                this.autoUpdateSlug(name);
-            }
-        });
-
-        // Auto-update slug when category changes (for context)
-        this.partForm.get('categoryId')?.valueChanges.subscribe(() => {
-            if (!this.isEditMode) {
-                const name = this.partForm.get('name')?.value;
-                if (name) this.autoUpdateSlug(name);
-            }
-        });
-    }
-
-    private initializeCatalogEntryForm(): void {
-        this.catalogEntryForm = this.formBuilder.group({
-            slug: ['', [Validators.maxLength(200), Validators.pattern(/^[a-z0-9-]*$/)]],
-            shortDescription: ['', [Validators.maxLength(300)]],
-            isPublished: [true],
-            isFeatured: [false],
-            featuredRank: [0, [Validators.min(0)]],
-            metaTitle: ['', [Validators.maxLength(70)]],
-            metaDescription: ['', [Validators.maxLength(160)]]
-        });
-    }
-
-    private autoUpdateSlug(name: string): void {
-        if (!name) return;
-        const slug = name.trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
-        this.catalogEntryForm.patchValue({ slug }, { emitEvent: false });
     }
 
     private initializeCompatibilityForm(): void {
@@ -560,7 +495,6 @@ export class PartFormComponent implements OnInit {
         const request: CreatePartRequest = {
             name: v.name.trim(),
             description: v.description || '',
-            richDescription: v.richDescription?.trim() || null,
             partNumber: v.partNumber?.trim() || null,
             oemNumber: v.oemNumber?.trim() || null,
             localName: v.localName?.trim() || null,
@@ -592,12 +526,11 @@ export class PartFormComponent implements OnInit {
                     this.router.navigate(['/inventory/parts']);
                 };
 
-                const saveCatalogEntry$ = this.buildCatalogEntrySave(response.id);
                 const saveCompatibilities$ = this.pendingCompatibilities.length > 0
                     ? this.savePendingCompatibilities(response.id)
                     : of(void 0);
 
-                forkJoin([saveCatalogEntry$, saveCompatibilities$]).subscribe({
+                forkJoin([saveCompatibilities$]).subscribe({
                     next: () => finalize(),
                     error: () => finalize()
                 });
@@ -615,7 +548,6 @@ export class PartFormComponent implements OnInit {
             id: this.partId!,
             name: v.name.trim(),
             description: v.description || '',
-            richDescription: v.richDescription?.trim() || null,
             partNumber: v.partNumber?.trim() || null,
             oemNumber: v.oemNumber?.trim() || null,
             localName: v.localName?.trim() || null,
@@ -642,42 +574,15 @@ export class PartFormComponent implements OnInit {
 
         this.partService.updatePart(this.partId!, request).subscribe({
             next: (response) => {
-                this.buildCatalogEntrySave(response.id).subscribe({
-                    next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `'${response.name}' updated successfully` });
-                        this.isSubmitting = false;
-                        this.router.navigate(['/inventory/parts']);
-                    },
-                    error: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `'${response.name}' updated (online listing save failed)` });
-                        this.isSubmitting = false;
-                        this.router.navigate(['/inventory/parts']);
-                    }
-                });
+                this.messageService.add({ severity: 'success', summary: 'Updated', detail: `'${response.name}' updated successfully` });
+                this.isSubmitting = false;
+                this.router.navigate(['/inventory/parts']);
             },
             error: (error) => {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to update part' });
                 this.isSubmitting = false;
             }
         });
-    }
-
-    private buildCatalogEntrySave(partId: string) {
-        const cv = this.catalogEntryForm.value;
-        const slugValue = (cv.slug || '').trim();
-        if (!slugValue) return of(null);
-
-        const req: UpsertCatalogEntryRequest = {
-            slug: slugValue,
-            shortDescription: cv.shortDescription?.trim() || '',
-            isPublished: cv.isPublished ?? true,
-            isFeatured: cv.isFeatured ?? false,
-            featuredRank: cv.featuredRank ?? 0,
-            metaTitle: cv.metaTitle?.trim() || null,
-            metaDescription: cv.metaDescription?.trim() || null
-        };
-
-        return this.catalogEntryService.upsert(partId, req).pipe(catchError(() => of(null)));
     }
 
     private savePendingCompatibilities(partId: string) {
@@ -696,11 +601,6 @@ export class PartFormComponent implements OnInit {
 
     hasError(fieldName: string): boolean {
         const ctrl = this.partForm.get(fieldName);
-        return ctrl ? ctrl.invalid && ctrl.touched : false;
-    }
-
-    hasCatalogError(fieldName: string): boolean {
-        const ctrl = this.catalogEntryForm.get(fieldName);
         return ctrl ? ctrl.invalid && ctrl.touched : false;
     }
 
@@ -736,18 +636,6 @@ export class PartFormComponent implements OnInit {
 
     getCompatibilityLabel(isCompatible: boolean): string {
         return isCompatible ? 'Compatible' : 'Not Compatible';
-    }
-
-    get slugCharCount(): number {
-        return (this.catalogEntryForm.get('slug')?.value || '').length;
-    }
-
-    get metaTitleCharCount(): number {
-        return (this.catalogEntryForm.get('metaTitle')?.value || '').length;
-    }
-
-    get metaDescCharCount(): number {
-        return (this.catalogEntryForm.get('metaDescription')?.value || '').length;
     }
 
     private syncSelectedLookups(): void {

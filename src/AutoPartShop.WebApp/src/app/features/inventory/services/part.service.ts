@@ -11,7 +11,6 @@ export interface PartResponse {
     name: string;
     displayName: string;
     description: string;
-    richDescription?: string | null;
     partNumber: string;
     sku: string;
     barcode?: string | null;
@@ -64,7 +63,6 @@ export interface PartResponse {
 export interface CreatePartRequest {
     name: string;
     description: string;
-    richDescription?: string | null;
     partNumber?: string | null;
     oemNumber?: string | null;
     localName?: string | null;
@@ -94,7 +92,6 @@ export interface UpdatePartRequest {
     id: string;
     name: string;
     description: string;
-    richDescription?: string | null;
     partNumber?: string | null;
     oemNumber?: string | null;
     localName?: string | null;
@@ -199,7 +196,6 @@ export class PartService {
                     name: p.name,
                     displayName: p.name,
                     description: p.description ?? '',
-                    richDescription: p.richDescription ?? null,
                     partNumber: p.partNumber,
                     sku: p.sku,
                     barcode: p.barcode ?? null,

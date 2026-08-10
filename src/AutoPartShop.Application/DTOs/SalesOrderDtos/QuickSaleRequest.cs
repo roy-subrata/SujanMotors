@@ -34,7 +34,7 @@ public class QuickSaleRequest
 
     // Quotation Support
     public bool SaveAsQuotation { get; set; } = false;
-    public string Channel { get; set; } = "POS";  // POS | ECOMMERCE | MOBILE | API
+    public string Channel { get; set; } = "POS";  // POS | MOBILE | API
 }
 
 public class QuickSaleLineItem

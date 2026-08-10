@@ -56,7 +56,6 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
                 entity.IsPerishable,
                 entity.WeightKg,
                 entity.TaxCode,
-                entity.RichDescription,
                 entity.OemNumber,
                 entity.LocalName);
 

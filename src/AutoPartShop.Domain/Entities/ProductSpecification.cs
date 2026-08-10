@@ -6,8 +6,7 @@ namespace AutoPartShop.Domain.Entities;
 /// EAV attribute system) so shop staff can edit specs quickly.
 ///
 /// <see cref="Key"/> is a normalized slug of the label so that "Material",
-/// "material" and " Material " collapse to one facet when these specs power
-/// ecommerce filters later.
+/// "material" and " Material " collapse to one facet.
 /// </summary>
 public class ProductSpecification : AuditableEntity
 {

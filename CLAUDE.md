@@ -86,7 +86,7 @@ All domain entities inherit from `AuditableEntity` (created/modified timestamps)
 
 ```
 src/AutoPartShop.WebApp/src/app/
-  features/        # Feature modules: admin, audit, dashboard, ecommerce,
+  features/        # Feature modules: admin, audit, dashboard,
                    #   inventory, procurement, sales, warranty
   layout/          # Shell layout components (sidebar, navbar)
   pages/           # Top-level routed pages

@@ -28,7 +28,7 @@ export const SALES_REPORT_CONFIGS: ReportPageConfig[] = [
                 kind: 'select', key: 'channel', label: 'Channel',
                 options: [
                     { label: 'POS', value: 'POS' },
-                    { label: 'E-commerce', value: 'ECOMMERCE' }
+                    { label: 'Mobile', value: 'MOBILE' }
                 ]
             }
         ],
