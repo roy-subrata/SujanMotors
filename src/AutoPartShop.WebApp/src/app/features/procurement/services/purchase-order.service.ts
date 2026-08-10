@@ -114,6 +114,8 @@ export interface PurchaeOrderQuery {
     toDate?:string;
     /** GRN picker: only POs with at least one line still receivable. */
     hasReceivableQuantity?: boolean;
+    /** Supplier Payment picker: comma-separated payment statuses (e.g. 'PENDING,PARTIAL'). */
+    paymentStatus?: string;
 }
 
 @Injectable({

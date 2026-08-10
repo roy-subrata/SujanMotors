@@ -41,6 +41,19 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
             purchaseOrders = purchaseOrders.Where(x => statuses.Contains(x.Status));
         }
 
+        // Supplier Payment picker: keep only POs whose payment status matches (e.g. not PAID).
+        if (!string.IsNullOrWhiteSpace(query.PaymentStatus))
+        {
+            var paymentStatuses = query.PaymentStatus.Split(',')
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => Enum.TryParse<PurchaseOrderPaymentStatus>(s, true, out var parsed) ? parsed : (PurchaseOrderPaymentStatus?)null)
+                .Where(s => s.HasValue)
+                .Select(s => s!.Value)
+                .ToArray();
+            purchaseOrders = purchaseOrders.Where(x => paymentStatuses.Contains(x.PaymentStatus));
+        }
+
         // Goods Receipt picker: keep only POs with at least one line that still has
         // outstanding quantity to receive (ordered - received - in-flight PENDING/VERIFIED).
         if (query.HasReceivableQuantity == true)
