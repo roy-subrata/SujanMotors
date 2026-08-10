@@ -15,4 +15,10 @@ public class PurcahseQueryDto : BaseQuery
     /// Used by the Goods Receipt picker so fully-reserved POs aren't offered.
     /// </summary>
     public bool? HasReceivableQuantity { get; set; }
+
+    /// <summary>
+    /// Comma-separated payment statuses to filter by (e.g. "PENDING,PARTIAL").
+    /// Used by the Supplier Payment picker so already-paid POs aren't offered.
+    /// </summary>
+    public string? PaymentStatus { get; set; }
 }

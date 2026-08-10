@@ -1,5 +1,7 @@
-import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { of } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
@@ -21,11 +23,12 @@ import { PurchaseOrderResponse, PurchaseOrderService } from '../services/purchas
 import { SupplierPaymentAccountService, SupplierPaymentAccountResponse } from '../../inventory/services/supplier-payment-account.service';
 import { CurrencyService, Currency } from '../../../shared/services/currency.service';
 import { SUPPLIER_PAYMENT_METHODS, PAYMENT_TYPES, PaymentMethodOption, PaymentTypeOption } from '../../../shared/constants/payment-methods.constants';
+import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 
 @Component({
     selector: 'app-supplier-payment-form',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, ButtonModule, InputTextModule, TextareaModule, InputNumberModule, AutoCompleteModule, CardModule, ToastModule, RadioButtonModule, DatePickerModule, SelectModule],
+    imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, ButtonModule, InputTextModule, TextareaModule, InputNumberModule, AutoCompleteModule, CardModule, ToastModule, RadioButtonModule, DatePickerModule, SelectModule, LazyAutocompleteComponent],
     providers: [MessageService],
     templateUrl: './supplier-payment-form.component.html',
     styleUrls: ['./supplier-payment-form.component.css']
@@ -42,8 +45,7 @@ export class SupplierPaymentFormComponent implements OnInit {
     private readonly supplierPaymentAccountService = inject(SupplierPaymentAccountService);
     private readonly currencyService = inject(CurrencyService);
     private readonly destroyRef = inject(DestroyRef);
-    filteredPOs: PurchaseOrderResponse[] = [];
-    purchaseOrders: PurchaseOrderResponse[] = [];
+    @ViewChild('poAutoComplete') poAutoComplete?: LazyAutocompleteComponent<PurchaseOrderResponse>;
     form: FormGroup;
     loading = false;
     isEditing = false;
@@ -110,16 +112,23 @@ export class SupplierPaymentFormComponent implements OnInit {
             if (value) {
                 const supplierId = typeof value === 'string' ? value : value?.id;
                 if (supplierId) {
+                    this.selectedSupplierId = supplierId;
                     this.loadSupplierPaymentAccounts(supplierId);
-                    this.loadPurchaseOrdersBySupplier(supplierId);
+                    // Reset PO selection since the picker is now scoped to this supplier.
+                    // Skipped when coming from a PO — the PO is patched after the supplier
+                    // resolves and must not be cleared by this handler.
+                    if (!this.isFromPurchaseOrder) {
+                        this.form.get('purchaseOrderId')?.setValue(null);
+                        this.poAutoComplete?.refresh();
+                    }
                 }
             } else {
+                this.selectedSupplierId = '';
                 this.supplierPaymentAccounts = [];
                 this.filteredSupplierPaymentAccounts = [];
                 this.form.get('supplierPaymentAccountId')?.setValue('');
-                this.purchaseOrders = [];
-                this.filteredPOs = [];
-                this.form.get('purchaseOrderId')?.setValue('');
+                this.form.get('purchaseOrderId')?.setValue(null);
+                this.poAutoComplete?.refresh();
             }
         });
 
@@ -139,23 +148,27 @@ export class SupplierPaymentFormComponent implements OnInit {
 
         this.form.get('purchaseOrderId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((purchase) => {
             if (purchase && purchase.id) {
-                // Pre-select the purchase order after POs are loaded
-                this.poService.getPurchaseOrderById(purchase.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-                    next: (po) => {
-                        if (po && po.outstandingAmount > 0) {
-                            this.form.get('amount')?.addValidators([Validators.max(po.outstandingAmount)]);
-                            this.form.patchValue({ amount: po.outstandingAmount });
+                if (typeof purchase.outstandingAmount === 'number') {
+                    // Full PO object from the lazy picker / pre-selection — apply directly
+                    this.applyOutstandingAmount(purchase.outstandingAmount);
+                } else {
+                    // Fallback: load the PO by id
+                    this.poService.getPurchaseOrderById(purchase.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+                        next: (po) => {
+                            if (po && po.outstandingAmount > 0) {
+                                this.applyOutstandingAmount(po.outstandingAmount);
+                            }
+                        },
+                        error: (error) => {
+                            console.error('Error loading purchase order:', error);
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: 'Failed to load purchase order details'
+                            });
                         }
-                    },
-                    error: (error) => {
-                        console.error('Error loading purchase order:', error);
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Error',
-                            detail: 'Failed to load purchase order details'
-                        });
-                    }
-                });
+                    });
+                }
             }
         });
 
@@ -187,16 +200,37 @@ export class SupplierPaymentFormComponent implements OnInit {
     // Flag to track if payment is being recorded from a purchase order
     isFromPurchaseOrder = false;
 
-    private loadPurchaseOrdersBySupplier(supplierId: string): void {
-        this.poService.getPurchaseOrdersBySupplier(supplierId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-            next: (pos) => {
-                this.purchaseOrders = pos.filter((po) => po.status === 'CONFIRMED' || po.status === 'PARTIAL');
-                this.filteredPOs = this.purchaseOrders;
-            },
-            error: (error) => {
-                console.error('Error loading POs for supplier:', error);
-            }
-        });
+    /** Supplier currently selected in the form — scopes the lazy PO picker. */
+    selectedSupplierId = '';
+
+    fetchPurchaseOrdersLazy = (req: LazyRequest) => {
+        if (!this.selectedSupplierId) {
+            return of({ items: [], totalCount: 0 } as LazyResponse<PurchaseOrderResponse>);
+        }
+        return this.poService.getPurchaseOrders({
+            pageNumber: req.pageNumber,
+            pageSize: req.pageSize,
+            search: req.search,
+            supplierId: this.selectedSupplierId,
+            status: 'CONFIRMED,PARTIAL',
+            paymentStatus: 'PENDING,PARTIAL'
+        }).pipe(
+            map(
+                (res) =>
+                    ({
+                        items: res?.data ?? [],
+                        totalCount: res?.pagination?.totalCount ?? 0
+                    }) as LazyResponse<PurchaseOrderResponse>
+            )
+        );
+    };
+
+    /** Applies a PO's outstanding balance as the payment amount cap and default. */
+    private applyOutstandingAmount(outstandingAmount: number): void {
+        if (outstandingAmount > 0) {
+            this.form.get('amount')?.addValidators([Validators.max(outstandingAmount)]);
+            this.form.patchValue({ amount: outstandingAmount });
+        }
     }
 
     /**
@@ -373,11 +407,6 @@ export class SupplierPaymentFormComponent implements OnInit {
         this.filteredSupplierPaymentAccounts = this.supplierPaymentAccounts.filter((account) => account.accountName.toLowerCase().includes(query) || account.displayText.toLowerCase().includes(query));
     }
 
-    filterPOs(event: { query: string }): void {
-        const filtered = this.purchaseOrders.filter((po) => po.poNumber.toLowerCase().includes(event.query.toLowerCase()));
-        this.filteredPOs = filtered;
-    }
-
     loadPayment(): void {
         if (!this.paymentId) return;
         this.loading = true;
@@ -388,6 +417,7 @@ export class SupplierPaymentFormComponent implements OnInit {
                     paymentProviderId: payment.paymentProviderId,
                     amount: payment.amount,
                     paymentMethod: payment.paymentMethod,
+                    paymentType: payment.paymentType,
                     transactionNumber: payment.transactionNumber,
                     referenceNumber: payment.referenceNumber,
                     authorizationCode: payment.authorizationCode,
@@ -395,6 +425,16 @@ export class SupplierPaymentFormComponent implements OnInit {
                     notes: payment.notes,
                     paymentDate: new Date(payment.paymentDate)
                 });
+                if (payment.purchaseOrderId) {
+                    this.poService.getPurchaseOrderById(payment.purchaseOrderId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+                        next: (po) => {
+                            this.form.patchValue({ purchaseOrderId: po });
+                        },
+                        error: () => {
+                            this.form.patchValue({ purchaseOrderId: payment.purchaseOrderId });
+                        }
+                    });
+                }
                 this.loading = false;
             },
             error: (error) => {

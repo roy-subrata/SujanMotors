@@ -286,24 +286,30 @@
         </div>
 
         <!-- Purchase Order (for REGULAR payments) -->
-        <div class="form-row" *ngIf="!isEditing && !isAdvancePayment">
+        <div class="form-row" *ngIf="!isAdvancePayment">
           <div class="form-group">
             <label>
-              Purchase Order *
-              <span *ngIf="isFromPurchaseOrder" class="locked-badge-inline">
+              Purchase Order<span *ngIf="!isEditing"> *</span>
+              <span *ngIf="isEditing || isFromPurchaseOrder" class="locked-badge-inline">
                 <i class="pi pi-lock"></i> Locked
               </span>
             </label>
-            <p-autoComplete formControlName="purchaseOrderId" [suggestions]="filteredPOs"
-              (completeMethod)="filterPOs($event)" [dropdown]="true" field="poNumber" optionLabel="poNumber"
-              placeholder="Select purchase order..." [disabled]="isFromPurchaseOrder" [style]="{ width: '100%' }">
-              <ng-template let-po pTemplate="item">
+            <app-lazy-autocomplete
+              #poAutoComplete
+              formControlName="purchaseOrderId"
+              [fetchFn]="fetchPurchaseOrdersLazy"
+              optionLabel="poNumber"
+              placeholder="Select purchase order..."
+              [minLength]="0"
+              [showClear]="!isEditing && !isFromPurchaseOrder"
+              [emptyMessage]="'No purchase orders available for this supplier'">
+              <ng-template let-po>
                 <div class="autocomplete-item">
                   <span class="item-name">{{ po.poNumber }}</span>
-                  <span class="item-code">{{ po.supplierName }} | {{ formatCurrency(po.grandTotal) }}</span>
+                  <span class="item-code">{{ po.supplierName }} | {{ formatCurrency(po.grandTotal) }} | Due: {{ formatCurrency(po.outstandingAmount) }}</span>
                 </div>
               </ng-template>
-            </p-autoComplete>
+            </app-lazy-autocomplete>
             <small *ngIf="isFromPurchaseOrder" class="field-hint locked-hint">
               <i class="pi pi-info-circle"></i>
               Recording payment for this specific purchase order
