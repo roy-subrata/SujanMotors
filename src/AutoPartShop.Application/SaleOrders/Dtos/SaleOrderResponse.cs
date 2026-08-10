@@ -19,7 +19,7 @@ namespace AutoPartShop.Application.SaleOrders.Dtos
         public DateTime OrderDate { get; set; }
         public DateTime DeliveryDate { get; set; }
         public SalesOrderStatus Status { get; set; }
-        public string Channel { get; set; } = string.Empty; // POS | ECOMMERCE | MOBILE | API
+        public string Channel { get; set; } = string.Empty; // POS | MOBILE | API
         public DateTime? PaidDate { get; set; }
         public DateTime? PackedDate { get; set; }
         public DateTime? CompletedDate { get; set; }

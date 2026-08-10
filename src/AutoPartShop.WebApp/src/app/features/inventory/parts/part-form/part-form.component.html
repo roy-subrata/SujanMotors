@@ -270,86 +270,13 @@
       </div>
 
       <div class="pf-field pf-field-full">
-        <label>Short Description <span class="pf-optional">max 255 chars — shown on product cards</span></label>
+        <label>Short Description <span class="pf-optional">max 255 chars</span></label>
         <textarea pInputTextarea formControlName="description" rows="2"
-          placeholder="Brief summary for listing cards" [disabled]="isViewMode" maxlength="255"></textarea>
-      </div>
-      <div class="pf-field pf-field-full" style="margin-top: 0.75rem">
-        <label>Full Description <span class="pf-optional">HTML / Markdown — shown on product detail page</span></label>
-        <textarea pInputTextarea formControlName="richDescription" rows="5"
-          placeholder="Detailed description, specifications, features…" [disabled]="isViewMode"></textarea>
+          placeholder="Brief summary of the part" [disabled]="isViewMode" maxlength="255"></textarea>
       </div>
     </div>
 
-    <!-- ══ SECTION 5: Online Listing ══ -->
-    <div class="pf-section" [formGroup]="catalogEntryForm">
-      <div class="pf-section-head">
-        <i class="pi pi-globe"></i>
-        <span>Online Listing</span>
-        <span class="pf-section-badge">E-commerce</span>
-      </div>
-      <p class="pf-section-desc">
-        Controls how this product appears in the online storefront.
-        The slug and publishing status apply across all categories this product appears in.
-      </p>
-
-      <div class="pf-row">
-        <div class="pf-field">
-          <label>URL Slug</label>
-          <div class="pf-slug-wrap">
-            <span class="pf-slug-prefix">/products/</span>
-            <input pInputText formControlName="slug" placeholder="e.g. brake-pad-toyota-corolla"
-              [disabled]="isViewMode" />
-          </div>
-          <small class="pf-hint">{{ slugCharCount }}/200 · lowercase letters, numbers and hyphens only</small>
-          <small *ngIf="hasCatalogError('slug')" class="p-error">Only lowercase letters, numbers, and hyphens allowed</small>
-        </div>
-        <div class="pf-field">
-          <label>Listing Options</label>
-          <div class="pf-toggle-row">
-            <p-toggleSwitch formControlName="isPublished" [disabled]="isViewMode"></p-toggleSwitch>
-            <span class="pf-toggle-label">Published (visible in storefront)</span>
-          </div>
-          <div class="pf-toggle-row" style="margin-top: 0.6rem">
-            <p-toggleSwitch formControlName="isFeatured" [disabled]="isViewMode"></p-toggleSwitch>
-            <span class="pf-toggle-label">Featured (shown on homepage / category highlights)</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="pf-subsection-title">SEO <span class="pf-optional">optional — overrides auto-generated defaults</span></div>
-      <div class="pf-row">
-        <div class="pf-field">
-          <label>Meta Title</label>
-          <input pInputText formControlName="metaTitle"
-            placeholder="Page title for search engines" [disabled]="isViewMode" />
-          <small class="pf-hint pf-char-count"
-            [class.pf-char-warn]="metaTitleCharCount > 60">
-            {{ metaTitleCharCount }}/70 chars · aim for under 60
-          </small>
-        </div>
-        <div class="pf-field">
-          <label>Meta Description</label>
-          <input pInputText formControlName="metaDescription"
-            placeholder="Short summary shown in search results" [disabled]="isViewMode" />
-          <small class="pf-hint pf-char-count"
-            [class.pf-char-warn]="metaDescCharCount > 150">
-            {{ metaDescCharCount }}/160 chars · aim for under 150
-          </small>
-        </div>
-      </div>
-
-      <!-- Dynamic category hint -->
-      <div class="pf-callout pf-callout-green" *ngIf="selectedCategory">
-        <i class="pi pi-info-circle"></i>
-        <span>
-          Listed under <strong>{{ selectedCategory.name }}</strong>.
-          Customers browsing this category will see this product when published.
-        </span>
-      </div>
-    </div>
-
-    <!-- ══ SECTION 6: Warranty ══ -->
+    <!-- ══ SECTION 5: Warranty ══ -->
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-shield"></i>
@@ -393,13 +320,13 @@
       </ng-container>
     </div>
 
-    <!-- ══ SECTION 7: Variants ══ -->
+    <!-- ══ SECTION 6: Variants ══ -->
     <div class="pf-section">
       <app-product-variant-manager [partId]="partId || ''" [isViewMode]="isViewMode">
       </app-product-variant-manager>
     </div>
 
-    <!-- ══ SECTION 8: Vehicle Compatibility ══ (auto parts only) -->
+    <!-- ══ SECTION 7: Vehicle Compatibility ══ (auto parts only) -->
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-car"></i>

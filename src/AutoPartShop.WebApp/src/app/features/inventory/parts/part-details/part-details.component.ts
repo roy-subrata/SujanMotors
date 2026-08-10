@@ -24,7 +24,6 @@ import { PartService, PartResponse, VehicleCompatibilityResponse } from '../../s
 import { VehicleService, VehicleResponse } from '../../services/vehicle.service';
 import { ProductVariantService, ProductVariantResponse } from '../../services/product-variant.service';
 import { VariantPricingService, ActivePriceResponse } from '../../services/variant-pricing.service';
-import { CatalogEntryService, CatalogEntryResponse, UpsertCatalogEntryRequest } from '../../services/catalog-entry.service';
 import { ProductLocationManagerComponent } from '../product-location-manager.component';
 import { ProductVariantManagerComponent } from '../product-variant-manager/product-variant-manager.component';
 import { ProductMediaManagerComponent } from '../product-media-manager/product-media-manager.component';
@@ -51,7 +50,6 @@ export class PartDetailsComponent implements OnInit {
     private readonly partService = inject(PartService);
     private readonly variantService = inject(ProductVariantService);
     private readonly pricingService = inject(VariantPricingService);
-    private readonly catalogEntryService = inject(CatalogEntryService);
     private readonly vehicleService = inject(VehicleService);
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
@@ -98,22 +96,6 @@ export class PartDetailsComponent implements OnInit {
         reason:       ['']
     });
 
-    // Online Listing tab
-    catalogEntry = signal<CatalogEntryResponse | null>(null);
-    catalogEntryLoading = signal(false);
-    editingOnline = signal(false);
-    savingOnline = signal(false);
-
-    onlineForm = this.fb.group({
-        slug:            ['', [Validators.maxLength(200), Validators.pattern(/^[a-z0-9-]*$/)]],
-        shortDescription:['', [Validators.maxLength(300)]],
-        isPublished:     [true],
-        isFeatured:      [false],
-        featuredRank:    [0, [Validators.min(0)]],
-        metaTitle:       ['', [Validators.maxLength(70)]],
-        metaDescription: ['', [Validators.maxLength(160)]]
-    });
-
     ngOnInit(): void {
         this.loadAllVehicles();
         this.route.params.subscribe(params => {
@@ -123,7 +105,6 @@ export class PartDetailsComponent implements OnInit {
                 this.loadCompatibleVehicles();
                 this.loadBasePrice();
                 this.loadVariantsForPricing();
-                this.loadCatalogEntry();
             }
         });
     }
@@ -216,28 +197,6 @@ export class PartDetailsComponent implements OnInit {
         });
     }
 
-    private loadCatalogEntry(): void {
-        this.catalogEntryLoading.set(true);
-        this.catalogEntryService.get(this.partId!).subscribe({
-            next: entry => {
-                this.catalogEntry.set(entry);
-                if (entry) {
-                    this.onlineForm.patchValue({
-                        slug: entry.slug,
-                        shortDescription: entry.shortDescription,
-                        isPublished: entry.isPublished,
-                        isFeatured: entry.isFeatured,
-                        featuredRank: entry.featuredRank,
-                        metaTitle: entry.metaTitle ?? '',
-                        metaDescription: entry.metaDescription ?? ''
-                    });
-                }
-                this.catalogEntryLoading.set(false);
-            },
-            error: () => this.catalogEntryLoading.set(false)
-        });
-    }
-
     getVariantPrice(variantId: string): ActivePriceResponse | null | undefined {
         return this.variantPrices.get(variantId);
     }
@@ -307,67 +266,6 @@ export class PartDetailsComponent implements OnInit {
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
-
-    // ── Online Listing tab ─────────────────────────────────────────────────
-
-    startEditOnline(): void {
-        const entry = this.catalogEntry();
-        if (!entry) {
-            this.onlineForm.patchValue({
-                slug: this.buildSlugFromPart(),
-                isPublished: true, isFeatured: false, featuredRank: 0
-            });
-        }
-        this.editingOnline.set(true);
-    }
-
-    cancelEditOnline(): void { this.editingOnline.set(false); }
-
-    saveOnlineListing(): void {
-        if (this.onlineForm.invalid) { this.onlineForm.markAllAsTouched(); return; }
-        const v = this.onlineForm.value;
-        const slugVal = (v.slug || '').trim();
-        if (!slugVal) {
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Slug is required' });
-            return;
-        }
-
-        const req: UpsertCatalogEntryRequest = {
-            slug: slugVal,
-            shortDescription: v.shortDescription?.trim() || '',
-            isPublished: v.isPublished ?? true,
-            isFeatured: v.isFeatured ?? false,
-            featuredRank: v.featuredRank ?? 0,
-            metaTitle: v.metaTitle?.trim() || null,
-            metaDescription: v.metaDescription?.trim() || null
-        };
-
-        this.savingOnline.set(true);
-        this.catalogEntryService.upsert(this.partId!, req).subscribe({
-            next: (saved) => {
-                this.catalogEntry.set(saved);
-                this.editingOnline.set(false);
-                this.savingOnline.set(false);
-                this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Online listing updated' });
-            },
-            error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'Failed to save' });
-                this.savingOnline.set(false);
-            }
-        });
-    }
-
-    private buildSlugFromPart(): string {
-        if (!this.part?.name) return '';
-        return this.part.name.trim().toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-');
-    }
-
-    get onlineSlugCharCount(): number { return (this.onlineForm.get('slug')?.value || '').length; }
-    get onlineMetaTitleCount(): number { return (this.onlineForm.get('metaTitle')?.value || '').length; }
-    get onlineMetaDescCount(): number { return (this.onlineForm.get('metaDescription')?.value || '').length; }
 
     // ── Helpers ────────────────────────────────────────────────────────────
 

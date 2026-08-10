@@ -886,7 +886,7 @@ public sealed class ProductImportService(
         var part = Product.Create(
             row.Name!.Trim(), partNumber, sku, catRef.Entity.Id,
             brandId, unitId, unitId,
-            row.Description?.Trim() ?? string.Empty, richDescription: null,
+            row.Description?.Trim() ?? string.Empty,
             row.CostPrice ?? 0, row.SellingPrice ?? 0, row.MinimumStock ?? 0,
             hasWarranty, row.WarrantyPeriodMonths, row.WarrantyType,
             warrantyTerms: null, warrantyCertificateTemplate: null,
@@ -948,7 +948,6 @@ public sealed class ProductImportService(
             isPerishable: part.IsPerishable,
             weightKg: row.WeightKg ?? part.WeightKg,
             taxCode: row.TaxCode?.Trim() ?? part.TaxCode,
-            richDescription: part.RichDescription,
             oemNumber: row.OemNumber?.Trim() ?? part.OemNumber,
             localName: row.LocalName?.Trim() ?? part.LocalName);
 

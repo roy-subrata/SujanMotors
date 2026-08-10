@@ -20,7 +20,7 @@ class SaleNotification {
   final String customerName;
   final double grandTotal;
   final String currency;
-  final String saleChannel; // POS | ECOMMERCE | MOBILE
+  final String saleChannel; // POS | MOBILE
   final String saleType; // SALE | QUICK_SALE
   final DateTime occurredAt;
   final String createdBy;

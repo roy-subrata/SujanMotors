@@ -14,7 +14,7 @@ import 'products_repository.dart';
 
 /// Edit a product's simple specs — a reorderable list of Label/Value rows with
 /// typeahead suggestions drawn from specs already used across the catalog, so
-/// staff converge on consistent terms (keeps ecommerce facets clean later).
+/// staff converge on consistent terms.
 class ProductSpecsEditScreen extends ConsumerStatefulWidget {
   const ProductSpecsEditScreen({super.key, required this.productId});
 

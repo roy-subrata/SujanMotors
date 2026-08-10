@@ -3,7 +3,6 @@
 using System.Security.Claims;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Entities.HR;
-using AutoPartShop.Domain.Entities.Ecommerce;
 using AutoPartsShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
@@ -49,12 +48,10 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<Unit> Units { get; set; }
     public DbSet<UnitConversion> UnitConversions { get; set; }
     public DbSet<Product> Parts { get; set; }
-    public DbSet<ProductCatalogEntry> ProductCatalogEntries { get; set; }
     public DbSet<ProductVariant> ProductVariants { get; set; }
     public DbSet<ProductAttributeGroup> ProductAttributeGroups { get; set; }
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
     public DbSet<ProductAttributeOption> ProductAttributeOptions { get; set; }
-    public DbSet<CategoryAttribute> CategoryAttributes { get; set; }
     public DbSet<VariantAttributeValue> VariantAttributeValues { get; set; }
     public DbSet<ProductMedia> ProductMedias { get; set; }
     public DbSet<CompatibilityRule> CompatibilityRules { get; set; }
@@ -103,11 +100,8 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<WarrantyRegistration> WarrantyRegistrations { get; set; }
     public DbSet<WarrantyClaim> WarrantyClaims { get; set; }
     public DbSet<WarrantyClaimEvent> WarrantyClaimEvents { get; set; }
-    public DbSet<Shipment> Shipments { get; set; }
-    public DbSet<ShipmentLine> ShipmentLines { get; set; }
     public DbSet<Challan> Challans { get; set; }
     public DbSet<ChallanLine> ChallanLines { get; set; }
-    public DbSet<CartReservation> CartReservations { get; set; }
     public DbSet<SupplierPaymentAccount> SupplierPaymentAccounts { get; set; }
     public DbSet<CreditNote> CreditNotes { get; set; }
     public DbSet<CustomerCreditNote> CustomerCreditNotes { get; set; }

@@ -5,7 +5,6 @@ namespace AutoPartShop.Application.Parts
     public interface IProductReadRepository
     {
         Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllAsync(ProductQuery query, CancellationToken cancellationToken = default);
-        Task<(IEnumerable<ProductPublicResponse> Parts, int TotalCount)> FindAllPublicAsync(ProductQuery query, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Semantic search: ranks products by cosine distance between their stored embedding and

@@ -37,7 +37,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 Name = x.Product.Name,
                 DisplayName = x.Product.Name,
                 Description = x.Product.Description,
-                RichDescription = x.Product.RichDescription,
                 PartNumber = x.Product.PartNumber != null ? x.Product.PartNumber.Value : "",
                 SKU = x.Product.SKU,
                 OemNumber = x.Product.OemNumber,
@@ -131,7 +130,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 Name = part.Name,
                 DisplayName = part.Name,
                 Description = part.Description,
-                RichDescription = part.RichDescription,
                 PartNumber = part.PartNumber != null ? part.PartNumber.Value : "",
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
@@ -247,7 +245,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 Name = part.Name,
                 DisplayName = part.Name,
                 Description = part.Description,
-                RichDescription = part.RichDescription,
                 PartNumber = part.PartNumber != null ? part.PartNumber.Value : "",
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
@@ -317,7 +314,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 Name = v.Part!.Name,
                 DisplayName = v.Name.StartsWith(v.Part.Name) ? v.Name : v.Part.Name + " - " + v.Name,
                 Description = v.Part.Description,
-                RichDescription = v.Part.RichDescription,
                 PartNumber = v.PartNumber != null ? v.PartNumber.Value
                     : (v.Part.PartNumber != null ? v.Part.PartNumber.Value : ""),
                 SKU = v.Part.SKU,
@@ -379,248 +375,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
         return (paged, totalCount);
     }
 
-    public async Task<(IEnumerable<ProductPublicResponse> Parts, int TotalCount)> FindAllPublicAsync(ProductQuery query, CancellationToken cancellationToken = default)
-    {
-        var term = query.Search.ToLower();
-
-        if (query.FlattenVariants)
-            return await FindAllPublicFlattenedAsync(query, term, cancellationToken);
-
-        var parts = _db.Parts
-            .Include(p => p.Category)
-            .Include(p => p.Brand)
-            .Include(p => p.Unit)
-            .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted)
-            .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"));
-
-        if (query.Sorts != null && query.Sorts.Any())
-        {
-            var sorts = query.Sorts.Select(x => (x.Field, x.Direction == "asc" ? true : false)).ToArray();
-            parts = parts.OrderByMultiple(sorts);
-        }
-        else
-        {
-            parts = parts.OrderByDescending(x => x.CreatedDate);
-        }
-
-        var totalCount = await parts.CountAsync(cancellationToken);
-        var items = await parts
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .Select(part => new ProductPublicResponse
-            {
-                Id = part.Id,
-                Name = part.Name,
-                DisplayName = part.Name,
-                Description = part.Description,
-                RichDescription = part.RichDescription,
-                PartNumber = part.PartNumber != null ? part.PartNumber.Value : "",
-                SKU = part.SKU,
-                OemNumber = part.OemNumber,
-                LocalName = part.LocalName,
-                CategoryId = part.CategoryId,
-                CategoryName = part.Category != null ? part.Category.Name : string.Empty,
-                BrandId = part.BrandId,
-                BrandName = part.Brand != null ? part.Brand.Name : null,
-                BaseUnitId = part.BaseUnitId,
-                BaseUnitName = part.BaseUnit != null ? part.BaseUnit.Name : null,
-                BaseUnitCode = part.BaseUnit != null ? part.BaseUnit.Symbol : null,
-                UnitId = part.UnitId,
-                UnitName = part.Unit != null ? part.Unit.Name : null,
-                SellingPrice = part.SellingPrice,
-                EffectiveSellingPrice = part.SellingPrice,
-                HasVariants = part.Variants.Any(v => v.IsActive && !v.Isdeleted),
-                IsVariant = false,
-                MinimumStock = part.MinimumStock,
-                IsActive = part.IsActive,
-                HasWarranty = part.HasWarranty,
-                WarrantyPeriodMonths = part.WarrantyPeriodMonths,
-                WarrantyType = part.WarrantyType,
-                WarrantyTerms = part.WarrantyTerms,
-                WarrantyCertificateTemplate = part.WarrantyCertificateTemplate,
-                Barcode = part.Barcode,
-                Tags = part.Tags,
-                ProductType = part.ProductType,
-                IsPerishable = part.IsPerishable,
-                WeightKg = part.WeightKg,
-                TaxCode = part.TaxCode
-            })
-            .ToListAsync(cancellationToken);
-
-        await ApplyPublicVehicleFitAsync(items, cancellationToken);
-        var stockMapPub = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
-        foreach (var it in items) it.TotalStock = stockMapPub.TryGetValue(it.Id, out var sp) ? sp : 0;
-        return (items, totalCount);
-    }
-
-    private async Task<(IEnumerable<ProductPublicResponse> Parts, int TotalCount)> FindAllPublicFlattenedAsync(
-        ProductQuery query, string term, CancellationToken cancellationToken)
-    {
-        var baseItems = await _db.Parts
-            .Include(p => p.Category)
-            .Include(p => p.Brand)
-            .Include(p => p.Unit)
-            .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted)
-            .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
-            .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted))
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"))
-            .Select(part => new ProductPublicResponse
-            {
-                Id = part.Id,
-                Name = part.Name,
-                DisplayName = part.Name,
-                Description = part.Description,
-                RichDescription = part.RichDescription,
-                PartNumber = part.PartNumber != null ? part.PartNumber.Value : "",
-                SKU = part.SKU,
-                OemNumber = part.OemNumber,
-                LocalName = part.LocalName,
-                CategoryId = part.CategoryId,
-                CategoryName = part.Category != null ? part.Category.Name : string.Empty,
-                BrandId = part.BrandId,
-                BrandName = part.Brand != null ? part.Brand.Name : null,
-                BaseUnitId = part.BaseUnitId,
-                BaseUnitName = part.BaseUnit != null ? part.BaseUnit.Name : null,
-                BaseUnitCode = part.BaseUnit != null ? part.BaseUnit.Symbol : null,
-                UnitId = part.UnitId,
-                UnitName = part.Unit != null ? part.Unit.Name : null,
-                SellingPrice = part.SellingPrice,
-                EffectiveSellingPrice = part.SellingPrice,
-                HasVariants = false,
-                IsVariant = false,
-                MinimumStock = part.MinimumStock,
-                IsActive = part.IsActive,
-                HasWarranty = part.HasWarranty,
-                WarrantyPeriodMonths = part.WarrantyPeriodMonths,
-                WarrantyType = part.WarrantyType,
-                WarrantyTerms = part.WarrantyTerms,
-                WarrantyCertificateTemplate = part.WarrantyCertificateTemplate,
-                Barcode = part.Barcode,
-                Tags = part.Tags,
-                ProductType = part.ProductType,
-                IsPerishable = part.IsPerishable,
-                WeightKg = part.WeightKg,
-                TaxCode = part.TaxCode
-            })
-            .ToListAsync(cancellationToken);
-
-        // See the equivalent note in FindAllFlattenedAsync — EF Core cannot translate this
-        // Include(v => v.Part)-then-filter-on-Part combination (tried both a single combined
-        // Where() and chained ones), so fetch with only the safely-translatable filter and apply
-        // the optional query filters + search-term match in memory.
-        var candidateVariants = await _db.ProductVariants
-            .Include(v => v.Part).ThenInclude(p => p!.Category)
-            .Include(v => v.Part).ThenInclude(p => p!.Brand)
-            .Include(v => v.Part).ThenInclude(p => p!.Unit)
-            .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
-            .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
-            .ToListAsync(cancellationToken);
-
-        var variantItems = candidateVariants
-            .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
-            .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId)
-            .Where(v => v.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || (v.SKU != null && v.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || (v.PartNumber != null && v.PartNumber.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || (v.OemNumber != null && v.OemNumber.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || v.Part!.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || v.Part.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
-            .Select(v => new ProductPublicResponse
-            {
-                Id = v.PartId,
-                Name = v.Part!.Name,
-                DisplayName = v.Name.StartsWith(v.Part.Name) ? v.Name : v.Part.Name + " - " + v.Name,
-                Description = v.Part.Description,
-                RichDescription = v.Part.RichDescription,
-                PartNumber = v.PartNumber != null ? v.PartNumber.Value
-                    : (v.Part.PartNumber != null ? v.Part.PartNumber.Value : ""),
-                SKU = v.Part.SKU,
-                OemNumber = v.OemNumber ?? v.Part.OemNumber,
-                LocalName = v.Part.LocalName,
-                CategoryId = v.Part.CategoryId,
-                CategoryName = v.Part.Category != null ? v.Part.Category.Name : string.Empty,
-                BrandId = v.Part.BrandId,
-                BrandName = v.Part.Brand != null ? v.Part.Brand.Name : null,
-                BaseUnitId = v.Part.BaseUnitId,
-                BaseUnitName = v.Part.BaseUnit != null ? v.Part.BaseUnit.Name : null,
-                BaseUnitCode = v.Part.BaseUnit != null ? v.Part.BaseUnit.Symbol : null,
-                UnitId = v.Part.UnitId,
-                UnitName = v.Part.Unit != null ? v.Part.Unit.Name : null,
-                SellingPrice = v.Part.SellingPrice,
-                EffectiveSellingPrice = v.SellingPrice > 0 ? v.SellingPrice : v.Part.SellingPrice,
-                HasVariants = true,
-                IsVariant = true,
-                VariantId = v.Id,
-                VariantName = v.Name,
-                VariantCode = v.Code,
-                VariantSKU = v.SKU,
-                VariantBarcode = v.Barcode,
-                MinimumStock = v.Part.MinimumStock,
-                IsActive = v.Part.IsActive,
-                HasWarranty = v.HasWarrantyOverride ?? v.Part.HasWarranty,
-                WarrantyPeriodMonths = v.HasWarrantyOverride.HasValue ? v.WarrantyPeriodMonthsOverride : v.Part.WarrantyPeriodMonths,
-                WarrantyType = v.HasWarrantyOverride.HasValue ? v.WarrantyTypeOverride : v.Part.WarrantyType,
-                WarrantyTerms = v.Part.WarrantyTerms,
-                WarrantyCertificateTemplate = v.Part.WarrantyCertificateTemplate,
-                Barcode = v.Barcode ?? v.Part.Barcode,
-                Tags = v.Part.Tags,
-                ProductType = v.Part.ProductType,
-                IsPerishable = v.Part.IsPerishable,
-                WeightKg = v.WeightKg ?? v.Part.WeightKg,
-                TaxCode = v.Part.TaxCode
-            })
-            .ToList();
-
-        var allItems = baseItems.Concat(variantItems)
-            .OrderBy(x => x.Name).ThenBy(x => x.VariantName)
-            .ToList();
-
-        var totalCount = allItems.Count;
-        var paged = allItems
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .ToList();
-
-        await ApplyPublicVehicleFitAsync(paged, cancellationToken);
-        var stockMapPubFlat = await GetStockTotalsAsync(paged.Select(i => i.Id), cancellationToken);
-        foreach (var it in paged) it.TotalStock = stockMapPubFlat.TryGetValue(it.Id, out var spf) ? spf : 0;
-        return (paged, totalCount);
-    }
-
     private async Task ApplyVehicleFitAsync(List<ProductResponse> items, CancellationToken cancellationToken)
-    {
-        if (items.Count == 0) return;
-
-        var partIds = items.Select(i => i.Id).Distinct().ToList();
-        var compatibilities = await _db.PartVehicleCompatibilities
-            .Include(vc => vc.Vehicle)
-            .Where(vc => !vc.Isdeleted && vc.IsCompatible && partIds.Contains(vc.PartId) && vc.Vehicle != null)
-            .Select(vc => new { vc.PartId, Make = vc.Vehicle!.Make, Model = vc.Vehicle.Model, Year = vc.Vehicle.Year })
-            .ToListAsync(cancellationToken);
-
-        var byPart = compatibilities
-            .GroupBy(c => c.PartId)
-            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Make).ToList());
-
-        foreach (var item in items)
-        {
-            if (!byPart.TryGetValue(item.Id, out var vehicles) || vehicles.Count == 0)
-                continue;
-
-            var labels = vehicles.Take(2).Select(v => $"{v.Make} {v.Model} {v.Year}");
-            var summary = string.Join(", ", labels);
-            if (vehicles.Count > 2)
-                summary += $" +{vehicles.Count - 2}";
-            item.VehicleFit = summary;
-        }
-    }
-
-    private async Task ApplyPublicVehicleFitAsync(List<ProductPublicResponse> items, CancellationToken cancellationToken)
     {
         if (items.Count == 0) return;
 

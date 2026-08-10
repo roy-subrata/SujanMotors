@@ -11,11 +11,10 @@ public class Product : AuditableEntity
     // ── Core identity ────────────────────────────────────────────────────────
     public string Name { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;       // Short summary (255 chars)
-    public string? RichDescription { get; private set; }                  // Full HTML/markdown for product pages
     public PartNumber? PartNumber { get; private set; }  // Manufacturer's catalog code — optional (some brands don't publish one); SKU is the required identifier
     public string SKU { get; private set; } = string.Empty;
     public string? OemNumber { get; private set; }  // Manufacturer OEM part number (optional)
-    public string? Barcode { get; private set; }  // UPC / EAN / QR — for POS scanner & ecommerce
+    public string? Barcode { get; private set; }  // UPC / EAN / QR — for POS scanner
     public string? LocalName { get; private set; }  // Local-language name (e.g. Bengali) for staff display
 
     // ── Classification ───────────────────────────────────────────────────────
@@ -58,13 +57,11 @@ public class Product : AuditableEntity
     public ICollection<PartVehicleCompatibility> VehicleCompatibilities { get; set; } = new List<PartVehicleCompatibility>();
     public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
     public ICollection<ProductMedia> Media { get; set; } = new List<ProductMedia>();
-    public ProductCatalogEntry? CatalogEntry { get; set; }
 
     private Product() { }
 
     public static Product Create(string name, PartNumber? partNumber, string sku, Guid categoryId,
         Guid? brandId = null, Guid? baseUnitId = null, Guid? unitId = null, string description = "",
-        string? richDescription = null,
         decimal costPrice = 0, decimal sellingPrice = 0, int minimumStock = 0,
         bool hasWarranty = false, int? warrantyPeriodMonths = null, string? warrantyType = null,
         string? warrantyTerms = null, string? warrantyCertificateTemplate = null,
@@ -117,7 +114,6 @@ public class Product : AuditableEntity
         {
             Name = name.Trim(),
             Description = description?.Trim() ?? string.Empty,
-            RichDescription = richDescription?.Trim(),
             PartNumber = partNumber,
             SKU = sku.Trim().ToUpper(),
             OemNumber = oemNumber?.Trim().ToUpperInvariant(),
@@ -151,7 +147,7 @@ public class Product : AuditableEntity
         string? warrantyTerms = null, string? warrantyCertificateTemplate = null,
         string? barcode = null, string? tags = null, string productType = "PHYSICAL",
         bool isPerishable = false, decimal? weightKg = null,
-        string? taxCode = null, string? richDescription = null, string? oemNumber = null, string? localName = null)
+        string? taxCode = null, string? oemNumber = null, string? localName = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -190,7 +186,6 @@ public class Product : AuditableEntity
 
         Name = name.Trim();
         Description = description?.Trim() ?? string.Empty;
-        RichDescription = richDescription?.Trim();
         SKU = sku.Trim().ToUpper();
         OemNumber = oemNumber?.Trim().ToUpperInvariant();
         Barcode = barcode?.Trim();

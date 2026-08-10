@@ -12,8 +12,8 @@ namespace AutoPartShop.Infrastructure.Services;
 /// <see cref="Domain.Entities.ProductVariantPriceHistory.StartDate"/> arrives.
 ///
 /// The "Set Price" flow only syncs the denormalized column when the price is effective
-/// immediately; a future-dated price would otherwise never become visible to the catalog,
-/// Quick Sale, or ecommerce because those read the denormalized column rather than the
+/// immediately; a future-dated price would otherwise never become visible to the catalog
+/// or Quick Sale because those read the denormalized column rather than the
 /// price-history schedule. This service closes that gap by running shortly after startup
 /// and then hourly, applying whichever history row is active today.
 /// </summary>

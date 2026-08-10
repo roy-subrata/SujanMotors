@@ -94,14 +94,13 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
 
         public async Task<IReadOnlyCollection<LinkableUserResponse>> GetLinkableUsers(Guid? currentEmployeeId, CancellationToken cancellationToken)
         {
-            // Staff accounts only (online shoppers have CustomerId set), active, and not
-            // already backing another employee record
+            // Staff accounts only, active, and not already backing another employee record
             var linkedUserIds = _dbContext.Employees
                 .Where(e => !e.Isdeleted && e.UserId != null && e.Id != currentEmployeeId)
                 .Select(e => e.UserId!.Value);
 
             return await _dbContext.Users
-                .Where(u => u.CustomerId == null && u.IsActive && !linkedUserIds.Contains(u.Id))
+                .Where(u => u.IsActive && !linkedUserIds.Contains(u.Id))
                 .OrderBy(u => u.UserName)
                 .Select(u => new LinkableUserResponse
                 {

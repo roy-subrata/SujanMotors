@@ -671,7 +671,6 @@ export class AppTopbar implements OnInit, OnDestroy {
             '/admin/company-profile': 'menu.companyProfile',
             '/admin/currencies': 'menu.currencies',
             '/admin/exchange-rates': 'menu.exchangeRates',
-            '/admin/shop-policies': 'menu.shopPolicies',
             '/admin-settings': 'menu.settings',
             '/audit/dashboard': 'menu.auditDashboard',
             '/audit/logs': 'menu.auditTrail',

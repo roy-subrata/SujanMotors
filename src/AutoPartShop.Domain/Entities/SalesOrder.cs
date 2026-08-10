@@ -46,7 +46,7 @@ public class SalesOrder : AggregateRoot
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
     public decimal? BaseGrandTotal { get; private set; }  // GrandTotal converted to base currency at sale time
     public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseGrandTotal was captured (1 = same as base)
-    public string Channel { get; private set; } = "POS";  // POS | ECOMMERCE | MOBILE | API
+    public string Channel { get; private set; } = "POS";  // POS | MOBILE | API
 
     // Navigation properties
     public Customer? Customer { get; set; }
@@ -59,7 +59,7 @@ public class SalesOrder : AggregateRoot
 
     private SalesOrder() { }
 
-    public static readonly string[] ValidChannels = ["POS", "ECOMMERCE", "MOBILE", "API"];
+    public static readonly string[] ValidChannels = ["POS", "MOBILE", "API"];
 
     public static SalesOrder Create(string soNumber, Guid customerId, string customerName,
         string customerEmail, string customerPhone, Guid? warehouseId = null,

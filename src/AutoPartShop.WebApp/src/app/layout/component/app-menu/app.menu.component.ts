@@ -338,13 +338,6 @@ export class AppMenuComponent implements OnInit {
                 ]
             },
 
-            // ==================== ONLINE STORE ====================
-            {
-                label: this.i18n.t('menu.onlineStore'),
-                icon: 'pi pi-globe',
-                routerLink: ['/shop']
-            },
-
             // ==================== ADMINISTRATION (admin only) ====================
             {
                 label: this.i18n.t('menu.administration'),
@@ -360,11 +353,6 @@ export class AppMenuComponent implements OnInit {
                         label: this.i18n.t('menu.currencies'),
                         icon: 'pi pi-dollar',
                         routerLink: ['/admin/currencies']
-                    },
-                    {
-                        label: this.i18n.t('menu.shopPolicies'),
-                        icon: 'pi pi-shield',
-                        routerLink: ['/admin/shop-policies']
                     },
                     {
                         label: this.i18n.t('menu.settings'),
