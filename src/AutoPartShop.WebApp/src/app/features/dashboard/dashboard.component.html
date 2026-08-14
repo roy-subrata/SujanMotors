@@ -151,6 +151,60 @@
       </div>
     </div>
 
+    <!-- ══════════════════ Work Queue + Low Stock ══════════════════ -->
+    <div class="tables-row">
+      <div class="dash-card table-card">
+        <div class="table-card-header">
+          <span class="dash-card-title">Work Queue</span>
+          <span class="dash-card-sub">Open items needing action</span>
+        </div>
+        <div class="queue-grid">
+          @for (item of workQueueItems(); track item.label) {
+            <a class="queue-item" [routerLink]="item.link" [queryParams]="item.queryParams">
+              <span class="queue-item-icon"><i [class]="item.icon"></i></span>
+              <span class="queue-item-text">
+                <span class="queue-item-label">{{ item.label }}</span>
+                <span class="queue-item-sub">{{ item.sub }}</span>
+              </span>
+              <span class="queue-item-count">{{ item.count }}</span>
+            </a>
+          } @empty {
+            <div class="dash-table-empty">
+              <i class="pi pi-check-circle"></i>
+              <span>Nothing needs attention right now</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="dash-card table-card">
+        <div class="table-card-header">
+          <span class="dash-card-title">Low Stock</span>
+          <a class="dash-card-link" [routerLink]="['/inventory/stock']" [queryParams]="{ tab: 'low' }">View all</a>
+        </div>
+        <div class="dash-table-head dash-table-head-lowstock">
+          <span>Part</span>
+          <span class="col-right">Warehouse</span>
+          <span class="col-right">Qty</span>
+        </div>
+        @for (row of lowStockRows(); track row.id) {
+          <div class="dash-table-row dash-table-head-lowstock">
+            <div class="cell-primary">
+              <span class="cell-title">{{ row.partName }}</span>
+              <span class="cell-sub">{{ row.partSku }}</span>
+            </div>
+            <span class="col-right cell-muted small">{{ row.warehouseName }}</span>
+            <span class="col-right cell-red">{{ row.quantity }}</span>
+          </div>
+        } @empty {
+          <div class="dash-table-empty">
+            <i class="pi pi-check-circle"></i>
+            <span>No parts below minimum stock</span>
+          </div>
+        }
+      </div>
+    </div>
+
     <!-- ══════════════════ Insight strip ══════════════════ -->
     <div class="insight-strip">
       <div class="insight-cell">

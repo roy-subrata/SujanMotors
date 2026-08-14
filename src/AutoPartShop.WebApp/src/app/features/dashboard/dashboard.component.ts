@@ -1,6 +1,9 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 // PrimeNG imports
 import { CardModule } from 'primeng/card';
@@ -18,10 +21,26 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DashboardService, DashboardResponse, FinancialSummaryRequest } from './services/dashboard.service';
 import { CurrencyService } from '../../shared/services/currency.service';
 import { MessageService } from 'primeng/api';
+import { PurchaseOrderService } from '../procurement/services/purchase-order.service';
+import { SalesOrderService } from '../sales/services/sales-order.service';
+import { WarrantyService } from '../warranty/services/warranty.service';
+import { InvoiceService } from '../sales/services/invoice.service';
+import { SalesReturnService } from '../sales/services/sales-return.service';
+import { StockTakeService } from '../inventory/services/stock-take.service';
+import { StockService, StockLevelResponse } from '../inventory/services/stock.service';
 
 interface PeriodOption {
   label: string;
   value: 'DAILY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM';
+}
+
+interface WorkQueueItem {
+  label: string;
+  sub: string;
+  count: number;
+  icon: string;
+  link: string[];
+  queryParams?: Record<string, string>;
 }
 
 @Component({
@@ -30,6 +49,7 @@ interface PeriodOption {
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     CardModule,
     SelectModule,
     ButtonModule,
@@ -49,11 +69,24 @@ export class DashboardComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
+  private readonly purchaseOrderService = inject(PurchaseOrderService);
+  private readonly salesOrderService = inject(SalesOrderService);
+  private readonly warrantyService = inject(WarrantyService);
+  private readonly invoiceService = inject(InvoiceService);
+  private readonly salesReturnService = inject(SalesReturnService);
+  private readonly stockTakeService = inject(StockTakeService);
+  private readonly stockService = inject(StockService);
 
   // Signals for state management
   loading = signal(false);
   dashboardData = signal<DashboardResponse | null>(null);
   hasError = signal(false);
+
+  // Work Queue + Low Stock — point-in-time operational widgets, loaded once,
+  // independent of the period selector so they don't jump around as the user
+  // changes the KPI date range. Each fails soft/independently (see loadWorkQueue()).
+  workQueueItems = signal<WorkQueueItem[]>([]);
+  lowStockRows = signal<StockLevelResponse[]>([]);
 
   // Period selection
   periodOptions: PeriodOption[] = [
@@ -79,6 +112,80 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.initializeChartOptions();
     this.loadDashboard();
+    this.loadWorkQueue();
+    this.loadLowStock();
+  }
+
+  /**
+   * Six operational counts, each from an existing list endpoint (pageSize:1 where a
+   * paginated endpoint exists, reading only the total count — same technique as the
+   * Phase 3/4 stat strips). Each call is wrapped in its own catchError so a 403 on
+   * one (these are gated by their own domain permission, not the dashboard's
+   * reports.view) just drops that item instead of blanking the whole panel.
+   */
+  private loadWorkQueue(): void {
+    forkJoin({
+      purchaseOrders: this.purchaseOrderService
+        .getPurchaseOrders({ search: '', pageNumber: 1, pageSize: 1, status: 'CONFIRMED' })
+        .pipe(catchError(() => of(null))),
+      deliveries: this.salesOrderService.getPendingDeliveries().pipe(catchError(() => of(null))),
+      warrantyClaims: this.warrantyService.getClaimsByStatus('PENDING').pipe(catchError(() => of(null))),
+      invoices: this.invoiceService
+        .getAllInvoices(1, 1, { status: 'OVERDUE' })
+        .pipe(catchError(() => of(null))),
+      salesReturns: this.salesReturnService.getAllSalesReturns().pipe(catchError(() => of(null))),
+      stockTakes: this.stockTakeService
+        .getStockTakes({ pageNumber: 1, pageSize: 1, status: 'COUNTING' })
+        .pipe(catchError(() => of(null)))
+    }).subscribe(({ purchaseOrders, deliveries, warrantyClaims, invoices, salesReturns, stockTakes }) => {
+      const items: WorkQueueItem[] = [];
+      if (purchaseOrders) {
+        items.push({
+          label: 'Purchase orders to receive', sub: 'Awaiting goods receipt', icon: 'pi pi-file',
+          count: purchaseOrders.pagination.totalCount, link: ['/procurement/purchase-orders']
+        });
+      }
+      if (deliveries) {
+        items.push({
+          label: 'Deliveries pending', sub: 'Not yet delivered', icon: 'pi pi-truck',
+          count: deliveries.data.length, link: ['/sales/pending-deliveries']
+        });
+      }
+      if (warrantyClaims) {
+        items.push({
+          label: 'Warranty claims open', sub: 'Awaiting action', icon: 'pi pi-exclamation-triangle',
+          count: warrantyClaims.length, link: ['/warranty/claims']
+        });
+      }
+      if (invoices) {
+        items.push({
+          label: 'Invoices overdue', sub: 'Past due date', icon: 'pi pi-file-check',
+          count: invoices.pagination.totalCount, link: ['/sales/invoices']
+        });
+      }
+      if (salesReturns) {
+        items.push({
+          label: 'Sales returns to approve', sub: 'Pending review', icon: 'pi pi-replay',
+          count: salesReturns.filter(r => r.status === 'PENDING').length, link: ['/sales/sales-returns']
+        });
+      }
+      if (stockTakes) {
+        items.push({
+          label: 'Stock takes in progress', sub: 'Counting under way', icon: 'pi pi-list-check',
+          count: stockTakes.pagination.totalCount, link: ['/inventory/stock-takes']
+        });
+      }
+      this.workQueueItems.set(items);
+    });
+  }
+
+  private loadLowStock(): void {
+    this.stockService
+      .getStockLevels({ pageNumber: 1, pageSize: 6, lowStockOnly: true })
+      .pipe(catchError(() => of(null)))
+      .subscribe(response => {
+        this.lowStockRows.set(response?.data ?? []);
+      });
   }
 
   onPeriodChange(): void {
