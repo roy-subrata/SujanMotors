@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
@@ -14,6 +14,9 @@ import { StockService, StockLevelResponse } from '../services/stock.service';
 import { PartService, PartResponse } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-stock-adjustment-dialog',
@@ -28,7 +31,8 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../s
     SelectModule,
     CardModule,
     ToastModule,
-    LazyAutocompleteComponent
+    LazyAutocompleteComponent,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './stock-adjustment-dialog.component.html',
@@ -42,6 +46,8 @@ export class StockAdjustmentDialogComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   form: FormGroup;
   isSubmitting = false;
@@ -68,14 +74,18 @@ export class StockAdjustmentDialogComponent implements OnInit {
 
   warehouseOptions: { label: string; value: string }[] = [];
 
-  adjustmentTypes = [
-    { label: 'Increase Stock (Found)', value: 'FOUND' },
-    { label: 'Decrease Stock (Damaged)', value: 'DAMAGED' },
-    { label: 'Decrease Stock (Expired)', value: 'EXPIRED' },
-    { label: 'Decrease Stock (Lost)', value: 'LOST' },
-    { label: 'Count Correction (Increase)', value: 'COUNT_CORRECTION_UP' },
-    { label: 'Count Correction (Decrease)', value: 'COUNT_CORRECTION_DOWN' }
-  ];
+  adjustmentTypes: { label: string; value: string }[] = [];
+
+  private buildAdjustmentTypes(): void {
+    this.adjustmentTypes = [
+      { label: this.i18n.t('stock.adjustmentDialog.types.increaseFound'), value: 'FOUND' },
+      { label: this.i18n.t('stock.adjustmentDialog.types.decreaseDamaged'), value: 'DAMAGED' },
+      { label: this.i18n.t('stock.adjustmentDialog.types.decreaseExpired'), value: 'EXPIRED' },
+      { label: this.i18n.t('stock.adjustmentDialog.types.decreaseLost'), value: 'LOST' },
+      { label: this.i18n.t('stock.adjustmentDialog.types.countUp'), value: 'COUNT_CORRECTION_UP' },
+      { label: this.i18n.t('stock.adjustmentDialog.types.countDown'), value: 'COUNT_CORRECTION_DOWN' }
+    ];
+  }
 
   constructor() {
     this.form = this.fb.group({
@@ -88,6 +98,11 @@ export class StockAdjustmentDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.buildAdjustmentTypes();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildAdjustmentTypes();
+    });
+
     this.mode = this.config.data?.mode === 'create' ? 'create' : 'adjust';
 
     if (this.mode === 'create') {
@@ -221,8 +236,8 @@ export class StockAdjustmentDialogComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Stock adjustment recorded successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('stock.adjustmentDialog.messages.success')
         });
         this.isSubmitting = false;
         setTimeout(() => {
@@ -232,8 +247,8 @@ export class StockAdjustmentDialogComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to record stock adjustment'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('stock.adjustmentDialog.messages.failed')
         });
         this.isSubmitting = false;
       }

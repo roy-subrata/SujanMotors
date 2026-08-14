@@ -6,7 +6,6 @@ import { FormsModule } from '@angular/forms';
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { MenuModule, Menu } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
@@ -22,6 +21,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
@@ -33,7 +34,6 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         TableModule,
         ButtonModule,
         InputTextModule,
-        Select,
         TagModule,
         MenuModule,
         TooltipModule,
@@ -42,7 +42,9 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './debit-notes-list.component.html',
@@ -75,11 +77,17 @@ export class DebitNotesListComponent implements OnInit {
     ];
 
     actionMenuItems: MenuItem[] = [];
+    moreFiltersVisible = false;
 
     Math = Math;
 
     ngOnInit(): void {
         this.loadData();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value as CustomerDebitNoteStatus | '';
+        this.onFilterChange();
     }
 
     private buildActionMenuItems(debitNote: CustomerDebitNoteResponse): void {

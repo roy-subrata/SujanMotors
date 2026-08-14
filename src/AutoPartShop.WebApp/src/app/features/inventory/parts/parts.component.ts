@@ -1,7 +1,9 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -22,6 +24,11 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-parts',
@@ -43,7 +50,11 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
-        PartsImportDialogComponent
+        StatStripComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent,
+        PartsImportDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './parts.component.html',
@@ -57,6 +68,8 @@ export class PartsComponent implements OnInit {
     private readonly currencyService = inject(CurrencyService);
     readonly priceCodeService = inject(PriceCodeService);
     private readonly router = inject(Router);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -73,23 +86,42 @@ export class PartsComponent implements OnInit {
 
     actionMenuItems: MenuItem[] = [];
     importDialogVisible = false;
+    moreFiltersVisible = false;
+    stats: StatStripItem[] = [];
 
-    statusOptions = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Active', value: 'ACTIVE' },
-        { label: 'Inactive', value: 'INACTIVE' }
-    ];
+    statusOptions: { label: string; value: string }[] = [];
 
-    categoryOptions: { label: string; value: string }[] = [{ label: 'All Categories', value: '' }];
+    /** Category names come from the API (not translatable); only the "All Categories" label is re-built on language switch. */
+    categoryOptions: { label: string; value: string }[] = [];
+    private loadedCategories: { label: string; value: string }[] = [];
 
     /** value encodes "field_direction" — matches SortOption.Field on the backend Part entity. */
-    sortOptions = [
-        { label: 'Sort', value: '' },
-        { label: 'Name (A–Z)', value: 'Name_asc' },
-        { label: 'Name (Z–A)', value: 'Name_desc' },
-        { label: 'Price (Low–High)', value: 'SellingPrice_asc' },
-        { label: 'Price (High–Low)', value: 'SellingPrice_desc' }
-    ];
+    sortOptions: { label: string; value: string }[] = [];
+
+    private buildStatusOptions(): void {
+        this.statusOptions = [
+            { label: this.i18n.t('common.status.allStatuses'), value: '' },
+            { label: this.i18n.t('common.status.active'), value: 'ACTIVE' },
+            { label: this.i18n.t('common.status.inactive'), value: 'INACTIVE' }
+        ];
+    }
+
+    private buildCategoryOptions(): void {
+        this.categoryOptions = [
+            { label: this.i18n.t('parts.allCategories'), value: '' },
+            ...this.loadedCategories
+        ];
+    }
+
+    private buildSortOptions(): void {
+        this.sortOptions = [
+            { label: this.i18n.t('parts.sort'), value: '' },
+            { label: this.i18n.t('parts.sortNameAsc'), value: 'Name_asc' },
+            { label: this.i18n.t('parts.sortNameDesc'), value: 'Name_desc' },
+            { label: this.i18n.t('parts.sortPriceAsc'), value: 'SellingPrice_asc' },
+            { label: this.i18n.t('parts.sortPriceDesc'), value: 'SellingPrice_desc' }
+        ];
+    }
 
     Math = Math;
 
@@ -99,16 +131,67 @@ export class PartsComponent implements OnInit {
     constructor() {}
 
     ngOnInit(): void {
+        this.buildStatusOptions();
+        this.buildCategoryOptions();
+        this.buildSortOptions();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildStatusOptions();
+            this.buildCategoryOptions();
+            this.buildSortOptions();
+            this.buildStats();
+        });
+
         this.loadData();
+        this.loadStats();
         this.categoryService.getActiveCategories().subscribe({
             next: (categories: CategoryResponse[]) => {
-                this.categoryOptions = [
-                    { label: 'All Categories', value: '' },
-                    ...categories.map(c => ({ label: c.name, value: c.id }))
-                ];
+                this.loadedCategories = categories.map(c => ({ label: c.name, value: c.id }));
+                this.buildCategoryOptions();
             },
             error: () => { /* dropdown just stays "All Categories" — not worth a toast */ }
         });
+    }
+
+    /**
+     * Grand-total counts for the stat strip — always reflect the whole
+     * catalog, not the currently-filtered table, so the strip doesn't
+     * jump around as the user filters below it. Reuses the same list
+     * endpoint with pageSize:1, reading only response.pagination.totalCount
+     * — no dedicated summary endpoint needed.
+     */
+    private statCounts: { total: number; active: number; inactive: number } | null = null;
+
+    private loadStats(): void {
+        forkJoin({
+            total: this.partService.getParts({ search: '', pageNumber: 1, pageSize: 1 }),
+            active: this.partService.getParts({ search: '', pageNumber: 1, pageSize: 1, isActive: true }),
+            inactive: this.partService.getParts({ search: '', pageNumber: 1, pageSize: 1, isActive: false })
+        }).subscribe({
+            next: ({ total, active, inactive }) => {
+                this.statCounts = {
+                    total: total.pagination.totalCount,
+                    active: active.pagination.totalCount,
+                    inactive: inactive.pagination.totalCount
+                };
+                this.buildStats();
+            },
+            error: () => { /* strip just stays empty — not worth a toast */ }
+        });
+    }
+
+    /** Re-labels the stat strip from cached counts — called on load and on language switch. */
+    private buildStats(): void {
+        if (!this.statCounts) return;
+        this.stats = [
+            { label: this.i18n.t('parts.statTotalParts'), value: String(this.statCounts.total) },
+            { label: this.i18n.t('common.status.active'), value: String(this.statCounts.active) },
+            { label: this.i18n.t('common.status.inactive'), value: String(this.statCounts.inactive) }
+        ];
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value;
+        this.onFilterChange();
     }
 
     loadData(page = this.currentPage, rows = this.pageSize): void {
@@ -132,7 +215,7 @@ export class PartsComponent implements OnInit {
                 this.loading = false;
             },
             error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load parts' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.messages.loadFailed') });
                 this.loading = false;
             }
         });
@@ -168,8 +251,8 @@ export class PartsComponent implements OnInit {
         if (createdCount > 0) {
             this.messageService.add({
                 severity: 'success',
-                summary: 'Import Complete',
-                detail: `${createdCount} part(s) imported successfully`
+                summary: this.i18n.t('parts.messages.importComplete'),
+                detail: this.i18n.t('parts.messages.importedCount', { count: String(createdCount) })
             });
             this.loadData(1, this.pageSize);
         }
@@ -213,31 +296,31 @@ export class PartsComponent implements OnInit {
         this.selectedPart = part;
         this.actionMenuItems = [
             {
-                label: 'View Details',
+                label: this.i18n.t('common.actions.viewDetails'),
                 icon: 'pi pi-eye',
                 command: () => this.viewPart(part)
             },
             {
-                label: 'Edit',
+                label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
                 command: () => this.editPart(part)
             },
             { separator: true },
             {
-                label: 'Activate',
+                label: this.i18n.t('common.actions.activate'),
                 icon: 'pi pi-check',
                 command: () => this.activatePart(part),
                 visible: !part.isActive
             },
             {
-                label: 'Deactivate',
+                label: this.i18n.t('common.actions.deactivate'),
                 icon: 'pi pi-times',
                 command: () => this.deactivatePart(part),
                 visible: part.isActive
             },
             { separator: true },
             {
-                label: 'Delete',
+                label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
                 command: () => this.deletePart(part),
                 styleClass: 'text-red-600'
@@ -271,8 +354,8 @@ export class PartsComponent implements OnInit {
             next: (updatedPart) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: 'Part activated successfully'
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('parts.messages.activateSuccess')
                 });
                 const index = this.parts.findIndex(p => p.id === part.id);
                 if (index !== -1) {
@@ -283,8 +366,8 @@ export class PartsComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to activate part'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('parts.messages.activateFailed')
                 });
             }
         });
@@ -298,8 +381,8 @@ export class PartsComponent implements OnInit {
             next: (updatedPart) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: 'Part deactivated successfully'
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('parts.messages.deactivateSuccess')
                 });
                 const index = this.parts.findIndex(p => p.id === part.id);
                 if (index !== -1) {
@@ -310,8 +393,8 @@ export class PartsComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to deactivate part'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('parts.messages.deactivateFailed')
                 });
             }
         });
@@ -322,8 +405,8 @@ export class PartsComponent implements OnInit {
      */
     private deletePart(part: PartResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete part "${part.name}"? This action cannot be undone.`,
-            header: 'Delete Part',
+            message: this.i18n.t('parts.messages.deleteConfirm', { name: part.name }),
+            header: this.i18n.t('parts.deletePart'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
@@ -331,16 +414,16 @@ export class PartsComponent implements OnInit {
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Part deleted successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('parts.messages.deleteSuccess')
                         });
                         this.loadData();
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to delete part'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('parts.messages.deleteFailed')
                         });
                     }
                 });
@@ -366,6 +449,6 @@ export class PartsComponent implements OnInit {
      * Format status label
      */
     formatStatus(isActive: boolean): string {
-        return isActive ? 'Active' : 'Inactive';
+        return isActive ? this.i18n.t('common.status.active') : this.i18n.t('common.status.inactive');
     }
 }

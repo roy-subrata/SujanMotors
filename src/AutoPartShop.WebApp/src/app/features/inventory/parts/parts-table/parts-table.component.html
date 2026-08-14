@@ -18,17 +18,17 @@
 
       <ng-template pTemplate="header">
         <tr>
-          <th pSortableColumn="sku" style="width: 9%">SKU <p-sortIcon field="sku"></p-sortIcon></th>
-          <th pSortableColumn="name" style="width: 16%">Name <p-sortIcon field="name"></p-sortIcon></th>
-          <th pSortableColumn="partNumber" style="width: 9%">Part No. <p-sortIcon field="partNumber"></p-sortIcon></th>
-          <th style="width: 9%">Category</th>
-          <th style="width: 8%">Brand</th>
-          <th style="width: 7%">Unit</th>
-          <th style="width: 8%">Cost Price</th>
-          <th style="width: 10%">Selling Price</th>
-          <th style="width: 5%">Margin</th>
-          <th style="width: 5%">Status</th>
-          <th style="width: 8%">Actions</th>
+          <th pSortableColumn="sku" style="width: 9%">{{ 'parts.sku' | translate }} <p-sortIcon field="sku"></p-sortIcon></th>
+          <th pSortableColumn="name" style="width: 16%">{{ 'common.labels.name' | translate }} <p-sortIcon field="name"></p-sortIcon></th>
+          <th pSortableColumn="partNumber" style="width: 9%">{{ 'parts.columnPartNo' | translate }} <p-sortIcon field="partNumber"></p-sortIcon></th>
+          <th style="width: 9%">{{ 'common.labels.category' | translate }}</th>
+          <th style="width: 8%">{{ 'parts.brand' | translate }}</th>
+          <th style="width: 7%">{{ 'parts.unit' | translate }}</th>
+          <th style="width: 8%">{{ 'parts.costPrice' | translate }}</th>
+          <th style="width: 10%">{{ 'parts.sellingPrice' | translate }}</th>
+          <th style="width: 5%">{{ 'parts.columnMargin' | translate }}</th>
+          <th style="width: 5%">{{ 'common.labels.status' | translate }}</th>
+          <th style="width: 8%">{{ 'common.labels.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -40,7 +40,7 @@
             <div class="part-name">{{ part.name }}</div>
             <small *ngIf="part.localName" class="text-gray-600 d-block">{{ part.localName }}</small>
             <small class="text-gray-500">{{ part.description }}</small>
-            <small *ngIf="part.vehicleFit" class="text-gray-400 d-block">Fits: {{ part.vehicleFit }}</small>
+            <small *ngIf="part.vehicleFit" class="text-gray-400 d-block">{{ 'parts.fits' | translate }}: {{ part.vehicleFit }}</small>
           </td>
 
           <td>{{ part.partNumber || '—' }}</td>
@@ -66,7 +66,7 @@
           <td class="price-cell">
             <span *ngIf="part.effectiveSellingPrice > 0" class="price-value-tag">
               {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
-              <span *ngIf="part.isVariant" class="price-source-dot" pTooltip="Variant price"></span>
+              <span *ngIf="part.isVariant" class="price-source-dot" [pTooltip]="'parts.variantPriceTooltip' | translate"></span>
             </span>
             <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
           </td>
@@ -83,7 +83,7 @@
           </td>
 
           <td>
-            <p-tag [value]="part.isActive ? 'Active' : 'Inactive'" [severity]="getStatusSeverity(part.isActive)"></p-tag>
+            <p-tag [value]="part.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate)" [severity]="getStatusSeverity(part.isActive)"></p-tag>
           </td>
 
           <td>
@@ -92,7 +92,7 @@
                 pButton pRipple type="button"
                 icon="pi pi-ellipsis-v"
                 class="p-button-text p-button-sm"
-                pTooltip="Actions" tooltipPosition="left"
+                [pTooltip]="'common.labels.actions' | translate" tooltipPosition="left"
                 (contextmenu)="showContextMenu($event, part)"
                 (click)="showContextMenu($event, part)">
               </button>
@@ -106,8 +106,8 @@
           <td colspan="11">
             <div class="empty-state">
               <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-              <h3>No Parts Found</h3>
-              <p>Click "New Part" to create one.</p>
+              <h3>{{ 'parts.noPartsFoundTitle' | translate }}</h3>
+              <p>{{ 'parts.clickNewPartHint' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -160,8 +160,8 @@
 
   <div *ngIf="!loading && parts.length === 0" class="empty-state-mobile">
     <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-    <h3>No Parts Found</h3>
-    <p>Click "New Part" to create one.</p>
+    <h3>{{ 'parts.noPartsFoundTitle' | translate }}</h3>
+    <p>{{ 'parts.clickNewPartHint' | translate }}</p>
   </div>
 
   <div *ngIf="!loading && parts.length > 0" class="cards-grid">
@@ -169,14 +169,14 @@
 
       <div class="card-header">
         <span class="card-so-number">{{ part.sku }}</span>
-        <p-tag [value]="part.isActive ? 'Active' : 'Inactive'" [severity]="getStatusSeverity(part.isActive)"></p-tag>
+        <p-tag [value]="part.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate)" [severity]="getStatusSeverity(part.isActive)"></p-tag>
       </div>
 
       <div class="card-body">
         <div class="cell-stack" style="margin-bottom: 10px">
           <span class="cell-primary">{{ part.name }}</span>
           <span *ngIf="part.localName" class="cell-secondary">{{ part.localName }}</span>
-          <span *ngIf="part.vehicleFit" class="cell-secondary">Fits: {{ part.vehicleFit }}</span>
+          <span *ngIf="part.vehicleFit" class="cell-secondary">{{ 'parts.fits' | translate }}: {{ part.vehicleFit }}</span>
         </div>
 
         <div class="card-meta">
@@ -189,7 +189,7 @@
 
       <div class="card-footer">
         <div class="card-amount">
-          <span class="amount-label">Selling Price</span>
+          <span class="amount-label">{{ 'parts.sellingPrice' | translate }}</span>
           <span class="amount-value" *ngIf="part.effectiveSellingPrice > 0">
             {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
           </span>

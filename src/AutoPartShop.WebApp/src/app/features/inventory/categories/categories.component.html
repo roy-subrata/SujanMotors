@@ -8,16 +8,16 @@
 <app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Categories"
-    subtitle="Manage product categories and subcategories"
+    [title]="'categories.title' | translate"
+    [subtitle]="'categories.subtitle' | translate"
     [count]="totalRecords" countLabel="categories">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createCategory()">
         <i class="pi pi-plus"></i>
-        <span>New Category</span>
+        <span>{{ 'categories.addCategory' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -31,7 +31,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search categories..."
+          [placeholder]="'categories.searchCategories' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
@@ -42,41 +42,49 @@
 
     <!-- Status Filter -->
     <div filters class="filter-group">
-      <p-select
+      <app-status-pill-filter
         [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
+        [value]="filterStatusValue"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <!-- Filter Actions -->
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Apply
+        {{ 'common.actions.apply' | translate }}
+      </button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">
+        {{ 'common.labels.moreFilters' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <!-- Active Filters Display -->
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="clearSearchInput(); onSearch()"></i>
       </span>
       <span *ngIf="filterStatus !== null" class="filter-chip">
-        Status: {{ getStatusLabel(filterStatus) }}
+        {{ 'common.labels.status' | translate }}: {{ getStatusLabel(filterStatus) }}
         <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
       </span>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatusValue"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== LIST SECTION ==================== -->
   <div class="list-wrapper">

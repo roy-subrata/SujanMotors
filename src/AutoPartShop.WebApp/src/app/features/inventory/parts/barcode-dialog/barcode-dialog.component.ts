@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -16,6 +16,9 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { BarcodeService, BarcodeType } from '../../services/barcode.service';
 import { PartResponse, PartService, VehicleCompatibilityResponse } from '../../services/part.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     LABEL_CSS,
     LABEL_SIZE_PRESETS,
@@ -50,7 +53,7 @@ const LABEL_STYLE_ELEMENT_ID = 'apl-label-styles';
 @Component({
     selector: 'app-barcode-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, CardModule, SelectModule, TooltipModule, ToastModule, InputTextModule, CheckboxModule],
+    imports: [CommonModule, FormsModule, ButtonModule, CardModule, SelectModule, TooltipModule, ToastModule, InputTextModule, CheckboxModule, TranslatePipe],
     providers: [MessageService],
     templateUrl: './barcode-dialog.component.html',
     styleUrls: ['./barcode-dialog.component.css']
@@ -62,6 +65,8 @@ export class BarcodeDialogComponent implements OnInit {
     private readonly dialogRef = inject(DynamicDialogRef);
     private readonly dialogConfig = inject(DynamicDialogConfig);
     private readonly sanitizer = inject(DomSanitizer);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     /** Normalised label data, regardless of where the dialog was opened from. */
     public data: LabelData | null = null;
@@ -88,17 +93,11 @@ export class BarcodeDialogComponent implements OnInit {
     quantity: number = 1;
     maxQuantity: number = 500;
 
-    layoutOptions = [
-        { label: 'Classic (id rows)', value: 'classic' as LabelLayout },
-        { label: 'Product (company + barcode)', value: 'combo' as LabelLayout },
-    ];
+    layoutOptions: { label: string; value: LabelLayout }[] = [];
 
     /** Combo sub-design (manual choice; only relevant when layout = combo). */
     selectedComboDesign: 'spotlight' | 'detailed' = 'spotlight';
-    comboDesignOptions = [
-        { label: 'Spotlight (big name)', value: 'spotlight' as const },
-        { label: 'Detailed (more fields)', value: 'detailed' as const },
-    ];
+    comboDesignOptions: { label: string; value: 'spotlight' | 'detailed' }[] = [];
 
     // Barcode value source
     selectedValueSource: string = 'sku';
@@ -108,38 +107,91 @@ export class BarcodeDialogComponent implements OnInit {
     companyName: string = 'SM Motors';
     labelFields: LabelField[] = [];
 
-    barcodeTypes = [
-        { label: 'Code128', value: 'code128' },
-        { label: 'Code39', value: 'code39' },
-        { label: 'EAN13', value: 'ean13' },
-        { label: 'QR Code', value: 'qrcode' }
-    ];
+    barcodeTypes: { label: string; value: string }[] = [];
 
-    barcodeValueSources = [
-        { label: 'SKU', value: 'sku' },
-        { label: 'Stored Barcode', value: 'barcode' },
-        { label: 'Part Number', value: 'partNumber' },
-        { label: 'SKU + Part #', value: 'sku-part' },
-        { label: 'Custom', value: 'custom' }
-    ];
+    barcodeValueSources: { label: string; value: string }[] = [];
 
-    barcodeSizeOptions = [
-        { label: 'Large — 100 × 50 mm', value: 'large' },
-        { label: 'Standard — 70 × 40 mm (with QR)', value: 'standard' },
-        { label: 'Compact — 50 × 25 mm', value: 'compact' },
-        { label: 'Tiny — 30 × 15 mm', value: 'tiny' },
-        { label: 'Custom (mm)', value: 'custom' }
-    ];
+    barcodeSizeOptions: { label: string; value: string }[] = [];
+
+    /** (Re)builds every static dropdown option list from the current translations. */
+    private buildOptionLists(): void {
+        this.layoutOptions = [
+            { label: this.i18n.t('parts.barcodeDialog.layoutClassic'), value: 'classic' as LabelLayout },
+            { label: this.i18n.t('parts.barcodeDialog.layoutCombo'), value: 'combo' as LabelLayout },
+        ];
+
+        this.comboDesignOptions = [
+            { label: this.i18n.t('parts.barcodeDialog.comboSpotlight'), value: 'spotlight' as const },
+            { label: this.i18n.t('parts.barcodeDialog.comboDetailed'), value: 'detailed' as const },
+        ];
+
+        this.barcodeTypes = [
+            { label: this.i18n.t('parts.barcodeDialog.typeCode128'), value: 'code128' },
+            { label: this.i18n.t('parts.barcodeDialog.typeCode39'), value: 'code39' },
+            { label: this.i18n.t('parts.barcodeDialog.typeEan13'), value: 'ean13' },
+            { label: this.i18n.t('parts.barcodeDialog.typeQrCode'), value: 'qrcode' }
+        ];
+
+        this.barcodeValueSources = [
+            { label: this.i18n.t('parts.sku'), value: 'sku' },
+            { label: this.i18n.t('parts.barcodeDialog.sourceStoredBarcode'), value: 'barcode' },
+            { label: this.i18n.t('parts.partNumber'), value: 'partNumber' },
+            { label: this.i18n.t('parts.barcodeDialog.sourceSkuPart'), value: 'sku-part' },
+            { label: this.i18n.t('parts.barcodeDialog.sourceCustom'), value: 'custom' }
+        ];
+
+        this.barcodeSizeOptions = [
+            { label: this.i18n.t('parts.barcodeDialog.sizeLarge'), value: 'large' },
+            { label: this.i18n.t('parts.barcodeDialog.sizeStandard'), value: 'standard' },
+            { label: this.i18n.t('parts.barcodeDialog.sizeCompact'), value: 'compact' },
+            { label: this.i18n.t('parts.barcodeDialog.sizeTiny'), value: 'tiny' },
+            { label: this.i18n.t('parts.barcodeDialog.sizeCustom'), value: 'custom' }
+        ];
+    }
+
+    /** Maps a label-field key to its translated display label — mirrors `initializeLabelFields`. */
+    private fieldLabelFor(key: string): string {
+        const map: Record<string, string> = {
+            categoryName: this.i18n.t('common.labels.category'),
+            brandName: this.i18n.t('parts.brand'),
+            name: this.i18n.t('common.labels.name'),
+            localName: this.i18n.t('parts.barcodeDialog.fieldLocalName'),
+            compatibility: this.i18n.t('parts.fits'),
+            sku: this.i18n.t('parts.sku'),
+            partNumber: this.i18n.t('parts.barcodeDialog.fieldPartHash'),
+            oemNumber: this.i18n.t('parts.barcodeDialog.fieldOemNumber'),
+            unitCode: this.i18n.t('parts.unit'),
+            batchNumber: this.i18n.t('parts.barcodeDialog.fieldBatch'),
+            mfgDate: this.i18n.t('parts.barcodeDialog.fieldMfgDate'),
+            expiryDate: this.i18n.t('parts.barcodeDialog.fieldExpiry'),
+            sellingPrice: this.i18n.t('parts.barcodeDialog.fieldMrp'),
+        };
+        return map[key] ?? key;
+    }
+
+    /** Re-translates the visible label text of each field row in place (keeps values/visibility). */
+    private translateFieldLabels(): void {
+        this.labelFields.forEach(f => { f.label = this.fieldLabelFor(f.key); });
+    }
 
     ngOnInit(): void {
+        this.buildOptionLists();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildOptionLists();
+            if (this.labelFields.length) {
+                this.translateFieldLabels();
+                this.rebuildLabel();
+            }
+        });
+
         const cfg = this.dialogConfig.data ?? {};
         // Accept normalised LabelData, or adapt a raw PartResponse for back-compat.
         this.data = cfg.label ?? (cfg.part ? labelFromPart(cfg.part as PartResponse) : null);
         if (!this.data) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Missing Data',
-                detail: 'No data provided for barcode generation'
+                summary: this.i18n.t('parts.barcodeDialog.messages.missingDataTitle'),
+                detail: this.i18n.t('parts.barcodeDialog.messages.missingDataDetail')
             });
             return;
         }
@@ -248,19 +300,19 @@ export class BarcodeDialogComponent implements OnInit {
         if (!d) return;
 
         this.labelFields = [
-            { key: 'categoryName', label: 'Category', value: d.category || '', visible: true },
-            { key: 'brandName', label: 'Brand', value: d.brand || '', visible: true },
-            { key: 'name', label: 'Name', value: d.name || '', visible: true },
-            { key: 'localName', label: 'Local Name', value: d.localName || '', visible: !!d.localName },
-            { key: 'compatibility', label: 'Fits', value: d.compatibility || '', visible: !!d.compatibility },
-            { key: 'sku', label: 'SKU', value: d.sku || '', visible: true },
-            { key: 'partNumber', label: 'Part #', value: d.partNumber || '', visible: !!d.partNumber },
-            { key: 'oemNumber', label: 'OEM #', value: d.oemNumber || '', visible: !!d.oemNumber },
-            { key: 'unitCode', label: 'Unit', value: d.unit || '', visible: true },
-            { key: 'batchNumber', label: 'Batch', value: d.batchNumber || '', visible: !!d.batchNumber },
-            { key: 'mfgDate', label: 'Mfg Date', value: this.formatDate(d.mfgDate), visible: !!d.mfgDate },
-            { key: 'expiryDate', label: 'Expiry', value: this.formatDate(d.expiryDate), visible: !!d.expiryDate },
-            { key: 'sellingPrice', label: 'M.R.P.', value: d.price ? `৳ ${d.price.toLocaleString()}` : '', visible: !!d.price },
+            { key: 'categoryName', label: this.fieldLabelFor('categoryName'), value: d.category || '', visible: true },
+            { key: 'brandName', label: this.fieldLabelFor('brandName'), value: d.brand || '', visible: true },
+            { key: 'name', label: this.fieldLabelFor('name'), value: d.name || '', visible: true },
+            { key: 'localName', label: this.fieldLabelFor('localName'), value: d.localName || '', visible: !!d.localName },
+            { key: 'compatibility', label: this.fieldLabelFor('compatibility'), value: d.compatibility || '', visible: !!d.compatibility },
+            { key: 'sku', label: this.fieldLabelFor('sku'), value: d.sku || '', visible: true },
+            { key: 'partNumber', label: this.fieldLabelFor('partNumber'), value: d.partNumber || '', visible: !!d.partNumber },
+            { key: 'oemNumber', label: this.fieldLabelFor('oemNumber'), value: d.oemNumber || '', visible: !!d.oemNumber },
+            { key: 'unitCode', label: this.fieldLabelFor('unitCode'), value: d.unit || '', visible: true },
+            { key: 'batchNumber', label: this.fieldLabelFor('batchNumber'), value: d.batchNumber || '', visible: !!d.batchNumber },
+            { key: 'mfgDate', label: this.fieldLabelFor('mfgDate'), value: this.formatDate(d.mfgDate), visible: !!d.mfgDate },
+            { key: 'expiryDate', label: this.fieldLabelFor('expiryDate'), value: this.formatDate(d.expiryDate), visible: !!d.expiryDate },
+            { key: 'sellingPrice', label: this.fieldLabelFor('sellingPrice'), value: d.price ? `৳ ${d.price.toLocaleString()}` : '', visible: !!d.price },
         ];
     }
 
@@ -327,8 +379,8 @@ export class BarcodeDialogComponent implements OnInit {
             console.error('Error generating barcode:', error);
             this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
-                detail: 'Failed to generate barcode'
+                summary: this.i18n.t('common.messages.error'),
+                detail: this.i18n.t('parts.barcodeDialog.messages.generateFailed')
             });
         } finally {
             this.isGenerating = false;
@@ -426,7 +478,7 @@ export class BarcodeDialogComponent implements OnInit {
         this.validationMessage = this.getValidationMessage(type, value);
         this.messageService.add({
             severity: 'warn',
-            summary: 'Invalid Barcode Value',
+            summary: this.i18n.t('parts.barcodeDialog.messages.invalidValueTitle'),
             detail: this.validationMessage
         });
         return false;
@@ -435,13 +487,15 @@ export class BarcodeDialogComponent implements OnInit {
     private getValidationMessage(type: BarcodeType, value: string): string {
         switch (type) {
             case 'code39':
-                return 'Code39 supports A-Z, 0-9, space, and - . $ / + % (max 80 chars).';
+                return this.i18n.t('parts.barcodeDialog.messages.code39Hint');
             case 'ean13':
-                return 'EAN13 must be exactly 13 digits. Try a different value source or custom value.';
+                return this.i18n.t('parts.barcodeDialog.messages.ean13Hint');
             case 'code128':
-                return value.length > 80 ? 'Code128 supports up to 80 characters.' : 'Invalid Code128 value.';
+                return value.length > 80
+                    ? this.i18n.t('parts.barcodeDialog.messages.code128LengthHint')
+                    : this.i18n.t('parts.barcodeDialog.messages.code128InvalidHint');
             default:
-                return 'Invalid barcode value.';
+                return this.i18n.t('parts.barcodeDialog.messages.invalidGeneric');
         }
     }
 
@@ -568,15 +622,15 @@ export class BarcodeDialogComponent implements OnInit {
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'Success',
-                detail: 'Barcode downloaded successfully'
+                summary: this.i18n.t('common.messages.success'),
+                detail: this.i18n.t('parts.barcodeDialog.messages.downloadSuccess')
             });
         } catch (error) {
             console.error('Error downloading barcode:', error);
             this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
-                detail: 'Failed to download barcode'
+                summary: this.i18n.t('common.messages.error'),
+                detail: this.i18n.t('parts.barcodeDialog.messages.downloadFailed')
             });
         } finally {
             this.isDownloading = false;
@@ -609,15 +663,15 @@ export class BarcodeDialogComponent implements OnInit {
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'Success',
-                detail: 'Barcode SVG downloaded successfully'
+                summary: this.i18n.t('common.messages.success'),
+                detail: this.i18n.t('parts.barcodeDialog.messages.svgDownloadSuccess')
             });
         } catch (error) {
             console.error('Error downloading SVG:', error);
             this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
-                detail: 'Failed to download SVG barcode'
+                summary: this.i18n.t('common.messages.error'),
+                detail: this.i18n.t('parts.barcodeDialog.messages.svgDownloadFailed')
             });
         }
     }
@@ -671,15 +725,15 @@ export class BarcodeDialogComponent implements OnInit {
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'Success',
-                detail: `Ready to print ${this.quantity} label(s)`
+                summary: this.i18n.t('common.messages.success'),
+                detail: this.i18n.t('parts.barcodeDialog.messages.printReady', { count: String(this.quantity) })
             });
         } catch (error) {
             console.error('Error printing labels:', error);
             this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
-                detail: 'Failed to print labels'
+                summary: this.i18n.t('common.messages.error'),
+                detail: this.i18n.t('parts.barcodeDialog.messages.printFailed')
             });
         }
     }
@@ -696,16 +750,16 @@ export class BarcodeDialogComponent implements OnInit {
             () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: 'Barcode value copied to clipboard'
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('parts.barcodeDialog.messages.copySuccess')
                 });
             },
             (error) => {
                 console.error('Error copying to clipboard:', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to copy barcode value'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('parts.barcodeDialog.messages.copyFailed')
                 });
             }
         );

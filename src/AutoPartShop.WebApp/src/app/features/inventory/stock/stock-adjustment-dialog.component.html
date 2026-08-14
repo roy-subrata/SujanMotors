@@ -1,20 +1,20 @@
 <p-toast></p-toast>
 <div class="adjustment-dialog">
-  <h2 class="dialog-title">{{ mode === 'create' ? 'New Stock Entry' : 'Stock Adjustment' }}</h2>
+  <h2 class="dialog-title">{{ (mode === 'create' ? 'stock.newStockEntry' : 'stock.adjustmentDialog.title') | translate }}</h2>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="adjustment-form">
     <!-- Create mode: pick product (incl. variant) and warehouse -->
     <ng-container *ngIf="mode === 'create'">
       <div class="form-row">
         <div class="form-group">
-          <label for="product">Product / Variant *</label>
+          <label for="product">{{ 'stock.adjustmentDialog.productLabel' | translate }}</label>
           <app-lazy-autocomplete
             id="product"
             [(ngModel)]="selectedProductModel"
             [ngModelOptions]="{standalone: true}"
             [fetchFn]="fetchProductsLazy"
             optionLabel="displayName"
-            placeholder="Search a product or variant..."
+            placeholder="{{ 'stock.adjustmentDialog.productPlaceholder' | translate }}"
             [showClear]="true"
             [minLength]="0"
             (onItemSelect)="onProductSelected($event)"
@@ -28,24 +28,24 @@
             </ng-template>
           </app-lazy-autocomplete>
           <small class="text-danger" *ngIf="form.get('productKey')?.invalid && form.get('productKey')?.touched">
-            Product is required
+            {{ 'stock.adjustmentDialog.productRequired' | translate }}
           </small>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label for="warehouse">Warehouse *</label>
+          <label for="warehouse">{{ 'stock.adjustmentDialog.warehouseFieldLabel' | translate }}</label>
           <p-select
             id="warehouse"
             [options]="warehouseOptions"
             optionLabel="label"
             optionValue="value"
             formControlName="warehouseId"
-            placeholder="Select a warehouse"
+            placeholder="{{ 'stock.adjustmentDialog.warehousePlaceholder' | translate }}"
             [showClear]="true">
           </p-select>
           <small class="text-danger" *ngIf="form.get('warehouseId')?.invalid && form.get('warehouseId')?.touched">
-            Warehouse is required
+            {{ 'stock.adjustmentDialog.warehouseRequired' | translate }}
           </small>
         </div>
       </div>
@@ -55,25 +55,25 @@
     <p-card class="info-card" *ngIf="mode === 'adjust'">
       <div class="info-row">
         <div class="info-item">
-          <label>Part</label>
+          <label>{{ 'stock.columns.part' | translate }}</label>
           <span class="value">
             {{ part?.name }} ({{ currentStock?.variantSku || part?.sku }})
             <span class="variant-tag" *ngIf="currentStock?.variantName">{{ currentStock?.variantName }}</span>
           </span>
         </div>
         <div class="info-item">
-          <label>Warehouse</label>
+          <label>{{ 'stock.warehouse' | translate }}</label>
           <span class="value">{{ warehouse?.name }}</span>
         </div>
       </div>
       <div class="info-row">
         <div class="info-item">
-          <label>On Hand</label>
-          <span class="value stock-value">{{ currentStock?.quantity }} {{ currentStock?.unitSymbol || 'units' }}</span>
+          <label>{{ 'stock.columns.onHand' | translate }}</label>
+          <span class="value stock-value">{{ currentStock?.quantity }} {{ currentStock?.unitSymbol || ('stock.adjustmentDialog.unitsFallback' | translate) }}</span>
         </div>
         <div class="info-item">
-          <label>Available</label>
-          <span class="value">{{ currentStock?.availableQuantity }} {{ currentStock?.unitSymbol || 'units' }}</span>
+          <label>{{ 'stock.columns.available' | translate }}</label>
+          <span class="value">{{ currentStock?.availableQuantity }} {{ currentStock?.unitSymbol || ('stock.adjustmentDialog.unitsFallback' | translate) }}</span>
         </div>
       </div>
     </p-card>
@@ -81,49 +81,49 @@
     <!-- Adjustment Form -->
     <div class="form-row">
       <div class="form-group">
-        <label for="type">Adjustment Type *</label>
+        <label for="type">{{ 'stock.adjustmentDialog.typeLabel' | translate }}</label>
         <p-select
           id="type"
           [options]="adjustmentTypes"
           optionLabel="label"
           optionValue="value"
           formControlName="type"
-          placeholder="Select adjustment type"
+          placeholder="{{ 'stock.adjustmentDialog.typePlaceholder' | translate }}"
           [showClear]="true">
         </p-select>
         <small class="text-danger" *ngIf="form.get('type')?.invalid && form.get('type')?.touched">
-          Adjustment type is required
+          {{ 'stock.adjustmentDialog.typeRequired' | translate }}
         </small>
       </div>
     </div>
 
     <div class="form-row">
       <div class="form-group">
-        <label for="quantity">Quantity *</label>
+        <label for="quantity">{{ 'stock.adjustmentDialog.quantityLabel' | translate }}</label>
         <p-inputNumber
           id="quantity"
           formControlName="quantity"
           [min]="1"
           [max]="getMaxQuantity()"
-          placeholder="Enter quantity"
+          placeholder="{{ 'stock.adjustmentDialog.quantityPlaceholder' | translate }}"
           class="w-full">
         </p-inputNumber>
         <small class="text-muted" *ngIf="isDecreaseType()">
-          Max: {{ currentStock?.availableQuantity }} {{ currentStock?.unitSymbol || 'units' }} (available)
+          {{ 'stock.adjustmentDialog.maxPrefix' | translate }} {{ currentStock?.availableQuantity }} {{ currentStock?.unitSymbol || ('stock.adjustmentDialog.unitsFallback' | translate) }} {{ 'stock.adjustmentDialog.availableSuffix' | translate }}
         </small>
         <small class="text-danger" *ngIf="form.get('quantity')?.invalid && form.get('quantity')?.touched">
-          Valid quantity is required
+          {{ 'stock.adjustmentDialog.quantityRequired' | translate }}
         </small>
       </div>
     </div>
 
     <div class="form-row">
       <div class="form-group full">
-        <label for="notes">Notes</label>
+        <label for="notes">{{ 'stock.adjustmentDialog.notesLabel' | translate }}</label>
         <textarea
           id="notes"
           formControlName="notes"
-          placeholder="Enter reason for adjustment (e.g., Damage, Shrinkage, Count Correction)"
+          placeholder="{{ 'stock.adjustmentDialog.notesPlaceholder' | translate }}"
           rows="3"
           class="w-full textarea-input">
         </textarea>
@@ -133,9 +133,9 @@
     <!-- New Stock Preview -->
     <p-card class="preview-card" *ngIf="mode === 'adjust' && form.get('quantity')?.value > 0 && form.get('type')?.value">
       <div class="preview-row">
-        <label>New On-Hand After Adjustment:</label>
+        <label>{{ 'stock.adjustmentDialog.newStockPreviewLabel' | translate }}</label>
         <span class="preview-value" [ngClass]="getNewStock() < 0 ? 'text-danger' : 'text-success'">
-          {{ getNewStock() }} {{ currentStock?.unitSymbol || 'units' }}
+          {{ getNewStock() }} {{ currentStock?.unitSymbol || ('stock.adjustmentDialog.unitsFallback' | translate) }}
         </span>
       </div>
     </p-card>
@@ -145,7 +145,7 @@
       <button
         pButton
         type="button"
-        label="Cancel"
+        label="{{ 'common.actions.cancel' | translate }}"
         icon="pi pi-times"
         class="p-button-outlined"
         (click)="onCancel()"
@@ -154,7 +154,7 @@
       <button
         pButton
         type="submit"
-        label="Apply Adjustment"
+        label="{{ 'stock.adjustmentDialog.applyButton' | translate }}"
         icon="pi pi-check"
         class="p-button-success"
         [loading]="isSubmitting"

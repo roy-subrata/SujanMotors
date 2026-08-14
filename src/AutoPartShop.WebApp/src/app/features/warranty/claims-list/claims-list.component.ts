@@ -38,6 +38,9 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
@@ -63,6 +66,9 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
+        StatStripComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent,
         LazyAutocompleteComponent
     ],
     providers: [MessageService],
@@ -95,6 +101,8 @@ export class ClaimsListComponent implements OnInit {
     isLoading = false;
     searchText = '';
     selectedStatus = '';
+    moreFiltersVisible = false;
+    stats: StatStripItem[] = [];
 
     first = 0;
     pageSize = 10;
@@ -259,6 +267,12 @@ export class ClaimsListComponent implements OnInit {
         this.totalUnderReview = this.claims.filter(c => c.status === 'UNDER_REVIEW').length;
         this.totalInProgress = this.claims.filter(c => c.status === 'IN_PROGRESS').length;
         this.totalCompleted = this.claims.filter(c => c.status === 'COMPLETED' || c.status === 'CLOSED').length;
+        this.stats = [
+            { label: 'Pending', value: String(this.totalPending) },
+            { label: 'Under Review', value: String(this.totalUnderReview) },
+            { label: 'In Progress', value: String(this.totalInProgress) },
+            { label: 'Completed', value: String(this.totalCompleted) }
+        ];
     }
 
     applyFilters(): void {
@@ -280,6 +294,11 @@ export class ClaimsListComponent implements OnInit {
     onSearch(): void { this.applyFilters(); }
     clearSearch(): void { this.searchText = ''; this.applyFilters(); }
     onStatusChange(): void { this.applyFilters(); }
+
+    onStatusFilterChange(value: string): void {
+        this.selectedStatus = value;
+        this.onStatusChange();
+    }
 
     formatDate(date: string | Date | null | undefined): string {
         if (!date) return '—';

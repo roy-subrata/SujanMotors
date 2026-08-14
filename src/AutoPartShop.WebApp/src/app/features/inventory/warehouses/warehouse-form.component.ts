@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -11,11 +11,14 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-warehouse-form',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, ButtonModule, CardModule, InputTextModule, InputNumberModule, TextareaModule, ToastModule],
+    imports: [CommonModule, ReactiveFormsModule, ButtonModule, CardModule, InputTextModule, InputNumberModule, TextareaModule, ToastModule, TranslatePipe],
     providers: [MessageService],
     templateUrl: './warehouse-form.component.html',
     styleUrls: ['./warehouse-form.component.css']
@@ -27,13 +30,15 @@ export class WarehouseFormComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
     private readonly codeGenerationService = inject(CodeGenerationService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     form: FormGroup;
     isEditMode = false;
     isViewMode = false;
     isSubmitting = false;
     warehouseId: string | null = null;
-    pageTitle = 'Create Warehouse';
+    pageTitle = '';
     private loadedWarehouse: WarehouseResponse | null = null;
     generatingCode = false;
 
@@ -42,13 +47,18 @@ export class WarehouseFormComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        this.updatePageTitle();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.updatePageTitle();
+        });
+
         // Check if we're in edit or view mode
         this.route.queryParams.subscribe((params) => {
             if (params['id']) {
                 this.warehouseId = params['id'];
                 this.isEditMode = this.router.url.includes('/edit');
                 this.isViewMode = this.router.url.includes('/view');
-                this.pageTitle = this.isViewMode ? 'View Warehouse' : 'Edit Warehouse';
+                this.updatePageTitle();
 
                 if (this.warehouseId) {
                     this.loadWarehouse(this.warehouseId);
@@ -65,7 +75,15 @@ export class WarehouseFormComponent implements OnInit {
             }
         });
     }
-    
+
+    private updatePageTitle(): void {
+        this.pageTitle = this.isViewMode
+            ? this.i18n.t('warehouses.viewWarehouse')
+            : this.isEditMode
+                ? this.i18n.t('warehouses.editWarehouse')
+                : this.i18n.t('warehouses.createWarehouse');
+    }
+
 
     private generateWarehouseCode(): void {
         this.generatingCode = true;
@@ -82,8 +100,8 @@ export class WarehouseFormComponent implements OnInit {
                 console.error('Error generating warehouse code:', error);
                 this.messageService.add({
                     severity: 'warn',
-                    summary: 'Warning',
-                    detail: 'Failed to generate warehouse code. Please enter manually.'
+                    summary: this.i18n.t('common.messages.warning'),
+                    detail: this.i18n.t('warehouses.messages.codeGenerationFailed')
                 });
                 this.form.get('code')?.enable();
                 this.generatingCode = false;
@@ -125,8 +143,8 @@ export class WarehouseFormComponent implements OnInit {
             error: (error: any) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load warehouse details'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('warehouses.messages.loadDetailsFailed')
                 });
                 console.error('Error loading warehouse:', error);
             }
@@ -140,8 +158,8 @@ export class WarehouseFormComponent implements OnInit {
         if (this.generatingCode) {
             this.messageService.add({
                 severity: 'info',
-                summary: 'Please wait',
-                detail: 'Generating warehouse code...'
+                summary: this.i18n.t('common.messages.pleaseWait'),
+                detail: this.i18n.t('warehouses.messages.generatingCode')
             });
             return;
         }
@@ -149,8 +167,8 @@ export class WarehouseFormComponent implements OnInit {
         if (!this.form.valid) {
             this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
-                detail: 'Please fill all required fields'
+                summary: this.i18n.t('common.messages.error'),
+                detail: this.i18n.t('common.messages.fillRequiredFields')
             });
             return;
         }
@@ -182,16 +200,16 @@ export class WarehouseFormComponent implements OnInit {
                 next: () => {
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Success',
-                        detail: `Warehouse '${warehouseData.name}' updated successfully`
+                        summary: this.i18n.t('common.messages.success'),
+                        detail: this.i18n.t('warehouses.messages.updateSuccess')
                     });
                     this.router.navigate(['/inventory/warehouses']);
                 },
                 error: (error: any) => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: error?.error?.message || 'Failed to update warehouse'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: error?.error?.message || this.i18n.t('warehouses.messages.updateFailed')
                     });
                     console.error('Error updating warehouse:', error);
                     this.isSubmitting = false;
@@ -202,8 +220,8 @@ export class WarehouseFormComponent implements OnInit {
             if (!code) {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Warehouse code is required'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('warehouses.messages.codeRequired')
                 });
                 this.isSubmitting = false;
                 return;
@@ -230,16 +248,16 @@ export class WarehouseFormComponent implements OnInit {
                 next: () => {
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Success',
-                        detail: `Warehouse '${warehouseData.name}' created successfully`
+                        summary: this.i18n.t('common.messages.success'),
+                        detail: this.i18n.t('warehouses.messages.createSuccess')
                     });
                     this.router.navigate(['/inventory/warehouses']);
                 },
                 error: (error: any) => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: error?.error?.message || 'Failed to create warehouse'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: error?.error?.message || this.i18n.t('warehouses.messages.createFailed')
                     });
                     console.error('Error creating warehouse:', error);
                     this.isSubmitting = false;
@@ -269,15 +287,15 @@ export class WarehouseFormComponent implements OnInit {
     getErrorMessage(fieldName: string): string {
         const field = this.form.get(fieldName);
         if (field?.hasError('required')) {
-            return `${this.formatFieldName(fieldName)} is required`;
+            return this.i18n.t('common.messages.fieldRequired', { field: this.formatFieldName(fieldName) });
         }
         if (field?.hasError('minlength')) {
             const minLength = field.errors?.['minlength'].requiredLength;
-            return `${this.formatFieldName(fieldName)} must be at least ${minLength} characters`;
+            return this.i18n.t('common.messages.fieldMinLength', { field: this.formatFieldName(fieldName), min: String(minLength) });
         }
         if (field?.hasError('min')) {
             const min = field.errors?.['min'].min;
-            return `${this.formatFieldName(fieldName)} must be at least ${min}`;
+            return this.i18n.t('common.messages.fieldMinValue', { field: this.formatFieldName(fieldName), min: String(min) });
         }
         return '';
     }

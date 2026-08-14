@@ -6,20 +6,20 @@
     <!-- Top Bar: Back button, Title, Actions -->
     <div class="header-top-bar">
       <div class="header-left">
-        <button pButton icon="pi pi-arrow-left" class="back-button" (click)="goBack()" pTooltip="Back to Suppliers"
+        <button pButton icon="pi pi-arrow-left" class="back-button" (click)="goBack()" [pTooltip]="'suppliers.backToSuppliers' | translate"
           tooltipPosition="bottom"></button>
-        <span class="header-title">Supplier Details</span>
+        <span class="header-title">{{ 'suppliers.supplierDetails' | translate }}</span>
       </div>
       <div class="header-actions">
-        <button pButton label="Payments" icon="pi pi-list" class="action-btn action-btn-secondary"
-          pTooltip="View payment history" tooltipPosition="bottom" (click)="viewPayments()"></button>
-        <button pButton label="Accounts" icon="pi pi-credit-card" class="action-btn action-btn-secondary"
-          pTooltip="Payment accounts" tooltipPosition="bottom" (click)="viewPaymentAccounts()"></button>
-        <button pButton label="Summary" icon="pi pi-file-check" class="action-btn action-btn-secondary"
-          pTooltip="Account summary & ledger" tooltipPosition="bottom" (click)="viewAccountSummary()"></button>
-        <button pButton label="New Payment" icon="pi pi-wallet" class="action-btn action-btn-primary"
+        <button pButton [label]="'suppliers.paymentsLabel' | translate" icon="pi pi-list" class="action-btn action-btn-secondary"
+          [pTooltip]="'suppliers.viewPaymentHistoryTooltip' | translate" tooltipPosition="bottom" (click)="viewPayments()"></button>
+        <button pButton [label]="'suppliers.accountsLabel' | translate" icon="pi pi-credit-card" class="action-btn action-btn-secondary"
+          [pTooltip]="'suppliers.paymentAccountsTooltip' | translate" tooltipPosition="bottom" (click)="viewPaymentAccounts()"></button>
+        <button pButton [label]="'suppliers.summaryLabel' | translate" icon="pi pi-file-check" class="action-btn action-btn-secondary"
+          [pTooltip]="'suppliers.accountSummaryTooltip' | translate" tooltipPosition="bottom" (click)="viewAccountSummary()"></button>
+        <button pButton [label]="'suppliers.newPayment' | translate" icon="pi pi-wallet" class="action-btn action-btn-primary"
           (click)="recordPayment()"></button>
-        <button pButton label="Edit" icon="pi pi-pencil" class="action-btn action-btn-secondary"
+        <button pButton [label]="'common.actions.edit' | translate" icon="pi pi-pencil" class="action-btn action-btn-secondary"
           (click)="editSupplier()"></button>
       </div>
     </div>
@@ -33,7 +33,7 @@
         <div class="profile-info">
           <div class="name-badges">
             <h2 class="supplier-name">{{ sup.name }}</h2>
-            <p-tag [value]="sup.isActive ? 'Active' : 'Inactive'" [severity]="getStatusSeverity(sup.isActive)"></p-tag>
+            <p-tag [value]="sup.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate)" [severity]="getStatusSeverity(sup.isActive)"></p-tag>
           </div>
           <div class="code-company">
             <span class="supplier-code">{{ sup.code }}</span>
@@ -48,21 +48,21 @@
         <div class="stat-item stat-blue">
           <div class="stat-icon"><i class="pi pi-dollar"></i></div>
           <div class="stat-content">
-            <span class="stat-label">Total Paid</span>
+            <span class="stat-label">{{ 'suppliers.totalPaid' | translate }}</span>
             <span class="stat-value">{{ formatCurrency(summary.totalPaid) }}</span>
           </div>
         </div>
         <div class="stat-item stat-orange">
           <div class="stat-icon"><i class="pi pi-exclamation-triangle"></i></div>
           <div class="stat-content">
-            <span class="stat-label">Outstanding</span>
+            <span class="stat-label">{{ 'suppliers.outstanding' | translate }}</span>
             <span class="stat-value">{{ formatCurrency(summary.totalDue) }}</span>
           </div>
         </div>
         <div class="stat-item stat-purple">
           <div class="stat-icon"><i class="pi pi-credit-card"></i></div>
           <div class="stat-content">
-            <span class="stat-label">Advance</span>
+            <span class="stat-label">{{ 'suppliers.advance' | translate }}</span>
             <span class="stat-value">{{ formatCurrency(summary.totalAdvanceAmount) }}</span>
           </div>
         </div>
@@ -73,12 +73,12 @@
     <div class="contact-row">
       <div class="contact-item">
         <i class="pi pi-envelope"></i>
-        <span>{{ sup.email || 'N/A' }}</span>
+        <span>{{ sup.email || ('common.labels.notAvailable' | translate) }}</span>
       </div>
       <div class="contact-divider">|</div>
       <div class="contact-item">
         <i class="pi pi-phone"></i>
-        <span>{{ sup.phone || 'N/A' }}</span>
+        <span>{{ sup.phone || ('common.labels.notAvailable' | translate) }}</span>
       </div>
       <div class="contact-divider">|</div>
       <div class="contact-item">
@@ -88,7 +88,7 @@
             {{ sup.address }}{{ sup.address && sup.city ? ', ' : '' }}{{ sup.city }}{{ sup.city &&
             sup.state ? ', ' : '' }}{{ sup.state }} {{ sup.postalCode }}
           </ng-container>
-          <ng-container *ngIf="!sup.address && !sup.city && !sup.state && !sup.postalCode">N/A</ng-container>
+          <ng-container *ngIf="!sup.address && !sup.city && !sup.state && !sup.postalCode">{{ 'common.labels.notAvailable' | translate }}</ng-container>
         </span>
       </div>
       <div class="contact-divider" *ngIf="sup.country">|</div>

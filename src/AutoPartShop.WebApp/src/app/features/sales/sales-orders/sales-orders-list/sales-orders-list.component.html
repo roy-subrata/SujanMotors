@@ -29,6 +29,9 @@
     </ng-container>
   </app-page-header>
 
+  <!-- ==================== STATS ==================== -->
+  <app-stat-strip [stats]="stats"></app-stat-strip>
+
   <!-- ==================== FILTERS ==================== -->
   <app-filter-bar>
     <div search class="filter-group search-group">
@@ -47,16 +50,11 @@
     </div>
 
     <div filters class="filter-group">
-      <!-- <label class="filter-label">Status</label> -->
-      <p-select
+      <app-status-pill-filter
         [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        (onChange)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
+        [value]="filterStatus"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <div filters class="filter-group">
@@ -78,6 +76,9 @@
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
         Search
+      </button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">
+        More filters
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
@@ -101,6 +102,14 @@
       </span>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatus"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== DATA TABLE (Desktop) ==================== -->
   <section class="table-section desktop-only">
@@ -135,7 +144,7 @@
           <tr class="data-row" [class.row-overdue]="order.isOverdue" (dblclick)="viewOrder(order)">
             <td class="col-so">
               <div class="so-cell">
-                <a class="so-link" (click)="viewOrder(order)">{{ order.soNumber }}</a>
+                <a class="so-link cell-mono" (click)="viewOrder(order)">{{ order.soNumber }}</a>
                 <span *ngIf="order.isOverdue" class="overdue-badge">Overdue</span>
               </div>
             </td>
@@ -257,7 +266,7 @@
     <div *ngIf="!loading && salesOrders.length > 0" class="cards-grid">
       <div *ngFor="let order of salesOrders" class="order-card" [class.card-overdue]="order.isOverdue" (click)="viewOrder(order)">
         <div class="card-header">
-          <span class="card-so-number">{{ order.soNumber }}</span>
+          <span class="card-so-number cell-mono">{{ order.soNumber }}</span>
           <span class="status-pill" [attr.data-status]="order.status.toLowerCase()">
             {{ formatStatus(order.status) }}
           </span>

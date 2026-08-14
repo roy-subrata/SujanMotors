@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-parts-header',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, TooltipModule],
+  imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, TooltipModule, TranslatePipe],
   templateUrl: './parts-header.component.html',
   styleUrls: ['./parts-header.component.css']
 })

@@ -3,39 +3,39 @@
 
 <div class="location-manager">
     <div class="header">
-        <h3>Locations for {{ partName }}</h3>
-        <button pButton type="button" label="Add Location" icon="pi pi-plus" class="p-button-sm" (click)="openCreateDialog()"></button>
+        <h3>{{ 'parts.locationManager.title' | translate:{ name: partName } }}</h3>
+        <button pButton type="button" [label]="'parts.locationManager.addLocation' | translate" icon="pi pi-plus" class="p-button-sm" (click)="openCreateDialog()"></button>
     </div>
 
     <p-table [value]="locations" [loading]="loading" responsiveLayout="stack" breakpoint="768px" styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
             <tr>
                 <th style="width: 30px"></th>
-                <th>Warehouse</th>
-                <th>Bin</th>
-                <th>Notes</th>
-                <th style="width: 100px">Actions</th>
+                <th>{{ 'parts.locationManager.columnWarehouse' | translate }}</th>
+                <th>{{ 'parts.locationManager.columnBin' | translate }}</th>
+                <th>{{ 'common.labels.notes' | translate }}</th>
+                <th style="width: 100px">{{ 'common.labels.actions' | translate }}</th>
             </tr>
         </ng-template>
         <ng-template pTemplate="body" let-location>
             <tr>
                 <td>
-                    <p-tag *ngIf="location.isPrimary" [value]="'Primary'" [severity]="getSeverity(location.isPrimary)" [rounded]="true"></p-tag>
+                    <p-tag *ngIf="location.isPrimary" [value]="'parts.locationManager.primaryTag' | translate" [severity]="getSeverity(location.isPrimary)" [rounded]="true"></p-tag>
                 </td>
                 <td>
-                    <span class="p-column-title">Warehouse</span>
+                    <span class="p-column-title">{{ 'parts.locationManager.columnWarehouse' | translate }}</span>
                     {{ location.warehouseName }} ({{ location.warehouseCode }})
                 </td>
                 <td>
-                    <span class="p-column-title">Bin</span>
+                    <span class="p-column-title">{{ 'parts.locationManager.columnBin' | translate }}</span>
                     <strong>{{ location.locationCode }}</strong>
                 </td>
                 <td>
-                    <span class="p-column-title">Notes</span>
+                    <span class="p-column-title">{{ 'common.labels.notes' | translate }}</span>
                     {{ location.notes || '-' }}
                 </td>
                 <td>
-                    <span class="p-column-title">Actions</span>
+                    <span class="p-column-title">{{ 'common.labels.actions' | translate }}</span>
                     <div class="flex gap-2">
                         <button
                             *ngIf="!location.isPrimary"
@@ -43,16 +43,16 @@
                             type="button"
                             icon="pi pi-star"
                             class="p-button-text p-button-sm"
-                            pTooltip="Set as Primary"
+                            [pTooltip]="'parts.locationManager.setPrimaryTooltip' | translate"
                             (click)="setPrimary(location)"
                         ></button>
-                        <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" pTooltip="Edit" (click)="openEditDialog(location)"></button>
+                        <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" [pTooltip]="'common.actions.edit' | translate" (click)="openEditDialog(location)"></button>
                         <button
                             pButton
                             type="button"
                             icon="pi pi-trash"
                             class="p-button-text p-button-danger p-button-sm"
-                            pTooltip="Delete"
+                            [pTooltip]="'common.actions.delete' | translate"
                             (click)="deleteLocation(location)"
                         ></button>
                     </div>
@@ -61,24 +61,24 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="5" class="text-center">No locations found. Click "Add Location" to create one.</td>
+                <td colspan="5" class="text-center">{{ 'parts.locationManager.emptyMessage' | translate }}</td>
             </tr>
         </ng-template>
     </p-table>
 </div>
 
 <!-- Add/Edit Location Dialog -->
-<p-dialog [(visible)]="displayDialog" [header]="isEditing ? 'Edit Location' : 'Add Location'" [modal]="true" [style]="{ width: '500px', maxWidth: '95vw' }" (onHide)="closeDialog()">
+<p-dialog [(visible)]="displayDialog" [header]="isEditing ? ('parts.locationManager.dialogEditTitle' | translate) : ('parts.locationManager.dialogAddTitle' | translate)" [modal]="true" [style]="{ width: '500px', maxWidth: '95vw' }" (onHide)="closeDialog()">
     <form [formGroup]="locationForm">
         <div class="form-group">
-            <label for="warehouse">Warehouse *</label>
+            <label for="warehouse">{{ 'parts.locationManager.warehouseRequiredLabel' | translate }}</label>
             <p-select
                 id="warehouse"
                 formControlName="warehouseId"
                 [options]="warehouses"
                 optionLabel="name"
                 optionValue="id"
-                placeholder="Select a warehouse"
+                [placeholder]="'parts.locationManager.selectWarehousePlaceholder' | translate"
                 [disabled]="isSubmitting"
                 [style]="{ width: '100%' }"
             >
@@ -86,11 +86,11 @@
                     <div>{{ warehouse.name }} ({{ warehouse.code }})</div>
                 </ng-template>
             </p-select>
-            <small class="error" *ngIf="hasError('warehouseId')">Warehouse is required</small>
+            <small class="error" *ngIf="hasError('warehouseId')">{{ 'parts.locationManager.warehouseRequiredError' | translate }}</small>
         </div>
 
         <div class="form-group">
-            <label for="warehouseLocationId">Bin *</label>
+            <label for="warehouseLocationId">{{ 'parts.locationManager.binRequiredLabel' | translate }}</label>
             <p-select
                 id="warehouseLocationId"
                 formControlName="warehouseLocationId"
@@ -98,7 +98,7 @@
                 optionLabel="locationCode"
                 optionValue="id"
                 [loading]="loadingWarehouseLocations"
-                [placeholder]="locationForm.value.warehouseId ? 'Select a bin' : 'Select a warehouse first'"
+                [placeholder]="locationForm.value.warehouseId ? ('parts.locationManager.selectBinPlaceholder' | translate) : ('parts.locationManager.selectWarehouseFirstPlaceholder' | translate)"
                 [disabled]="!locationForm.value.warehouseId || isSubmitting"
                 [style]="{ width: '100%' }"
             >
@@ -106,32 +106,32 @@
                     <div>{{ loc.locationCode }}<span *ngIf="loc.categoryName"> &middot; {{ loc.categoryName }}</span></div>
                 </ng-template>
             </p-select>
-            <small class="error" *ngIf="hasError('warehouseLocationId')">Bin is required</small>
+            <small class="error" *ngIf="hasError('warehouseLocationId')">{{ 'parts.locationManager.binRequiredError' | translate }}</small>
             <small *ngIf="locationForm.value.warehouseId && !loadingWarehouseLocations && warehouseLocations.length === 0" class="hint">
-                No bins exist in this warehouse yet — create one under Inventory &rsaquo; Warehouse Locations first.
+                {{ 'parts.locationManager.noBinsHint' | translate }}
             </small>
         </div>
 
         <div class="form-group">
             <div class="flex align-items-center">
                 <p-checkbox formControlName="isPrimary" [binary]="true" inputId="isPrimary" [disabled]="isSubmitting"></p-checkbox>
-                <label for="isPrimary" class="ml-2 mb-0">Set as Primary Location</label>
+                <label for="isPrimary" class="ml-2 mb-0">{{ 'parts.locationManager.setPrimaryCheckboxLabel' | translate }}</label>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="notes">Notes</label>
+            <label for="notes">{{ 'common.labels.notes' | translate }}</label>
             <textarea id="notes" pInputTextarea formControlName="notes" class="w-full" [disabled]="isSubmitting"></textarea>
-            <small class="error" *ngIf="hasError('notes')">Notes must not exceed 500 characters</small>
+            <small class="error" *ngIf="hasError('notes')">{{ 'parts.locationManager.notesError' | translate }}</small>
         </div>
     </form>
 
     <ng-template pTemplate="footer">
-        <button type="button" pButton label="Cancel" (click)="closeDialog()" [disabled]="isSubmitting" class="p-button-text"></button>
+        <button type="button" pButton [label]="'common.actions.cancel' | translate" (click)="closeDialog()" [disabled]="isSubmitting" class="p-button-text"></button>
         <button
             type="button"
             pButton
-            [label]="isEditing ? 'Update' : 'Create'"
+            [label]="(isEditing ? 'common.actions.update' : 'common.actions.create') | translate"
             (click)="onSubmit()"
             [disabled]="locationForm.invalid || isSubmitting"
             [loading]="isSubmitting"

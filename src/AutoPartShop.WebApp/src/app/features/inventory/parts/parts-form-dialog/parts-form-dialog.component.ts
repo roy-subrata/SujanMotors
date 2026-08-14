@@ -14,11 +14,14 @@ import { BrandService, BrandResponse } from '../../services/brand.service';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 import { tap } from 'rxjs';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-parts-form-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, ReactiveFormsModule, DialogModule, ButtonModule, InputTextModule, InputNumberModule, AutoCompleteModule, TooltipModule],
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, DialogModule, ButtonModule, InputTextModule, InputNumberModule, AutoCompleteModule, TooltipModule, TranslatePipe],
     templateUrl: './parts-form-dialog.component.html',
     styleUrls: ['./parts-form-dialog.component.css']
 })
@@ -38,6 +41,7 @@ export class PartsFormDialogComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly formBuilder = inject(FormBuilder);
     private readonly CodeGenerationService = inject(CodeGenerationService);
+    private readonly i18n = inject(I18nService);
 
     createForm!: FormGroup;
     updateForm!: FormGroup;
@@ -45,11 +49,15 @@ export class PartsFormDialogComponent implements OnInit {
     categories: CategoryResponse[] = [];
     units: UnitResponse[] = [];
     brands: BrandResponse[] = [];
-    warrantyTypes = [
-        { label: 'Manufacturer', value: 'MANUFACTURER' },
-        { label: 'Seller', value: 'SELLER' },
-        { label: 'Extended', value: 'EXTENDED' }
-    ];
+    warrantyTypes: { label: string; value: string }[] = [];
+
+    private buildWarrantyTypes(): void {
+        this.warrantyTypes = [
+            { label: this.i18n.t('parts.formDialog.warrantyManufacturer'), value: 'MANUFACTURER' },
+            { label: this.i18n.t('parts.formDialog.warrantySeller'), value: 'SELLER' },
+            { label: this.i18n.t('parts.formDialog.warrantyExtended'), value: 'EXTENDED' }
+        ];
+    }
 
     // Autocomplete properties for Create dialog
     filteredCategories: CategoryResponse[] = [];
@@ -73,6 +81,10 @@ export class PartsFormDialogComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        this.buildWarrantyTypes();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildWarrantyTypes();
+        });
         this.loadCategories();
         this.loadUnits();
         this.loadBrands();
@@ -94,8 +106,8 @@ export class PartsFormDialogComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load categories'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('parts.formDialog.messages.loadCategoriesFailed')
                 });
                 console.error('Error loading categories:', error);
             }
@@ -114,8 +126,8 @@ export class PartsFormDialogComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load units'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('parts.formDialog.messages.loadUnitsFailed')
                 });
                 console.error('Error loading units:', error);
             }
@@ -134,8 +146,8 @@ export class PartsFormDialogComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load brands'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('parts.formDialog.messages.loadBrandsFailed')
                 });
                 console.error('Error loading brands:', error);
             }
@@ -481,8 +493,8 @@ export class PartsFormDialogComponent implements OnInit {
         if (this.createForm.invalid) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Validation Error',
-                detail: 'Please fill in all required fields correctly'
+                summary: this.i18n.t('common.messages.validationError'),
+                detail: this.i18n.t('common.messages.fillRequiredFields')
             });
             return;
         }
@@ -513,8 +525,8 @@ export class PartsFormDialogComponent implements OnInit {
             next: (response) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Part '${response.name}' created successfully`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('parts.formDialog.messages.createSuccess', { name: response.name })
                 });
                 this.partCreated.emit(response);
                 this.onCreateDialogHide();
@@ -523,8 +535,8 @@ export class PartsFormDialogComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to create part'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('parts.formDialog.messages.createFailed')
                 });
                 console.error('Error creating part:', error);
                 this.isSubmitting = false;
@@ -539,8 +551,8 @@ export class PartsFormDialogComponent implements OnInit {
         if (this.updateForm.invalid) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Validation Error',
-                detail: 'Please fill in all required fields correctly'
+                summary: this.i18n.t('common.messages.validationError'),
+                detail: this.i18n.t('common.messages.fillRequiredFields')
             });
             return;
         }
@@ -573,8 +585,8 @@ export class PartsFormDialogComponent implements OnInit {
             next: (response) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Part '${response.name}' updated successfully`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('parts.formDialog.messages.updateSuccess', { name: response.name })
                 });
                 this.partUpdated.emit(response);
                 this.onUpdateDialogHide();
@@ -583,8 +595,8 @@ export class PartsFormDialogComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to update part'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('parts.formDialog.messages.updateFailed')
                 });
                 console.error('Error updating part:', error);
                 this.isSubmitting = false;
@@ -605,19 +617,20 @@ export class PartsFormDialogComponent implements OnInit {
      */
     getErrorMessage(formGroup: FormGroup, fieldName: string): string {
         const control = formGroup.get(fieldName);
+        const field = this.getFieldLabel(fieldName);
         if (control?.hasError('required')) {
-            return `${this.getFieldLabel(fieldName)} is required`;
+            return this.i18n.t('common.messages.fieldRequired', { field });
         }
         if (control?.hasError('minlength')) {
-            return `${this.getFieldLabel(fieldName)} must be at least ${control.getError('minlength')?.requiredLength} characters`;
+            return this.i18n.t('common.messages.fieldMinLength', { field, min: String(control.getError('minlength')?.requiredLength) });
         }
         if (control?.hasError('maxlength')) {
-            return `${this.getFieldLabel(fieldName)} must not exceed ${control.getError('maxlength')?.requiredLength} characters`;
+            return this.i18n.t('common.messages.fieldMaxLength', { field, max: String(control.getError('maxlength')?.requiredLength) });
         }
         if (control?.hasError('min')) {
-            return `${this.getFieldLabel(fieldName)} must be at least ${control.getError('min')?.min}`;
+            return this.i18n.t('common.messages.fieldMinValue', { field, min: String(control.getError('min')?.min) });
         }
-        return 'Invalid value';
+        return this.i18n.t('parts.formDialog.invalidValue');
     }
 
     /**
@@ -625,15 +638,15 @@ export class PartsFormDialogComponent implements OnInit {
      */
     private getFieldLabel(fieldName: string): string {
         const labels: { [key: string]: string } = {
-            name: 'Part Name',
-            partNumber: 'Part Number',
-            oemNumber: 'OEM Number',
-            categoryId: 'Category',
-            costPrice: 'Cost Price',
-            sellingPrice: 'Selling Price',
-            minimumStock: 'Minimum Stock',
-            warrantyPeriodMonths: 'Warranty Period (months)',
-            warrantyType: 'Warranty Type'
+            name: this.i18n.t('parts.formDialog.fieldLabelPartName'),
+            partNumber: this.i18n.t('parts.partNumber'),
+            oemNumber: this.i18n.t('parts.formDialog.fieldLabelOemNumber'),
+            categoryId: this.i18n.t('common.labels.category'),
+            costPrice: this.i18n.t('parts.costPrice'),
+            sellingPrice: this.i18n.t('parts.sellingPrice'),
+            minimumStock: this.i18n.t('parts.formDialog.fieldLabelMinimumStock'),
+            warrantyPeriodMonths: this.i18n.t('parts.formDialog.fieldLabelWarrantyPeriod'),
+            warrantyType: this.i18n.t('parts.formDialog.fieldLabelWarrantyType')
         };
         return labels[fieldName] || fieldName;
     }

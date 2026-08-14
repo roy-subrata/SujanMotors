@@ -6,7 +6,6 @@ import { SalesReturnService, SalesReturnResponse } from '../../services/sales-re
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { PanelModule } from 'primeng/panel';
 import { CardModule } from 'primeng/card';
@@ -26,6 +25,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
@@ -37,7 +38,6 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     TableModule,
     ButtonModule,
     InputTextModule,
-    Select,
     DatePickerModule,
     PanelModule,
     CardModule,
@@ -52,7 +52,9 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     PageContainerComponent,
     PageHeaderComponent,
     FilterBarComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    StatusPillFilterComponent,
+    MoreFiltersDialogComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './sales-returns-list.component.html',
@@ -83,6 +85,7 @@ export class SalesReturnsListComponent implements OnInit {
   searchTerm = '';
   filterStatus = '';
   dateRange: Date[] = [];
+  moreFiltersVisible = false;
 
   actionMenuItems: MenuItem[] = [];
   selectedReturn: SalesReturnResponse | null = null;
@@ -201,6 +204,11 @@ export class SalesReturnsListComponent implements OnInit {
   onFilterChange(): void {
     this.resetPagination();
     this.loadSalesReturns();
+  }
+
+  onStatusFilterChange(value: string): void {
+    this.filterStatus = value;
+    this.onFilterChange();
   }
 
   clearSearch(): void {

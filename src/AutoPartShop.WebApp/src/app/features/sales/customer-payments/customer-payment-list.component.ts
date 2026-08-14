@@ -18,6 +18,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -50,7 +52,9 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customer-payment-list.component.html',
@@ -76,6 +80,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     searchTerm: string = '';
     statusFilter: CustomerPaymentStatus | null = null;
     dateRange: Date[] = [];
+    moreFiltersVisible = false;
     pageSize: number = 25;
     pageSizeOptions = [10, 25, 50, 100];
     totalCount: number = 0;
@@ -256,6 +261,11 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     onFilterChange(): void {
         this.first = 0;
         this.loadCustomerPayments();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.statusFilter = (value || null) as CustomerPaymentStatus | null;
+        this.onFilterChange();
     }
 
     onDateRangeSelect(): void {

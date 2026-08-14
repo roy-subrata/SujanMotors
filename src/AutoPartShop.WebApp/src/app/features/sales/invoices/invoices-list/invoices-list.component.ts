@@ -28,6 +28,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
@@ -50,7 +52,9 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent
     ],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './invoices-list.component.html',
@@ -86,6 +90,7 @@ export class InvoicesListComponent implements OnInit {
     filterStatus = '';
     dateRange: Date[] = [];
     customerIdFilter: string | null = null;
+    moreFiltersVisible = false;
 
     showPaymentDialog = false;
     selectedInvoice: InvoiceResponse | null = null;
@@ -203,6 +208,11 @@ export class InvoicesListComponent implements OnInit {
     onFilterChange(): void {
         this.pageNumber = 1;
         this.loadInvoices();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value;
+        this.onFilterChange();
     }
 
     clearSearch(): void {

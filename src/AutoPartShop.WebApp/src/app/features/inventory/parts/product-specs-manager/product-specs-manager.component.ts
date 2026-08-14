@@ -12,6 +12,8 @@ import {
     ProductSpecificationService,
     SaveSpecificationItem
 } from '../../services/product-specification.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 /** One editable row. Suggestions are held per-row so overlays don't share state. */
 interface SpecRow {
@@ -32,7 +34,7 @@ interface SpecRow {
 @Component({
     selector: 'app-product-specs-manager',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, AutoCompleteModule, ToastModule, TooltipModule],
+    imports: [CommonModule, FormsModule, ButtonModule, AutoCompleteModule, ToastModule, TooltipModule, TranslatePipe],
     providers: [MessageService],
     templateUrl: './product-specs-manager.component.html',
     styleUrls: ['./product-specs-manager.component.css']
@@ -42,6 +44,7 @@ export class ProductSpecsManagerComponent implements OnInit {
 
     private readonly specService = inject(ProductSpecificationService);
     private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
 
     rows: SpecRow[] = [];
     loading = false;
@@ -64,7 +67,7 @@ export class ProductSpecsManagerComponent implements OnInit {
             },
             error: (err) => {
                 this.loading = false;
-                this.toastError(err, 'Failed to load specifications');
+                this.toastError(err, this.i18n.t('parts.specsManager.messages.loadFailed'));
             }
         });
     }
@@ -175,13 +178,15 @@ export class ProductSpecsManagerComponent implements OnInit {
                 this.saving = false;
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Saved',
-                    detail: specs.length ? `${specs.length} specification(s) saved` : 'Specifications cleared'
+                    summary: this.i18n.t('parts.specsManager.messages.savedSummary'),
+                    detail: specs.length
+                        ? this.i18n.t('parts.specsManager.messages.savedDetailCount', { count: String(specs.length) })
+                        : this.i18n.t('parts.specsManager.messages.savedDetailCleared')
                 });
             },
             error: (err) => {
                 this.saving = false;
-                this.toastError(err, 'Failed to save specifications');
+                this.toastError(err, this.i18n.t('parts.specsManager.messages.saveFailed'));
             }
         });
     }
@@ -192,6 +197,6 @@ export class ProductSpecsManagerComponent implements OnInit {
 
     private toastError(err: unknown, fallback: string): void {
         const detail = (err as { error?: { message?: string } })?.error?.message || fallback;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail });
     }
 }

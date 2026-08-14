@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -25,6 +26,13 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+
+/** Attribute names/units are literal (persisted as the record's actual data on seed); only the button `label`/`icon` are translated UI chrome. */
+type StarterTemplate = { label: string; icon: string; group: string; attrs: { name: string; code: string; dataType: string; unit: string }[] };
 
 @Component({
   selector: 'app-attribute-group-manager',
@@ -47,7 +55,10 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     PageContainerComponent,
     PageHeaderComponent,
     FilterBarComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    StatusPillFilterComponent,
+    MoreFiltersDialogComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './attribute-group-manager.component.html',
@@ -59,6 +70,8 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly destroy$ = new Subject<void>();
   private readonly search$ = new Subject<string>();
 
@@ -78,11 +91,19 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
   // Filter state
   searchTerm = '';
   filterStatus: boolean | null = null;
+  moreFiltersVisible = false;
 
-  readonly statusOptions = [
-    { label: 'Active', value: true },
-    { label: 'Inactive', value: false }
-  ];
+  /** String-keyed for <app-status-pill-filter>/<app-more-filters-dialog>; mapped to/from the boolean|null filterStatus. */
+  statusOptions: { label: string; value: string }[] = [];
+
+  get filterStatusValue(): string {
+    return this.filterStatus === true ? 'true' : this.filterStatus === false ? 'false' : '';
+  }
+
+  onStatusFilterChange(value: string): void {
+    this.filterStatus = value === 'true' ? true : value === 'false' ? false : null;
+    this.onFilterChange();
+  }
 
   // Group form
   groupForm!: FormGroup;
@@ -102,56 +123,80 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
   optionTargetAttrId: string | null = null;
   showOptionInput = false;
 
-  readonly dataTypeOptions = [
-    { label: 'Option (dropdown)', value: 'option' },
-    { label: 'Text', value: 'text' },
-    { label: 'Number', value: 'number' },
-    { label: 'Boolean (yes/no)', value: 'boolean' }
-  ];
+  dataTypeOptions: { label: string; value: string }[] = [];
 
-  readonly starterTemplates: { label: string; icon: string; group: string; attrs: { name: string; code: string; dataType: string; unit: string }[] }[] = [
-    {
-      label: 'Physical Specs', icon: 'pi-box',
-      group: 'Physical Specs',
-      attrs: [
-        { name: 'Weight', code: 'WEIGHT', dataType: 'number', unit: 'kg' },
-        { name: 'Width',  code: 'WIDTH',  dataType: 'number', unit: 'cm' },
-        { name: 'Height', code: 'HEIGHT', dataType: 'number', unit: 'cm' },
-        { name: 'Depth',  code: 'DEPTH',  dataType: 'number', unit: 'cm' }
-      ]
-    },
-    {
-      label: 'Color & Size', icon: 'pi-palette',
-      group: 'Appearance',
-      attrs: [
-        { name: 'Color', code: 'COLOR', dataType: 'option', unit: '' },
-        { name: 'Size',  code: 'SIZE',  dataType: 'option', unit: '' }
-      ]
-    },
-    {
-      label: 'Vehicle Fit', icon: 'pi-car',
-      group: 'Vehicle Compatibility',
-      attrs: [
-        { name: 'Compatible Make',  code: 'VEH_MAKE',  dataType: 'text', unit: '' },
-        { name: 'Compatible Model', code: 'VEH_MODEL', dataType: 'text', unit: '' },
-        { name: 'Compatible Year',  code: 'VEH_YEAR',  dataType: 'number', unit: '' }
-      ]
-    },
-    {
-      label: 'Electronics', icon: 'pi-desktop',
-      group: 'Technical Specs',
-      attrs: [
-        { name: 'RAM',     code: 'RAM',     dataType: 'number', unit: 'GB' },
-        { name: 'Storage', code: 'STORAGE', dataType: 'number', unit: 'GB' },
-        { name: 'Display', code: 'DISPLAY', dataType: 'number', unit: 'inch' }
-      ]
-    }
-  ];
+  starterTemplates: StarterTemplate[] = [];
 
   isSeedingTemplate = false;
 
+  private buildStatusOptions(): void {
+    this.statusOptions = [
+      { label: this.i18n.t('common.status.all'),      value: '' },
+      { label: this.i18n.t('common.status.active'),   value: 'true' },
+      { label: this.i18n.t('common.status.inactive'), value: 'false' }
+    ];
+  }
+
+  private buildDataTypeOptions(): void {
+    this.dataTypeOptions = [
+      { label: this.i18n.t('parts.attributeGroupManager.dataTypeOption'), value: 'option' },
+      { label: this.i18n.t('parts.attributeGroupManager.dataTypeText'), value: 'text' },
+      { label: this.i18n.t('parts.attributeGroupManager.dataTypeNumber'), value: 'number' },
+      { label: this.i18n.t('parts.attributeGroupManager.dataTypeBoolean'), value: 'boolean' }
+    ];
+  }
+
+  private buildStarterTemplates(): void {
+    this.starterTemplates = [
+      {
+        label: this.i18n.t('parts.attributeGroupManager.templatePhysicalSpecs'), icon: 'pi-box',
+        group: 'Physical Specs',
+        attrs: [
+          { name: 'Weight', code: 'WEIGHT', dataType: 'number', unit: 'kg' },
+          { name: 'Width',  code: 'WIDTH',  dataType: 'number', unit: 'cm' },
+          { name: 'Height', code: 'HEIGHT', dataType: 'number', unit: 'cm' },
+          { name: 'Depth',  code: 'DEPTH',  dataType: 'number', unit: 'cm' }
+        ]
+      },
+      {
+        label: this.i18n.t('parts.attributeGroupManager.templateColorSize'), icon: 'pi-palette',
+        group: 'Appearance',
+        attrs: [
+          { name: 'Color', code: 'COLOR', dataType: 'option', unit: '' },
+          { name: 'Size',  code: 'SIZE',  dataType: 'option', unit: '' }
+        ]
+      },
+      {
+        label: this.i18n.t('parts.attributeGroupManager.templateVehicleFit'), icon: 'pi-car',
+        group: 'Vehicle Compatibility',
+        attrs: [
+          { name: 'Compatible Make',  code: 'VEH_MAKE',  dataType: 'text', unit: '' },
+          { name: 'Compatible Model', code: 'VEH_MODEL', dataType: 'text', unit: '' },
+          { name: 'Compatible Year',  code: 'VEH_YEAR',  dataType: 'number', unit: '' }
+        ]
+      },
+      {
+        label: this.i18n.t('parts.attributeGroupManager.templateElectronics'), icon: 'pi-desktop',
+        group: 'Technical Specs',
+        attrs: [
+          { name: 'RAM',     code: 'RAM',     dataType: 'number', unit: 'GB' },
+          { name: 'Storage', code: 'STORAGE', dataType: 'number', unit: 'GB' },
+          { name: 'Display', code: 'DISPLAY', dataType: 'number', unit: 'inch' }
+        ]
+      }
+    ];
+  }
+
   ngOnInit(): void {
     this.initForms();
+    this.buildStatusOptions();
+    this.buildDataTypeOptions();
+    this.buildStarterTemplates();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildStatusOptions();
+      this.buildDataTypeOptions();
+      this.buildStarterTemplates();
+    });
     // Debounce search input — fires API call 400ms after user stops typing
     this.search$.pipe(
       debounceTime(400),
@@ -239,7 +284,11 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
             completed++;
             if (completed === attrRequests.length) {
               this.isSeedingTemplate = false;
-              this.messageService.add({ severity: 'success', summary: 'Created', detail: `'${template.group}' group created with ${template.attrs.length} attributes` });
+              this.messageService.add({
+                severity: 'success',
+                summary: this.i18n.t('parts.attributeGroupManager.messages.groupCreatedSummary'),
+                detail: this.i18n.t('parts.attributeGroupManager.messages.groupCreatedDetail', { group: template.group, count: String(template.attrs.length) })
+              });
               this.loadGroups();
             }
           },
@@ -251,7 +300,7 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isSeedingTemplate = false;
-        this.showError(err, 'Failed to create group');
+        this.showError(err, this.i18n.t('parts.attributeGroupManager.messages.createGroupFailed'));
       }
     });
   }
@@ -279,23 +328,23 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
 
     op$.subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Attribute group saved' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.attributeGroupManager.messages.groupSavedDetail') });
         this.showGroupForm = false;
         this.loadGroups();
       },
-      error: (err) => this.showError(err, 'Failed to save group')
+      error: (err) => this.showError(err, this.i18n.t('parts.attributeGroupManager.messages.saveGroupFailed'))
     });
   }
 
   deleteGroup(g: ProductAttributeGroup): void {
     this.confirmationService.confirm({
-      header: 'Delete Group',
-      message: `Delete group '${g.name}' and all its attributes?`,
+      header: this.i18n.t('parts.attributeGroupManager.messages.deleteGroupHeader'),
+      message: this.i18n.t('parts.attributeGroupManager.messages.deleteGroupMessage', { name: g.name }),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => this.service.deleteGroup(g.id).subscribe({
-        next: () => { this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Group deleted' }); this.loadGroups(); },
-        error: (err) => this.showError(err, 'Failed to delete group')
+        next: () => { this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.attributeGroupManager.messages.groupDeletedDetail') }); this.loadGroups(); },
+        error: (err) => this.showError(err, this.i18n.t('parts.attributeGroupManager.messages.deleteGroupFailed'))
       })
     });
   }
@@ -325,23 +374,23 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
 
     op$.subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Attribute saved' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.attributeGroupManager.messages.attrSavedDetail') });
         this.showAttrForm = false;
         this.loadGroups();
       },
-      error: (err) => this.showError(err, 'Failed to save attribute')
+      error: (err) => this.showError(err, this.i18n.t('parts.attributeGroupManager.messages.saveAttrFailed'))
     });
   }
 
   deleteAttr(groupId: string, attr: ProductAttribute): void {
     this.confirmationService.confirm({
-      header: 'Delete Attribute',
-      message: `Delete attribute '${attr.name}'? Variant values using it will also be removed.`,
+      header: this.i18n.t('parts.attributeGroupManager.messages.deleteAttrHeader'),
+      message: this.i18n.t('parts.attributeGroupManager.messages.deleteAttrMessage', { name: attr.name }),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => this.service.deleteAttribute(groupId, attr.id).subscribe({
-        next: () => { this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Attribute deleted' }); this.loadGroups(); },
-        error: (err) => this.showError(err, 'Failed to delete attribute')
+        next: () => { this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.attributeGroupManager.messages.attrDeletedDetail') }); this.loadGroups(); },
+        error: (err) => this.showError(err, this.i18n.t('parts.attributeGroupManager.messages.deleteAttrFailed'))
       })
     });
   }
@@ -360,23 +409,27 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
     if (!this.optionValue.trim() || !this.optionTargetGroupId || !this.optionTargetAttrId) return;
     this.service.addOption(this.optionTargetGroupId, this.optionTargetAttrId, { value: this.optionValue, sortOrder: this.optionSortOrder }).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Added', detail: `Option '${this.optionValue}' added` });
+        this.messageService.add({
+          severity: 'success',
+          summary: this.i18n.t('parts.attributeGroupManager.messages.optionAddedSummary'),
+          detail: this.i18n.t('parts.attributeGroupManager.messages.optionAddedDetail', { value: this.optionValue })
+        });
         this.showOptionInput = false;
         this.loadGroups();
       },
-      error: (err) => this.showError(err, 'Failed to add option')
+      error: (err) => this.showError(err, this.i18n.t('parts.attributeGroupManager.messages.addOptionFailed'))
     });
   }
 
   deleteOption(groupId: string, attrId: string, opt: AttributeOption): void {
     this.confirmationService.confirm({
-      header: 'Delete Option',
-      message: `Delete option '${opt.value}'?`,
+      header: this.i18n.t('parts.attributeGroupManager.messages.deleteOptionHeader'),
+      message: this.i18n.t('parts.attributeGroupManager.messages.deleteOptionMessage', { value: opt.value }),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => this.service.deleteOption(groupId, attrId, opt.id).subscribe({
-        next: () => { this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Option deleted' }); this.loadGroups(); },
-        error: (err) => this.showError(err, 'Failed to delete option')
+        next: () => { this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.attributeGroupManager.messages.optionDeletedDetail') }); this.loadGroups(); },
+        error: (err) => this.showError(err, this.i18n.t('parts.attributeGroupManager.messages.deleteOptionFailed'))
       })
     });
   }
@@ -401,6 +454,6 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
   }
 
   private showError(err: any, fallback: string): void {
-    this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || fallback });
+    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || fallback });
   }
 }

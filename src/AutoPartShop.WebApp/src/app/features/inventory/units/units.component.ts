@@ -14,6 +14,8 @@ import { TabsModule } from 'primeng/tabs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-units',
@@ -30,7 +32,8 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
     ConversionsFormDialogComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    FilterBarComponent
+    FilterBarComponent,
+    TranslatePipe
   ],
   providers: [UnitService, UnitConversionService, MessageService, ConfirmationService],
   templateUrl: './units.component.html',
@@ -46,6 +49,7 @@ export class UnitsComponent implements OnInit {
   private readonly conversionService = inject(UnitConversionService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   // Units tab state
   selectedUnit: UnitResponse | null = null;
@@ -103,8 +107,8 @@ export class UnitsComponent implements OnInit {
    */
   selectAndDelete(unit: UnitResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete the unit "<strong>${unit.name}</strong>"?`,
-      header: 'Confirm Delete',
+      message: this.i18n.t('units.messages.deleteConfirm', { name: unit.name }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-secondary',
@@ -114,8 +118,8 @@ export class UnitsComponent implements OnInit {
       reject: () => {
         this.messageService.add({
           severity: 'info',
-          summary: 'Cancelled',
-          detail: 'Delete operation cancelled'
+          summary: this.i18n.t('common.messages.info'),
+          detail: this.i18n.t('common.messages.actionCancelled')
         });
       }
     });
@@ -129,16 +133,16 @@ export class UnitsComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Unit "${unit.name}" deleted successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('units.messages.deleteSuccess')
         });
         this.listComponent.reload();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to delete unit. This unit may have dependencies.'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('units.messages.deleteFailed')
         });
       }
     });
@@ -148,14 +152,13 @@ export class UnitsComponent implements OnInit {
    * Handle toggle unit status
    */
   selectAndToggleStatus(unit: UnitResponse): void {
-    const action = unit.isActive ? 'deactivate' : 'activate';
-    const message = unit.isActive
-      ? `Are you sure you want to deactivate "<strong>${unit.name}</strong>"?`
-      : `Are you sure you want to activate "<strong>${unit.name}</strong>"?`;
+    const isDeactivating = unit.isActive;
+    const confirmKey = isDeactivating ? 'units.messages.deactivateConfirm' : 'units.messages.activateConfirm';
+    const header = isDeactivating ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate');
 
     this.confirmationService.confirm({
-      message: message,
-      header: `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      message: this.i18n.t(confirmKey, { name: unit.name }),
+      header,
       icon: 'pi pi-info-circle',
       acceptButtonStyleClass: unit.isActive ? 'p-button-warning' : 'p-button-success',
       rejectButtonStyleClass: 'p-button-secondary',
@@ -170,22 +173,22 @@ export class UnitsComponent implements OnInit {
    */
   private performToggleStatus(unit: UnitResponse): void {
     const request = unit.isActive ? this.unitService.deactivateUnit(unit.id) : this.unitService.activateUnit(unit.id);
+    const successKey = unit.isActive ? 'units.messages.deactivateSuccess' : 'units.messages.activateSuccess';
 
     request.subscribe({
       next: () => {
-        const action = unit.isActive ? 'deactivated' : 'activated';
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Unit "${unit.name}" ${action} successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t(successKey)
         });
         this.listComponent.reload();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to update unit status'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('common.messages.updateFailed')
         });
       }
     });
@@ -232,8 +235,8 @@ export class UnitsComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load units for conversion'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('units.messages.loadFailed')
         });
       }
     });
@@ -280,8 +283,8 @@ export class UnitsComponent implements OnInit {
   selectAndDeleteConversion(conversion: UnitConversionResponse): void {
     const msg = `${conversion.fromUnitCode} → ${conversion.toUnitCode}`;
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete this conversion: <strong>${msg}</strong>?`,
-      header: 'Confirm Delete',
+      message: this.i18n.t('conversions.messages.deleteConfirmDetailed', { units: msg }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-secondary',
@@ -291,8 +294,8 @@ export class UnitsComponent implements OnInit {
       reject: () => {
         this.messageService.add({
           severity: 'info',
-          summary: 'Cancelled',
-          detail: 'Delete operation cancelled'
+          summary: this.i18n.t('common.messages.info'),
+          detail: this.i18n.t('common.messages.actionCancelled')
         });
       }
     });
@@ -306,16 +309,16 @@ export class UnitsComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Conversion deleted successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('conversions.messages.deleteSuccess')
         });
         this.conversionsListComponent.reload();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to delete conversion'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('conversions.messages.deleteFailed')
         });
       }
     });
@@ -325,12 +328,13 @@ export class UnitsComponent implements OnInit {
    * Handle toggle conversion status
    */
   selectAndToggleConversionStatus(conversion: UnitConversionResponse): void {
-    const action = conversion.isActive ? 'deactivate' : 'activate';
+    const isDeactivating = conversion.isActive;
+    const action = isDeactivating ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate');
     const msg = `${conversion.fromUnitCode} → ${conversion.toUnitCode}`;
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to ${action} this conversion: <strong>${msg}</strong>?`,
-      header: `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      message: this.i18n.t('conversions.messages.toggleConfirmDetailed', { action: action.toLowerCase(), units: msg }),
+      header: action,
       icon: 'pi pi-info-circle',
       acceptButtonStyleClass: conversion.isActive ? 'p-button-warning' : 'p-button-success',
       rejectButtonStyleClass: 'p-button-secondary',
@@ -349,22 +353,22 @@ export class UnitsComponent implements OnInit {
       description: conversion.description,
       isActive: !conversion.isActive
     };
+    const successKey = conversion.isActive ? 'conversions.messages.deactivateSuccess' : 'conversions.messages.activateSuccess';
 
     this.conversionService.updateConversion(conversion.id, updateRequest).subscribe({
       next: () => {
-        const action = conversion.isActive ? 'deactivated' : 'activated';
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Conversion ${action} successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t(successKey)
         });
         this.conversionsListComponent.reload();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to update conversion status'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('common.messages.updateFailed')
         });
       }
     });

@@ -6,7 +6,6 @@ import { TechnicianService, TechnicianResponse } from '../../services/technician
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -18,13 +17,15 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-technicians-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, TooltipModule, ToastModule, ConfirmDialogModule,
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent, StatusPillFilterComponent, MoreFiltersDialogComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './technicians-list.component.html',
     styleUrls: ['./technicians-list.component.css']
@@ -49,6 +50,7 @@ export class TechniciansListComponent implements OnInit {
     filterStatus = '';
 
     statusOptions: { label: string; value: string }[] = [];
+    moreFiltersVisible = false;
 
     ngOnInit(): void {
         this.buildStatusOptions();
@@ -105,6 +107,11 @@ export class TechniciansListComponent implements OnInit {
     onFilterChange(): void {
         this.pageNumber = 1;
         this.loadTechnicians();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value;
+        this.onFilterChange();
     }
 
     clearSearch(): void {

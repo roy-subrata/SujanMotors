@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -17,12 +18,14 @@ import {
 } from '../services/warehouse-location.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { CategoryService, CategoryResponse } from '../services/category.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 /** Create/Edit form for a Warehouse Location (Zone-Aisle-Rack-Bin). Routed page, mirrors WarehouseFormComponent. */
 @Component({
     selector: 'app-warehouse-location-form',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, ButtonModule, CardModule, InputTextModule, TextareaModule, Select, ToastModule],
+    imports: [CommonModule, ReactiveFormsModule, ButtonModule, CardModule, InputTextModule, TextareaModule, Select, ToastModule, TranslatePipe],
     providers: [MessageService],
     templateUrl: './warehouse-location-form.component.html',
     styleUrls: ['./warehouse-location-form.component.css']
@@ -35,12 +38,14 @@ export class WarehouseLocationFormComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     form: FormGroup;
     isEditMode = false;
     isSubmitting = false;
     locationId: string | null = null;
-    pageTitle = 'Create Warehouse Location';
+    pageTitle = this.i18n.t('warehouseLocations.createTitle');
 
     warehouseOptions: { label: string; value: string }[] = [];
     categoryOptions: { label: string; value: string }[] = [];
@@ -56,12 +61,16 @@ export class WarehouseLocationFormComponent implements OnInit {
             if (params['id']) {
                 this.locationId = params['id'];
                 this.isEditMode = this.router.url.includes('/edit');
-                this.pageTitle = 'Edit Warehouse Location';
+                this.pageTitle = this.i18n.t('warehouseLocations.editTitle');
 
                 if (this.locationId) {
                     this.loadLocation(this.locationId);
                 }
             }
+        });
+
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.pageTitle = this.i18n.t(this.isEditMode ? 'warehouseLocations.editTitle' : 'warehouseLocations.createTitle');
         });
     }
 
@@ -71,7 +80,7 @@ export class WarehouseLocationFormComponent implements OnInit {
                 this.warehouseOptions = warehouses.map((w) => ({ label: `${w.name} (${w.code})`, value: w.id }));
             },
             error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load warehouses' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('warehouseLocations.messages.loadWarehousesFailed') });
             }
         });
 
@@ -80,7 +89,7 @@ export class WarehouseLocationFormComponent implements OnInit {
                 this.categoryOptions = categories.map((c) => ({ label: c.breadcrumbPath || c.name, value: c.id }));
             },
             error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('warehouseLocations.messages.loadCategoriesFailed') });
             }
         });
     }
@@ -111,7 +120,7 @@ export class WarehouseLocationFormComponent implements OnInit {
                 });
             },
             error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load location details' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('warehouseLocations.messages.loadLocationFailed') });
             }
         });
     }
@@ -119,7 +128,7 @@ export class WarehouseLocationFormComponent implements OnInit {
     onSubmit(): void {
         if (!this.form.valid) {
             this.form.markAllAsTouched();
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Please fill all required fields' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('warehouseLocations.messages.requiredFieldsError') });
             return;
         }
 
@@ -143,8 +152,8 @@ export class WarehouseLocationFormComponent implements OnInit {
             next: (location) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Location "${location.locationCode}" ${this.isEditMode ? 'updated' : 'created'} successfully`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t(this.isEditMode ? 'warehouseLocations.messages.updateSuccess' : 'warehouseLocations.messages.createSuccess', { code: location.locationCode })
                 });
                 this.router.navigate(['/inventory/warehouse-locations']);
             },
@@ -152,9 +161,9 @@ export class WarehouseLocationFormComponent implements OnInit {
                 const isConflict = err?.status === 409;
                 const detail = err?.error?.message
                     ?? (isConflict
-                        ? 'A location with this Zone/Aisle/Rack/Bin already exists in this warehouse'
-                        : `Failed to ${this.isEditMode ? 'update' : 'create'} location`);
-                this.messageService.add({ severity: 'error', summary: isConflict ? 'Conflict' : 'Error', detail });
+                        ? this.i18n.t('warehouseLocations.messages.conflictError')
+                        : this.i18n.t(this.isEditMode ? 'warehouseLocations.messages.updateFailed' : 'warehouseLocations.messages.createFailed'));
+                this.messageService.add({ severity: 'error', summary: isConflict ? this.i18n.t('common.messages.conflict') : this.i18n.t('common.messages.error'), detail });
                 this.isSubmitting = false;
             }
         });
@@ -172,11 +181,11 @@ export class WarehouseLocationFormComponent implements OnInit {
     getErrorMessage(fieldName: string): string {
         const field = this.form.get(fieldName);
         if (field?.hasError('required')) {
-            return `${this.formatFieldName(fieldName)} is required`;
+            return this.i18n.t('common.messages.fieldRequired', { field: this.formatFieldName(fieldName) });
         }
         if (field?.hasError('maxlength')) {
             const maxLength = field.errors?.['maxlength'].requiredLength;
-            return `${this.formatFieldName(fieldName)} cannot exceed ${maxLength} characters`;
+            return this.i18n.t('common.messages.fieldMaxLength', { field: this.formatFieldName(fieldName), max: String(maxLength) });
         }
         return '';
     }

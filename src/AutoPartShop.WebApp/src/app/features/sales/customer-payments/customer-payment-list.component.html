@@ -44,9 +44,11 @@
     </div>
 
     <div filters class="filter-group">
-      <!-- <label class="filter-label">Status</label> -->
-      <p-select [options]="statusOptions" [(ngModel)]="statusFilter" placeholder="All Statuses"
-        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+      <app-status-pill-filter
+        [options]="statusOptions"
+        [value]="statusFilter ?? ''"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <div filters class="filter-group">
@@ -61,7 +63,19 @@
       <p-select [options]="reconciledOptions" [(ngModel)]="reconciledFilter" placeholder="All"
         [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
     </div>
+
+    <div filterActions class="filter-group filter-actions">
+      <button class="text-btn" (click)="moreFiltersVisible = true">More filters</button>
+    </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="statusFilter ?? ''"
+    [previewCount]="totalCount"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== DATA TABLE (Desktop) ==================== -->
   <section class="table-section desktop-only">

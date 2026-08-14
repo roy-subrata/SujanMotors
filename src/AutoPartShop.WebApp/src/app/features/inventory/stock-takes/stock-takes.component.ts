@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,12 +15,16 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StockTakeService, StockTakeResponse } from '../services/stock-take.service';
 import { StockTakeStatus } from '@/shared/models/status.types';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { CategoryService, CategoryResponse } from '../services/category.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { StatusDisplayService } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-stock-takes',
@@ -36,7 +41,10 @@ import { StatusDisplayService } from '@/shared/services/status-display.service';
     PageContainerComponent,
     PageHeaderComponent,
     FilterBarComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    StatusPillFilterComponent,
+    MoreFiltersDialogComponent,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './stock-takes.component.html',
@@ -50,6 +58,8 @@ export class StockTakesComponent implements OnInit {
   private readonly statusDisplay = inject(StatusDisplayService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   stockTakes: StockTakeResponse[] = [];
   loading = false;
@@ -62,13 +72,9 @@ export class StockTakesComponent implements OnInit {
   searchTerm = '';
   filterStatus: StockTakeStatus | null = null;
   filterWarehouseId: string | null = null;
+  moreFiltersVisible = false;
 
-  statusOptions = [
-    { label: 'Counting', value: 'COUNTING' },
-    { label: 'Review', value: 'REVIEW' },
-    { label: 'Completed', value: 'COMPLETED' },
-    { label: 'Cancelled', value: 'CANCELLED' }
-  ];
+  statusOptions: { label: string; value: string }[] = [];
   warehouses: WarehouseResponse[] = [];
   categories: CategoryResponse[] = [];
 
@@ -82,9 +88,23 @@ export class StockTakesComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.buildStatusOptions();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildStatusOptions();
+    });
     this.loadStockTakes();
     this.warehouseService.getAllWarehouses().subscribe(w => (this.warehouses = w));
     this.categoryService.getActiveCategories().subscribe(c => (this.categories = c));
+  }
+
+  private buildStatusOptions(): void {
+    this.statusOptions = [
+      { label: this.i18n.t('common.status.all'), value: '' },
+      { label: this.i18n.t('stockTakes.status.counting'), value: 'COUNTING' },
+      { label: this.i18n.t('stockTakes.status.review'), value: 'REVIEW' },
+      { label: this.i18n.t('common.status.completed'), value: 'COMPLETED' },
+      { label: this.i18n.t('common.status.cancelled'), value: 'CANCELLED' }
+    ];
   }
 
   loadStockTakes(page = 1, pageSize = this.rows): void {
@@ -104,7 +124,7 @@ export class StockTakesComponent implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load stock takes' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('stockTakes.messages.loadFailed') });
         this.loading = false;
       }
     });
@@ -112,6 +132,11 @@ export class StockTakesComponent implements OnInit {
 
   onSearch(): void { this.loadStockTakes(1, this.rows); }
   onFilterChange(): void { this.loadStockTakes(1, this.rows); }
+
+  onStatusFilterChange(value: string): void {
+    this.filterStatus = (value || null) as StockTakeStatus | null;
+    this.onFilterChange();
+  }
   refreshData(): void { this.loadStockTakes(this.currentPage, this.rows); }
   clearSearchInput(): void { this.searchTerm = ''; }
 
@@ -170,12 +195,20 @@ export class StockTakesComponent implements OnInit {
       next: (st) => {
         this.creating = false;
         this.showCreateDialog = false;
-        this.messageService.add({ severity: 'success', summary: 'Stock Take Started', detail: `${st.stockTakeNumber} — ${st.totalLines} items to count` });
+        this.messageService.add({
+          severity: 'success',
+          summary: this.i18n.t('stockTakes.messages.createdTitle'),
+          detail: this.i18n.t('stockTakes.messages.createdDetail', { number: st.stockTakeNumber, count: String(st.totalLines) })
+        });
         this.router.navigate(['/inventory/stock-takes', st.id]);
       },
       error: (err) => {
         this.creating = false;
-        this.messageService.add({ severity: 'error', summary: 'Could Not Start', detail: err?.error?.message ?? 'Failed to create stock take' });
+        this.messageService.add({
+          severity: 'error',
+          summary: this.i18n.t('stockTakes.messages.createFailedTitle'),
+          detail: err?.error?.message ?? this.i18n.t('stockTakes.messages.createFailed')
+        });
       }
     });
   }

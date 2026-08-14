@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
-import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
@@ -18,6 +17,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 
 /**
  * Admin history view of ALL till sessions (every cashier, not just the current user's) — the
@@ -32,14 +33,15 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         FormsModule,
         TableModule,
         ButtonModule,
-        Select,
         DatePicker,
         TooltipModule,
         ToastModule,
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent
     ],
     providers: [MessageService],
     templateUrl: './till-sessions-list.component.html',
@@ -67,10 +69,17 @@ export class TillSessionsListComponent implements OnInit {
         { label: 'Closed', value: 'CLOSED' }
     ];
 
+    moreFiltersVisible = false;
+
     Math = Math;
 
     ngOnInit(): void {
         this.loadData();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value as TillSessionStatus | '';
+        this.onFilterChange();
     }
 
     private formatDateForApi(date: Date): string {

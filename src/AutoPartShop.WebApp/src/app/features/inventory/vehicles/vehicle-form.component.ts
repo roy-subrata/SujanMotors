@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -12,6 +12,9 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { VehicleService, VehicleResponse } from '../services/vehicle.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-vehicle-form',
@@ -27,7 +30,8 @@ import { VehicleService, VehicleResponse } from '../services/vehicle.service';
     TextareaModule,
     AutoCompleteModule,
     CheckboxModule,
-    ToastModule
+    ToastModule,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './vehicle-form.component.html',
@@ -39,13 +43,15 @@ export class VehicleFormComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   form: FormGroup;
   isEditMode = false;
   isViewMode = false;
   isSubmitting = false;
   vehicleId: string | null = null;
-  pageTitle = 'Create Vehicle';
+  pageTitle = '';
 
   // Engine type options
   engineTypes = [
@@ -65,13 +71,18 @@ export class VehicleFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.updatePageTitle();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.updatePageTitle();
+    });
+
     // Check if we're in edit or view mode
     this.route.queryParams.subscribe(params => {
       if (params['id']) {
         this.vehicleId = params['id'];
         this.isEditMode = this.router.url.includes('/edit');
         this.isViewMode = this.router.url.includes('/view');
-        this.pageTitle = this.isViewMode ? 'View Vehicle' : 'Edit Vehicle';
+        this.updatePageTitle();
 
         if (this.vehicleId) {
           this.loadVehicle(this.vehicleId);
@@ -82,6 +93,14 @@ export class VehicleFormComponent implements OnInit {
         }
       }
     });
+  }
+
+  private updatePageTitle(): void {
+    this.pageTitle = this.isViewMode
+      ? this.i18n.t('vehicles.viewVehicle')
+      : this.isEditMode
+        ? this.i18n.t('vehicles.editVehicle')
+        : this.i18n.t('vehicles.createVehicle');
   }
 
   /**
@@ -120,8 +139,8 @@ export class VehicleFormComponent implements OnInit {
       error: (error: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load vehicle details'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('vehicles.messages.loadDetailsFailed')
         });
         console.error('Error loading vehicle:', error);
       }
@@ -156,8 +175,8 @@ export class VehicleFormComponent implements OnInit {
     if (!this.form.valid) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Please fill all required fields'
+        summary: this.i18n.t('common.messages.error'),
+        detail: this.i18n.t('common.messages.fillRequiredFields')
       });
       return;
     }
@@ -179,16 +198,16 @@ export class VehicleFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: `Vehicle '${vehicleData.make} ${vehicleData.model}' updated successfully`
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('vehicles.messages.updateSuccess')
           });
           this.router.navigate(['/inventory/vehicles']);
         },
         error: (error: any) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error?.error?.message || 'Failed to update vehicle'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error?.error?.message || this.i18n.t('vehicles.messages.updateFailed')
           });
           console.error('Error updating vehicle:', error);
           this.isSubmitting = false;
@@ -200,16 +219,16 @@ export class VehicleFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: `Vehicle '${vehicleData.make} ${vehicleData.model}' created successfully`
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('vehicles.messages.createSuccess')
           });
           this.router.navigate(['/inventory/vehicles']);
         },
         error: (error: any) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error?.error?.message || 'Failed to create vehicle'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error?.error?.message || this.i18n.t('vehicles.messages.createFailed')
           });
           console.error('Error creating vehicle:', error);
           this.isSubmitting = false;
@@ -239,23 +258,23 @@ export class VehicleFormComponent implements OnInit {
   getErrorMessage(fieldName: string): string {
     const field = this.form.get(fieldName);
     if (field?.hasError('required')) {
-      return `${this.formatFieldName(fieldName)} is required`;
+      return this.i18n.t('common.messages.fieldRequired', { field: this.formatFieldName(fieldName) });
     }
     if (field?.hasError('minlength')) {
       const minLength = field.errors?.['minlength'].requiredLength;
-      return `${this.formatFieldName(fieldName)} must be at least ${minLength} characters`;
+      return this.i18n.t('common.messages.fieldMinLength', { field: this.formatFieldName(fieldName), min: String(minLength) });
     }
     if (field?.hasError('maxlength')) {
       const maxLength = field.errors?.['maxlength'].requiredLength;
-      return `${this.formatFieldName(fieldName)} cannot exceed ${maxLength} characters`;
+      return this.i18n.t('common.messages.fieldMaxLength', { field: this.formatFieldName(fieldName), max: String(maxLength) });
     }
     if (field?.hasError('min')) {
       const min = field.errors?.['min'].min;
-      return `${this.formatFieldName(fieldName)} must be at least ${min}`;
+      return this.i18n.t('common.messages.fieldMinValue', { field: this.formatFieldName(fieldName), min: String(min) });
     }
     if (field?.hasError('max')) {
       const max = field.errors?.['max'].max;
-      return `${this.formatFieldName(fieldName)} cannot exceed ${max}`;
+      return this.i18n.t('common.messages.fieldMaxValue', { field: this.formatFieldName(fieldName), max: String(max) });
     }
     return '';
   }

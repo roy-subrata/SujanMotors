@@ -1,5 +1,6 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -25,6 +26,8 @@ import {
   ProductAttributeGroup,
   ProductAttribute
 } from '../../services/product-attribute.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 interface AttrRow {
   attributeId: string;
@@ -52,7 +55,8 @@ interface AttrRow {
     TooltipModule,
     DialogModule,
     Select,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './product-variant-manager.component.html'
@@ -67,6 +71,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   variants: ProductVariantResponse[] = [];
   attributeGroups: ProductAttributeGroup[] = [];
@@ -235,8 +241,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: this.isEditing ? 'Variant Updated' : 'Variant Added',
-          detail: `Variant '${req.name}' saved`
+          summary: this.i18n.t(this.isEditing ? 'parts.variantManager.messages.variantUpdatedSummary' : 'parts.variantManager.messages.variantAddedSummary'),
+          detail: this.i18n.t('parts.variantManager.messages.variantSavedDetail', { name: req.name })
         });
         this.isSubmitting = false;
         this.dialogVisible = false;
@@ -245,8 +251,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
       error: (err) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: err?.error?.message || 'Failed to save variant'
+          summary: this.i18n.t('common.messages.error'),
+          detail: err?.error?.message || this.i18n.t('parts.variantManager.messages.saveFailed')
         });
         this.isSubmitting = false;
       }
@@ -255,18 +261,18 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
 
   confirmDelete(variant: ProductVariantResponse): void {
     this.confirmationService.confirm({
-      header: 'Delete Variant',
-      message: `Delete variant '${variant.name}'?`,
+      header: this.i18n.t('parts.variantManager.messages.deleteVariantHeader'),
+      message: this.i18n.t('parts.variantManager.messages.deleteVariantMessage', { name: variant.name }),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         this.variantService.deleteVariant(this.partId, variant.id).subscribe({
           next: () => {
-            this.messageService.add({ severity: 'success', summary: 'Deleted', detail: `'${variant.name}' deleted` });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.variantManager.messages.deletedDetail', { name: variant.name }) });
             this.loadVariants();
           },
           error: (err) => {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to delete' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('parts.variantManager.messages.deleteFailed') });
           }
         });
       }

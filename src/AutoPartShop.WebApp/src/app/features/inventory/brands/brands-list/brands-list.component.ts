@@ -12,11 +12,12 @@ import { BrandResponse } from '../../services/brand.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-brands-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, TooltipModule, TagModule, ContextMenuModule, RippleModule, DataPaginationComponent],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, TooltipModule, TagModule, ContextMenuModule, RippleModule, DataPaginationComponent, TranslatePipe],
     templateUrl: './brands-list.component.html',
     styleUrls: ['./brands-list.component.css']
 })

@@ -8,15 +8,15 @@
 <app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Units"
-    subtitle="Manage measurement units and conversions"
+    [title]="'units.title' | translate"
+    [subtitle]="'units.subtitle' | translate"
     [count]="unitsTotalRecords" countLabel="units">
   </app-page-header>
 
   <p-tabs value="0">
     <p-tablist>
-      <p-tab value="0">Units</p-tab>
-      <p-tab value="1">Units Conversion</p-tab>
+      <p-tab value="0">{{ 'units.title' | translate }}</p-tab>
+      <p-tab value="1">{{ 'conversions.title' | translate }}</p-tab>
     </p-tablist>
 
     <p-tabpanels>
@@ -29,7 +29,7 @@
               <input
                 type="text"
                 [(ngModel)]="searchTerm"
-                placeholder="Search by name, code, or symbol..."
+                [placeholder]="'units.searchUnits' | translate"
                 (keyup.enter)="onSearch(searchTerm)"
                 class="search-input" />
               <button *ngIf="searchTerm" class="search-clear" (click)="clearUnitsSearch()">
@@ -41,22 +41,22 @@
           <div filterActions class="filter-group filter-actions">
             <button class="btn-search" (click)="onSearch(searchTerm)">
               <i class="pi pi-search"></i>
-              Search
+              {{ 'common.actions.search' | translate }}
             </button>
             <button *ngIf="hasUnitsFilters()" class="btn-clear" (click)="clearUnitsSearch()">
               <i class="pi pi-filter-slash"></i>
-              Clear
+              {{ 'common.actions.clear' | translate }}
             </button>
             <button class="btn-primary" (click)="onNewUnitClick()">
               <i class="pi pi-plus"></i>
-              <span>New Unit</span>
+              <span>{{ 'units.addUnit' | translate }}</span>
             </button>
           </div>
 
           <div activeFilters *ngIf="hasUnitsFilters()" class="active-filters">
-            <span class="active-filters-label">Active filters:</span>
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
             <span class="filter-chip">
-              Search: "{{ searchTerm }}"
+              {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
               <i class="pi pi-times" (click)="clearUnitsSearch()"></i>
             </span>
           </div>
@@ -88,7 +88,7 @@
               <input
                 type="text"
                 [(ngModel)]="conversionSearchTerm"
-                placeholder="Search by unit names or codes..."
+                [placeholder]="'conversions.searchConversions' | translate"
                 (keyup.enter)="onConversionSearch(conversionSearchTerm)"
                 class="search-input" />
               <button *ngIf="conversionSearchTerm" class="search-clear" (click)="clearConversionSearch()">
@@ -100,22 +100,22 @@
           <div filterActions class="filter-group filter-actions">
             <button class="btn-search" (click)="onConversionSearch(conversionSearchTerm)">
               <i class="pi pi-search"></i>
-              Search
+              {{ 'common.actions.search' | translate }}
             </button>
             <button *ngIf="hasConversionFilters()" class="btn-clear" (click)="clearConversionSearch()">
               <i class="pi pi-filter-slash"></i>
-              Clear
+              {{ 'common.actions.clear' | translate }}
             </button>
             <button class="btn-primary" (click)="onNewConversionClick()">
               <i class="pi pi-plus"></i>
-              <span>New Conversion</span>
+              <span>{{ 'conversions.addConversion' | translate }}</span>
             </button>
           </div>
 
           <div activeFilters *ngIf="hasConversionFilters()" class="active-filters">
-            <span class="active-filters-label">Active filters:</span>
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
             <span class="filter-chip">
-              Search: "{{ conversionSearchTerm }}"
+              {{ 'common.labels.search' | translate }}: "{{ conversionSearchTerm }}"
               <i class="pi pi-times" (click)="clearConversionSearch()"></i>
             </span>
           </div>

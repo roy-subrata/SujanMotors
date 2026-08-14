@@ -10,11 +10,12 @@ import { MessageService } from 'primeng/api';
 import { UnitService, UnitResponse } from '../../services/unit.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-units-list',
   standalone: true,
-  imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, FormsModule, DataPaginationComponent],
+  imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, FormsModule, DataPaginationComponent, TranslatePipe],
   templateUrl: './units-list.component.html',
   styleUrls: ['./units-list.component.css']
 })
@@ -131,6 +132,10 @@ export class UnitsListComponent implements OnInit {
     this.pageNumber = 1;
     this.searchTerm = '';
     this.loadUnits(1);
+  }
+
+  getStatusLabel(isActive: boolean): string {
+    return isActive ? this.i18n.t('common.status.active') : this.i18n.t('common.status.inactive');
   }
 
   get first(): number {

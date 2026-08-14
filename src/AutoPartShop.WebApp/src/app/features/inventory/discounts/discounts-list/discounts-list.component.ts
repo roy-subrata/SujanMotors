@@ -12,6 +12,7 @@ import { DiscountResponse } from '../../services/discount.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-discounts-list',
@@ -25,7 +26,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     TagModule,
     ContextMenuModule,
     RippleModule,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   templateUrl: './discounts-list.component.html',
   styleUrls: ['./discounts-list.component.css']

@@ -5,7 +5,6 @@ import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
 import { MenuModule } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
@@ -17,11 +16,13 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 
 @Component({
     selector: 'app-purchase-orders',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, Select, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent, HasRoleDirective, PageContainerComponent, PageHeaderComponent, FilterBarComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent, HasRoleDirective, PageContainerComponent, PageHeaderComponent, FilterBarComponent, StatusPillFilterComponent, MoreFiltersDialogComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './purchase-orders.component.html',
     styleUrls: ['./purchase-orders.component.css']
@@ -40,11 +41,12 @@ export class PurchaseOrdersComponent implements OnInit {
     rows = 10;
     currentPage = 1;
     searchTerm = '';
-    filterStatus: string | null = null;
+    filterStatus = '';
     dateRange: Date[] | null = null;
+    moreFiltersVisible = false;
 
     statusOptions = [
-        { label: 'All', value: null },
+        { label: 'All', value: '' },
         { label: 'Draft', value: 'DRAFT' },
         { label: 'Submitted', value: 'SUBMITTED' },
         { label: 'Confirmed', value: 'CONFIRMED' },
@@ -172,12 +174,17 @@ export class PurchaseOrdersComponent implements OnInit {
         this.loadPurchaseOrders(1, this.rows, this.searchTerm);
     }
 
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value;
+        this.onFilterChange();
+    }
+
     /**
      * Clear all filters
      */
     clearFilters(): void {
         this.searchTerm = '';
-        this.filterStatus = null;
+        this.filterStatus = '';
         this.dateRange = null;
         this.loadPurchaseOrders(1, this.rows);
     }

@@ -47,8 +47,11 @@
       </div>
     </div>
     <div filters class="filter-group">
-      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="Status"
-        [showClear]="true" (onChange)="onFilterChange()" styleClass="filter-select"></p-select>
+      <app-status-pill-filter
+        [options]="statusOptions"
+        [value]="filterStatus"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
     <div filters class="filter-group date-group">
       <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
@@ -58,11 +61,20 @@
     </div>
     <div filterActions class="filter-group filter-actions-group">
       <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i></button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">More filters</button>
       <button *ngIf="filterStatus || searchTerm || (dateRange && dateRange.length)" class="btn-clear-filter" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
       </button>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatus"
+    [previewCount]="totalCount"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- Desktop Table -->
   <section class="table-section desktop-only">

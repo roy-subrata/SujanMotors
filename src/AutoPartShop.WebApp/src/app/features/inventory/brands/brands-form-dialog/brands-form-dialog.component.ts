@@ -11,6 +11,8 @@ import { InputGroupModule } from 'primeng/inputgroup';
 import { BrandResponse, BrandService, CreateBrandRequest, UpdateBrandRequest } from '../../services/brand.service';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-brands-form-dialog',
@@ -18,7 +20,7 @@ import { ToastModule } from 'primeng/toast';
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule,
     DialogModule, ButtonModule, InputTextModule, TextareaModule,
-    CheckboxModule, InputNumberModule, InputGroupModule, ToastModule
+    CheckboxModule, InputNumberModule, InputGroupModule, ToastModule, TranslatePipe
   ],
   templateUrl: './brands-form-dialog.component.html',
   styleUrls: ['./brands-form-dialog.component.css'],
@@ -37,6 +39,7 @@ export class BrandsFormDialogComponent implements OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly brandService = inject(BrandService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   isCreating = signal(false);
   isUpdating = signal(false);
@@ -132,17 +135,17 @@ export class BrandsFormDialogComponent implements OnChanges {
 
     this.brandService.createBrand(request).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Created', detail: `Brand "${request.name}" created` });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('brands.messages.createSuccess') });
         this.isCreating.set(false);
         this.onCreateDialogHide();
         this.createSuccess.emit();
       },
       error: (err) => {
-        const detail = err.error?.detail ?? err.error?.message ?? 'Failed to create brand';
+        const detail = err.error?.detail ?? err.error?.message ?? this.i18n.t('common.messages.createFailed');
         const isConflict = err.status === 409;
         this.messageService.add({
           severity: 'error',
-          summary: isConflict ? 'Duplicate Code' : 'Error',
+          summary: isConflict ? this.i18n.t('common.messages.duplicateCode') : this.i18n.t('common.messages.error'),
           detail
         });
         this.isCreating.set(false);
@@ -173,17 +176,17 @@ export class BrandsFormDialogComponent implements OnChanges {
 
     this.brandService.updateBrand(this.selectedBrand.id, request).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `Brand "${request.name}" updated` });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('brands.messages.updateSuccess') });
         this.isUpdating.set(false);
         this.onUpdateDialogHide();
         this.updateSuccess.emit();
       },
       error: (err) => {
-        const detail = err.error?.detail ?? err.error?.message ?? 'Failed to update brand';
+        const detail = err.error?.detail ?? err.error?.message ?? this.i18n.t('common.messages.updateFailed');
         const isConflict = err.status === 409;
         this.messageService.add({
           severity: 'error',
-          summary: isConflict ? 'Duplicate Code' : 'Error',
+          summary: isConflict ? this.i18n.t('common.messages.duplicateCode') : this.i18n.t('common.messages.error'),
           detail
         });
         this.isUpdating.set(false);

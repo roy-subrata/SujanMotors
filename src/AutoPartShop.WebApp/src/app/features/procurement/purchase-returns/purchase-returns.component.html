@@ -40,15 +40,11 @@
     </div>
 
     <div filters class="filter-group">
-      <p-select
+      <app-status-pill-filter
         [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        (onChange)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
+        [value]="filterStatus"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <div filters class="filter-group">
@@ -70,6 +66,9 @@
         <i class="pi pi-search"></i>
         Search
       </button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">
+        More filters
+      </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
         Clear
@@ -84,7 +83,7 @@
       </span>
       <span *ngIf="filterStatus" class="filter-chip">
         Status: {{ filterStatus }}
-        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
       </span>
       <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
         Date Range
@@ -92,6 +91,14 @@
       </span>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatus"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <section class="table-section">
     <app-purchase-returns-list

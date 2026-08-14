@@ -3,7 +3,7 @@
 <!-- ==================== CREATE CATEGORY DIALOG ==================== -->
 <p-dialog
     [(visible)]="displayCreateDialog"
-    header="New Category"
+    [header]="'categories.addCategory' | translate"
     [modal]="true"
     [style]="{width: '600px'}"
     [breakpoints]="{'960px': '90vw', '640px': '100vw'}"
@@ -16,13 +16,13 @@
 
         <!-- Parent Category (full width) -->
         <div class="form-group">
-            <label for="c-parent" class="form-label">Parent Category</label>
+            <label for="c-parent" class="form-label">{{ 'categories.parentCategory' | translate }}</label>
             <app-lazy-autocomplete
                 id="c-parent"
                 formControlName="parentCategory"
                 [(ngModel)]="selectedParentCategory"
                 [fetchFn]="fetchParentCategories.bind(this)"
-                placeholder="Search or leave empty for root category..."
+                [placeholder]="'categories.parentCategoryPlaceholder' | translate"
                 [pageSize]="20"
                 [itemSize]="52"
                 optionLabel="name"
@@ -33,39 +33,39 @@
                     <div class="autocomplete-item">{{ cat.name }}</div>
                 </ng-template>
             </app-lazy-autocomplete>
-            <small class="hint-message">Leave empty to create a root (top-level) category</small>
+            <small class="hint-message">{{ 'categories.parentCategoryHint' | translate }}</small>
         </div>
 
         <!-- Row: Name -->
         <div class="form-row">
             <div class="form-group">
-                <label for="c-name" class="form-label"><span class="required">*</span> Name</label>
+                <label for="c-name" class="form-label"><span class="required">*</span> {{ 'common.labels.name' | translate }}</label>
                 <input type="text" pInputText id="c-name" formControlName="name"
-                       placeholder="e.g. Engine Parts" class="form-input" />
+                       [placeholder]="'categories.placeholders.name' | translate" class="form-input" />
                 <small class="form-error" *ngIf="createForm.get('name')?.touched && createForm.get('name')?.invalid">
-                    Name is required (3–100 characters)
+                    {{ 'categories.messages.nameRequired' | translate }}
                 </small>
             </div>
         </div>
 
         <!-- Description (full width) -->
         <div class="form-group">
-            <label for="c-description" class="form-label">Description</label>
+            <label for="c-description" class="form-label">{{ 'common.labels.description' | translate }}</label>
             <textarea pInputTextarea id="c-description" formControlName="description" rows="2"
-                      placeholder="Optional description" class="form-input"></textarea>
+                      [placeholder]="'categories.placeholders.description' | translate" class="form-input"></textarea>
         </div>
 
         <!-- Row: Display Order + Active -->
         <div class="form-row">
             <div class="form-group">
-                <label for="c-order" class="form-label">Display Order</label>
+                <label for="c-order" class="form-label">{{ 'categories.displayOrder' | translate }}</label>
                 <p-inputNumber id="c-order" formControlName="displayOrder"
                                [min]="0" styleClass="form-input-number"></p-inputNumber>
-                <small class="hint-message">Lower = shown first</small>
+                <small class="hint-message">{{ 'common.labels.orderHint' | translate }}</small>
             </div>
             <div class="form-group form-checkbox-group">
                 <p-checkbox formControlName="isActive" [binary]="true" inputId="c-active"></p-checkbox>
-                <label for="c-active" class="form-label checkbox-label">Active</label>
+                <label for="c-active" class="form-label checkbox-label">{{ 'common.status.active' | translate }}</label>
             </div>
         </div>
 
@@ -73,10 +73,10 @@
 
     <ng-template pTemplate="footer">
         <div class="dialog-footer">
-            <button pButton type="button" label="Cancel" icon="pi pi-times"
+            <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times"
                     class="p-button-text p-button-secondary"
                     [disabled]="isCreating()" (click)="onCreateDialogHide()"></button>
-            <button pButton type="button" label="Create Category" icon="pi pi-check"
+            <button pButton type="button" [label]="'categories.addCategory' | translate" icon="pi pi-check"
                     class="p-button-success" (click)="onCreateSubmit()"
                     [disabled]="isCreating()" [loading]="isCreating()"></button>
         </div>
@@ -87,7 +87,7 @@
 <!-- ==================== UPDATE CATEGORY DIALOG ==================== -->
 <p-dialog
     [(visible)]="displayUpdateDialog"
-    [header]="'Edit: ' + (selectedCategory?.name || '')"
+    [header]="('categories.editCategory' | translate) + ': ' + (selectedCategory?.name || '')"
     [modal]="true"
     [style]="{width: '600px'}"
     [breakpoints]="{'960px': '90vw', '640px': '100vw'}"
@@ -100,31 +100,31 @@
 
         <!-- Name (full width) -->
         <div class="form-group">
-            <label for="u-name" class="form-label"><span class="required">*</span> Name</label>
+            <label for="u-name" class="form-label"><span class="required">*</span> {{ 'common.labels.name' | translate }}</label>
             <input type="text" pInputText id="u-name" formControlName="name"
-                   placeholder="Category name" class="form-input" />
+                   [placeholder]="'categories.placeholders.name' | translate" class="form-input" />
             <small class="form-error" *ngIf="updateForm.get('name')?.touched && updateForm.get('name')?.invalid">
-                Name is required (3–100 characters)
+                {{ 'categories.messages.nameRequired' | translate }}
             </small>
         </div>
 
         <!-- Description (full width) -->
         <div class="form-group">
-            <label for="u-description" class="form-label">Description</label>
+            <label for="u-description" class="form-label">{{ 'common.labels.description' | translate }}</label>
             <textarea pInputTextarea id="u-description" formControlName="description" rows="2"
-                      placeholder="Optional description" class="form-input"></textarea>
+                      [placeholder]="'categories.placeholders.description' | translate" class="form-input"></textarea>
         </div>
 
         <!-- Row: Display Order + Active -->
         <div class="form-row">
             <div class="form-group">
-                <label for="u-order" class="form-label">Display Order</label>
+                <label for="u-order" class="form-label">{{ 'categories.displayOrder' | translate }}</label>
                 <p-inputNumber id="u-order" formControlName="displayOrder"
                                [min]="0" styleClass="form-input-number"></p-inputNumber>
             </div>
             <div class="form-group form-checkbox-group">
                 <p-checkbox formControlName="isActive" [binary]="true" inputId="u-active"></p-checkbox>
-                <label for="u-active" class="form-label checkbox-label">Active</label>
+                <label for="u-active" class="form-label checkbox-label">{{ 'common.status.active' | translate }}</label>
             </div>
         </div>
 
@@ -132,10 +132,10 @@
 
     <ng-template pTemplate="footer">
         <div class="dialog-footer">
-            <button pButton type="button" label="Cancel" icon="pi pi-times"
+            <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times"
                     class="p-button-text p-button-secondary"
                     [disabled]="isUpdating()" (click)="onUpdateDialogHide()"></button>
-            <button pButton type="button" label="Save Changes" icon="pi pi-check"
+            <button pButton type="button" [label]="'common.actions.saveChanges' | translate" icon="pi pi-check"
                     class="p-button-info" (click)="onUpdateSubmit()"
                     [disabled]="isUpdating()" [loading]="isUpdating()"></button>
         </div>

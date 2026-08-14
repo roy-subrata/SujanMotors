@@ -14,6 +14,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-warehouses-list',
@@ -28,7 +29,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     RippleModule,
     TagModule,
     TooltipModule,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './warehouses-list.component.html',

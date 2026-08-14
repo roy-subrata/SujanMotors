@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, ViewChild, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
@@ -13,6 +13,9 @@ import { ToastModule } from 'primeng/toast';
 import { PartService, PartResponse } from '../../services/part.service';
 import { PriceCodeService } from '@/shared/services/price-code.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-parts-table',
@@ -21,7 +24,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     CommonModule,
     TableModule, ButtonModule, ConfirmDialogModule, TooltipModule,
     TagModule, ContextMenuModule, RippleModule, ToastModule,
-    DataPaginationComponent
+    DataPaginationComponent, TranslatePipe
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './parts-table.component.html',
@@ -50,9 +53,14 @@ export class PartsTableComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
   readonly priceCodeService = inject(PriceCodeService);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
     this.initializeContextMenu();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.initializeContextMenu();
+    });
   }
 
   // ── Context menu ───────────────────────────────────────────────────────────
@@ -60,36 +68,36 @@ export class PartsTableComponent implements OnInit {
   private initializeContextMenu(): void {
     this.contextMenuItems = [
       {
-        label: 'Edit',
+        label: this.i18n.t('common.actions.edit'),
         icon: 'pi pi-pencil',
         command: () => { if (this.selectedPart) this.onEditClick(this.selectedPart); }
       },
       {
-        label: 'View Details',
+        label: this.i18n.t('common.actions.viewDetails'),
         icon: 'pi pi-eye',
         command: () => { if (this.selectedPart) this.onViewDetailsClick(this.selectedPart); }
       },
       {
-        label: 'Show Barcode',
+        label: this.i18n.t('parts.showBarcode'),
         icon: 'pi pi-qrcode',
         command: () => { if (this.selectedPart) this.onShowBarcodeClick(this.selectedPart); }
       },
       { separator: true },
       {
-        label: 'Activate',
+        label: this.i18n.t('common.actions.activate'),
         icon: 'pi pi-check',
         command: () => { if (this.selectedPart && !this.selectedPart.isActive) this.activatePart(this.selectedPart.id); },
         visible: this.selectedPart ? !this.selectedPart.isActive : false
       },
       {
-        label: 'Deactivate',
+        label: this.i18n.t('common.actions.deactivate'),
         icon: 'pi pi-times',
         command: () => { if (this.selectedPart && this.selectedPart.isActive) this.deactivatePart(this.selectedPart.id); },
         visible: this.selectedPart ? this.selectedPart.isActive : false
       },
       { separator: true },
       {
-        label: 'Delete',
+        label: this.i18n.t('common.actions.delete'),
         icon: 'pi pi-trash',
         command: () => { if (this.selectedPart) this.onDeleteClick(this.selectedPart); },
         styleClass: 'p-menuitem-danger'
@@ -108,22 +116,22 @@ export class PartsTableComponent implements OnInit {
   private activatePart(partId: string): void {
     this.partService.activatePart(partId).subscribe({
       next: (updatedPart) => {
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Part activated successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.messages.activateSuccess') });
         const idx = this.parts.findIndex(p => p.id === partId);
         if (idx !== -1) { this.parts[idx] = updatedPart; this.parts = [...this.parts]; }
       },
-      error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to activate part' })
+      error: (err) => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('parts.messages.activateFailed') })
     });
   }
 
   private deactivatePart(partId: string): void {
     this.partService.deactivatePart(partId).subscribe({
       next: (updatedPart) => {
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Part deactivated successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.messages.deactivateSuccess') });
         const idx = this.parts.findIndex(p => p.id === partId);
         if (idx !== -1) { this.parts[idx] = updatedPart; this.parts = [...this.parts]; }
       },
-      error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to deactivate part' })
+      error: (err) => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('parts.messages.deactivateFailed') })
     });
   }
 
@@ -133,8 +141,8 @@ export class PartsTableComponent implements OnInit {
 
   onDeleteClick(part: PartResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete part '${part.name}'? This action cannot be undone.`,
-      header: 'Delete Confirmation',
+      message: this.i18n.t('parts.messages.deleteConfirm', { name: part.name }),
+      header: this.i18n.t('parts.messages.deleteConfirmHeader'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => this.deletePart(part.id)
     });
@@ -143,10 +151,10 @@ export class PartsTableComponent implements OnInit {
   private deletePart(partId: string): void {
     this.partService.deletePart(partId).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Part deleted successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.messages.deleteSuccess') });
         this.partDeleted.emit();
       },
-      error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to delete part' })
+      error: (err) => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('parts.messages.deleteFailed') })
     });
   }
 

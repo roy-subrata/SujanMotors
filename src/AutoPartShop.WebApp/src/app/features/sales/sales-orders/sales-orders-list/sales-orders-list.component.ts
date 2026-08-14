@@ -2,11 +2,11 @@ import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { PanelModule } from 'primeng/panel';
 import { CardModule } from 'primeng/card';
@@ -30,6 +30,9 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { GenerateProformaDialogComponent } from '../../proforma-invoices/generate-proforma-dialog/generate-proforma-dialog.component';
 import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
@@ -44,7 +47,6 @@ import { SalesOrderStatus } from '@/shared/models/status.types';
         TableModule,
         ButtonModule,
         InputTextModule,
-        Select,
         DatePickerModule,
         PanelModule,
         CardModule,
@@ -61,6 +63,9 @@ import { SalesOrderStatus } from '@/shared/models/status.types';
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
+        StatStripComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent,
         GenerateProformaDialogComponent
     ],
     providers: [MessageService, ConfirmationService],
@@ -102,6 +107,9 @@ export class SalesOrdersListComponent implements OnInit {
     generateProformaDialogVisible = false;
     selectedOrderForProforma: SalesOrderResponse | null = null;
 
+    moreFiltersVisible = false;
+    stats: StatStripItem[] = [];
+
     Math = Math;
 
     ngOnInit(): void {
@@ -118,6 +126,38 @@ export class SalesOrdersListComponent implements OnInit {
         });
 
         this.loadData();
+        this.loadStats();
+    }
+
+    /**
+     * Grand-total counts for the stat strip — always reflect all orders,
+     * not the currently-filtered table, so the strip doesn't jump around
+     * as the user filters below it. Reuses the existing list endpoint with
+     * pageSize:1 per status bucket, reading response.pagination.totalCount
+     * — no dedicated summary endpoint needed.
+     */
+    private loadStats(): void {
+        forkJoin({
+            total: this.salesOrderService.getSalesOrders({ search: '', pageNumber: 1, pageSize: 1 }),
+            pending: this.salesOrderService.getSalesOrders({ search: '', pageNumber: 1, pageSize: 1, status: 'PENDING' }),
+            readyForDelivery: this.salesOrderService.getSalesOrders({ search: '', pageNumber: 1, pageSize: 1, status: 'READY_FOR_DELIVERY' }),
+            delivered: this.salesOrderService.getSalesOrders({ search: '', pageNumber: 1, pageSize: 1, status: 'DELIVERED' })
+        }).subscribe({
+            next: ({ total, pending, readyForDelivery, delivered }) => {
+                this.stats = [
+                    { label: 'Total Orders', value: String(total.pagination.totalCount) },
+                    { label: 'Pending', value: String(pending.pagination.totalCount) },
+                    { label: 'Ready for Delivery', value: String(readyForDelivery.pagination.totalCount) },
+                    { label: 'Delivered', value: String(delivered.pagination.totalCount) }
+                ];
+            },
+            error: () => { /* strip just stays empty — not worth a toast */ }
+        });
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value as SalesOrderStatus | '';
+        this.onFilterChange();
     }
 
     private buildStatusOptions(): void {

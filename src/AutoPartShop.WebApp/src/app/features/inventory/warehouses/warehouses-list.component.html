@@ -24,12 +24,12 @@
 
       <ng-template #header>
         <tr>
-          <th class="col-name">Warehouse</th>
-          <th class="col-location">Location</th>
-          <th class="col-amount">Capacity</th>
-          <th class="col-amount">Current Stock</th>
-          <th class="col-status">Utilization</th>
-          <th class="col-actions">Actions</th>
+          <th class="col-name">{{ 'common.labels.name' | translate }}</th>
+          <th class="col-location">{{ 'warehouses.location' | translate }}</th>
+          <th class="col-amount">{{ 'warehouses.capacity' | translate }}</th>
+          <th class="col-amount">{{ 'warehouses.currentStock' | translate }}</th>
+          <th class="col-status">{{ 'warehouses.utilization' | translate }}</th>
+          <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -59,7 +59,7 @@
           </td>
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, warehouse)">
+              <button class="btn-action" [pTooltip]="'common.labels.actions' | translate" (click)="showContextMenu($event, warehouse)">
                 <i class="pi pi-ellipsis-v"></i>
               </button>
             </div>
@@ -74,8 +74,8 @@
               <div class="empty-icon">
                 <i class="pi pi-building"></i>
               </div>
-              <h3>No Warehouses Found</h3>
-              <p>Try adjusting your filters or create a new warehouse</p>
+              <h3>{{ 'warehouses.noResultsTitle' | translate }}</h3>
+              <p>{{ 'warehouses.noResultsHint' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -133,8 +133,8 @@
     <div class="empty-icon">
       <i class="pi pi-building"></i>
     </div>
-    <h3>No Warehouses</h3>
-    <p>Try different filters or create a new warehouse</p>
+    <h3>{{ 'warehouses.noResultsTitle' | translate }}</h3>
+    <p>{{ 'warehouses.noResultsHint' | translate }}</p>
   </div>
 
   <div *ngIf="!loading && warehouses.length > 0" class="cards-grid">
@@ -164,7 +164,7 @@
 
       <div class="card-footer">
         <div class="card-amount">
-          <span class="amount-label">Utilization</span>
+          <span class="amount-label">{{ 'warehouses.utilization' | translate }}</span>
           <span class="amount-value">{{ getUtilizationPercentage(warehouse) }}%</span>
         </div>
         <button class="btn-card-action" (click)="showContextMenu($event, warehouse); $event.stopPropagation()">

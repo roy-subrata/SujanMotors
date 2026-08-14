@@ -19,6 +19,9 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { WarrantyService, WarrantyRegistrationResponse, CreateWarrantyRegistrationRequest } from '../services/warranty.service';
 import { SalesOrderService, SalesOrderResponse, SalesOrderLineResponse } from '../../sales/services/sales-order.service';
 import { InvoiceService } from '../../sales/services/invoice.service';
@@ -50,7 +53,10 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        StatStripComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './warranties-list.component.html',
@@ -78,6 +84,8 @@ export class WarrantiesListComponent implements OnInit {
     isLoading = false;
     searchText = '';
     selectedStatus = '';
+    moreFiltersVisible = false;
+    stats: StatStripItem[] = [];
 
     first = 0;
     pageSize = 10;
@@ -171,6 +179,12 @@ export class WarrantiesListComponent implements OnInit {
         this.totalExpiringSoon = this.warranties.filter(w => w.status === 'ACTIVE' && w.daysUntilExpiry >= 0 && w.daysUntilExpiry <= 30).length;
         this.totalClaimed = this.warranties.filter(w => w.status === 'CLAIMED').length;
         this.totalVoid = this.warranties.filter(w => w.status === 'VOID').length;
+        this.stats = [
+            { label: 'Active', value: String(this.totalActive) },
+            { label: 'Expiring Soon', value: String(this.totalExpiringSoon) },
+            { label: 'Claimed', value: String(this.totalClaimed) },
+            { label: 'Voided', value: String(this.totalVoid) }
+        ];
     }
 
     applyFilters(): void {
@@ -196,6 +210,11 @@ export class WarrantiesListComponent implements OnInit {
 
     onStatusChange(): void {
         this.applyFilters();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.selectedStatus = value;
+        this.onStatusChange();
     }
 
     clearSearch(): void {

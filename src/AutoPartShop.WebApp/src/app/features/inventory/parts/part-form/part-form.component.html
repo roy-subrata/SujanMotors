@@ -6,23 +6,23 @@
     <div class="header-content">
       <div class="header-left">
         <div class="pf-breadcrumb">
-          <a (click)="onCancel()" class="pf-back">Parts</a>
+          <a (click)="onCancel()" class="pf-back">{{ 'parts.title' | translate }}</a>
           <i class="pi pi-chevron-right pf-sep"></i>
-          <span>{{ isEditMode ? 'Edit' : isViewMode ? 'View' : 'New Part' }}</span>
+          <span>{{ (isEditMode ? 'common.actions.edit' : isViewMode ? 'common.actions.view' : 'parts.partForm.newPartBreadcrumb') | translate }}</span>
         </div>
         <h1 class="page-title">{{ pageTitle }}</h1>
         <p class="page-subtitle">
-          {{ isViewMode ? 'Viewing part details' : isEditMode ? 'Update part information and settings' : 'Add a new part to inventory' }}
+          {{ (isViewMode ? 'parts.partForm.subtitleViewing' : isEditMode ? 'parts.partForm.subtitleEditing' : 'parts.partForm.subtitleCreating') | translate }}
         </p>
       </div>
       <div class="header-actions">
         <div class="action-buttons">
           <button class="btn-secondary" type="button" (click)="onCancel()" [disabled]="isSubmitting">
-            <span>{{ isViewMode ? 'Back' : 'Cancel' }}</span>
+            <span>{{ (isViewMode ? 'common.actions.back' : 'common.actions.cancel') | translate }}</span>
           </button>
           <button *ngIf="!isViewMode" class="btn-primary" type="button" (click)="onSubmit()" [disabled]="isSubmitting">
             <i class="pi" [ngClass]="isSubmitting ? 'pi-spin pi-spinner' : 'pi-check'"></i>
-            <span>{{ isEditMode ? 'Update Part' : 'Create Part' }}</span>
+            <span>{{ (isEditMode ? 'parts.partForm.updatePartButton' : 'parts.createPart') | translate }}</span>
           </button>
         </div>
       </div>
@@ -31,7 +31,7 @@
 
   <!-- Loading overlay -->
   <div *ngIf="isLoading" class="pf-loading">
-    <i class="pi pi-spin pi-spinner"></i> Loading…
+    <i class="pi pi-spin pi-spinner"></i> {{ 'common.messages.loading' | translate }}
   </div>
 
   <form [formGroup]="partForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
@@ -40,23 +40,23 @@
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-box"></i>
-        <span>Basic Information</span>
+        <span>{{ 'parts.partDetails.basicInformation' | translate }}</span>
       </div>
 
       <div class="pf-row">
         <div class="pf-field">
-          <label>Part Name <span class="req">*</span></label>
-          <input pInputText formControlName="name" placeholder="e.g. Brake Pad — Toyota Corolla Front" [disabled]="isViewMode" />
+          <label>{{ 'parts.formDialog.partNameLabel' | translate }} <span class="req">*</span></label>
+          <input pInputText formControlName="name" [placeholder]="'parts.partForm.partNamePlaceholder' | translate" [disabled]="isViewMode" />
           <small *ngIf="hasError('name')" class="p-error">{{ getErrorMessage('name') }}</small>
         </div>
         <div class="pf-field">
-          <label>Category <span class="req">*</span></label>
+          <label>{{ 'common.labels.category' | translate }} <span class="req">*</span></label>
           <p-autoComplete
             [suggestions]="filteredCategories"
             [(ngModel)]="selectedCategory"
             [ngModelOptions]="{standalone: true}"
-            placeholder="Search category…"
-            [showEmptyMessage]="true" emptyMessage="No categories"
+            [placeholder]="'parts.partForm.searchCategoryPlaceholder' | translate"
+            [showEmptyMessage]="true" [emptyMessage]="'parts.formDialog.noCategoriesFound' | translate"
             [dropdown]="true"
             (onClear)="onCategoryClear()"
             (onSelect)="onCategorySelect($event)"
@@ -71,19 +71,19 @@
               </div>
             </ng-template>
           </p-autoComplete>
-          <small *ngIf="hasError('categoryId')" class="p-error">Category is required</small>
+          <small *ngIf="hasError('categoryId')" class="p-error">{{ 'parts.partForm.categoryRequiredError' | translate }}</small>
         </div>
       </div>
 
       <div class="pf-row">
         <div class="pf-field">
-          <label>Brand</label>
+          <label>{{ 'parts.brand' | translate }}</label>
           <p-autoComplete
             [suggestions]="filteredBrands"
             [(ngModel)]="selectedBrand"
             [ngModelOptions]="{standalone: true}"
-            placeholder="Search brand…"
-            [showEmptyMessage]="true" emptyMessage="No brands"
+            [placeholder]="'parts.partForm.searchBrandPlaceholder' | translate"
+            [showEmptyMessage]="true" [emptyMessage]="'parts.formDialog.noBrandsFound' | translate"
             [dropdown]="true"
             (onClear)="onBrandClear()"
             (onSelect)="onBrandSelect($event)"
@@ -100,43 +100,43 @@
           </p-autoComplete>
         </div>
         <div class="pf-field">
-          <label>Part Number</label>
-          <input pInputText formControlName="partNumber" placeholder="e.g. BP-1234, D2345" [disabled]="isViewMode" />
-          <small class="pf-hint">Optional — manufacturer's catalog code. Leave blank if the brand doesn't provide one</small>
+          <label>{{ 'parts.partNumber' | translate }}</label>
+          <input pInputText formControlName="partNumber" [placeholder]="'parts.partForm.partNumberFieldPlaceholder' | translate" [disabled]="isViewMode" />
+          <small class="pf-hint">{{ 'parts.formDialog.partNumberHint' | translate }}</small>
         </div>
       </div>
 
       <div class="pf-row">
         <div class="pf-field">
-          <label>OEM Cross-Ref</label>
-          <input pInputText formControlName="oemNumber" placeholder="Vehicle manufacturer's part number (optional)" [disabled]="isViewMode" />
-          <small class="pf-hint">Optional — vehicle maker's cross-reference number</small>
+          <label>{{ 'parts.formDialog.oemCrossRefLabel' | translate }}</label>
+          <input pInputText formControlName="oemNumber" [placeholder]="'parts.partForm.oemNumberPlaceholder' | translate" [disabled]="isViewMode" />
+          <small class="pf-hint">{{ 'parts.partForm.oemNumberHint' | translate }}</small>
         </div>
         <div class="pf-field">
-          <label>Barcode <span class="pf-tag">UPC / EAN / QR</span></label>
-          <input pInputText formControlName="barcode" placeholder="e.g. 8901234567890" [disabled]="isViewMode" />
-          <small class="pf-hint">Scanned at POS or e-commerce checkout</small>
+          <label>{{ 'parts.barcode' | translate }} <span class="pf-tag">UPC / EAN / QR</span></label>
+          <input pInputText formControlName="barcode" [placeholder]="'parts.partForm.barcodeFieldPlaceholder' | translate" [disabled]="isViewMode" />
+          <small class="pf-hint">{{ 'parts.partForm.barcodeHint' | translate }}</small>
         </div>
       </div>
 
       <div class="pf-row">
         <div class="pf-field pf-field-full">
-          <label>Local Name <span class="pf-optional">optional</span></label>
-          <input pInputText formControlName="localName" placeholder="e.g. তেলের ফিল্টার — local language name for staff" [disabled]="isViewMode" />
-          <small class="pf-hint">Staff-facing local-language name shown alongside the catalog name</small>
+          <label>{{ 'parts.partForm.localNameLabel' | translate }} <span class="pf-optional">{{ 'parts.partDetails.optional' | translate }}</span></label>
+          <input pInputText formControlName="localName" [placeholder]="'parts.partForm.localNamePlaceholder' | translate" [disabled]="isViewMode" />
+          <small class="pf-hint">{{ 'parts.partForm.localNameHint' | translate }}</small>
         </div>
       </div>
 
       <div class="pf-row">
         <div class="pf-field">
-          <label>Base Unit</label>
-          <small class="pf-hint">Stock &amp; inventory unit (e.g. Piece, ml, g)</small>
+          <label>{{ 'parts.partForm.baseUnitLabel' | translate }}</label>
+          <small class="pf-hint">{{ 'parts.partForm.baseUnitHint' | translate }}</small>
           <p-autoComplete
             [suggestions]="filteredBaseUnits"
             [(ngModel)]="selectedBaseUnit"
             [ngModelOptions]="{standalone: true}"
-            placeholder="Search unit…"
-            [showEmptyMessage]="true" emptyMessage="No units"
+            [placeholder]="'parts.partForm.searchUnitPlaceholder' | translate"
+            [showEmptyMessage]="true" [emptyMessage]="'parts.formDialog.noUnitsFound' | translate"
             [dropdown]="true"
             (onClear)="onBaseUnitClear()"
             (onSelect)="onBaseUnitSelect($event)"
@@ -151,14 +151,14 @@
           </p-autoComplete>
         </div>
         <div class="pf-field">
-          <label>Display Unit <span class="pf-optional">optional</span></label>
-          <small class="pf-hint">Leave blank to use Base Unit. Set only if different (e.g. 500ml Bottle)</small>
+          <label>{{ 'parts.partForm.displayUnitLabel' | translate }} <span class="pf-optional">{{ 'parts.partDetails.optional' | translate }}</span></label>
+          <small class="pf-hint">{{ 'parts.partForm.displayUnitHint' | translate }}</small>
           <p-autoComplete
             [suggestions]="filteredUnits"
             [(ngModel)]="selectedUnit"
             [ngModelOptions]="{standalone: true}"
-            placeholder="Search unit…"
-            [showEmptyMessage]="true" emptyMessage="No units"
+            [placeholder]="'parts.partForm.searchUnitPlaceholder' | translate"
+            [showEmptyMessage]="true" [emptyMessage]="'parts.formDialog.noUnitsFound' | translate"
             [dropdown]="true"
             (onClear)="onUnitClear()"
             (onSelect)="onUnitSelect($event)"
@@ -179,28 +179,28 @@
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-tags"></i>
-        <span>Classification</span>
+        <span>{{ 'parts.partForm.classification' | translate }}</span>
       </div>
 
       <div class="pf-row three">
         <div class="pf-field">
-          <label>Product Type</label>
+          <label>{{ 'parts.partForm.productTypeLabel' | translate }}</label>
           <p-select formControlName="productType" [options]="productTypes"
             optionLabel="label" optionValue="value"
-            placeholder="Select type" [disabled]="isViewMode" [style]="{ width: '100%' }">
+            [placeholder]="'parts.partForm.selectTypePlaceholder' | translate" [disabled]="isViewMode" [style]="{ width: '100%' }">
           </p-select>
         </div>
         <div class="pf-field">
-          <label>Tax Code</label>
+          <label>{{ 'parts.partForm.taxCodeLabel' | translate }}</label>
           <p-select formControlName="taxCode" [options]="taxCodes"
             optionLabel="label" optionValue="value"
-            placeholder="Select tax code" [disabled]="isViewMode" [showClear]="true" [style]="{ width: '100%' }">
+            [placeholder]="'parts.partForm.selectTaxCodePlaceholder' | translate" [disabled]="isViewMode" [showClear]="true" [style]="{ width: '100%' }">
           </p-select>
         </div>
         <div class="pf-field">
-          <label>Search Tags</label>
-          <input pInputText formControlName="tags" placeholder="brake, front, ceramic (comma-separated)" [disabled]="isViewMode" />
-          <small class="pf-hint">Keywords for search &amp; filtering</small>
+          <label>{{ 'parts.partForm.searchTagsLabel' | translate }}</label>
+          <input pInputText formControlName="tags" [placeholder]="'parts.partForm.searchTagsPlaceholder' | translate" [disabled]="isViewMode" />
+          <small class="pf-hint">{{ 'parts.partForm.searchTagsHint' | translate }}</small>
         </div>
       </div>
 
@@ -209,8 +209,8 @@
           <div class="pf-checkbox-row">
             <p-checkbox inputId="isPerishable" formControlName="isPerishable" [binary]="true" [disabled]="isViewMode"></p-checkbox>
             <label for="isPerishable">
-              Perishable / Expiry Tracking
-              <small class="pf-hint">Grocery, pharmacy — enables per-lot expiry on GRN</small>
+              {{ 'parts.partForm.perishableLabel' | translate }}
+              <small class="pf-hint">{{ 'parts.partForm.perishableHint' | translate }}</small>
             </label>
           </div>
         </div>
@@ -221,44 +221,44 @@
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-dollar"></i>
-        <span>Pricing &amp; Stock</span>
+        <span>{{ 'parts.partForm.pricingAndStock' | translate }}</span>
       </div>
 
       <div class="pf-row">
         <div class="pf-field pf-field-full">
-          <label>Selling Price <span class="req">*</span></label>
+          <label>{{ 'parts.sellingPrice' | translate }} <span class="req">*</span></label>
           <p-inputNumber formControlName="sellingPrice" placeholder="0.00"
             [min]="0" [step]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
             mode="decimal" [disabled]="isViewMode" [style]="{ width: '100%' }">
           </p-inputNumber>
-          <small class="pf-hint">Base list price — inherited by all variants unless overridden</small>
+          <small class="pf-hint">{{ 'parts.partForm.sellingPriceHint' | translate }}</small>
           <small *ngIf="hasError('sellingPrice')" class="p-error">{{ getErrorMessage('sellingPrice') }}</small>
         </div>
       </div>
 
       <div class="pf-row">
         <div class="pf-field">
-          <label>Minimum Stock <span class="req">*</span></label>
+          <label>{{ 'parts.partForm.minimumStockLabel' | translate }} <span class="req">*</span></label>
           <p-inputNumber formControlName="minimumStock" placeholder="0"
             [min]="0" [step]="1" mode="decimal"
             [disabled]="isViewMode" [style]="{ width: '100%' }">
           </p-inputNumber>
-          <small class="pf-hint">Reorder alert threshold</small>
+          <small class="pf-hint">{{ 'parts.partForm.minimumStockHint' | translate }}</small>
           <small *ngIf="hasError('minimumStock')" class="p-error">{{ getErrorMessage('minimumStock') }}</small>
         </div>
         <div class="pf-field">
-          <label>Weight (kg) <span class="pf-optional">optional</span></label>
-          <p-inputNumber formControlName="weightKg" placeholder="e.g. 0.350"
+          <label>{{ 'parts.partForm.weightLabel' | translate }} <span class="pf-optional">{{ 'parts.partDetails.optional' | translate }}</span></label>
+          <p-inputNumber formControlName="weightKg" [placeholder]="'parts.partForm.weightPlaceholder' | translate"
             [min]="0" [step]="0.001" [minFractionDigits]="0" [maxFractionDigits]="4"
             mode="decimal" [disabled]="isViewMode" [style]="{ width: '100%' }">
           </p-inputNumber>
-          <small class="pf-hint">Default shipping weight</small>
+          <small class="pf-hint">{{ 'parts.partForm.weightHint' | translate }}</small>
         </div>
       </div>
 
       <div class="pf-callout pf-callout-blue">
         <i class="pi pi-info-circle"></i>
-        <span>Selling price changes are tracked automatically. Use the <strong>Pricing tab</strong> on the product details page to view the full price history or apply variant-specific prices.</span>
+        <span [innerHTML]="'parts.partForm.pricingCalloutHtml' | translate"></span>
       </div>
     </div>
 
@@ -266,13 +266,13 @@
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-file-edit"></i>
-        <span>Description</span>
+        <span>{{ 'common.labels.description' | translate }}</span>
       </div>
 
       <div class="pf-field pf-field-full">
-        <label>Short Description <span class="pf-optional">max 255 chars</span></label>
+        <label>{{ 'parts.partForm.shortDescriptionLabel' | translate }} <span class="pf-optional">{{ 'parts.partForm.maxCharsHint' | translate }}</span></label>
         <textarea pInputTextarea formControlName="description" rows="2"
-          placeholder="Brief summary of the part" [disabled]="isViewMode" maxlength="255"></textarea>
+          [placeholder]="'parts.partForm.descriptionPlaceholder' | translate" [disabled]="isViewMode" maxlength="255"></textarea>
       </div>
     </div>
 
@@ -280,42 +280,42 @@
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-shield"></i>
-        <span>Warranty</span>
+        <span>{{ 'parts.partDetails.warranty' | translate }}</span>
       </div>
 
       <div class="pf-checkbox-row" style="margin-bottom: 1rem">
         <p-checkbox inputId="hasWarranty" formControlName="hasWarranty" [binary]="true" [disabled]="isViewMode"></p-checkbox>
-        <label for="hasWarranty" class="pf-checkbox-label">This product comes with warranty</label>
+        <label for="hasWarranty" class="pf-checkbox-label">{{ 'parts.partForm.hasWarrantyLabel' | translate }}</label>
       </div>
 
       <ng-container *ngIf="partForm.get('hasWarranty')?.value">
         <div class="pf-row three">
           <div class="pf-field">
-            <label>Period (months) <span class="req">*</span></label>
-            <p-inputNumber formControlName="warrantyPeriodMonths" placeholder="e.g. 12"
+            <label>{{ 'parts.formDialog.warrantyPeriodMonthsLabel' | translate }} <span class="req">*</span></label>
+            <p-inputNumber formControlName="warrantyPeriodMonths" [placeholder]="'parts.partForm.warrantyPeriodPlaceholder' | translate"
               [min]="1" [step]="1" mode="decimal" [disabled]="isViewMode" [style]="{ width: '100%' }">
             </p-inputNumber>
             <small *ngIf="hasError('warrantyPeriodMonths')" class="p-error">{{ getErrorMessage('warrantyPeriodMonths') }}</small>
           </div>
           <div class="pf-field">
-            <label>Type <span class="req">*</span></label>
+            <label>{{ 'common.labels.type' | translate }} <span class="req">*</span></label>
             <select formControlName="warrantyType" class="pf-select" [disabled]="isViewMode">
-              <option value="">Select type</option>
+              <option value="">{{ 'parts.formDialog.selectWarrantyTypePlaceholder' | translate }}</option>
               <option *ngFor="let t of warrantyTypes" [value]="t.value">{{ t.label }}</option>
             </select>
             <small *ngIf="hasError('warrantyType')" class="p-error">{{ getErrorMessage('warrantyType') }}</small>
           </div>
           <div class="pf-field">
-            <label>Certificate Template <span class="pf-optional">optional</span></label>
+            <label>{{ 'parts.partForm.certificateTemplateLabel' | translate }} <span class="pf-optional">{{ 'parts.partDetails.optional' | translate }}</span></label>
             <input pInputText formControlName="warrantyCertificateTemplate"
-              placeholder="e.g. CERT" [disabled]="isViewMode" />
-            <small class="pf-hint">Prefix for certificate numbers</small>
+              [placeholder]="'parts.partForm.certificateTemplatePlaceholder' | translate" [disabled]="isViewMode" />
+            <small class="pf-hint">{{ 'parts.partForm.certificateTemplateHint' | translate }}</small>
           </div>
         </div>
         <div class="pf-field pf-field-full">
-          <label>Terms &amp; Conditions <span class="pf-optional">optional</span></label>
+          <label>{{ 'parts.partForm.termsAndConditionsLabel' | translate }} <span class="pf-optional">{{ 'parts.partDetails.optional' | translate }}</span></label>
           <textarea pInputTextarea formControlName="warrantyTerms" rows="3"
-            placeholder="Enter warranty terms" [disabled]="isViewMode"></textarea>
+            [placeholder]="'parts.formDialog.warrantyTermsPlaceholder' | translate" [disabled]="isViewMode"></textarea>
         </div>
       </ng-container>
     </div>
@@ -330,28 +330,28 @@
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-car"></i>
-        <span>Vehicle Compatibility</span>
-        <span class="pf-section-badge pf-section-badge-gray">Auto parts only</span>
+        <span>{{ 'parts.partDetails.tabCompatibility' | translate }}</span>
+        <span class="pf-section-badge pf-section-badge-gray">{{ 'parts.partForm.autoPartsOnly' | translate }}</span>
       </div>
       <p class="pf-section-desc">
-        Which vehicle makes/models this part fits. Skip this section for non-auto parts.
+        {{ 'parts.partForm.compatibilitySectionDesc' | translate }}
       </p>
 
       <div *ngIf="!partId && !isViewMode" class="pf-callout pf-callout-blue">
         <i class="pi pi-info-circle"></i>
-        <span>Compatibility entries will be saved after the part is created.</span>
+        <span>{{ 'parts.partForm.compatibilitySavedAfterCreateHint' | translate }}</span>
       </div>
 
       <div class="pf-compat-form" [formGroup]="compatibilityForm">
         <div class="pf-row">
           <div class="pf-field">
-            <label>Vehicle <span class="req">*</span></label>
+            <label>{{ 'parts.partForm.vehicleLabel' | translate }} <span class="req">*</span></label>
             <p-autoComplete
               [suggestions]="filteredVehicles"
               [(ngModel)]="selectedVehicle"
               [ngModelOptions]="{standalone: true}"
-              placeholder="Search by make, model, year…"
-              [showEmptyMessage]="true" emptyMessage="No vehicles"
+              [placeholder]="'parts.partForm.searchVehiclePlaceholder' | translate"
+              [showEmptyMessage]="true" [emptyMessage]="'parts.partForm.noVehiclesFound' | translate"
               [dropdown]="true"
               (onClear)="onVehicleClear()"
               (onSelect)="onVehicleSelect($event)"
@@ -368,23 +368,23 @@
               </ng-template>
             </p-autoComplete>
             <small *ngIf="compatibilityForm.get('vehicle')?.invalid && compatibilityForm.get('vehicle')?.touched" class="p-error">
-              Vehicle is required
+              {{ 'parts.partForm.vehicleRequiredError' | translate }}
             </small>
           </div>
           <div class="pf-field">
-            <label>Status</label>
+            <label>{{ 'common.labels.status' | translate }}</label>
             <div class="pf-checkbox-row" style="margin-top: 0.35rem">
               <p-checkbox inputId="isCompatible" formControlName="isCompatible" [binary]="true" [disabled]="isViewMode"></p-checkbox>
-              <label for="isCompatible" class="pf-checkbox-label">Compatible</label>
+              <label for="isCompatible" class="pf-checkbox-label">{{ 'parts.partDetails.compatible' | translate }}</label>
             </div>
           </div>
         </div>
         <div class="pf-field pf-field-full">
-          <label>Notes <span class="pf-optional">optional</span></label>
+          <label>{{ 'common.labels.notes' | translate }} <span class="pf-optional">{{ 'parts.partDetails.optional' | translate }}</span></label>
           <textarea pInputTextarea formControlName="notes" rows="2"
-            placeholder="Compatibility notes" [disabled]="isViewMode"></textarea>
+            [placeholder]="'parts.partForm.compatibilityNotesPlaceholder' | translate" [disabled]="isViewMode"></textarea>
         </div>
-        <button pButton type="button" label="Add Vehicle" icon="pi pi-plus"
+        <button pButton type="button" [label]="'parts.partDetails.addVehicle' | translate" icon="pi pi-plus"
           class="p-button-sm p-button-outlined p-button-success"
           (click)="addCompatibility()"
           [disabled]="isViewMode || compatibilityForm.invalid || isCompatibilitySubmitting">
@@ -399,9 +399,9 @@
           style="margin-top: 1rem">
           <ng-template pTemplate="header">
             <tr>
-              <th>Vehicle</th>
-              <th style="width: 120px">Status</th>
-              <th>Notes</th>
+              <th>{{ 'parts.partForm.vehicleLabel' | translate }}</th>
+              <th style="width: 120px">{{ 'common.labels.status' | translate }}</th>
+              <th>{{ 'common.labels.notes' | translate }}</th>
               <th style="width: 60px"></th>
             </tr>
           </ng-template>
@@ -409,7 +409,7 @@
             <tr>
               <td>
                 <span class="font-semibold">{{ row.vehicleInfo }}</span>
-                <span *ngIf="row.isPending" class="pf-pending-pill">Pending</span>
+                <span *ngIf="row.isPending" class="pf-pending-pill">{{ 'common.status.pending' | translate }}</span>
               </td>
               <td>
                 <p-tag [value]="getCompatibilityLabel(row.isCompatible)" [severity]="getCompatibilitySeverity(row.isCompatible)"></p-tag>
@@ -418,7 +418,7 @@
               <td>
                 <button pButton type="button" icon="pi pi-trash"
                   class="p-button-text p-button-sm p-button-danger"
-                  pTooltip="Remove" [disabled]="isViewMode"
+                  [pTooltip]="'common.actions.delete' | translate" [disabled]="isViewMode"
                   (click)="removeCompatibility(row)">
                 </button>
               </td>
@@ -430,12 +430,12 @@
 
     <!-- ══ Actions ══ -->
     <div class="pf-actions">
-      <button pButton type="button" [label]="isViewMode ? 'Back' : 'Cancel'"
+      <button pButton type="button" [label]="(isViewMode ? 'common.actions.back' : 'common.actions.cancel') | translate"
         icon="pi pi-times" class="p-button-outlined"
         (click)="onCancel()">
       </button>
       <button *ngIf="!isViewMode" pButton type="submit"
-        [label]="isEditMode ? 'Update Part' : 'Create Part'"
+        [label]="(isEditMode ? 'parts.partForm.updatePartButton' : 'parts.createPart') | translate"
         icon="pi pi-check" class="p-button-primary"
         [loading]="isSubmitting" [disabled]="isSubmitting">
       </button>

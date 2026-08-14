@@ -11,11 +11,13 @@ import { MessageService } from 'primeng/api';
 import { SupplierService, SupplierResponse } from '../../services/supplier.service';
 import { SupplierPaymentService, SupplierPaymentHistorySummary } from '../../../procurement/services/supplier-payment.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-supplier-detail',
     standalone: true,
-    imports: [CommonModule, ButtonModule, TagModule, ToastModule, TooltipModule, AvatarModule],
+    imports: [CommonModule, ButtonModule, TagModule, ToastModule, TooltipModule, AvatarModule, TranslatePipe],
     providers: [MessageService],
     templateUrl: './supplier-detail.component.html',
     styleUrls: ['./supplier-detail.component.css']
@@ -28,6 +30,7 @@ export class SupplierDetailComponent implements OnInit {
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly i18n = inject(I18nService);
 
     supplierId = signal<string>('');
     supplier = signal<SupplierResponse | null>(null);
@@ -58,8 +61,8 @@ export class SupplierDetailComponent implements OnInit {
                 this.loading.set(false);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load supplier details'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('suppliers.messages.loadDetailsFailed')
                 });
                 console.error('Error loading supplier:', error);
             }
@@ -72,8 +75,8 @@ export class SupplierDetailComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load payment summary'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('suppliers.messages.loadPaymentSummaryFailed')
                 });
                 console.error('Error loading payment summary:', error);
             }
