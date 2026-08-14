@@ -309,6 +309,12 @@
       "basicInformation": "মৌলিক তথ্য",
       "addressInformation": "ঠিকানার তথ্য",
       "additionalInformation": "অতিরিক্ত তথ্য"
+    },
+    "time": {
+      "justNow": "এইমাত্র",
+      "minutesAgo": "{{count}} মিনিট আগে",
+      "hoursAgo": "{{count}} ঘণ্টা আগে",
+      "daysAgo": "{{count}} দিন আগে"
     }
   },
   "categories": {
@@ -2128,6 +2134,28 @@
   },
   "notifications": {
     "title": "বিজ্ঞপ্তি",
+    "subtitle": "রিঅর্ডার সতর্কতা ও সিস্টেম বিজ্ঞপ্তি",
+    "countLabel": "বিজ্ঞপ্তি",
+    "markAllRead": "সব পঠিত চিহ্নিত করুন",
+    "unreadCount": "{{count}}টি অপঠিত",
+    "filterAll": "সব",
+    "filterUnread": "অপঠিত",
+    "colType": "ধরন",
+    "colNotification": "বিজ্ঞপ্তি",
+    "colReceived": "প্রাপ্তির সময়",
+    "colActions": "কার্যক্রম",
+    "unreadTooltip": "অপঠিত",
+    "viewItemsTooltip": "আইটেম দেখুন",
+    "markUnreadTooltip": "অপঠিত হিসেবে চিহ্নিত করুন",
+    "markReadTooltip": "পঠিত হিসেবে চিহ্নিত করুন",
+    "empty": "কোনো বিজ্ঞপ্তি পাওয়া যায়নি",
+    "defaultDialogHeader": "বিজ্ঞপ্তি",
+    "itemsBelowReorderSuffix": "টি আইটেম রিঅর্ডার মাত্রায় বা তার নিচে",
+    "colPart": "পার্টস",
+    "colWarehouse": "গুদাম",
+    "colAvailable": "উপলব্ধ",
+    "colReorderQty": "রিঅর্ডার পরিমাণ",
+    "open": "খুলুন",
     "types": {
       "reorderAlert": "রিঅর্ডার সতর্কতা",
       "sale": "বিক্রয়"
@@ -2136,6 +2164,355 @@
       "loadFailed": "বিজ্ঞপ্তি লোড করা যায়নি",
       "markAllReadSuccess": "সব বিজ্ঞপ্তি পঠিত হিসেবে চিহ্নিত হয়েছে",
       "markAllReadFailed": "বিজ্ঞপ্তি পঠিত হিসেবে চিহ্নিত করা যায়নি"
+    }
+  },
+  "dashboard": {
+    "title": "ড্যাশবোর্ড",
+    "subtitle": "ব্যবসার পারফরম্যান্স",
+    "startDatePlaceholder": "শুরুর তারিখ",
+    "endDatePlaceholder": "শেষ তারিখ",
+    "applyRangeTooltip": "পরিসীমা প্রয়োগ করুন",
+    "refreshTooltip": "রিফ্রেশ",
+    "export": "এক্সপোর্ট",
+    "failedToLoadTitle": "ড্যাশবোর্ড লোড করা যায়নি",
+    "failedToLoadDetail": "সার্ভার থেকে তথ্য আনা যায়নি। আপনার সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।",
+    "retry": "আবার চেষ্টা করুন",
+    "noDataTitle": "কোনো তথ্য নেই",
+    "noDataDetail": "আপনার ব্যবসার সারসংক্ষেপ দেখতে একটি সময়কাল নির্বাচন করে রিফ্রেশে ক্লিক করুন।",
+    "loadDashboard": "ড্যাশবোর্ড লোড করুন",
+    "periods": {
+      "today": "আজ",
+      "thisMonth": "এই মাস",
+      "thisYear": "এই বছর",
+      "customRange": "নির্দিষ্ট পরিসীমা"
+    },
+    "alerts": {
+      "lowStockTooltip": "সর্বনিম্ন স্টক মাত্রার নিচে পার্টস",
+      "lowStockItems": "কম স্টকের আইটেম",
+      "customerOverdueTooltip": "৩০ দিনের বেশি পুরনো অপরিশোধিত ইনভয়েসসহ গ্রাহক",
+      "customerOverduePrefix": "গ্রাহকের বকেয়া:",
+      "supplierOverdueTooltip": "প্রত্যাশিত পেমেন্টের তারিখ পেরিয়ে যাওয়া সরবরাহকারী",
+      "supplierOverduePrefix": "সরবরাহকারীর বকেয়া:"
+    },
+    "kpi": {
+      "totalSales": "মোট বিক্রয়",
+      "ordersSuffix": "অর্ডার",
+      "avgPrefix": "গড়",
+      "revenueCollected": "সংগৃহীত রাজস্ব",
+      "cashPrefix": "নগদ",
+      "creditPrefix": "বাকি",
+      "totalExpenses": "মোট খরচ",
+      "totalExpensesSub": "ক্রয় + দৈনিক খরচ",
+      "netProfit": "নিট মুনাফা",
+      "marginSuffix": "মার্জিন"
+    },
+    "workQueue": {
+      "title": "কাজের তালিকা",
+      "subtitle": "পদক্ষেপ প্রয়োজন এমন খোলা কাজ",
+      "empty": "এই মুহূর্তে মনোযোগ প্রয়োজন এমন কিছু নেই",
+      "purchaseOrders": "গ্রহণের অপেক্ষায় ক্রয় আদেশ",
+      "purchaseOrdersSub": "পণ্য গ্রহণের অপেক্ষায়",
+      "deliveries": "বিতরণের অপেক্ষায়",
+      "deliveriesSub": "এখনও বিতরণ হয়নি",
+      "warrantyClaims": "খোলা ওয়ারেন্টি দাবি",
+      "warrantyClaimsSub": "পদক্ষেপের অপেক্ষায়",
+      "invoicesOverdue": "মেয়াদোত্তীর্ণ ইনভয়েস",
+      "invoicesOverdueSub": "নির্ধারিত তারিখ পেরিয়ে গেছে",
+      "salesReturns": "অনুমোদনের অপেক্ষায় বিক্রয় ফেরত",
+      "salesReturnsSub": "পর্যালোচনার অপেক্ষায়",
+      "stockTakes": "চলমান স্টক গণনা",
+      "stockTakesSub": "গণনা চলছে"
+    },
+    "lowStock": {
+      "title": "কম স্টক",
+      "viewAll": "সব দেখুন",
+      "colPart": "পার্টস",
+      "colWarehouse": "গুদাম",
+      "colQty": "পরিমাণ",
+      "empty": "সর্বনিম্ন স্টকের নিচে কোনো পার্টস নেই"
+    },
+    "insights": {
+      "grossProfit": "গ্রস মুনাফা",
+      "grossProfitSub": "দৈনিক খরচের আগে",
+      "avgSaleValue": "গড় বিক্রয় মূল্য",
+      "avgSaleValueSub": "প্রতি অর্ডারে",
+      "newCustomers": "নতুন গ্রাহক",
+      "newCustomersSubPrefix": "মোট",
+      "newCustomersSubSuffix": "জনের মধ্যে",
+      "lowStockItems": "কম স্টকের আইটেম",
+      "lowStockItemsSub": "আজ পর্যন্ত",
+      "customerDue": "গ্রাহকের বকেয়া",
+      "customerDueSub": "জন গ্রাহক",
+      "customerDueSubPlural": "জন গ্রাহক",
+      "supplierDue": "সরবরাহকারীর বকেয়া",
+      "supplierDueSub": "জন সরবরাহকারী",
+      "supplierDueSubPlural": "জন সরবরাহকারী"
+    },
+    "chart": {
+      "title": "বিক্রয় ও মুনাফার প্রবণতা",
+      "subtitle": "এই সময়কালের দৈনিক মোট",
+      "sales": "বিক্রয়",
+      "purchases": "ক্রয়",
+      "profit": "মুনাফা",
+      "empty": "এই সময়কালের কোনো প্রবণতার তথ্য নেই"
+    },
+    "cashFlow": {
+      "title": "ক্যাশ ফ্লো",
+      "openingBalance": "প্রারম্ভিক ব্যালেন্স",
+      "cashInflow": "নগদ প্রবাহ (আয়)",
+      "cashOutflow": "নগদ প্রবাহ (ব্যয়)",
+      "closingBalance": "সমাপনী ব্যালেন্স"
+    },
+    "topProducts": {
+      "title": "শীর্ষ পণ্য",
+      "colProduct": "পণ্য",
+      "colQty": "পরিমাণ",
+      "colRevenue": "রাজস্ব",
+      "colProfit": "মুনাফা",
+      "colMargin": "মার্জিন",
+      "empty": "এই সময়কালে কোনো পণ্য বিক্রি হয়নি"
+    },
+    "topCustomers": {
+      "title": "শীর্ষ গ্রাহক",
+      "colCustomer": "গ্রাহক",
+      "colOrders": "অর্ডার",
+      "colRevenue": "রাজস্ব",
+      "colLast": "শেষ",
+      "empty": "এই সময়কালে কোনো গ্রাহক কার্যক্রম নেই"
+    },
+    "messages": {
+      "selectDatesWarning": "অনুগ্রহ করে শুরু ও শেষ উভয় তারিখ নির্বাচন করুন",
+      "invalidRangeSummary": "অবৈধ পরিসীমা",
+      "invalidRangeDetail": "শেষ তারিখ শুরুর তারিখের সমান বা পরে হতে হবে",
+      "loadFailed": "ড্যাশবোর্ডের তথ্য লোড করা যায়নি"
+    }
+  },
+  "companyProfile": {
+    "title": "কোম্পানি প্রোফাইল",
+    "subtitle": "প্রতিটি ইনভয়েস, ডেলিভারি চালান ও হিসাব বিবরণীতে মুদ্রিত হয়",
+    "branding": {
+      "title": "অ্যাপ্লিকেশন ব্র্যান্ডিং",
+      "appName": "অ্যাপ্লিকেশনের নাম",
+      "appNamePlaceholder": "যেমন Auto Part Shop",
+      "appNameHint": "ব্রাউজার ট্যাব, সাইডবার, লগইন পেজ ও স্টোরফ্রন্টে প্রদর্শিত হয়। ডকুমেন্টে থাকা ব্যবসার নাম থেকে স্বতন্ত্র।",
+      "appNameRequired": "অ্যাপ্লিকেশনের নাম আবশ্যক",
+      "appLogoUrl": "অ্যাপ্লিকেশন লোগো URL",
+      "appLogoUrlHint": "HTTPS ইমেজ URL অথবা আপেক্ষিক পাথ। বিল্ট-ইন আইকনের জন্য খালি রাখুন বা assets/logo.png ব্যবহার করুন।"
+    },
+    "identity": {
+      "title": "ব্যবসার পরিচিতি",
+      "name": "ব্যবসার নাম",
+      "namePlaceholder": "যেমন Sujan Motors",
+      "nameHint": "সব ডকুমেন্টে শিরোনাম হিসেবে প্রদর্শিত হয়।",
+      "tagline": "ট্যাগলাইন",
+      "taglinePlaceholder": "যেমন আপনার বিশ্বস্ত পার্টস সরবরাহকারী",
+      "taglineHint": "ব্যবসার নামের নিচে ঐচ্ছিক সাবটাইটেল।",
+      "address": "ঠিকানা",
+      "addressPlaceholder": "রাস্তা, শহর, দেশ",
+      "addressHint": "ডকুমেন্টে মুদ্রিত সম্পূর্ণ ঠিকানা।",
+      "phone": "ফোন",
+      "phonePlaceholder": "+৮৮০ ১XXXXXXXXX",
+      "phoneHint": "প্রধান যোগাযোগ নম্বর।",
+      "email": "ইমেইল",
+      "emailPlaceholder": "info@yourshop.com",
+      "emailHint": "ডকুমেন্টে প্রদর্শিত ব্যবসায়িক ইমেইল।",
+      "emailInvalid": "একটি বৈধ ইমেইল ঠিকানা দিন",
+      "taxNo": "কর / ভ্যাট নম্বর",
+      "taxNoPlaceholder": "যেমন VAT-123456789",
+      "taxNoHint": "কর নিবন্ধন নম্বর (লুকাতে খালি রাখুন)।"
+    },
+    "logo": {
+      "title": "লোগো",
+      "url": "লোগো URL",
+      "hint": "একটি HTTPS ইমেজ URL পেস্ট করুন। বিল্ট-ইন ডিফল্টের জন্য খালি রাখুন বা assets/logo.png ব্যবহার করুন।"
+    },
+    "footers": {
+      "title": "ডকুমেন্ট ফুটার",
+      "invoiceFooter": "ইনভয়েস ফুটার",
+      "invoiceFooterPlaceholder": "আপনার ব্যবসার জন্য ধন্যবাদ!",
+      "invoiceFooterHint": "প্রতিটি ইনভয়েসের নিচে মুদ্রিত হয়।",
+      "challanFooter": "ডেলিভারি চালান ফুটার",
+      "challanFooterPlaceholder": "প্রেরিত পণ্য পূর্ব নোটিশ ছাড়া ফেরত নেওয়া হবে না।",
+      "challanFooterHint": "প্রতিটি ডেলিভারি চালানের নিচে মুদ্রিত হয়।"
+    },
+    "tax": {
+      "title": "কর ও ভ্যাট",
+      "vatEnabled": "কুইক সেলে ডিফল্টভাবে ভ্যাট প্রয়োগ করুন",
+      "vatRate": "ভ্যাট হার (%)",
+      "vatRateHint": "কুইক সেল ও ভ্যাট রিপোর্টে ডিফল্ট হার হিসেবে ব্যবহৃত হয়।"
+    },
+    "numbering": {
+      "title": "ডকুমেন্ট নম্বরিং",
+      "invoicePrefix": "ইনভয়েস প্রিফিক্স",
+      "salesOrderPrefix": "বিক্রয় আদেশ প্রিফিক্স",
+      "purchaseOrderPrefix": "ক্রয় আদেশ প্রিফিক্স",
+      "quotationPrefix": "কোটেশন প্রিফিক্স",
+      "hint": "শুধুমাত্র নতুন তৈরি ডকুমেন্টে প্রযোজ্য — বিদ্যমান ডকুমেন্ট নম্বর অপরিবর্তিত থাকে।"
+    },
+    "preview": {
+      "label": "ডকুমেন্ট হেডার প্রিভিউ",
+      "placeholderName": "আপনার কোম্পানির নাম",
+      "taxRegPrefix": "কর নিবন্ধন:"
+    },
+    "saveButton": "প্রোফাইল সংরক্ষণ করুন",
+    "messages": {
+      "loadFailed": "কোম্পানি প্রোফাইল লোড করা যায়নি",
+      "savedSummary": "সংরক্ষিত হয়েছে",
+      "savedDetail": "কোম্পানি প্রোফাইল আপডেট হয়েছে। সব ডকুমেন্টে এখনই নতুন তথ্য প্রতিফলিত হবে।",
+      "saveFailed": "এক বা একাধিক সেটিং সংরক্ষণ করা যায়নি"
+    }
+  },
+  "backups": {
+    "title": "ডেটাবেস ব্যাকআপ",
+    "subtitle": "নির্ধারিত ব্যাকআপ, Google Drive আপলোড ও পুনরুদ্ধার",
+    "itemLabel": "ব্যাকআপ",
+    "backupNow": "এখনই ব্যাকআপ নিন",
+    "working": "কাজ চলছে…",
+    "schedule": {
+      "title": "ব্যাকআপ সময়সূচি",
+      "enableDaily": "দৈনিক নির্ধারিত ব্যাকআপ সক্রিয় করুন",
+      "enableDailyHint": "নিচের সময়ে স্বয়ংক্রিয়ভাবে চলে (প্রতি ৫ মিনিটে পরীক্ষা করা হয়)",
+      "backupTime": "ব্যাকআপের সময় (দোকানের স্থানীয় সময়)",
+      "backupTimeHint": "দোকানের ঘড়ি অনুযায়ী দৈনিক ব্যাকআপের সময়",
+      "backupTimeRequired": "ব্যাকআপের সময় আবশ্যক",
+      "retentionCount": "সংরক্ষণযোগ্য ব্যাকআপ",
+      "retentionHint": "পুরনো ব্যাকআপ স্থানীয়ভাবে ও Google Drive থেকে মুছে ফেলা হয়",
+      "retentionInvalid": "১ থেকে ৩৬৫ এর মধ্যে একটি মান দিন",
+      "driveFolder": "Google Drive ফোল্ডার আইডি",
+      "driveFolderPlaceholder": "শুধু স্থানীয় ব্যাকআপ রাখতে খালি রাখুন",
+      "driveFolderHint": "ফোল্ডারটি অবশ্যই নিচের সার্ভিস অ্যাকাউন্টের সাথে শেয়ার করতে হবে",
+      "driveChecking": "Google Drive সংযোগ পরীক্ষা করা হচ্ছে…",
+      "driveConnected": "Google Drive সংযুক্ত — ব্যাকআপ আপলোড হবে।",
+      "driveNotAvailable": "Google Drive উপলব্ধ নয়; ব্যাকআপ শুধু স্থানীয়ভাবে থাকবে।",
+      "driveShareHint": "আপনার Drive ফোল্ডারটি (এডিটর হিসেবে) শেয়ার করুন:",
+      "saveButton": "সেটিংস সংরক্ষণ করুন"
+    },
+    "history": {
+      "title": "ব্যাকআপ ইতিহাস",
+      "colFile": "ফাইল",
+      "colType": "ধরন",
+      "colSize": "আকার",
+      "colStarted": "শুরু হয়েছে",
+      "colBy": "কার দ্বারা",
+      "uploadedTooltip": "Google Drive এ আপলোড হয়েছে",
+      "localRemovedTooltip": "স্থানীয় ফাইল সরানো হয়েছে — প্রয়োজনে Drive থেকে পুনরায় ডাউনলোড হবে",
+      "downloadTooltip": ".bak ডাউনলোড করুন",
+      "restoreTooltip": "এই ব্যাকআপ পুনরুদ্ধার করুন",
+      "empty": "এখনো কোনো ব্যাকআপ নেই — \"এখনই ব্যাকআপ নিন\" ক্লিক করুন বা উপরের সময়সূচি সক্রিয় করুন।"
+    },
+    "statuses": {
+      "pending": "মুলতুবি",
+      "running": "চলমান",
+      "succeeded": "সফল",
+      "uploadFailed": "আপলোড ব্যর্থ",
+      "failed": "ব্যর্থ"
+    },
+    "triggers": {
+      "manual": "ম্যানুয়াল",
+      "scheduled": "নির্ধারিত",
+      "preRestore": "পুনরুদ্ধারের পূর্বে"
+    },
+    "restore": {
+      "title": "ডেটাবেস পুনরুদ্ধার করুন",
+      "warningTitle": "এটি বর্তমান সমস্ত তথ্য প্রতিস্থাপন করবে",
+      "item1Prefix": "ডেটাবেসটি ফিরিয়ে নেওয়া হবে",
+      "item1Suffix": "এর পর যা কিছু প্রবেশ করানো হয়েছে তা হারিয়ে যাবে।",
+      "item2": "বর্তমান অবস্থার একটি নিরাপত্তা ব্যাকআপ স্বয়ংক্রিয়ভাবে প্রথমে নেওয়া হয়।",
+      "item3": "পুনরুদ্ধারের সময় সব ব্যবহারকারী সংক্ষিপ্তভাবে সংযোগবিচ্ছিন্ন হবেন।",
+      "item4": "ব্যাকআপ ইতিহাসও সেই মুহূর্তে ফিরে যায় (ফাইলগুলো ডিস্ক/Drive-এ থেকে যায়)।",
+      "confirmPrefix": "পুনরুদ্ধার করা হচ্ছে",
+      "confirmSuffix": "নিশ্চিত করতে RESTORE লিখুন:",
+      "inputPlaceholder": "RESTORE লিখুন",
+      "confirmButton": "ডেটাবেস পুনরুদ্ধার করুন"
+    },
+    "messages": {
+      "loadSettingsFailed": "ব্যাকআপ সেটিংস লোড করা যায়নি",
+      "driveStatusCheckFailed": "Google Drive স্ট্যাটাস পরীক্ষা করা যায়নি",
+      "settingsSavedSummary": "সংরক্ষিত হয়েছে",
+      "settingsSavedDetail": "ব্যাকআপ সেটিংস আপডেট হয়েছে — পরিবর্তনগুলো ৫ মিনিটের মধ্যে কার্যকর হবে",
+      "saveSettingsFailed": "এক বা একাধিক সেটিং সংরক্ষণ করা যায়নি",
+      "loadHistoryFailed": "ব্যাকআপ ইতিহাস লোড করা যায়নি",
+      "backupStartedSummary": "ব্যাকআপ শুরু হয়েছে",
+      "backupStartedDetail": "ব্যাকআপটি ব্যাকগ্রাউন্ডে চলছে",
+      "startBackupFailed": "ব্যাকআপ শুরু করা যায়নি",
+      "downloadFailed": "ব্যাকআপ ফাইল ডাউনলোড করা যায়নি",
+      "restoredSummary": "পুনরুদ্ধার হয়েছে",
+      "restoreFailedSummary": "পুনরুদ্ধার ব্যর্থ হয়েছে",
+      "restoreFailedDetail": "পুনরুদ্ধার ব্যর্থ হয়েছে — সার্ভার লগ পরীক্ষা করুন"
+    }
+  },
+  "shortcuts": {
+    "title": "কীবোর্ড শর্টকাট",
+    "subtitle": "আজ অ্যাপে উপলব্ধ কীবোর্ড আচরণ",
+    "note": "এই পৃষ্ঠায় আজ যা বাস্তবে বিদ্যমান তা তালিকাভুক্ত করা হয়েছে। আরও শর্টকাট শীঘ্রই আসছে।",
+    "groups": {
+      "search": {
+        "title": "অনুসন্ধান",
+        "submitSearch": "যেকোনো সার্চ বক্স বা লুকআপ ফিল্ড সাবমিট করুন",
+        "confirmLogin": "লগইন / POS কুইক-লুকআপ ফিল্ড নিশ্চিত করুন"
+      },
+      "navigation": {
+        "title": "নেভিগেশন",
+        "filterSidebar": "সাইডবারের \"একটি স্ক্রিনে যান\" সার্চ ফিল্টার করুন",
+        "goToFirstMatch": "প্রথম মিলে যাওয়া স্ক্রিনে যান",
+        "closeSidebarSearch": "সাইডবার সার্চ বন্ধ করুন"
+      }
+    }
+  },
+  "cashBook": {
+    "title": "ক্যাশ বই",
+    "today": "আজ",
+    "yesterday": "গতকাল",
+    "thisWeek": "এই সপ্তাহ",
+    "thisMonth": "এই মাস",
+    "in": "আয়",
+    "out": "ব্যয়",
+    "net": "নিট",
+    "ledgerViewTooltip": "লেজার ভিউ",
+    "splitViewTooltip": "বিভক্ত ভিউ",
+    "previousDayTooltip": "আগের দিন",
+    "nextDayTooltip": "পরের দিন",
+    "to": "থেকে",
+    "allMethods": "সব পদ্ধতি",
+    "emptyTitle": "কোনো লেনদেন রেকর্ড করা হয়নি",
+    "emptyDetail": "তারিখে এখনো কোনো নগদ লেনদেন হয়নি।",
+    "addExpense": "খরচ যোগ করুন",
+    "transactionLedger": "লেনদেন লেজার",
+    "entries": "এন্ট্রি",
+    "colTime": "সময়",
+    "colType": "ধরন",
+    "colDescription": "বিবরণ",
+    "colMethod": "পদ্ধতি",
+    "colPaymentMethod": "পেমেন্ট পদ্ধতি",
+    "colCashIn": "নগদ আয়",
+    "colCashOut": "নগদ ব্যয়",
+    "colBalance": "ব্যালেন্স",
+    "colAmount": "পরিমাণ",
+    "totals": "মোট",
+    "cashIn": "নগদ আয়",
+    "cashOut": "নগদ ব্যয়",
+    "noCashInFilter": "এই ফিল্টারের জন্য কোনো নগদ আয় নেই",
+    "noCashOutFilter": "এই ফিল্টারের জন্য কোনো নগদ ব্যয় নেই",
+    "rangeTooLargeSummary": "পরিসীমা অনেক বড়",
+    "rangeTooLargeDetail": "সর্বোচ্চ পরিসীমা {{days}} দিন। অনুগ্রহ করে আপনার নির্বাচন সংকুচিত করুন।",
+    "loadFailed": "ক্যাশ বই লোড করা যায়নি",
+    "types": {
+      "customerPayment": "বিক্রয় / প্রাপ্তি",
+      "expense": "খরচ",
+      "supplierPayment": "সরবরাহকারী পেমেন্ট",
+      "refund": "ফেরত"
+    },
+    "methods": {
+      "cash": "নগদ",
+      "mobileBanking": "মোবাইল ব্যাংকিং",
+      "card": "কার্ড",
+      "bankTransfer": "ব্যাংক ট্রান্সফার",
+      "cheque": "চেক",
+      "due": "বাকি / ক্রেডিট",
+      "partPay": "আংশিক পরিশোধ",
+      "advance": "অগ্রিম",
+      "refund": "ফেরত",
+      "refundReversal": "ফেরত বাতিল"
     }
   }
 }

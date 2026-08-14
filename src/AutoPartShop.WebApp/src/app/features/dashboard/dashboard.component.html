@@ -5,9 +5,9 @@
   <!-- ══════════════════ Page header ══════════════════ -->
   <div class="dash-header">
     <div class="dash-header-left">
-      <h1 class="dash-title">Dashboard</h1>
+      <h1 class="dash-title">{{ i18n.t('dashboard.title') }}</h1>
       <span class="dash-subtitle">
-        Business performance
+        {{ i18n.t('dashboard.subtitle') }}
         @if (resolvedStartDate && resolvedEndDate) {
           <span>&middot; {{ getPeriodLabel() }}</span>
         }
@@ -18,7 +18,7 @@
         <i class="pi pi-calendar"></i>
         <p-select
           [(ngModel)]="selectedPeriod"
-          [options]="periodOptions"
+          [options]="periodOptions()"
           optionLabel="label"
           optionValue="value"
           (onChange)="onPeriodChange()"
@@ -29,7 +29,7 @@
       @if (showCustomDateRange) {
         <p-datepicker
           [(ngModel)]="startDate"
-          placeholder="Start Date"
+          [placeholder]="i18n.t('dashboard.startDatePlaceholder')"
           dateFormat="M dd, yy"
           [showIcon]="true"
           appendTo="body"
@@ -37,22 +37,22 @@
         </p-datepicker>
         <p-datepicker
           [(ngModel)]="endDate"
-          placeholder="End Date"
+          [placeholder]="i18n.t('dashboard.endDatePlaceholder')"
           dateFormat="M dd, yy"
           [showIcon]="true"
           appendTo="body"
           styleClass="date-input">
         </p-datepicker>
-        <button class="shell-btn shell-btn-icon" (click)="loadDashboard()" pTooltip="Apply range" tooltipPosition="bottom">
+        <button class="shell-btn shell-btn-icon" (click)="loadDashboard()" [pTooltip]="i18n.t('dashboard.applyRangeTooltip')" tooltipPosition="bottom">
           <i class="pi pi-check"></i>
         </button>
       }
       <button class="shell-btn shell-btn-icon" (click)="loadDashboard()" [disabled]="loading()"
-        pTooltip="Refresh" tooltipPosition="bottom">
+        [pTooltip]="i18n.t('dashboard.refreshTooltip')" tooltipPosition="bottom">
         <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
       </button>
       <button class="shell-btn">
-        <i class="pi pi-download"></i> Export
+        <i class="pi pi-download"></i> {{ i18n.t('dashboard.export') }}
       </button>
     </div>
   </div>
@@ -79,10 +79,10 @@
   @if (!loading() && hasError()) {
     <div class="empty-full-state">
       <i class="pi pi-exclamation-circle"></i>
-      <h3>Failed to load dashboard</h3>
-      <p>Could not retrieve data from the server. Check your connection and try again.</p>
+      <h3>{{ i18n.t('dashboard.failedToLoadTitle') }}</h3>
+      <p>{{ i18n.t('dashboard.failedToLoadDetail') }}</p>
       <button class="shell-btn shell-btn-accent" (click)="loadDashboard()">
-        <i class="pi pi-refresh"></i> Retry
+        <i class="pi pi-refresh"></i> {{ i18n.t('dashboard.retry') }}
       </button>
     </div>
   }
@@ -94,22 +94,22 @@
     @if (hasAlerts) {
       <div class="alert-strip">
         @if (data.summary.lowStockItemsCount > 0) {
-          <div class="alert-item alert-amber" pTooltip="Parts below minimum stock level" tooltipPosition="bottom">
+          <div class="alert-item alert-amber" [pTooltip]="i18n.t('dashboard.alerts.lowStockTooltip')" tooltipPosition="bottom">
             <i class="pi pi-exclamation-triangle"></i>
-            <span><strong>{{ data.summary.lowStockItemsCount }}</strong> low stock items</span>
+            <span><strong>{{ data.summary.lowStockItemsCount }}</strong> {{ i18n.t('dashboard.alerts.lowStockItems') }}</span>
           </div>
         }
         @if (data.summary.customerOverdueAmount > 0) {
-          <div class="alert-item alert-red" pTooltip="Customers with unpaid invoices older than 30 days" tooltipPosition="bottom">
+          <div class="alert-item alert-red" [pTooltip]="i18n.t('dashboard.alerts.customerOverdueTooltip')" tooltipPosition="bottom">
             <i class="pi pi-users"></i>
-            <span>Customer overdue: <strong>{{ formatCurrency(data.summary.customerOverdueAmount) }}</strong>
+            <span>{{ i18n.t('dashboard.alerts.customerOverduePrefix') }} <strong>{{ formatCurrency(data.summary.customerOverdueAmount) }}</strong>
               ({{ data.summary.customerOverdueCount }})</span>
           </div>
         }
         @if (data.summary.supplierOverdueAmount > 0) {
-          <div class="alert-item alert-red" pTooltip="Suppliers with delivered goods past expected payment date" tooltipPosition="bottom">
+          <div class="alert-item alert-red" [pTooltip]="i18n.t('dashboard.alerts.supplierOverdueTooltip')" tooltipPosition="bottom">
             <i class="pi pi-truck"></i>
-            <span>Supplier overdue: <strong>{{ formatCurrency(data.summary.supplierOverdueAmount) }}</strong>
+            <span>{{ i18n.t('dashboard.alerts.supplierOverduePrefix') }} <strong>{{ formatCurrency(data.summary.supplierOverdueAmount) }}</strong>
               ({{ data.summary.supplierOverdueCount }})</span>
           </div>
         }
@@ -120,34 +120,34 @@
     <div class="kpi-row">
       <div class="kpi-card">
         <div class="kpi-top">
-          <span class="kpi-label">Total Sales</span>
+          <span class="kpi-label">{{ i18n.t('dashboard.kpi.totalSales') }}</span>
         </div>
         <div class="kpi-value">{{ formatCurrency(data.summary.totalSales) }}</div>
-        <div class="kpi-sub">{{ data.summary.totalSalesCount }} orders &middot; avg {{ formatCurrency(data.summary.averageSaleValue) }}</div>
+        <div class="kpi-sub">{{ data.summary.totalSalesCount }} {{ i18n.t('dashboard.kpi.ordersSuffix') }} &middot; {{ i18n.t('dashboard.kpi.avgPrefix') }} {{ formatCurrency(data.summary.averageSaleValue) }}</div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-top">
-          <span class="kpi-label">Revenue Collected</span>
+          <span class="kpi-label">{{ i18n.t('dashboard.kpi.revenueCollected') }}</span>
         </div>
         <div class="kpi-value">{{ formatCurrency(data.summary.totalRevenue) }}</div>
-        <div class="kpi-sub">Cash {{ formatCurrency(data.summary.cashSales) }} &middot; credit {{ formatCurrency(data.summary.creditSales) }}</div>
+        <div class="kpi-sub">{{ i18n.t('dashboard.kpi.cashPrefix') }} {{ formatCurrency(data.summary.cashSales) }} &middot; {{ i18n.t('dashboard.kpi.creditPrefix') }} {{ formatCurrency(data.summary.creditSales) }}</div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-top">
-          <span class="kpi-label">Total Expenses</span>
+          <span class="kpi-label">{{ i18n.t('dashboard.kpi.totalExpenses') }}</span>
         </div>
         <div class="kpi-value">{{ formatCurrency(data.summary.totalExpenses) }}</div>
-        <div class="kpi-sub">Purchases + daily expenses</div>
+        <div class="kpi-sub">{{ i18n.t('dashboard.kpi.totalExpensesSub') }}</div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-top">
-          <span class="kpi-label">Net Profit</span>
+          <span class="kpi-label">{{ i18n.t('dashboard.kpi.netProfit') }}</span>
         </div>
         <div class="kpi-value" [class.kpi-value-red]="data.summary.netProfit < 0">{{ formatCurrency(data.summary.netProfit) }}</div>
-        <div class="kpi-sub">{{ formatPercent(data.summary.profitMargin) }} margin</div>
+        <div class="kpi-sub">{{ formatPercent(data.summary.profitMargin) }} {{ i18n.t('dashboard.kpi.marginSuffix') }}</div>
       </div>
     </div>
 
@@ -155,8 +155,8 @@
     <div class="tables-row">
       <div class="dash-card table-card">
         <div class="table-card-header">
-          <span class="dash-card-title">Work Queue</span>
-          <span class="dash-card-sub">Open items needing action</span>
+          <span class="dash-card-title">{{ i18n.t('dashboard.workQueue.title') }}</span>
+          <span class="dash-card-sub">{{ i18n.t('dashboard.workQueue.subtitle') }}</span>
         </div>
         <div class="queue-grid">
           @for (item of workQueueItems(); track item.label) {
@@ -171,7 +171,7 @@
           } @empty {
             <div class="dash-table-empty">
               <i class="pi pi-check-circle"></i>
-              <span>Nothing needs attention right now</span>
+              <span>{{ i18n.t('dashboard.workQueue.empty') }}</span>
             </div>
           }
         </div>
@@ -179,13 +179,13 @@
 
       <div class="dash-card table-card">
         <div class="table-card-header">
-          <span class="dash-card-title">Low Stock</span>
-          <a class="dash-card-link" [routerLink]="['/inventory/stock']" [queryParams]="{ tab: 'low' }">View all</a>
+          <span class="dash-card-title">{{ i18n.t('dashboard.lowStock.title') }}</span>
+          <a class="dash-card-link" [routerLink]="['/inventory/stock']" [queryParams]="{ tab: 'low' }">{{ i18n.t('dashboard.lowStock.viewAll') }}</a>
         </div>
         <div class="dash-table-head dash-table-head-lowstock">
-          <span>Part</span>
-          <span class="col-right">Warehouse</span>
-          <span class="col-right">Qty</span>
+          <span>{{ i18n.t('dashboard.lowStock.colPart') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.lowStock.colWarehouse') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.lowStock.colQty') }}</span>
         </div>
         @for (row of lowStockRows(); track row.id) {
           <div class="dash-table-row dash-table-head-lowstock">
@@ -199,7 +199,7 @@
         } @empty {
           <div class="dash-table-empty">
             <i class="pi pi-check-circle"></i>
-            <span>No parts below minimum stock</span>
+            <span>{{ i18n.t('dashboard.lowStock.empty') }}</span>
           </div>
         }
       </div>
@@ -208,34 +208,34 @@
     <!-- ══════════════════ Insight strip ══════════════════ -->
     <div class="insight-strip">
       <div class="insight-cell">
-        <span class="insight-label">Gross Profit</span>
+        <span class="insight-label">{{ i18n.t('dashboard.insights.grossProfit') }}</span>
         <span class="insight-value" [class.insight-value-red]="data.summary.grossProfit < 0">{{ formatCurrency(data.summary.grossProfit) }}</span>
-        <span class="insight-sub">Before daily expenses</span>
+        <span class="insight-sub">{{ i18n.t('dashboard.insights.grossProfitSub') }}</span>
       </div>
       <div class="insight-cell">
-        <span class="insight-label">Avg Sale Value</span>
+        <span class="insight-label">{{ i18n.t('dashboard.insights.avgSaleValue') }}</span>
         <span class="insight-value">{{ formatCurrency(data.summary.averageSaleValue) }}</span>
-        <span class="insight-sub">Per order</span>
+        <span class="insight-sub">{{ i18n.t('dashboard.insights.avgSaleValueSub') }}</span>
       </div>
       <div class="insight-cell">
-        <span class="insight-label">New Customers</span>
+        <span class="insight-label">{{ i18n.t('dashboard.insights.newCustomers') }}</span>
         <span class="insight-value">{{ data.summary.newCustomers }}</span>
-        <span class="insight-sub">of {{ data.summary.totalCustomers }} total</span>
+        <span class="insight-sub">{{ i18n.t('dashboard.insights.newCustomersSubPrefix') }} {{ data.summary.totalCustomers }} {{ i18n.t('dashboard.insights.newCustomersSubSuffix') }}</span>
       </div>
       <div class="insight-cell">
-        <span class="insight-label">Low Stock Items</span>
+        <span class="insight-label">{{ i18n.t('dashboard.insights.lowStockItems') }}</span>
         <span class="insight-value">{{ data.summary.lowStockItemsCount }}</span>
-        <span class="insight-sub">As of today</span>
+        <span class="insight-sub">{{ i18n.t('dashboard.insights.lowStockItemsSub') }}</span>
       </div>
       <div class="insight-cell">
-        <span class="insight-label">Customer Due</span>
+        <span class="insight-label">{{ i18n.t('dashboard.insights.customerDue') }}</span>
         <span class="insight-value" [class.insight-value-amber]="data.summary.customerDueAmount > 0">{{ formatCurrency(data.summary.customerDueAmount) }}</span>
-        <span class="insight-sub">{{ data.summary.customerDueCount }} customer{{ data.summary.customerDueCount === 1 ? '' : 's' }}</span>
+        <span class="insight-sub">{{ data.summary.customerDueCount }} {{ i18n.t(data.summary.customerDueCount === 1 ? 'dashboard.insights.customerDueSub' : 'dashboard.insights.customerDueSubPlural') }}</span>
       </div>
       <div class="insight-cell insight-cell-last">
-        <span class="insight-label">Supplier Due</span>
+        <span class="insight-label">{{ i18n.t('dashboard.insights.supplierDue') }}</span>
         <span class="insight-value">{{ formatCurrency(data.summary.supplierDueAmount) }}</span>
-        <span class="insight-sub">{{ data.summary.supplierDueCount }} supplier{{ data.summary.supplierDueCount === 1 ? '' : 's' }}</span>
+        <span class="insight-sub">{{ data.summary.supplierDueCount }} {{ i18n.t(data.summary.supplierDueCount === 1 ? 'dashboard.insights.supplierDueSub' : 'dashboard.insights.supplierDueSubPlural') }}</span>
       </div>
     </div>
 
@@ -244,19 +244,19 @@
       <div class="dash-card chart-card">
         <div class="chart-card-header">
           <div class="chart-card-title-block">
-            <span class="dash-card-title">Sales &amp; Profit Trend</span>
-            <span class="dash-card-sub">Daily totals, this period</span>
+            <span class="dash-card-title">{{ i18n.t('dashboard.chart.title') }}</span>
+            <span class="dash-card-sub">{{ i18n.t('dashboard.chart.subtitle') }}</span>
           </div>
           <div class="chart-legend">
-            <span class="legend-item"><span class="legend-swatch legend-sales"></span>Sales</span>
-            <span class="legend-item"><span class="legend-swatch legend-purch"></span>Purchases</span>
-            <span class="legend-item"><span class="legend-swatch legend-profit"></span>Profit</span>
+            <span class="legend-item"><span class="legend-swatch legend-sales"></span>{{ i18n.t('dashboard.chart.sales') }}</span>
+            <span class="legend-item"><span class="legend-swatch legend-purch"></span>{{ i18n.t('dashboard.chart.purchases') }}</span>
+            <span class="legend-item"><span class="legend-swatch legend-profit"></span>{{ i18n.t('dashboard.chart.profit') }}</span>
           </div>
         </div>
         @if (!hasChartData) {
           <div class="chart-empty-state">
             <i class="pi pi-chart-line"></i>
-            <p>No trend data for this period</p>
+            <p>{{ i18n.t('dashboard.chart.empty') }}</p>
           </div>
         } @else {
           <div class="chart-container">
@@ -266,21 +266,21 @@
       </div>
 
       <div class="dash-card cashflow-card">
-        <span class="dash-card-title">Cash Flow</span>
+        <span class="dash-card-title">{{ i18n.t('dashboard.cashFlow.title') }}</span>
         <div class="cashflow-row">
-          <span class="cashflow-label">Opening Balance</span>
+          <span class="cashflow-label">{{ i18n.t('dashboard.cashFlow.openingBalance') }}</span>
           <span class="cashflow-value">{{ formatCurrency(data.summary.openingBalance) }}</span>
         </div>
         <div class="cashflow-row">
-          <span class="cashflow-label">Cash Inflow</span>
+          <span class="cashflow-label">{{ i18n.t('dashboard.cashFlow.cashInflow') }}</span>
           <span class="cashflow-value cashflow-value-green">+{{ formatCurrency(data.summary.cashInflow) }}</span>
         </div>
         <div class="cashflow-row">
-          <span class="cashflow-label">Cash Outflow</span>
+          <span class="cashflow-label">{{ i18n.t('dashboard.cashFlow.cashOutflow') }}</span>
           <span class="cashflow-value">&minus;{{ formatCurrency(data.summary.cashOutflow) }}</span>
         </div>
         <div class="cashflow-footer">
-          <span>Closing Balance</span>
+          <span>{{ i18n.t('dashboard.cashFlow.closingBalance') }}</span>
           <span class="cashflow-footer-value">{{ formatCurrency(data.summary.closingBalance) }}</span>
         </div>
       </div>
@@ -290,14 +290,14 @@
     <div class="tables-row">
       <div class="dash-card table-card">
         <div class="table-card-header">
-          <span class="dash-card-title">Top Products</span>
+          <span class="dash-card-title">{{ i18n.t('dashboard.topProducts.title') }}</span>
         </div>
         <div class="dash-table-head dash-table-head-products">
-          <span>Product</span>
-          <span class="col-right">Qty</span>
-          <span class="col-right">Revenue</span>
-          <span class="col-right">Profit</span>
-          <span class="col-right">Margin</span>
+          <span>{{ i18n.t('dashboard.topProducts.colProduct') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.topProducts.colQty') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.topProducts.colRevenue') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.topProducts.colProfit') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.topProducts.colMargin') }}</span>
         </div>
         @for (product of data.topProducts; track product.partId) {
           <div class="dash-table-row dash-table-head-products">
@@ -317,20 +317,20 @@
         } @empty {
           <div class="dash-table-empty">
             <i class="pi pi-inbox"></i>
-            <span>No product sales in this period</span>
+            <span>{{ i18n.t('dashboard.topProducts.empty') }}</span>
           </div>
         }
       </div>
 
       <div class="dash-card table-card">
         <div class="table-card-header">
-          <span class="dash-card-title">Top Customers</span>
+          <span class="dash-card-title">{{ i18n.t('dashboard.topCustomers.title') }}</span>
         </div>
         <div class="dash-table-head dash-table-head-customers">
-          <span>Customer</span>
-          <span class="col-right">Orders</span>
-          <span class="col-right">Revenue</span>
-          <span class="col-right">Last</span>
+          <span>{{ i18n.t('dashboard.topCustomers.colCustomer') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.topCustomers.colOrders') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.topCustomers.colRevenue') }}</span>
+          <span class="col-right">{{ i18n.t('dashboard.topCustomers.colLast') }}</span>
         </div>
         @for (customer of data.topCustomers; track customer.customerId) {
           <div class="dash-table-row dash-table-head-customers">
@@ -348,7 +348,7 @@
         } @empty {
           <div class="dash-table-empty">
             <i class="pi pi-inbox"></i>
-            <span>No customer activity in this period</span>
+            <span>{{ i18n.t('dashboard.topCustomers.empty') }}</span>
           </div>
         }
       </div>
@@ -359,10 +359,10 @@
   @if (!loading() && !hasError() && !dashboardData()) {
     <div class="empty-full-state">
       <i class="pi pi-chart-bar"></i>
-      <h3>No data available</h3>
-      <p>Select a period and click refresh to load your business overview.</p>
+      <h3>{{ i18n.t('dashboard.noDataTitle') }}</h3>
+      <p>{{ i18n.t('dashboard.noDataDetail') }}</p>
       <button class="shell-btn shell-btn-accent" (click)="loadDashboard()">
-        <i class="pi pi-refresh"></i> Load Dashboard
+        <i class="pi pi-refresh"></i> {{ i18n.t('dashboard.loadDashboard') }}
       </button>
     </div>
   }

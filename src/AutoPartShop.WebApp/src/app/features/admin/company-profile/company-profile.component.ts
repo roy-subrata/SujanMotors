@@ -13,6 +13,7 @@ import { AppSettingsService } from '../../../shared/services/app-settings.servic
 import { AppBrandingService } from '../../../shared/services/app-branding.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { I18nService } from '@/shared/services/i18n.service';
 import { forkJoin } from 'rxjs';
 
 interface FieldDef {
@@ -24,16 +25,18 @@ interface FieldDef {
   type?: 'text' | 'url' | 'textarea';
 }
 
+// label/placeholder/hint are i18n keys, resolved at render time via i18n.t() so they
+// react to language switches (see identityFields loop in the template below).
 const FIELDS: FieldDef[] = [
-  { control: 'name',            key: 'SHOP_NAME',           label: 'Business Name',    placeholder: 'e.g. Sujan Motors',           hint: 'Appears as the heading on all documents.',    type: 'text' },
-  { control: 'tagline',         key: 'SHOP_TAGLINE',         label: 'Tagline',          placeholder: 'e.g. Your trusted parts supplier', hint: 'Optional subtitle below the business name.', type: 'text' },
-  { control: 'address',         key: 'SHOP_ADDRESS',         label: 'Address',          placeholder: 'Street, City, Country',       hint: 'Full address printed on documents.',           type: 'textarea' },
-  { control: 'phone',           key: 'SHOP_PHONE',           label: 'Phone',            placeholder: '+880 1XXXXXXXXX',             hint: 'Primary contact number.',                     type: 'text' },
-  { control: 'email',           key: 'SHOP_EMAIL',           label: 'Email',            placeholder: 'info@yourshop.com',           hint: 'Business email shown on documents.',           type: 'text' },
-  { control: 'taxNo',           key: 'SHOP_TAX_NUMBER',      label: 'Tax / VAT No.',    placeholder: 'e.g. VAT-123456789',          hint: 'Tax registration number (leave blank to hide).', type: 'text' },
-  { control: 'logoUrl',         key: 'SHOP_LOGO_URL',        label: 'Logo URL',         placeholder: 'https://... or assets/logo.png', hint: 'HTTPS image URL or relative path. Leave blank or use assets/logo.png to use the default logo.', type: 'url' },
-  { control: 'invoiceFooter',   key: 'INVOICE_FOOTER_TEXT',  label: 'Invoice Footer',   placeholder: 'Thank you for your business!', hint: 'Printed at the bottom of every invoice.',     type: 'textarea' },
-  { control: 'challanFooter',   key: 'CHALLAN_FOOTER_TEXT',  label: 'Challan Footer',   placeholder: 'Goods once dispatched…',      hint: 'Printed at the bottom of every delivery challan.', type: 'textarea' },
+  { control: 'name',            key: 'SHOP_NAME',           label: 'companyProfile.identity.name',    placeholder: 'companyProfile.identity.namePlaceholder',    hint: 'companyProfile.identity.nameHint',    type: 'text' },
+  { control: 'tagline',         key: 'SHOP_TAGLINE',         label: 'companyProfile.identity.tagline',  placeholder: 'companyProfile.identity.taglinePlaceholder',  hint: 'companyProfile.identity.taglineHint', type: 'text' },
+  { control: 'address',         key: 'SHOP_ADDRESS',         label: 'companyProfile.identity.address',  placeholder: 'companyProfile.identity.addressPlaceholder',  hint: 'companyProfile.identity.addressHint', type: 'textarea' },
+  { control: 'phone',           key: 'SHOP_PHONE',           label: 'companyProfile.identity.phone',    placeholder: 'companyProfile.identity.phonePlaceholder',    hint: 'companyProfile.identity.phoneHint',   type: 'text' },
+  { control: 'email',           key: 'SHOP_EMAIL',           label: 'companyProfile.identity.email',    placeholder: 'companyProfile.identity.emailPlaceholder',    hint: 'companyProfile.identity.emailHint',   type: 'text' },
+  { control: 'taxNo',           key: 'SHOP_TAX_NUMBER',      label: 'companyProfile.identity.taxNo',    placeholder: 'companyProfile.identity.taxNoPlaceholder',    hint: 'companyProfile.identity.taxNoHint',   type: 'text' },
+  { control: 'logoUrl',         key: 'SHOP_LOGO_URL',        label: 'companyProfile.logo.url',          placeholder: 'companyProfile.logo.url',                     hint: 'companyProfile.logo.hint',            type: 'url' },
+  { control: 'invoiceFooter',   key: 'INVOICE_FOOTER_TEXT',  label: 'companyProfile.footers.invoiceFooter', placeholder: 'companyProfile.footers.invoiceFooterPlaceholder', hint: 'companyProfile.footers.invoiceFooterHint', type: 'textarea' },
+  { control: 'challanFooter',   key: 'CHALLAN_FOOTER_TEXT',  label: 'companyProfile.footers.challanFooter', placeholder: 'companyProfile.footers.challanFooterPlaceholder', hint: 'companyProfile.footers.challanFooterHint', type: 'textarea' },
 ];
 
 @Component({
@@ -59,8 +62,8 @@ const FIELDS: FieldDef[] = [
 
     <app-page-container>
       <app-page-header
-        title="Company Profile"
-        subtitle="Printed on every invoice, delivery challan, and account statement">
+        [title]="i18n.t('companyProfile.title')"
+        [subtitle]="i18n.t('companyProfile.subtitle')">
       </app-page-header>
 
       <div class="w-full px-4 py-6">
@@ -76,25 +79,25 @@ const FIELDS: FieldDef[] = [
           <ng-template pTemplate="header">
             <div class="flex items-center gap-2 px-5 pt-4">
               <i class="pi pi-desktop text-indigo-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Application Branding</h2>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.branding.title') }}</h2>
             </div>
           </ng-template>
 
           <div class="flex flex-col gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1"><span class="required">*</span> Application Name</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1"><span class="required">*</span> {{ i18n.t('companyProfile.branding.appName') }}</label>
               <input pInputText formControlName="appName"
-                placeholder="e.g. Auto Part Shop" class="w-full" />
-              <small class="text-gray-400">Shown in the browser tab, sidebar, login page, and storefront. Independent of the business name on documents.</small>
+                [placeholder]="i18n.t('companyProfile.branding.appNamePlaceholder')" class="w-full" />
+              <small class="text-gray-400">{{ i18n.t('companyProfile.branding.appNameHint') }}</small>
               <small class="p-error block mt-1" *ngIf="form.get('appName')?.invalid && form.get('appName')?.touched">
-                Application name is required
+                {{ i18n.t('companyProfile.branding.appNameRequired') }}
               </small>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Application Logo URL</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.branding.appLogoUrl') }}</label>
               <input pInputText formControlName="appLogoUrl"
                 placeholder="https://... or assets/logo.png" class="w-full" />
-              <small class="text-gray-400">HTTPS image URL or relative path. Leave blank or use <code>assets/logo.png</code> for the built-in icon.</small>
+              <small class="text-gray-400">{{ i18n.t('companyProfile.branding.appLogoUrlHint') }}</small>
 
               <div *ngIf="form.get('appLogoUrl')?.value && !form.get('appLogoUrl')?.value?.startsWith('assets')"
                    class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg inline-block">
@@ -110,7 +113,7 @@ const FIELDS: FieldDef[] = [
           <ng-template pTemplate="header">
             <div class="flex items-center gap-2 px-5 pt-4">
               <i class="pi pi-building text-blue-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Business Identity</h2>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.identity.title') }}</h2>
             </div>
           </ng-template>
 
@@ -118,24 +121,24 @@ const FIELDS: FieldDef[] = [
             <ng-container *ngFor="let f of identityFields">
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">
-                  <span class="required" *ngIf="f.control === 'name'">*</span> {{ f.label }}
+                  <span class="required" *ngIf="f.control === 'name'">*</span> {{ i18n.t(f.label) }}
                 </label>
                 <textarea *ngIf="f.type === 'textarea'"
                   pTextarea
                   [formControlName]="f.control"
-                  [placeholder]="f.placeholder"
+                  [placeholder]="i18n.t(f.placeholder)"
                   rows="2"
                   class="w-full">
                 </textarea>
                 <input *ngIf="f.type !== 'textarea'"
                   pInputText
                   [formControlName]="f.control"
-                  [placeholder]="f.placeholder"
+                  [placeholder]="i18n.t(f.placeholder)"
                   [type]="f.type === 'url' ? 'url' : 'text'"
                   class="w-full" />
-                <small class="text-gray-400">{{ f.hint }}</small>
+                <small class="text-gray-400">{{ i18n.t(f.hint) }}</small>
                 <small class="p-error block mt-1" *ngIf="form.get(f.control)?.invalid && form.get(f.control)?.touched">
-                  {{ f.control === 'email' ? 'Enter a valid email address' : (f.label + ' is required') }}
+                  {{ f.control === 'email' ? i18n.t('companyProfile.identity.emailInvalid') : i18n.t('common.messages.fieldRequired', { field: i18n.t(f.label) }) }}
                 </small>
               </div>
             </ng-container>
@@ -147,19 +150,19 @@ const FIELDS: FieldDef[] = [
           <ng-template pTemplate="header">
             <div class="flex items-center gap-2 px-5 pt-4">
               <i class="pi pi-image text-purple-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Logo</h2>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.logo.title') }}</h2>
             </div>
           </ng-template>
 
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Logo URL</label>
+            <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.logo.url') }}</label>
             <input
               pInputText
               formControlName="logoUrl"
               placeholder="https://... or assets/logo.png"
               class="w-full" />
             <small class="text-gray-400">
-              Paste an HTTPS image URL. Leave blank or use <code>assets/logo.png</code> to use the built-in default.
+              {{ i18n.t('companyProfile.logo.hint') }}
             </small>
 
             <!-- Live preview -->
@@ -177,26 +180,26 @@ const FIELDS: FieldDef[] = [
           <ng-template pTemplate="header">
             <div class="flex items-center gap-2 px-5 pt-4">
               <i class="pi pi-file-edit text-green-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Document Footers</h2>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.footers.title') }}</h2>
             </div>
           </ng-template>
 
           <div class="flex flex-col gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Invoice Footer</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.footers.invoiceFooter') }}</label>
               <textarea pTextarea formControlName="invoiceFooter"
-                placeholder="Thank you for your business!"
+                [placeholder]="i18n.t('companyProfile.footers.invoiceFooterPlaceholder')"
                 rows="2" class="w-full">
               </textarea>
-              <small class="text-gray-400">Printed at the bottom of every invoice.</small>
+              <small class="text-gray-400">{{ i18n.t('companyProfile.footers.invoiceFooterHint') }}</small>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Delivery Challan Footer</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.footers.challanFooter') }}</label>
               <textarea pTextarea formControlName="challanFooter"
-                placeholder="Goods once dispatched will not be accepted back without prior notice."
+                [placeholder]="i18n.t('companyProfile.footers.challanFooterPlaceholder')"
                 rows="2" class="w-full">
               </textarea>
-              <small class="text-gray-400">Printed at the bottom of every delivery challan.</small>
+              <small class="text-gray-400">{{ i18n.t('companyProfile.footers.challanFooterHint') }}</small>
             </div>
           </div>
         </p-card>
@@ -206,20 +209,20 @@ const FIELDS: FieldDef[] = [
           <ng-template pTemplate="header">
             <div class="flex items-center gap-2 px-5 pt-4">
               <i class="pi pi-percentage text-orange-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Tax &amp; VAT</h2>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.tax.title') }}</h2>
             </div>
           </ng-template>
 
           <div class="flex flex-col gap-4">
             <div class="flex items-center gap-2">
               <p-checkbox formControlName="vatEnabled" [binary]="true" inputId="vatEnabled"></p-checkbox>
-              <label for="vatEnabled" class="text-sm font-medium text-gray-600">Apply VAT on Quick Sale by default</label>
+              <label for="vatEnabled" class="text-sm font-medium text-gray-600">{{ i18n.t('companyProfile.tax.vatEnabled') }}</label>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">VAT Rate (%)</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.tax.vatRate') }}</label>
               <input pInputText type="number" min="0" max="100" step="0.01"
                 formControlName="vatRate" placeholder="15" class="w-full" />
-              <small class="text-gray-400">Used as the default rate on Quick Sale and the VAT report.</small>
+              <small class="text-gray-400">{{ i18n.t('companyProfile.tax.vatRateHint') }}</small>
             </div>
           </div>
         </p-card>
@@ -229,44 +232,44 @@ const FIELDS: FieldDef[] = [
           <ng-template pTemplate="header">
             <div class="flex items-center gap-2 px-5 pt-4">
               <i class="pi pi-hashtag text-cyan-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Document Numbering</h2>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.numbering.title') }}</h2>
             </div>
           </ng-template>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Invoice Prefix</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.invoicePrefix') }}</label>
               <input pInputText formControlName="invoiceNumberPrefix" placeholder="INV" class="w-full" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Sales Order Prefix</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.salesOrderPrefix') }}</label>
               <input pInputText formControlName="salesOrderNumberPrefix" placeholder="SO" class="w-full" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Purchase Order Prefix</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.purchaseOrderPrefix') }}</label>
               <input pInputText formControlName="purchaseOrderNumberPrefix" placeholder="PO" class="w-full" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Quotation Prefix</label>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.quotationPrefix') }}</label>
               <input pInputText formControlName="quotationNumberPrefix" placeholder="QT" class="w-full" />
             </div>
           </div>
-          <small class="text-gray-400 block mt-2">Applies to newly created documents only — existing document numbers are unaffected.</small>
+          <small class="text-gray-400 block mt-2">{{ i18n.t('companyProfile.numbering.hint') }}</small>
         </p-card>
 
         <!-- Live preview strip -->
         <div class="bg-white border border-gray-200 rounded-lg p-5 mb-6 shadow-sm">
-          <p class="text-xs text-gray-400 uppercase font-semibold mb-3 tracking-wide">Document header preview</p>
+          <p class="text-xs text-gray-400 uppercase font-semibold mb-3 tracking-wide">{{ i18n.t('companyProfile.preview.label') }}</p>
           <div class="flex items-start gap-4">
             <img *ngIf="form.get('logoUrl')?.value && !form.get('logoUrl')?.value?.startsWith('assets')"
                  [src]="form.get('logoUrl')?.value" alt=""
                  class="max-h-12 object-contain">
             <div>
-              <div class="text-xl font-bold text-gray-800">{{ form.get('name')?.value || 'Your Company Name' }}</div>
+              <div class="text-xl font-bold text-gray-800">{{ form.get('name')?.value || i18n.t('companyProfile.preview.placeholderName') }}</div>
               <div class="text-sm text-gray-500 italic" *ngIf="form.get('tagline')?.value">{{ form.get('tagline')?.value }}</div>
               <div class="text-xs text-gray-400 mt-1">{{ form.get('address')?.value }}</div>
               <div class="text-xs text-gray-400">{{ form.get('phone')?.value }}  {{ form.get('email')?.value }}</div>
-              <div class="text-xs text-gray-400" *ngIf="form.get('taxNo')?.value">Tax Reg: {{ form.get('taxNo')?.value }}</div>
+              <div class="text-xs text-gray-400" *ngIf="form.get('taxNo')?.value">{{ i18n.t('companyProfile.preview.taxRegPrefix') }} {{ form.get('taxNo')?.value }}</div>
             </div>
           </div>
         </div>
@@ -275,7 +278,7 @@ const FIELDS: FieldDef[] = [
           <button
             pButton
             type="submit"
-            label="Save Profile"
+            [label]="i18n.t('companyProfile.saveButton')"
             icon="pi pi-save"
             [loading]="saving()"
             [disabled]="form.invalid || saving()"
@@ -311,6 +314,7 @@ export class CompanyProfileComponent implements OnInit {
   private readonly branding        = inject(AppBrandingService);
   private readonly messageService  = inject(MessageService);
   private readonly fb              = inject(FormBuilder);
+  readonly i18n                    = inject(I18nService);
 
   loading = signal(true);
   saving  = signal(false);
@@ -370,7 +374,7 @@ export class CompanyProfileComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load company profile' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('companyProfile.messages.loadFailed') });
         this.loading.set(false);
       }
     });
@@ -419,11 +423,11 @@ export class CompanyProfileComponent implements OnInit {
       next: () => {
         // Re-apply the live brand (tab title, sidebar, storefront) without a reload.
         this.branding.refresh();
-        this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Company profile updated. All documents will reflect the new information immediately.' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('companyProfile.messages.savedSummary'), detail: this.i18n.t('companyProfile.messages.savedDetail') });
         this.saving.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save one or more settings' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('companyProfile.messages.saveFailed') });
         this.saving.set(false);
       }
     });

@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { I18nService } from '@/shared/services/i18n.service';
 
 interface ShortcutEntry {
   keys: string[];
@@ -26,25 +27,25 @@ interface ShortcutGroup {
   template: `
     <app-page-container>
       <app-page-header
-        title="Keyboard Shortcuts"
-        subtitle="Keyboard behavior available in the app today">
+        [title]="i18n.t('shortcuts.title')"
+        [subtitle]="i18n.t('shortcuts.subtitle')">
       </app-page-header>
 
       <div class="shortcuts-page">
         <div class="shortcuts-note">
           <i class="pi pi-info-circle"></i>
-          <span>This page lists what's real today. More shortcuts coming soon.</span>
+          <span>{{ i18n.t('shortcuts.note') }}</span>
         </div>
 
         <div class="shortcut-groups">
           <div class="shortcut-group" *ngFor="let group of groups">
             <div class="shortcut-group-heading">
               <i [class]="group.icon"></i>
-              <h2>{{ group.title }}</h2>
+              <h2>{{ i18n.t(group.title) }}</h2>
             </div>
             <div class="shortcut-list">
               <div class="shortcut-row" *ngFor="let entry of group.entries">
-                <span class="shortcut-desc">{{ entry.description }}</span>
+                <span class="shortcut-desc">{{ i18n.t(entry.description) }}</span>
                 <span class="shortcut-keys">
                   <ng-container *ngFor="let key of entry.keys; let last = last">
                     <kbd>{{ key }}</kbd>
@@ -163,22 +164,26 @@ interface ShortcutGroup {
   `]
 })
 export class KeyboardShortcutsComponent {
+  readonly i18n = inject(I18nService);
+
+  // title/description hold i18n keys, resolved at render time via i18n.t() in the
+  // template so they react to language switches.
   readonly groups: ShortcutGroup[] = [
     {
-      title: 'Search',
+      title: 'shortcuts.groups.search.title',
       icon: 'pi pi-search',
       entries: [
-        { keys: ['Enter'], description: 'Submit any search box or lookup field' },
-        { keys: ['Enter'], description: 'Confirm login / POS quick-lookup fields' },
+        { keys: ['Enter'], description: 'shortcuts.groups.search.submitSearch' },
+        { keys: ['Enter'], description: 'shortcuts.groups.search.confirmLogin' },
       ]
     },
     {
-      title: 'Navigation',
+      title: 'shortcuts.groups.navigation.title',
       icon: 'pi pi-compass',
       entries: [
-        { keys: ['Type'], description: 'Filter the sidebar "Jump to a screen" search' },
-        { keys: ['Enter'], description: 'Go to the first matching screen' },
-        { keys: ['Esc'], description: 'Close the sidebar search' },
+        { keys: ['Type'], description: 'shortcuts.groups.navigation.filterSidebar' },
+        { keys: ['Enter'], description: 'shortcuts.groups.navigation.goToFirstMatch' },
+        { keys: ['Esc'], description: 'shortcuts.groups.navigation.closeSidebarSearch' },
       ]
     }
   ];

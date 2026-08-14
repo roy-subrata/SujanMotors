@@ -3,27 +3,27 @@
 <app-page-container>
   <app-page-header
     [title]="pageTitle()"
-    subtitle="Reorder alerts and system notifications"
-    [count]="totalCount" countLabel="notifications" countIcon="pi pi-bell">
+    [subtitle]="i18n.t('notifications.subtitle')"
+    [count]="totalCount" [countLabel]="i18n.t('notifications.countLabel')" countIcon="pi pi-bell">
     <ng-container actions>
       <button class="btn-primary" (click)="markAllRead()" [disabled]="unreadCount() === 0">
-        <i class="pi pi-check-double"></i><span>Mark all read</span>
+        <i class="pi pi-check-double"></i><span>{{ i18n.t('notifications.markAllRead') }}</span>
       </button>
     </ng-container>
   </app-page-header>
 
   <div class="flex justify-content-between align-items-center mb-3">
     <p-selectButton
-      [options]="filterOptions"
+      [options]="filterOptions()"
       optionLabel="label"
       optionValue="value"
       [ngModel]="unreadFilter"
       (ngModelChange)="onFilterChange($event)"
-      aria-label="Filter notifications">
+      [ariaLabel]="i18n.t('notifications.title')">
     </p-selectButton>
     <span class="text-sm unread-indicator" style="color: var(--text-color-secondary)">
       <i class="pi pi-bell"></i>
-      <span>{{ unreadCount() }} unread</span>
+      <span>{{ unreadCountLabel() }}</span>
     </span>
   </div>
 
@@ -39,10 +39,10 @@
         <ng-template pTemplate="header">
           <tr>
             <th style="width: 4rem"></th>
-            <th>Type</th>
-            <th>Notification</th>
-            <th>Received</th>
-            <th style="width: 10rem">Actions</th>
+            <th>{{ i18n.t('notifications.colType') }}</th>
+            <th>{{ i18n.t('notifications.colNotification') }}</th>
+            <th>{{ i18n.t('notifications.colReceived') }}</th>
+            <th style="width: 10rem">{{ i18n.t('notifications.colActions') }}</th>
           </tr>
         </ng-template>
 
@@ -50,7 +50,7 @@
           <tr [class]="n.isRead ? '' : 'inbox-row-unread'">
             <td>
               @if (!n.isRead) {
-                <span class="unread-dot" pTooltip="Unread"></span>
+                <span class="unread-dot" [pTooltip]="i18n.t('notifications.unreadTooltip')"></span>
               }
             </td>
             <td>
@@ -73,7 +73,7 @@
                     type="button"
                     icon="pi pi-eye"
                     class="p-button-rounded p-button-text p-button-sm"
-                    pTooltip="View items"
+                    [pTooltip]="i18n.t('notifications.viewItemsTooltip')"
                     (click)="showDetails(n)">
                   </button>
                 }
@@ -83,7 +83,7 @@
                     type="button"
                     icon="pi pi-eye-slash"
                     class="p-button-rounded p-button-text p-button-sm"
-                    pTooltip="Mark as unread"
+                    [pTooltip]="i18n.t('notifications.markUnreadTooltip')"
                     (click)="markRead(n, false)">
                   </button>
                 } @else {
@@ -92,7 +92,7 @@
                     type="button"
                     icon="pi pi-check"
                     class="p-button-rounded p-button-text p-button-sm"
-                    pTooltip="Mark as read"
+                    [pTooltip]="i18n.t('notifications.markReadTooltip')"
                     (click)="markRead(n)">
                   </button>
                 }
@@ -104,7 +104,7 @@
         <ng-template pTemplate="emptymessage">
           <tr>
             <td colspan="5" class="text-center py-8" style="color: var(--text-color-secondary)">
-              <i class="pi pi-bell-slash mr-2"></i>No notifications found
+              <i class="pi pi-bell-slash mr-2"></i>{{ i18n.t('notifications.empty') }}
             </td>
           </tr>
         </ng-template>
@@ -116,29 +116,29 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalCount"
-    itemLabel="notifications"
+    [itemLabel]="i18n.t('notifications.countLabel')"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>
 
   <p-dialog
     [(visible)]="detailVisible"
-    [header]="selected?.title ?? 'Notification'"
+    [header]="selected?.title ?? i18n.t('notifications.defaultDialogHeader')"
     [modal]="true"
     [style]="{width: '620px'}"
     [closable]="true">
     @if (selectedPayload; as payload) {
       <div class="mb-3 text-sm" style="color: var(--text-color-secondary)">
-        {{ payload.itemCount }} item(s) at or below reorder level
+        {{ payload.itemCount }} {{ i18n.t('notifications.itemsBelowReorderSuffix') }}
       </div>
       <div class="table-container" style="max-height: 320px; overflow: auto;">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-left" style="color: var(--text-color-secondary); border-bottom: 1px solid var(--surface-border);">
-              <th class="py-2 pr-3">Part</th>
-              <th class="py-2 pr-3">Warehouse</th>
-              <th class="py-2 pr-3 text-right">Available</th>
-              <th class="py-2 text-right">Reorder Qty</th>
+              <th class="py-2 pr-3">{{ i18n.t('notifications.colPart') }}</th>
+              <th class="py-2 pr-3">{{ i18n.t('notifications.colWarehouse') }}</th>
+              <th class="py-2 pr-3 text-right">{{ i18n.t('notifications.colAvailable') }}</th>
+              <th class="py-2 text-right">{{ i18n.t('notifications.colReorderQty') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -163,12 +163,12 @@
         <button
           pButton
           type="button"
-          label="Open"
+          [label]="i18n.t('notifications.open')"
           icon="pi pi-external-link"
           (click)="openNotification(selected!)">
         </button>
       }
-      <button pButton type="button" label="Close" class="p-button-text" (click)="detailVisible = false"></button>
+      <button pButton type="button" [label]="i18n.t('common.actions.close')" class="p-button-text" (click)="detailVisible = false"></button>
     </div>
   </p-dialog>
 </app-page-container>

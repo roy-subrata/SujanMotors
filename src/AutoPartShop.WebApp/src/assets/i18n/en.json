@@ -309,6 +309,12 @@
       "basicInformation": "Basic Information",
       "addressInformation": "Address Information",
       "additionalInformation": "Additional Information"
+    },
+    "time": {
+      "justNow": "just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
     }
   },
   "categories": {
@@ -2128,6 +2134,28 @@
   },
   "notifications": {
     "title": "Notifications",
+    "subtitle": "Reorder alerts and system notifications",
+    "countLabel": "notifications",
+    "markAllRead": "Mark all read",
+    "unreadCount": "{{count}} unread",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "colType": "Type",
+    "colNotification": "Notification",
+    "colReceived": "Received",
+    "colActions": "Actions",
+    "unreadTooltip": "Unread",
+    "viewItemsTooltip": "View items",
+    "markUnreadTooltip": "Mark as unread",
+    "markReadTooltip": "Mark as read",
+    "empty": "No notifications found",
+    "defaultDialogHeader": "Notification",
+    "itemsBelowReorderSuffix": "item(s) at or below reorder level",
+    "colPart": "Part",
+    "colWarehouse": "Warehouse",
+    "colAvailable": "Available",
+    "colReorderQty": "Reorder Qty",
+    "open": "Open",
     "types": {
       "reorderAlert": "Reorder Alert",
       "sale": "Sale"
@@ -2136,6 +2164,355 @@
       "loadFailed": "Failed to load notifications",
       "markAllReadSuccess": "All notifications marked as read",
       "markAllReadFailed": "Failed to mark notifications as read"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Business performance",
+    "startDatePlaceholder": "Start Date",
+    "endDatePlaceholder": "End Date",
+    "applyRangeTooltip": "Apply range",
+    "refreshTooltip": "Refresh",
+    "export": "Export",
+    "failedToLoadTitle": "Failed to load dashboard",
+    "failedToLoadDetail": "Could not retrieve data from the server. Check your connection and try again.",
+    "retry": "Retry",
+    "noDataTitle": "No data available",
+    "noDataDetail": "Select a period and click refresh to load your business overview.",
+    "loadDashboard": "Load Dashboard",
+    "periods": {
+      "today": "Today",
+      "thisMonth": "This Month",
+      "thisYear": "This Year",
+      "customRange": "Custom Range"
+    },
+    "alerts": {
+      "lowStockTooltip": "Parts below minimum stock level",
+      "lowStockItems": "low stock items",
+      "customerOverdueTooltip": "Customers with unpaid invoices older than 30 days",
+      "customerOverduePrefix": "Customer overdue:",
+      "supplierOverdueTooltip": "Suppliers with delivered goods past expected payment date",
+      "supplierOverduePrefix": "Supplier overdue:"
+    },
+    "kpi": {
+      "totalSales": "Total Sales",
+      "ordersSuffix": "orders",
+      "avgPrefix": "avg",
+      "revenueCollected": "Revenue Collected",
+      "cashPrefix": "Cash",
+      "creditPrefix": "credit",
+      "totalExpenses": "Total Expenses",
+      "totalExpensesSub": "Purchases + daily expenses",
+      "netProfit": "Net Profit",
+      "marginSuffix": "margin"
+    },
+    "workQueue": {
+      "title": "Work Queue",
+      "subtitle": "Open items needing action",
+      "empty": "Nothing needs attention right now",
+      "purchaseOrders": "Purchase orders to receive",
+      "purchaseOrdersSub": "Awaiting goods receipt",
+      "deliveries": "Deliveries pending",
+      "deliveriesSub": "Not yet delivered",
+      "warrantyClaims": "Warranty claims open",
+      "warrantyClaimsSub": "Awaiting action",
+      "invoicesOverdue": "Invoices overdue",
+      "invoicesOverdueSub": "Past due date",
+      "salesReturns": "Sales returns to approve",
+      "salesReturnsSub": "Pending review",
+      "stockTakes": "Stock takes in progress",
+      "stockTakesSub": "Counting under way"
+    },
+    "lowStock": {
+      "title": "Low Stock",
+      "viewAll": "View all",
+      "colPart": "Part",
+      "colWarehouse": "Warehouse",
+      "colQty": "Qty",
+      "empty": "No parts below minimum stock"
+    },
+    "insights": {
+      "grossProfit": "Gross Profit",
+      "grossProfitSub": "Before daily expenses",
+      "avgSaleValue": "Avg Sale Value",
+      "avgSaleValueSub": "Per order",
+      "newCustomers": "New Customers",
+      "newCustomersSubPrefix": "of",
+      "newCustomersSubSuffix": "total",
+      "lowStockItems": "Low Stock Items",
+      "lowStockItemsSub": "As of today",
+      "customerDue": "Customer Due",
+      "customerDueSub": "customer",
+      "customerDueSubPlural": "customers",
+      "supplierDue": "Supplier Due",
+      "supplierDueSub": "supplier",
+      "supplierDueSubPlural": "suppliers"
+    },
+    "chart": {
+      "title": "Sales & Profit Trend",
+      "subtitle": "Daily totals, this period",
+      "sales": "Sales",
+      "purchases": "Purchases",
+      "profit": "Profit",
+      "empty": "No trend data for this period"
+    },
+    "cashFlow": {
+      "title": "Cash Flow",
+      "openingBalance": "Opening Balance",
+      "cashInflow": "Cash Inflow",
+      "cashOutflow": "Cash Outflow",
+      "closingBalance": "Closing Balance"
+    },
+    "topProducts": {
+      "title": "Top Products",
+      "colProduct": "Product",
+      "colQty": "Qty",
+      "colRevenue": "Revenue",
+      "colProfit": "Profit",
+      "colMargin": "Margin",
+      "empty": "No product sales in this period"
+    },
+    "topCustomers": {
+      "title": "Top Customers",
+      "colCustomer": "Customer",
+      "colOrders": "Orders",
+      "colRevenue": "Revenue",
+      "colLast": "Last",
+      "empty": "No customer activity in this period"
+    },
+    "messages": {
+      "selectDatesWarning": "Please select both start and end dates",
+      "invalidRangeSummary": "Invalid Range",
+      "invalidRangeDetail": "End date must be on or after start date",
+      "loadFailed": "Failed to load dashboard data"
+    }
+  },
+  "companyProfile": {
+    "title": "Company Profile",
+    "subtitle": "Printed on every invoice, delivery challan, and account statement",
+    "branding": {
+      "title": "Application Branding",
+      "appName": "Application Name",
+      "appNamePlaceholder": "e.g. Auto Part Shop",
+      "appNameHint": "Shown in the browser tab, sidebar, login page, and storefront. Independent of the business name on documents.",
+      "appNameRequired": "Application name is required",
+      "appLogoUrl": "Application Logo URL",
+      "appLogoUrlHint": "HTTPS image URL or relative path. Leave blank or use assets/logo.png for the built-in icon."
+    },
+    "identity": {
+      "title": "Business Identity",
+      "name": "Business Name",
+      "namePlaceholder": "e.g. Sujan Motors",
+      "nameHint": "Appears as the heading on all documents.",
+      "tagline": "Tagline",
+      "taglinePlaceholder": "e.g. Your trusted parts supplier",
+      "taglineHint": "Optional subtitle below the business name.",
+      "address": "Address",
+      "addressPlaceholder": "Street, City, Country",
+      "addressHint": "Full address printed on documents.",
+      "phone": "Phone",
+      "phonePlaceholder": "+880 1XXXXXXXXX",
+      "phoneHint": "Primary contact number.",
+      "email": "Email",
+      "emailPlaceholder": "info@yourshop.com",
+      "emailHint": "Business email shown on documents.",
+      "emailInvalid": "Enter a valid email address",
+      "taxNo": "Tax / VAT No.",
+      "taxNoPlaceholder": "e.g. VAT-123456789",
+      "taxNoHint": "Tax registration number (leave blank to hide)."
+    },
+    "logo": {
+      "title": "Logo",
+      "url": "Logo URL",
+      "hint": "Paste an HTTPS image URL. Leave blank or use assets/logo.png to use the built-in default."
+    },
+    "footers": {
+      "title": "Document Footers",
+      "invoiceFooter": "Invoice Footer",
+      "invoiceFooterPlaceholder": "Thank you for your business!",
+      "invoiceFooterHint": "Printed at the bottom of every invoice.",
+      "challanFooter": "Delivery Challan Footer",
+      "challanFooterPlaceholder": "Goods once dispatched will not be accepted back without prior notice.",
+      "challanFooterHint": "Printed at the bottom of every delivery challan."
+    },
+    "tax": {
+      "title": "Tax & VAT",
+      "vatEnabled": "Apply VAT on Quick Sale by default",
+      "vatRate": "VAT Rate (%)",
+      "vatRateHint": "Used as the default rate on Quick Sale and the VAT report."
+    },
+    "numbering": {
+      "title": "Document Numbering",
+      "invoicePrefix": "Invoice Prefix",
+      "salesOrderPrefix": "Sales Order Prefix",
+      "purchaseOrderPrefix": "Purchase Order Prefix",
+      "quotationPrefix": "Quotation Prefix",
+      "hint": "Applies to newly created documents only — existing document numbers are unaffected."
+    },
+    "preview": {
+      "label": "Document header preview",
+      "placeholderName": "Your Company Name",
+      "taxRegPrefix": "Tax Reg:"
+    },
+    "saveButton": "Save Profile",
+    "messages": {
+      "loadFailed": "Failed to load company profile",
+      "savedSummary": "Saved",
+      "savedDetail": "Company profile updated. All documents will reflect the new information immediately.",
+      "saveFailed": "Failed to save one or more settings"
+    }
+  },
+  "backups": {
+    "title": "Database Backups",
+    "subtitle": "Scheduled backups, Google Drive upload and restore",
+    "itemLabel": "backups",
+    "backupNow": "Backup Now",
+    "working": "Working…",
+    "schedule": {
+      "title": "Backup Schedule",
+      "enableDaily": "Enable daily scheduled backups",
+      "enableDailyHint": "Runs automatically at the time below (checked every 5 minutes)",
+      "backupTime": "Backup time (shop local)",
+      "backupTimeHint": "Daily backup time on the shop's clock",
+      "backupTimeRequired": "Backup time is required",
+      "retentionCount": "Backups to keep",
+      "retentionHint": "Older backups are deleted locally and on Google Drive",
+      "retentionInvalid": "Enter a value between 1 and 365",
+      "driveFolder": "Google Drive folder ID",
+      "driveFolderPlaceholder": "Leave empty to keep backups local only",
+      "driveFolderHint": "The folder must be shared with the service account below",
+      "driveChecking": "Checking Google Drive connection…",
+      "driveConnected": "Google Drive connected — backups will be uploaded.",
+      "driveNotAvailable": "Google Drive is not available; backups stay local only.",
+      "driveShareHint": "Share your Drive folder (as Editor) with:",
+      "saveButton": "Save Settings"
+    },
+    "history": {
+      "title": "Backup History",
+      "colFile": "File",
+      "colType": "Type",
+      "colSize": "Size",
+      "colStarted": "Started",
+      "colBy": "By",
+      "uploadedTooltip": "Uploaded to Google Drive",
+      "localRemovedTooltip": "Local file removed — will be re-downloaded from Drive when needed",
+      "downloadTooltip": "Download .bak",
+      "restoreTooltip": "Restore this backup",
+      "empty": "No backups yet — click \"Backup Now\" or enable the schedule above."
+    },
+    "statuses": {
+      "pending": "Pending",
+      "running": "Running",
+      "succeeded": "Succeeded",
+      "uploadFailed": "Upload Failed",
+      "failed": "Failed"
+    },
+    "triggers": {
+      "manual": "Manual",
+      "scheduled": "Scheduled",
+      "preRestore": "Pre-Restore"
+    },
+    "restore": {
+      "title": "Restore Database",
+      "warningTitle": "This will replace ALL current data",
+      "item1Prefix": "The database is rolled back to",
+      "item1Suffix": "— everything entered after that is lost.",
+      "item2": "A safety backup of the current state is taken automatically first.",
+      "item3": "All users are briefly disconnected during the restore.",
+      "item4": "Backup history itself also reverts to that point (files remain on disk/Drive).",
+      "confirmPrefix": "Restoring",
+      "confirmSuffix": "Type RESTORE to confirm:",
+      "inputPlaceholder": "Type RESTORE",
+      "confirmButton": "Restore Database"
+    },
+    "messages": {
+      "loadSettingsFailed": "Failed to load backup settings",
+      "driveStatusCheckFailed": "Could not check Google Drive status",
+      "settingsSavedSummary": "Saved",
+      "settingsSavedDetail": "Backup settings updated — changes take effect within 5 minutes",
+      "saveSettingsFailed": "Failed to save one or more settings",
+      "loadHistoryFailed": "Failed to load backup history",
+      "backupStartedSummary": "Backup started",
+      "backupStartedDetail": "The backup is running in the background",
+      "startBackupFailed": "Failed to start backup",
+      "downloadFailed": "Failed to download backup file",
+      "restoredSummary": "Restored",
+      "restoreFailedSummary": "Restore failed",
+      "restoreFailedDetail": "The restore failed — check server logs"
+    }
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "subtitle": "Keyboard behavior available in the app today",
+    "note": "This page lists what's real today. More shortcuts coming soon.",
+    "groups": {
+      "search": {
+        "title": "Search",
+        "submitSearch": "Submit any search box or lookup field",
+        "confirmLogin": "Confirm login / POS quick-lookup fields"
+      },
+      "navigation": {
+        "title": "Navigation",
+        "filterSidebar": "Filter the sidebar \"Jump to a screen\" search",
+        "goToFirstMatch": "Go to the first matching screen",
+        "closeSidebarSearch": "Close the sidebar search"
+      }
+    }
+  },
+  "cashBook": {
+    "title": "Cash Book",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "in": "In",
+    "out": "Out",
+    "net": "Net",
+    "ledgerViewTooltip": "Ledger view",
+    "splitViewTooltip": "Split view",
+    "previousDayTooltip": "Previous day",
+    "nextDayTooltip": "Next day",
+    "to": "to",
+    "allMethods": "All Methods",
+    "emptyTitle": "No transactions recorded",
+    "emptyDetail": "has no cash movements yet.",
+    "addExpense": "Add Expense",
+    "transactionLedger": "Transaction Ledger",
+    "entries": "entries",
+    "colTime": "Time",
+    "colType": "Type",
+    "colDescription": "Description",
+    "colMethod": "Method",
+    "colPaymentMethod": "Payment Method",
+    "colCashIn": "Cash In",
+    "colCashOut": "Cash Out",
+    "colBalance": "Balance",
+    "colAmount": "Amount",
+    "totals": "Totals",
+    "cashIn": "Cash In",
+    "cashOut": "Cash Out",
+    "noCashInFilter": "No cash-in for this filter",
+    "noCashOutFilter": "No cash-out for this filter",
+    "rangeTooLargeSummary": "Range Too Large",
+    "rangeTooLargeDetail": "Maximum range is {{days}} days. Please narrow your selection.",
+    "loadFailed": "Failed to load cash book",
+    "types": {
+      "customerPayment": "Sale / Receipt",
+      "expense": "Expense",
+      "supplierPayment": "Supplier Pmt",
+      "refund": "Refund"
+    },
+    "methods": {
+      "cash": "Cash",
+      "mobileBanking": "Mobile Banking",
+      "card": "Card",
+      "bankTransfer": "Bank Transfer",
+      "cheque": "Cheque",
+      "due": "Due / Credit",
+      "partPay": "Part Pay",
+      "advance": "Advance",
+      "refund": "Refund",
+      "refundReversal": "Refund Reversal"
     }
   }
 }

@@ -19,6 +19,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { BackupRecordStatus } from '@/shared/models/status.types';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-backups',
@@ -47,17 +48,17 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
 
     <app-page-container>
       <app-page-header
-        title="Database Backups"
-        subtitle="Scheduled backups, Google Drive upload and restore"
+        [title]="i18n.t('backups.title')"
+        [subtitle]="i18n.t('backups.subtitle')"
         [count]="totalRecords"
-        countLabel="backups">
+        [countLabel]="i18n.t('backups.itemLabel')">
         <ng-container actions>
-          <button class="btn-icon" (click)="loadHistory()" pTooltip="Refresh" tooltipPosition="bottom">
+          <button class="btn-icon" (click)="loadHistory()" [pTooltip]="i18n.t('common.actions.refresh')" tooltipPosition="bottom">
             <i class="pi pi-refresh"></i>
           </button>
           <button class="btn-primary" (click)="backupNow()" [disabled]="operationRunning()">
             <i class="pi" [class.pi-spin]="operationRunning()" [class.pi-spinner]="operationRunning()" [class.pi-play]="!operationRunning()"></i>
-            <span>{{ operationRunning() ? 'Working…' : 'Backup Now' }}</span>
+            <span>{{ operationRunning() ? i18n.t('backups.working') : i18n.t('backups.backupNow') }}</span>
           </button>
         </ng-container>
       </app-page-header>
@@ -69,7 +70,7 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
           <ng-template pTemplate="header">
             <div class="flex items-center gap-2 px-5 pt-4">
               <i class="pi pi-calendar-clock text-blue-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Backup Schedule</h2>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('backups.schedule.title') }}</h2>
             </div>
           </ng-template>
 
@@ -80,23 +81,23 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
           <form *ngIf="!settingsLoading()" [formGroup]="form" (ngSubmit)="saveSettings()">
             <div class="flex items-center justify-between mb-5">
               <div>
-                <p class="font-medium text-gray-700 m-0">Enable daily scheduled backups</p>
-                <p class="text-sm text-gray-400 mt-1 m-0">Runs automatically at the time below (checked every 5 minutes)</p>
+                <p class="font-medium text-gray-700 m-0">{{ i18n.t('backups.schedule.enableDaily') }}</p>
+                <p class="text-sm text-gray-400 mt-1 m-0">{{ i18n.t('backups.schedule.enableDailyHint') }}</p>
               </div>
               <p-toggleswitch formControlName="enabled"></p-toggleswitch>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Backup time (shop local)</label>
+                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> {{ i18n.t('backups.schedule.backupTime') }}</label>
                 <input type="time" pInputText formControlName="localTime" class="w-full" />
-                <small class="text-gray-400">Daily backup time on the shop's clock</small>
+                <small class="text-gray-400">{{ i18n.t('backups.schedule.backupTimeHint') }}</small>
                 <small class="p-error block mt-1" *ngIf="form.get('localTime')?.invalid && form.get('localTime')?.touched">
-                  Backup time is required
+                  {{ i18n.t('backups.schedule.backupTimeRequired') }}
                 </small>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Backups to keep</label>
+                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> {{ i18n.t('backups.schedule.retentionCount') }}</label>
                 <p-inputNumber
                   formControlName="retentionCount"
                   [min]="1" [max]="365"
@@ -104,15 +105,15 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
                   styleClass="w-full"
                   inputStyleClass="w-full">
                 </p-inputNumber>
-                <small class="text-gray-400">Older backups are deleted locally and on Google Drive</small>
+                <small class="text-gray-400">{{ i18n.t('backups.schedule.retentionHint') }}</small>
                 <small class="p-error block mt-1" *ngIf="form.get('retentionCount')?.invalid && form.get('retentionCount')?.touched">
-                  Enter a value between 1 and 365
+                  {{ i18n.t('backups.schedule.retentionInvalid') }}
                 </small>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2">Google Drive folder ID</label>
-                <input pInputText formControlName="gdriveFolderId" placeholder="Leave empty to keep backups local only" class="w-full" />
-                <small class="text-gray-400">The folder must be shared with the service account below</small>
+                <label class="block text-sm font-medium text-gray-600 mb-2">{{ i18n.t('backups.schedule.driveFolder') }}</label>
+                <input pInputText formControlName="gdriveFolderId" [placeholder]="i18n.t('backups.schedule.driveFolderPlaceholder')" class="w-full" />
+                <small class="text-gray-400">{{ i18n.t('backups.schedule.driveFolderHint') }}</small>
               </div>
             </div>
 
@@ -126,23 +127,23 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
                 <i class="pi" [class.pi-cloud-upload]="driveStatus()?.ok" [class.text-green-600]="driveStatus()?.ok"
                    [class.pi-exclamation-triangle]="driveStatus() && !driveStatus()?.ok" [class.text-amber-600]="driveStatus() && !driveStatus()?.ok"></i>
                 <span *ngIf="!driveStatus()" class="text-gray-500">
-                  <i class="pi pi-spin pi-spinner mr-1"></i>Checking Google Drive connection…
+                  <i class="pi pi-spin pi-spinner mr-1"></i>{{ i18n.t('backups.schedule.driveChecking') }}
                 </span>
                 <span *ngIf="driveStatus()?.ok" class="text-green-700">
-                  Google Drive connected — backups will be uploaded.
+                  {{ i18n.t('backups.schedule.driveConnected') }}
                 </span>
                 <span *ngIf="driveStatus() && !driveStatus()?.ok" class="text-amber-700">
-                  {{ driveStatus()?.error || 'Google Drive is not available; backups stay local only.' }}
+                  {{ driveStatus()?.error || i18n.t('backups.schedule.driveNotAvailable') }}
                 </span>
               </div>
               <div *ngIf="driveStatus()?.serviceAccountEmail" class="text-xs text-gray-500 mt-2">
-                Share your Drive folder (as Editor) with:
+                {{ i18n.t('backups.schedule.driveShareHint') }}
                 <code class="bg-gray-100 px-1 rounded">{{ driveStatus()?.serviceAccountEmail }}</code>
               </div>
             </div>
 
             <div class="flex justify-end mt-4">
-              <button pButton type="submit" label="Save Settings" icon="pi pi-save"
+              <button pButton type="submit" [label]="i18n.t('backups.schedule.saveButton')" icon="pi pi-save"
                       [loading]="settingsSaving()" [disabled]="form.invalid || settingsSaving()"
                       class="p-button-success"></button>
             </div>
@@ -154,20 +155,20 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
           <ng-template pTemplate="header">
             <div class="flex items-center gap-2 px-5 pt-4">
               <i class="pi pi-history text-gray-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Backup History</h2>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('backups.history.title') }}</h2>
             </div>
           </ng-template>
 
           <p-table [value]="records()" [loading]="historyLoading()" responsiveLayout="scroll" styleClass="p-datatable-sm">
             <ng-template pTemplate="header">
               <tr>
-                <th>File</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Size</th>
-                <th>Started</th>
-                <th>By</th>
-                <th style="width:110px">Actions</th>
+                <th>{{ i18n.t('backups.history.colFile') }}</th>
+                <th>{{ i18n.t('backups.history.colType') }}</th>
+                <th>{{ i18n.t('common.labels.status') }}</th>
+                <th>{{ i18n.t('backups.history.colSize') }}</th>
+                <th>{{ i18n.t('backups.history.colStarted') }}</th>
+                <th>{{ i18n.t('backups.history.colBy') }}</th>
+                <th style="width:110px">{{ i18n.t('common.labels.actions') }}</th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-record>
@@ -175,13 +176,13 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
                 <td>
                   <span class="font-mono text-sm">{{ record.fileName }}</span>
                   <i *ngIf="record.uploadedToDrive" class="pi pi-cloud-upload text-blue-500 ml-2"
-                     pTooltip="Uploaded to Google Drive" tooltipPosition="top"></i>
+                     [pTooltip]="i18n.t('backups.history.uploadedTooltip')" tooltipPosition="top"></i>
                   <i *ngIf="!record.localFileExists && record.uploadedToDrive" class="pi pi-info-circle text-gray-400 ml-1"
-                     pTooltip="Local file removed — will be re-downloaded from Drive when needed" tooltipPosition="top"></i>
+                     [pTooltip]="i18n.t('backups.history.localRemovedTooltip')" tooltipPosition="top"></i>
                 </td>
-                <td><p-tag [value]="record.triggerType" [severity]="triggerSeverity(record.triggerType)"></p-tag></td>
+                <td><p-tag [value]="triggerLabel(record.triggerType)" [severity]="triggerSeverity(record.triggerType)"></p-tag></td>
                 <td>
-                  <p-tag [value]="record.status" [severity]="statusSeverity(record.status)"
+                  <p-tag [value]="statusLabel(record.status)" [severity]="statusSeverity(record.status)"
                          [pTooltip]="record.errorMessage ?? ''" tooltipPosition="top"></p-tag>
                   <i *ngIf="record.status === 'Running'" class="pi pi-spin pi-spinner text-blue-500 ml-2"></i>
                 </td>
@@ -195,12 +196,12 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
                 <td>
                   <div class="flex gap-1">
                     <button pButton type="button" icon="pi pi-download" class="p-button-text p-button-sm"
-                            pTooltip="Download .bak" tooltipPosition="top"
+                            [pTooltip]="i18n.t('backups.history.downloadTooltip')" tooltipPosition="top"
                             [disabled]="!isRestorable(record) || downloadingId() === record.id"
                             [loading]="downloadingId() === record.id"
                             (click)="download(record)"></button>
                     <button pButton type="button" icon="pi pi-replay" class="p-button-text p-button-sm p-button-danger"
-                            pTooltip="Restore this backup" tooltipPosition="top"
+                            [pTooltip]="i18n.t('backups.history.restoreTooltip')" tooltipPosition="top"
                             [disabled]="!isRestorable(record) || operationRunning()"
                             (click)="openRestoreDialog(record)"></button>
                   </div>
@@ -210,7 +211,7 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
             <ng-template pTemplate="emptymessage">
               <tr>
                 <td colspan="7" class="text-center text-gray-400 py-8">
-                  No backups yet — click “Backup Now” or enable the schedule above.
+                  {{ i18n.t('backups.history.empty') }}
                 </td>
               </tr>
             </ng-template>
@@ -220,7 +221,7 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
             [first]="(page - 1) * pageSize"
             [pageSize]="pageSize"
             [totalRecords]="totalRecords"
-            itemLabel="backups"
+            [itemLabel]="i18n.t('backups.itemLabel')"
             (pageChange)="goToPage($event)"
             (pageSizeChange)="onPageSizeChange($event)">
           </app-data-pagination>
@@ -229,29 +230,29 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     </app-page-container>
 
     <!-- Restore confirmation -->
-    <p-dialog header="Restore Database" [(visible)]="restoreDialogVisible" [modal]="true" [style]="{ width: '480px' }"
+    <p-dialog [header]="i18n.t('backups.restore.title')" [(visible)]="restoreDialogVisible" [modal]="true" [style]="{ width: '480px' }"
               [closable]="!restoring()">
       <div *ngIf="restoreTarget" class="flex flex-col gap-3">
         <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-          <p class="font-semibold m-0 mb-2"><i class="pi pi-exclamation-triangle mr-1"></i>This will replace ALL current data</p>
+          <p class="font-semibold m-0 mb-2"><i class="pi pi-exclamation-triangle mr-1"></i>{{ i18n.t('backups.restore.warningTitle') }}</p>
           <ul class="m-0 pl-4 list-disc">
-            <li>The database is rolled back to <strong>{{ (restoreTarget.startedAt + 'Z') | date:'medium' }}</strong> — everything entered after that is lost.</li>
-            <li>A safety backup of the current state is taken automatically first.</li>
-            <li>All users are briefly disconnected during the restore.</li>
-            <li>Backup history itself also reverts to that point (files remain on disk/Drive).</li>
+            <li>{{ i18n.t('backups.restore.item1Prefix') }} <strong>{{ (restoreTarget.startedAt + 'Z') | date:'medium' }}</strong> {{ i18n.t('backups.restore.item1Suffix') }}</li>
+            <li>{{ i18n.t('backups.restore.item2') }}</li>
+            <li>{{ i18n.t('backups.restore.item3') }}</li>
+            <li>{{ i18n.t('backups.restore.item4') }}</li>
           </ul>
         </div>
         <p class="text-sm text-gray-600 m-0">
-          Restoring <span class="font-mono">{{ restoreTarget.fileName }}</span>.
-          Type <strong>RESTORE</strong> to confirm:
+          {{ i18n.t('backups.restore.confirmPrefix') }} <span class="font-mono">{{ restoreTarget.fileName }}</span>.
+          {{ i18n.t('backups.restore.confirmSuffix') }}
         </p>
         <input pInputText [(ngModel)]="restoreConfirmation" [disabled]="restoring()"
-               placeholder="Type RESTORE" class="w-full" autocomplete="off" />
+               [placeholder]="i18n.t('backups.restore.inputPlaceholder')" class="w-full" autocomplete="off" />
       </div>
       <ng-template pTemplate="footer">
-        <button pButton type="button" label="Cancel" class="p-button-text" [disabled]="restoring()"
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" [disabled]="restoring()"
                 (click)="restoreDialogVisible = false"></button>
-        <button pButton type="button" label="Restore Database" icon="pi pi-replay" class="p-button-danger"
+        <button pButton type="button" [label]="i18n.t('backups.restore.confirmButton')" icon="pi pi-replay" class="p-button-danger"
                 [disabled]="restoreConfirmation !== 'RESTORE' || restoring()" [loading]="restoring()"
                 (click)="confirmRestore()"></button>
       </ng-template>
@@ -278,6 +279,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);
   private readonly statusDisplayService = inject(StatusDisplayService);
+  readonly i18n = inject(I18nService);
 
   settingsLoading = signal(true);
   settingsSaving = signal(false);
@@ -330,7 +332,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
         this.settingsLoading.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load backup settings' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('backups.messages.loadSettingsFailed') });
         this.settingsLoading.set(false);
       },
     });
@@ -358,7 +360,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
         next: () => {
           completed++;
           if (completed === updates.length && !failed) {
-            this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Backup settings updated — changes take effect within 5 minutes' });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('backups.messages.settingsSavedSummary'), detail: this.i18n.t('backups.messages.settingsSavedDetail') });
             this.settingsSaving.set(false);
             this.loadDriveStatus();
           }
@@ -366,7 +368,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
         error: () => {
           if (!failed) {
             failed = true;
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save one or more settings' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('backups.messages.saveSettingsFailed') });
             this.settingsSaving.set(false);
           }
         },
@@ -377,7 +379,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
   loadDriveStatus(): void {
     this.backupService.getDriveStatus().subscribe({
       next: status => this.driveStatus.set(status),
-      error: () => this.driveStatus.set({ configured: false, ok: false, serviceAccountEmail: null, error: 'Could not check Google Drive status' }),
+      error: () => this.driveStatus.set({ configured: false, ok: false, serviceAccountEmail: null, error: this.i18n.t('backups.messages.driveStatusCheckFailed') }),
     });
   }
 
@@ -398,7 +400,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.historyLoading.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load backup history' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('backups.messages.loadHistoryFailed') });
       },
     });
   }
@@ -420,14 +422,14 @@ export class BackupsComponent implements OnInit, OnDestroy {
     this.operationRunning.set(true);
     this.backupService.runBackup().subscribe({
       next: () => {
-        this.messageService.add({ severity: 'info', summary: 'Backup started', detail: 'The backup is running in the background' });
+        this.messageService.add({ severity: 'info', summary: this.i18n.t('backups.messages.backupStartedSummary'), detail: this.i18n.t('backups.messages.backupStartedDetail') });
         this.page = 1;
         this.loadHistory();
         this.startPolling();
       },
       error: err => {
         this.operationRunning.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message ?? 'Failed to start backup' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message ?? this.i18n.t('backups.messages.startBackupFailed') });
       },
     });
   }
@@ -446,7 +448,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.downloadingId.set(null);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to download backup file' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('backups.messages.downloadFailed') });
       },
     });
   }
@@ -467,13 +469,13 @@ export class BackupsComponent implements OnInit, OnDestroy {
         this.restoring.set(false);
         this.operationRunning.set(false);
         this.restoreDialogVisible = false;
-        this.messageService.add({ severity: 'success', summary: 'Restored', detail: result.message, life: 8000 });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('backups.messages.restoredSummary'), detail: result.message, life: 8000 });
         this.loadHistory();
       },
       error: err => {
         this.restoring.set(false);
         this.operationRunning.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Restore failed', detail: err?.error?.message ?? 'The restore failed — check server logs', life: 10000 });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('backups.messages.restoreFailedSummary'), detail: err?.error?.message ?? this.i18n.t('backups.messages.restoreFailedDetail'), life: 10000 });
       },
     });
   }
@@ -508,6 +510,26 @@ export class BackupsComponent implements OnInit, OnDestroy {
       case 'PreRestore': return 'warn';
       default: return 'secondary';
     }
+  }
+
+  statusLabel(status: BackupRecordStatus): string {
+    const map: Record<BackupRecordStatus, string> = {
+      Pending: 'backups.statuses.pending',
+      Running: 'backups.statuses.running',
+      Succeeded: 'backups.statuses.succeeded',
+      UploadFailed: 'backups.statuses.uploadFailed',
+      Failed: 'backups.statuses.failed',
+    };
+    return this.i18n.t(map[status] ?? status);
+  }
+
+  triggerLabel(trigger: 'Manual' | 'Scheduled' | 'PreRestore'): string {
+    const map: Record<string, string> = {
+      Manual: 'backups.triggers.manual',
+      Scheduled: 'backups.triggers.scheduled',
+      PreRestore: 'backups.triggers.preRestore',
+    };
+    return this.i18n.t(map[trigger] ?? trigger);
   }
 
   formatSize(bytes: number): string {
