@@ -110,7 +110,7 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
         `
             :host ::ng-deep .quick-customer-dialog {
                 .p-dialog-header {
-                    background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+                    background: var(--accent);
                     padding: 1.25rem 1.5rem;
                     border-radius: 12px 12px 0 0;
                 }
@@ -137,30 +137,30 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
             .header-icon {
                 width: 48px;
                 height: 48px;
-                background: rgba(255, 255, 255, 0.15);
+                background: color-mix(in srgb, var(--accent-fg) 15%, transparent);
                 border-radius: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                border: 1px solid color-mix(in srgb, var(--accent-fg) 20%, transparent);
             }
 
             .header-icon i {
                 font-size: 1.5rem;
-                color: #ffd700;
+                color: var(--accent-fg);
             }
 
             .header-text h3 {
                 margin: 0;
                 font-size: 1.25rem;
                 font-weight: 700;
-                color: #ffffff;
+                color: var(--accent-fg);
             }
 
             .header-text p {
                 margin: 0.25rem 0 0 0;
                 font-size: 0.85rem;
-                color: rgba(255, 255, 255, 0.7);
+                color: color-mix(in srgb, var(--accent-fg) 70%, transparent);
             }
 
             .customer-form {

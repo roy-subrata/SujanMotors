@@ -236,21 +236,21 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     /* Dialog Styling */
     :host ::ng-deep .invoice-preview-dialog {
       .p-dialog-header {
-        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
-        color: white;
+        background: var(--accent);
+        color: var(--accent-fg);
         padding: 1rem 1.5rem;
         border-radius: 8px 8px 0 0;
       }
 
       .p-dialog-content {
         padding: 0;
-        background: #f0f2f5;
+        background: var(--surface2);
       }
 
       .p-dialog-footer {
         padding: 1rem 1.5rem;
-        background: #f8f9fa;
-        border-top: 1px solid #e2e8f0;
+        background: var(--surface2);
+        border-top: 1px solid var(--border2);
       }
     }
 
@@ -286,19 +286,19 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
       max-height: 70vh;
       overflow-y: auto;
       padding: 1.5rem;
-      background: #f0f2f5;
+      background: var(--surface2);
     }
 
     .invoice-paper {
-      background: white;
+      background: var(--surface);
       max-width: 800px;
       margin: 0 auto;
       padding: 32px 30px 24px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
       border-radius: 4px;
-      border-top: 5px solid #1976d2;
+      border-top: 5px solid var(--accent);
       font-family: 'Segoe UI', Arial, sans-serif;
-      color: #333;
+      color: var(--text);
     }
 
     /* Payment status badge */
@@ -314,9 +314,9 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
       border: 1.5px solid;
     }
 
-    .status-badge.paid { color: #1b7f4b; border-color: #1b7f4b; background: #e9f8f0; }
-    .status-badge.partial { color: #b9770a; border-color: #b9770a; background: #fdf4e3; }
-    .status-badge.due { color: #c62828; border-color: #c62828; background: #fdecec; }
+    .status-badge.paid { color: var(--green); border-color: var(--green); background: var(--green-bg); }
+    .status-badge.partial { color: var(--amber); border-color: var(--amber); background: var(--amber-bg); }
+    .status-badge.due { color: var(--red); border-color: var(--red); background: var(--red-bg); }
 
     /* Header */
     .header {
@@ -344,21 +344,21 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     .company-name {
       font-size: 18px;
       font-weight: 700;
-      color: #1976d2;
+      color: var(--accent);
       line-height: 1.25;
       margin-bottom: 2px;
     }
 
     .company-detail {
       font-size: 11px;
-      color: #666;
+      color: var(--text2);
       line-height: 1.45;
     }
 
     .company-tax {
       margin-top: 3px;
       font-size: 11px;
-      color: #333;
+      color: var(--text);
       font-weight: 600;
     }
 
@@ -370,7 +370,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
     .title-section h1 {
       font-size: 26px;
-      color: #1976d2;
+      color: var(--accent);
       font-weight: 300;
       margin-bottom: 10px;
     }
@@ -388,14 +388,14 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     }
 
     .meta-table td:first-child {
-      color: #999;
+      color: var(--text3);
       text-align: left;
       white-space: nowrap;
       padding-right: 12px;
     }
 
     .meta-table td:last-child {
-      color: #333;
+      color: var(--text);
       font-weight: 500;
       text-align: right;
     }
@@ -406,7 +406,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
       justify-content: space-between;
       margin-bottom: 20px;
       padding-bottom: 15px;
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid var(--border2);
     }
 
     .address-block {
@@ -419,7 +419,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
     .address-label {
       font-size: 10px;
-      color: #999;
+      color: var(--text3);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
@@ -428,13 +428,13 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     .address-name {
       font-size: 14px;
       font-weight: 600;
-      color: #333;
+      color: var(--text);
       margin-bottom: 4px;
     }
 
     .address-detail {
       font-size: 11px;
-      color: #666;
+      color: var(--text2);
       line-height: 1.5;
     }
 
@@ -450,8 +450,8 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     }
 
     .items-table th {
-      background: #1976d2;
-      color: white;
+      background: var(--accent);
+      color: var(--accent-fg);
       padding: 10px 8px;
       font-size: 10px;
       text-transform: uppercase;
@@ -466,7 +466,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
     .items-table td {
       padding: 10px 8px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border2);
       vertical-align: top;
     }
 
@@ -485,18 +485,18 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
     .item-name {
       font-weight: 500;
-      color: #333;
+      color: var(--text);
     }
 
     .item-desc {
       font-size: 10px;
-      color: #999;
+      color: var(--text3);
       margin-top: 2px;
     }
 
     .empty-row td {
       height: 28px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border2);
     }
 
     /* Summary Section */
@@ -513,7 +513,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
     .payment-info h4 {
       font-size: 11px;
-      color: #999;
+      color: var(--text3);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 6px;
@@ -521,7 +521,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
     .payment-info p {
       font-size: 11px;
-      color: #666;
+      color: var(--text2);
       line-height: 1.6;
       margin-bottom: 10px;
     }
@@ -540,18 +540,18 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     .totals-row.total {
       margin-top: 10px;
       padding: 10px 12px;
-      background: #1976d2;
-      color: #fff;
+      background: var(--accent);
+      color: var(--accent-fg);
       border-radius: 4px;
       font-size: 15px;
       font-weight: 700;
     }
 
     .totals-row.total .totals-label,
-    .totals-row.total .totals-value { color: #fff; }
+    .totals-row.total .totals-value { color: var(--accent-fg); }
 
     .totals-label {
-      color: #666;
+      color: var(--text2);
     }
 
     .totals-value {
@@ -559,7 +559,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     }
 
     .totals-value.due {
-      color: #d32f2f;
+      color: var(--red);
       font-weight: 700;
     }
 
@@ -567,14 +567,14 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     .payment-details {
       margin-bottom: 15px;
       padding: 12px;
-      background: #f9f9f9;
-      border: 1px solid #e0e0e0;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
       border-radius: 4px;
     }
 
     .payment-details h4 {
       font-size: 11px;
-      color: #1976d2;
+      color: var(--accent);
       margin-bottom: 6px;
       display: flex;
       align-items: center;
@@ -589,9 +589,9 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
     .payment-item {
       font-size: 11px;
-      color: #666;
-      background: white;
-      border: 1px solid #eee;
+      color: var(--text2);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
       padding: 6px 8px;
       border-radius: 4px;
       display: flex;
@@ -601,21 +601,21 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
     .payment-amount {
       font-weight: 600;
-      color: #1976d2;
+      color: var(--accent);
     }
 
     .payment-ref {
-      color: #999;
+      color: var(--text3);
       font-size: 10px;
     }
 
     /* Footer */
     .footer {
       text-align: center;
-      color: #999;
+      color: var(--text3);
       font-size: 10px;
       padding-top: 10px;
-      border-top: 1px solid #eee;
+      border-top: 1px solid var(--border2);
     }
 
     .footer .generated-at {

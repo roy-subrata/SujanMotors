@@ -377,6 +377,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.restoreDraft();
     this.quickSaleService.getVATConfig().subscribe(cfg => {
       this.vatPercentage.set(cfg.percentage);
+      this.vatEnabled.set(cfg.enabled);
     });
   }
 
