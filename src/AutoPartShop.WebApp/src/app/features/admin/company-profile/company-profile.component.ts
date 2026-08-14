@@ -7,6 +7,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { CardModule } from 'primeng/card';
 import { DividerModule } from 'primeng/divider';
+import { CheckboxModule } from 'primeng/checkbox';
 import { MessageService } from 'primeng/api';
 import { AppSettingsService } from '../../../shared/services/app-settings.service';
 import { AppBrandingService } from '../../../shared/services/app-branding.service';
@@ -48,6 +49,7 @@ const FIELDS: FieldDef[] = [
     ToastModule,
     CardModule,
     DividerModule,
+    CheckboxModule,
     PageContainerComponent,
     PageHeaderComponent,
   ],
@@ -199,6 +201,59 @@ const FIELDS: FieldDef[] = [
           </div>
         </p-card>
 
+        <!-- Tax & VAT -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-percentage text-orange-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">Tax &amp; VAT</h2>
+            </div>
+          </ng-template>
+
+          <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-2">
+              <p-checkbox formControlName="vatEnabled" [binary]="true" inputId="vatEnabled"></p-checkbox>
+              <label for="vatEnabled" class="text-sm font-medium text-gray-600">Apply VAT on Quick Sale by default</label>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">VAT Rate (%)</label>
+              <input pInputText type="number" min="0" max="100" step="0.01"
+                formControlName="vatRate" placeholder="15" class="w-full" />
+              <small class="text-gray-400">Used as the default rate on Quick Sale and the VAT report.</small>
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Document Numbering -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-hashtag text-cyan-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">Document Numbering</h2>
+            </div>
+          </ng-template>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">Invoice Prefix</label>
+              <input pInputText formControlName="invoiceNumberPrefix" placeholder="INV" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">Sales Order Prefix</label>
+              <input pInputText formControlName="salesOrderNumberPrefix" placeholder="SO" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">Purchase Order Prefix</label>
+              <input pInputText formControlName="purchaseOrderNumberPrefix" placeholder="PO" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">Quotation Prefix</label>
+              <input pInputText formControlName="quotationNumberPrefix" placeholder="QT" class="w-full" />
+            </div>
+          </div>
+          <small class="text-gray-400 block mt-2">Applies to newly created documents only — existing document numbers are unaffected.</small>
+        </p-card>
+
         <!-- Live preview strip -->
         <div class="bg-white border border-gray-200 rounded-lg p-5 mb-6 shadow-sm">
           <p class="text-xs text-gray-400 uppercase font-semibold mb-3 tracking-wide">Document header preview</p>
@@ -276,11 +331,23 @@ export class CompanyProfileComponent implements OnInit {
     logoUrl:       [''],
     invoiceFooter: [''],
     challanFooter: [''],
+    vatEnabled:              [false],
+    vatRate:                 [15],
+    invoiceNumberPrefix:     ['INV'],
+    salesOrderNumberPrefix:  ['SO'],
+    purchaseOrderNumberPrefix: ['PO'],
+    quotationNumberPrefix:   ['QT'],
   });
 
   ngOnInit(): void {
-    this.settingsService.getShopProfile().subscribe({
-      next: p => {
+    forkJoin({
+      profile: this.settingsService.getShopProfile(),
+      tax: this.settingsService.getByCategory('TAX'),
+      numbering: this.settingsService.getByCategory('NUMBERING'),
+    }).subscribe({
+      next: ({ profile: p, tax, numbering }) => {
+        const taxMap = Object.fromEntries(tax.map(s => [s.key, s.value]));
+        const numberingMap = Object.fromEntries(numbering.map(s => [s.key, s.value]));
         this.form.patchValue({
           appName:       p.appName,
           appLogoUrl:    p.appLogoUrl,
@@ -293,6 +360,12 @@ export class CompanyProfileComponent implements OnInit {
           logoUrl:       p.logoUrl,
           invoiceFooter: p.invoiceFooterText,
           challanFooter: p.challanFooterText,
+          vatEnabled:              taxMap['VAT_ENABLED'] === 'true',
+          vatRate:                 taxMap['VAT_RATE'] ? Number(taxMap['VAT_RATE']) : 15,
+          invoiceNumberPrefix:     numberingMap['INVOICE_NUMBER_PREFIX'] || 'INV',
+          salesOrderNumberPrefix:  numberingMap['SALES_ORDER_NUMBER_PREFIX'] || 'SO',
+          purchaseOrderNumberPrefix: numberingMap['PURCHASE_ORDER_NUMBER_PREFIX'] || 'PO',
+          quotationNumberPrefix:   numberingMap['QUOTATION_NUMBER_PREFIX'] || 'QT',
         });
         this.loading.set(false);
       },
@@ -325,10 +398,21 @@ export class CompanyProfileComponent implements OnInit {
       logoUrl:       { key: 'SHOP_LOGO_URL',        category: 'BUSINESS' },
       invoiceFooter: { key: 'INVOICE_FOOTER_TEXT',  category: 'BUSINESS' },
       challanFooter: { key: 'CHALLAN_FOOTER_TEXT',  category: 'BUSINESS' },
+      vatEnabled:                { key: 'VAT_ENABLED',                category: 'TAX' },
+      vatRate:                   { key: 'VAT_RATE',                   category: 'TAX' },
+      invoiceNumberPrefix:       { key: 'INVOICE_NUMBER_PREFIX',       category: 'NUMBERING' },
+      salesOrderNumberPrefix:    { key: 'SALES_ORDER_NUMBER_PREFIX',   category: 'NUMBERING' },
+      purchaseOrderNumberPrefix: { key: 'PURCHASE_ORDER_NUMBER_PREFIX', category: 'NUMBERING' },
+      quotationNumberPrefix:     { key: 'QUOTATION_NUMBER_PREFIX',     category: 'NUMBERING' },
+    };
+
+    const dataTypeMap: Record<string, string> = {
+      vatEnabled: 'BOOL',
+      vatRate: 'DECIMAL',
     };
 
     const updates = Object.entries(keyMap).map(([ctrl, { key, category }]) =>
-      this.settingsService.update(key, { value: v[ctrl] ?? '', dataType: 'STRING', category, isSystemSetting: true })
+      this.settingsService.update(key, { value: String(v[ctrl] ?? ''), dataType: dataTypeMap[ctrl] ?? 'STRING', category, isSystemSetting: true })
     );
 
     forkJoin(updates).subscribe({

@@ -201,6 +201,7 @@ builder.Services.AddScoped<StockAdjustmentApplier>();
 builder.Services.AddScoped<IStockConsumptionService, StockConsumptionService>();
 builder.Services.AddScoped<SupplierPaymentSummaryService>();
 builder.Services.AddScoped<ISupplierLedgerService, SupplierLedgerService>();
+builder.Services.AddScoped<ICustomerLedgerService, CustomerLedgerService>();
 builder.Services.AddScoped<ICustomerAccountSummaryService, CustomerAccountSummaryService>();
 builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
 builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();

@@ -411,6 +411,96 @@ app-page-header {
   color: var(--color-text-secondary);
 }
 
+/* ===== ACCOUNT LEDGER ===== */
+.text-debit {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.text-credit {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.type-pill[data-type="invoice"] {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.type-pill[data-type="payment"] {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.type-pill[data-type="advance"] {
+  background: var(--color-info-light);
+  color: var(--color-info);
+}
+
+.type-pill[data-type="refund"] {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+/* ===== RECEIVABLES AGEING ===== */
+.aging-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+}
+
+.aging-bucket {
+  display: grid;
+  grid-template-columns: 90px 1fr 110px;
+  align-items: center;
+  gap: 12px;
+}
+
+.aging-bucket-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.aging-bar-track {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+
+.aging-bar {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--color-primary);
+}
+
+.aging-bar-overdue {
+  background: var(--color-danger);
+}
+
+.aging-bucket-overdue .aging-bucket-label {
+  color: var(--color-danger);
+}
+
+.aging-bucket-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
 /* Empty List */
 .as-list-empty {
   padding: 40px 16px;

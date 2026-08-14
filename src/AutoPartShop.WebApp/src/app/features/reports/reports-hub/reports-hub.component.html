@@ -7,6 +7,78 @@
   </app-page-header>
 
   <div class="reports-hub">
+
+    <!-- ══════════════════ KPI snapshot (this month) ══════════════════ -->
+    @if (!kpiLoading() && kpiSummary(); as s) {
+      <div class="kpi-strip">
+        <div class="kpi-card">
+          <span class="kpi-label">Gross Sales</span>
+          <span class="kpi-value">{{ formatCurrency(s.totalSales) }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Gross Margin</span>
+          <span class="kpi-value">{{ formatPercent(s.profitMargin) }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Purchases</span>
+          <span class="kpi-value">{{ formatCurrency(s.totalPurchases) }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Expenses</span>
+          <span class="kpi-value">{{ formatCurrency(s.totalExpenses) }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Net Position</span>
+          <span class="kpi-value" [class.kpi-value-danger]="s.netProfit < 0">{{ formatCurrency(s.netProfit) }}</span>
+        </div>
+      </div>
+    }
+
+    <!-- ══════════════════ Trend chart + Top movers ══════════════════ -->
+    <div class="snapshot-row">
+      <div class="snapshot-card chart-snapshot">
+        <div class="snapshot-header">
+          <span class="snapshot-title">Sales vs Purchases</span>
+          <span class="snapshot-sub">Last 14 days</span>
+        </div>
+        @if (!trendLoading() && hasTrendData()) {
+          <div class="snapshot-chart">
+            <p-chart type="bar" [data]="trendChartData" [options]="trendChartOptions" height="220px"></p-chart>
+          </div>
+        } @else if (!trendLoading()) {
+          <div class="snapshot-empty">
+            <i class="pi pi-chart-bar"></i>
+            <span>No trend data for the last 14 days</span>
+          </div>
+        }
+      </div>
+
+      <div class="snapshot-card movers-snapshot">
+        <div class="snapshot-header">
+          <span class="snapshot-title">Top Movers</span>
+          <span class="snapshot-sub">This month</span>
+        </div>
+        @if (!kpiLoading()) {
+          <div class="movers-list">
+            @for (product of topMovers(); track product.partId) {
+              <div class="mover-row">
+                <div class="mover-name">
+                  <span class="mover-title">{{ product.partName }}</span>
+                  <span class="mover-sub">{{ product.sku }}</span>
+                </div>
+                <span class="mover-value">{{ formatCurrency(product.totalRevenue) }}</span>
+              </div>
+            } @empty {
+              <div class="snapshot-empty">
+                <i class="pi pi-inbox"></i>
+                <span>No product sales this month</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
     @for (group of groups; track group.group) {
       <section class="report-group">
         <div class="group-heading">

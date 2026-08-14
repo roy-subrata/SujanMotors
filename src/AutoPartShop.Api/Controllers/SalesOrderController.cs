@@ -12,6 +12,7 @@ using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Enums;
+using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Middleware;
 using Microsoft.AspNetCore.Authorization;
@@ -50,6 +51,7 @@ public class SalesOrderController : ControllerBase
     private readonly IPermissionCheckService _permissionCheckService;
     private readonly IStockConsumptionService _stockConsumptionService;
     private readonly ICurrencyConversionService _currencyService;
+    private readonly IApplicationSettingsRepository _settingsRepository;
 
     public SalesOrderController(
         ISalesOrderRepository salesOrderRepository,
@@ -73,7 +75,8 @@ public class SalesOrderController : ControllerBase
         ITillSessionRepository tillSessionRepository,
         IPermissionCheckService permissionCheckService,
         IStockConsumptionService stockConsumptionService,
-        ICurrencyConversionService currencyService)
+        ICurrencyConversionService currencyService,
+        IApplicationSettingsRepository settingsRepository)
     {
         _salesOrderRepository = salesOrderRepository;
         _saleOrderReadRepository = saleOrderReadRepository;
@@ -97,6 +100,18 @@ public class SalesOrderController : ControllerBase
         _permissionCheckService = permissionCheckService;
         _stockConsumptionService = stockConsumptionService;
         _currencyService = currencyService;
+        _settingsRepository = settingsRepository;
+    }
+
+    /// <summary>
+    /// Configurable document-number prefixes (Company Profile &gt; Document Numbering) —
+    /// falls back to the historical hardcoded prefix if no setting has been configured yet,
+    /// so this is backward compatible with every shop that hasn't touched the new setting.
+    /// </summary>
+    private async Task<string> GetPrefixAsync(string settingKey, string fallback, CancellationToken cancellationToken)
+    {
+        var value = await _settingsRepository.GetValueAsync(settingKey, cancellationToken);
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
 
     private static bool IsWalkIn(Customer? customer) =>
@@ -318,7 +333,7 @@ public class SalesOrderController : ControllerBase
             var createStrategy = _dbContext.Database.CreateExecutionStrategy();
             await createStrategy.ExecuteAsync(async () =>
             {
-                var soNumber = await _codeGenerateService.GenerateAsync("SO", cancellationToken);
+                var soNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
@@ -798,7 +813,7 @@ public class SalesOrderController : ControllerBase
 
                     if (!existingInvoiceCheck)
                     {
-                        var invoiceNumber = await _codeGenerateService.GenerateAsync("INV", cancellationToken);
+                        var invoiceNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("INVOICE_NUMBER_PREFIX", "INV", cancellationToken), cancellationToken);
                         var invoice = Invoice.Create(
                             invoiceNumber, order.Id,
                             order.SubTotal, order.TaxAmount,
@@ -1162,7 +1177,7 @@ public class SalesOrderController : ControllerBase
                 return BadRequest(new { message = "Walk-in customers cannot be used for invoiced/credit orders. Use Quick Sale with full payment instead." });
 
             // Fix #3: use code service to guarantee unique invoice numbers
-            var invoiceNumber = await _codeGenerateService.GenerateAsync("INV", cancellationToken);
+            var invoiceNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("INVOICE_NUMBER_PREFIX", "INV", cancellationToken), cancellationToken);
 
             var invoice = Invoice.Create(
                 invoiceNumber,
@@ -2232,8 +2247,8 @@ public class SalesOrderController : ControllerBase
             var qsStrategy = _dbContext.Database.CreateExecutionStrategy();
             await qsStrategy.ExecuteAsync(async () =>
             {
-                soNumber = await _codeGenerateService.GenerateAsync("SO", cancellationToken);
-                invoiceNumber = await _codeGenerateService.GenerateAsync("INV", cancellationToken);
+                soNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
+                invoiceNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("INVOICE_NUMBER_PREFIX", "INV", cancellationToken), cancellationToken);
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {

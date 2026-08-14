@@ -244,6 +244,143 @@
                     (pageSizeChange)="onPageSizeChange($event)">
                 </app-data-pagination>
             </div>
+
+            <!-- Ageing (Receivables) -->
+            @if (agingRow(); as aging) {
+                <div class="as-table-section">
+                    <div class="table-header-row">
+                        <h3 class="table-title">Receivables Ageing</h3>
+                    </div>
+                    <div class="aging-panel">
+                        <div class="aging-bucket">
+                            <span class="aging-bucket-label">Current</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar" [style.width.%]="(aging.currentAmount / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.currentAmount) }}</span>
+                        </div>
+                        <div class="aging-bucket">
+                            <span class="aging-bucket-label">1-30 days</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar" [style.width.%]="(aging.days1To30 / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.days1To30) }}</span>
+                        </div>
+                        <div class="aging-bucket">
+                            <span class="aging-bucket-label">31-60 days</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar" [style.width.%]="(aging.days31To60 / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.days31To60) }}</span>
+                        </div>
+                        <div class="aging-bucket">
+                            <span class="aging-bucket-label">61-90 days</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar" [style.width.%]="(aging.days61To90 / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.days61To90) }}</span>
+                        </div>
+                        <div class="aging-bucket aging-bucket-overdue">
+                            <span class="aging-bucket-label">90+ days</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar aging-bar-overdue" [style.width.%]="(aging.days90Plus / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.days90Plus) }}</span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Account Ledger -->
+            @if (ledgerSummary(); as ledger) {
+                <div class="as-table-section">
+                    <div class="table-header-row">
+                        <h3 class="table-title">Account Ledger</h3>
+                        <span class="table-count">{{ ledgerTotalCount() }} entries</span>
+                    </div>
+
+                    <!-- Desktop Table -->
+                    <div class="desktop-view">
+                        <div class="as-list-header">
+                            <span class="col-date">Date</span>
+                            <span class="col-type">Type</span>
+                            <span class="col-ref">Reference #</span>
+                            <span class="col-desc">Description</span>
+                            <span class="col-debit">Debit</span>
+                            <span class="col-credit">Credit</span>
+                            <span class="col-balance">Balance</span>
+                        </div>
+                        <div class="as-list-body">
+                            <div class="as-list-item" *ngFor="let entry of ledgerEntries()">
+                                <div class="col-date">{{ formatDate(entry.transactionDate) }}</div>
+                                <div class="col-type">
+                                    <span class="type-pill" [attr.data-type]="getLedgerTransactionTypeStatus(entry.transactionType)">
+                                        {{ getLedgerTransactionTypeLabel(entry.transactionType) }}
+                                    </span>
+                                </div>
+                                <div class="col-ref mono">{{ entry.referenceNumber || '-' }}</div>
+                                <div class="col-desc">{{ entry.description || '-' }}</div>
+                                <div class="col-debit" [class.text-debit]="entry.debitAmount > 0">
+                                    {{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}
+                                </div>
+                                <div class="col-credit" [class.text-credit]="entry.creditAmount > 0">
+                                    {{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}
+                                </div>
+                                <div class="col-balance bold">{{ formatCurrency(entry.runningBalance) }}</div>
+                            </div>
+                            <div *ngIf="ledgerEntries().length === 0" class="as-list-empty">
+                                No ledger entries found for the selected criteria
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Cards -->
+                    <div class="mobile-view">
+                        <div class="as-mobile-card" *ngFor="let entry of ledgerEntries()">
+                            <div class="mobile-card-header">
+                                <div class="mobile-card-title">
+                                    <div class="item-name">{{ getLedgerTransactionTypeLabel(entry.transactionType) }}</div>
+                                    <div class="item-meta">{{ entry.referenceNumber || '-' }}</div>
+                                </div>
+                                <span class="type-pill" [attr.data-type]="getLedgerTransactionTypeStatus(entry.transactionType)">
+                                    {{ entry.debitAmount > 0 ? 'DR' : 'CR' }}
+                                </span>
+                            </div>
+                            <div class="mobile-card-body">
+                                <div class="mobile-field">
+                                    <label>Date</label>
+                                    <span>{{ formatDate(entry.transactionDate) }}</span>
+                                </div>
+                                <div class="mobile-field">
+                                    <label>Debit</label>
+                                    <span [class.text-debit]="entry.debitAmount > 0">{{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}</span>
+                                </div>
+                                <div class="mobile-field">
+                                    <label>Credit</label>
+                                    <span [class.text-credit]="entry.creditAmount > 0">{{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}</span>
+                                </div>
+                                <div class="mobile-field total">
+                                    <label>Balance</label>
+                                    <strong>{{ formatCurrency(entry.runningBalance) }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="ledgerEntries().length === 0" class="as-list-empty">
+                            No ledger entries found
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <app-data-pagination
+                        [first]="ledgerFirst"
+                        [pageSize]="ledgerPageSize"
+                        [totalRecords]="ledgerTotalCount()"
+                        itemLabel="entries"
+                        (pageChange)="goToLedgerPage($event)"
+                        (pageSizeChange)="onLedgerPageSizeChange($event)">
+                    </app-data-pagination>
+                </div>
+            }
         }
     </div>
 
