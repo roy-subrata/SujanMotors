@@ -12,6 +12,8 @@ import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-technician-form',
@@ -25,7 +27,8 @@ import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
     CardModule,
     ToastModule,
     TextareaModule,
-    TooltipModule
+    TooltipModule,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './technician-form.component.html',
@@ -38,6 +41,7 @@ export class TechnicianFormComponent implements OnInit {
   private readonly technicianService = inject(TechnicianService);
   private readonly messageService = inject(MessageService);
   private readonly codeGenerationService = inject(CodeGenerationService);
+  private readonly i18n = inject(I18nService);
 
   technicianForm!: FormGroup;
   loading = signal(false);
@@ -80,8 +84,8 @@ export class TechnicianFormComponent implements OnInit {
         console.error('Failed to generate technician code:', err);
         this.messageService.add({
           severity: 'warn',
-          summary: 'Warning',
-          detail: 'Could not auto-generate code. Please enter manually.'
+          summary: this.i18n.t('common.messages.warning'),
+          detail: this.i18n.t('technicians.form.messages.codeGenerateFailed')
         });
         this.generatingCode.set(false);
       }
@@ -128,8 +132,8 @@ export class TechnicianFormComponent implements OnInit {
         this.loading.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load technician'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('technicians.form.messages.loadFailed')
         });
         console.error('Error loading technician:', err);
       }
@@ -146,8 +150,8 @@ export class TechnicianFormComponent implements OnInit {
       });
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation',
-        detail: 'Please fill all required fields correctly'
+        summary: this.i18n.t('technicians.form.messages.validationTitle'),
+        detail: this.i18n.t('technicians.form.messages.fillRequired')
       });
       return;
     }
@@ -174,8 +178,8 @@ export class TechnicianFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Technician created successfully!'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('technicians.form.messages.createSuccess')
           });
           setTimeout(() => {
             this.router.navigate(['/sales/technicians']);
@@ -186,8 +190,8 @@ export class TechnicianFormComponent implements OnInit {
           this.saving.set(false);
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to create technician'
+            summary: this.i18n.t('common.messages.error'),
+            detail: this.i18n.t('technicians.form.messages.createFailed')
           });
           console.error('Error creating technician:', err);
         }
@@ -207,8 +211,8 @@ export class TechnicianFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Technician updated successfully!'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('technicians.form.messages.updateSuccess')
           });
           setTimeout(() => {
             this.router.navigate(['/sales/technicians']);
@@ -219,8 +223,8 @@ export class TechnicianFormComponent implements OnInit {
           this.saving.set(false);
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to update technician'
+            summary: this.i18n.t('common.messages.error'),
+            detail: this.i18n.t('technicians.form.messages.updateFailed')
           });
           console.error('Error updating technician:', err);
         }
@@ -235,24 +239,24 @@ export class TechnicianFormComponent implements OnInit {
   getPageTitle(): string {
     switch (this.mode()) {
       case 'create':
-        return 'Add New Technician';
+        return this.i18n.t('technicians.form.pageTitleCreate');
       case 'edit':
-        return 'Edit Technician';
+        return this.i18n.t('technicians.form.pageTitleEdit');
       case 'view':
-        return 'Technician Details';
+        return this.i18n.t('technicians.form.pageTitleView');
       default:
-        return 'Technician';
+        return this.i18n.t('technicians.form.pageTitleDefault');
     }
   }
 
   getPageSubtitle(): string {
     switch (this.mode()) {
       case 'create':
-        return 'Fill in the details to register a new technician';
+        return this.i18n.t('technicians.form.pageSubtitleCreate');
       case 'edit':
-        return 'Update technician information';
+        return this.i18n.t('technicians.form.pageSubtitleEdit');
       case 'view':
-        return 'View technician details and information';
+        return this.i18n.t('technicians.form.pageSubtitleView');
       default:
         return '';
     }
