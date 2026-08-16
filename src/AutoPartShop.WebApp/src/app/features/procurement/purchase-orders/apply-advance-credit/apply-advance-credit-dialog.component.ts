@@ -9,11 +9,13 @@ import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApplyAdvanceCreditRequest, ApplyAdvanceCreditResponse, AvailableAdvancePayment, SupplierPaymentService } from '../../services/supplier-payment.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-apply-advance-credit-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputNumberModule, TableModule, TagModule],
+    imports: [CommonModule, FormsModule, ButtonModule, InputNumberModule, TableModule, TagModule, TranslatePipe],
     templateUrl: './apply-advance-credit-dialog.component.html',
     styleUrls: ['./apply-advance-credit-dialog.component.scss']
 })
@@ -23,6 +25,7 @@ export class ApplyAdvanceCreditDialogComponent implements OnInit {
     private readonly config: DynamicDialogConfig = inject(DynamicDialogConfig);
     private readonly messageService: MessageService = inject(MessageService);
     private readonly currencyService: CurrencyService = inject(CurrencyService);
+    private readonly i18n: I18nService = inject(I18nService);
 
     availableAdvances: AvailableAdvancePayment[] = [];
     selectedAdvance: AvailableAdvancePayment | null = null;
@@ -56,8 +59,8 @@ export class ApplyAdvanceCreditDialogComponent implements OnInit {
                 console.error('Error loading available advances:', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load available advance payments'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('applyAdvanceCredit.messages.loadFailed')
                 });
                 this.isLoading = false;
             }
@@ -89,7 +92,7 @@ export class ApplyAdvanceCreditDialogComponent implements OnInit {
             next: (response: ApplyAdvanceCreditResponse) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
+                    summary: this.i18n.t('common.messages.success'),
                     detail: response.message
                 });
                 this.dialogRef.close(response);
@@ -98,8 +101,8 @@ export class ApplyAdvanceCreditDialogComponent implements OnInit {
                 console.error('Error applying advance credit:', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error.error?.message || 'Failed to apply advance credit'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error.error?.message || this.i18n.t('applyAdvanceCredit.messages.applyFailed')
                 });
                 this.isApplying = false;
             }

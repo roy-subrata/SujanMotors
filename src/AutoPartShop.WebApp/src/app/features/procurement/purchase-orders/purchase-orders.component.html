@@ -9,19 +9,19 @@
 <app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Purchase Orders"
-    subtitle="Manage and track your purchase orders"
-    [count]="totalRecords" countLabel="orders">
+    [title]="'purchaseOrders.listTitle' | translate"
+    [subtitle]="'purchaseOrders.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'purchaseOrders.countLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
-      <button class="btn-icon" pTooltip="More options" tooltipPosition="bottom" (click)="menu.toggle($event)">
+      <button class="btn-icon" [pTooltip]="'purchaseOrders.moreOptions' | translate" tooltipPosition="bottom" (click)="menu.toggle($event)">
         <i class="pi pi-ellipsis-v"></i>
       </button>
       <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
         <i class="pi pi-plus"></i>
-        <span>New Order</span>
+        <span>{{ 'purchaseOrders.newOrder' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -34,7 +34,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by PO number, supplier..."
+          [placeholder]="'purchaseOrders.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
@@ -55,7 +55,7 @@
       <p-datepicker
         [(ngModel)]="dateRange"
         selectionMode="range"
-        placeholder="Select date range"
+        [placeholder]="'purchaseOrders.dateRangePlaceholder' | translate"
         dateFormat="dd M yy"
         [showIcon]="true"
         [showButtonBar]="true"
@@ -80,7 +80,7 @@
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
         Search: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="clearSearch()"></i>

@@ -846,6 +846,47 @@
       "cancelSuccess": "ক্রয় অর্ডার #{{number}} সফলভাবে বাতিল হয়েছে",
       "cancelFailed": "ক্রয় অর্ডার বাতিল করতে ব্যর্থ হয়েছে",
       "advanceCreditSuccess": "অগ্রিম ক্রেডিট সফলভাবে প্রয়োগ হয়েছে। ক্রয় অর্ডার আপডেট হয়েছে।"
+    },
+    "listTitle": "ক্রয় অর্ডার",
+    "subtitle": "আপনার ক্রয় অর্ডার পরিচালনা ও ট্র্যাক করুন",
+    "countLabel": "অর্ডার",
+    "itemLabel": "অর্ডার",
+    "moreOptions": "আরও অপশন",
+    "newOrder": "নতুন অর্ডার",
+    "searchPlaceholder": "পিও নম্বর বা সরবরাহকারী দিয়ে খুঁজুন...",
+    "dateRangePlaceholder": "তারিখের পরিসীমা নির্বাচন করুন",
+    "exportCSV": "CSV এক্সপোর্ট",
+    "exportJSON": "JSON এক্সপোর্ট",
+    "columns": {
+      "poNumber": "পিও নম্বর",
+      "supplier": "সরবরাহকারী",
+      "orderDate": "অর্ডারের তারিখ",
+      "deliveryDate": "ডেলিভারির তারিখ",
+      "status": "অবস্থা",
+      "outstanding": "বকেয়া",
+      "actions": "কার্যক্রম"
+    },
+    "loading": "ক্রয় অর্ডার লোড হচ্ছে...",
+    "emptyTitle": "কোনো ক্রয় অর্ডার পাওয়া যায়নি",
+    "emptyTitleMobile": "কোনো ক্রয় অর্ডার নেই",
+    "emptyHintCreate": "একটি নতুন ক্রয় অর্ডার তৈরি করে শুরু করুন",
+    "overdue": "মেয়াদোত্তীর্ণ",
+    "downloadPdf": "PDF ডাউনলোড",
+    "statusOptions": {
+      "all": "সব",
+      "draft": "খসড়া",
+      "submitted": "জমা দেওয়া",
+      "confirmed": "নিশ্চিত",
+      "cancelled": "বাতিল",
+      "completed": "সম্পন্ন"
+    },
+    "listMessages": {
+      "loadFailed": "ক্রয় অর্ডার লোড করা যায়নি",
+      "noData": "কোনো তথ্য নেই",
+      "noDataExport": "এক্সপোর্ট করার মতো কোনো ক্রয় অর্ডার নেই",
+      "exportCSVSuccess": "ক্রয় অর্ডার CSV-তে এক্সপোর্ট হয়েছে",
+      "exportJSONSuccess": "ক্রয় অর্ডার JSON-এ এক্সপোর্ট হয়েছে",
+      "pdfFailed": "ক্রয় অর্ডারের PDF ডাউনলোড করা যায়নি"
     }
   },
   "goodsReceipts": {
@@ -4631,7 +4672,9 @@
     "messages": {
       "loadFailed": "উপলব্ধ অগ্রিম পেমেন্ট লোড করতে ব্যর্থ",
       "applyFailed": "অগ্রিম ক্রেডিট প্রয়োগ করতে ব্যর্থ"
-    }
+    },
+    "emptySupplier": "এই সরবরাহকারীর জন্য কোনো অগ্রিম পেমেন্ট নেই",
+    "poAmount": "ক্রয় অর্ডারের পরিমাণ:"
   },
   "challanPrint": {
     "docTitle": "ডেলিভারি চালান",

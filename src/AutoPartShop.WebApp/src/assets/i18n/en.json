@@ -846,6 +846,47 @@
       "cancelSuccess": "Purchase Order #{{number}} cancelled successfully",
       "cancelFailed": "Failed to cancel purchase order",
       "advanceCreditSuccess": "Advance credit applied successfully. Purchase order updated."
+    },
+    "listTitle": "Purchase Orders",
+    "subtitle": "Manage and track your purchase orders",
+    "countLabel": "orders",
+    "itemLabel": "orders",
+    "moreOptions": "More options",
+    "newOrder": "New Order",
+    "searchPlaceholder": "Search by PO number, supplier...",
+    "dateRangePlaceholder": "Select date range",
+    "exportCSV": "Export CSV",
+    "exportJSON": "Export JSON",
+    "columns": {
+      "poNumber": "PO Number",
+      "supplier": "Supplier",
+      "orderDate": "Order Date",
+      "deliveryDate": "Delivery Date",
+      "status": "Status",
+      "outstanding": "Outstanding",
+      "actions": "Actions"
+    },
+    "loading": "Loading purchase orders...",
+    "emptyTitle": "No Purchase Orders Found",
+    "emptyTitleMobile": "No Purchase Orders",
+    "emptyHintCreate": "Start by creating a new purchase order",
+    "overdue": "Overdue",
+    "downloadPdf": "Download PDF",
+    "statusOptions": {
+      "all": "All",
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
+    "listMessages": {
+      "loadFailed": "Failed to load purchase orders",
+      "noData": "No Data",
+      "noDataExport": "No purchase orders to export",
+      "exportCSVSuccess": "Purchase orders exported to CSV",
+      "exportJSONSuccess": "Purchase orders exported to JSON",
+      "pdfFailed": "Failed to download the purchase order PDF"
     }
   },
   "goodsReceipts": {
@@ -4631,7 +4672,9 @@
     "messages": {
       "loadFailed": "Failed to load available advance payments",
       "applyFailed": "Failed to apply advance credit"
-    }
+    },
+    "emptySupplier": "No advance payments available for this supplier",
+    "poAmount": "Purchase Order Amount:"
   },
   "challanPrint": {
     "docTitle": "Delivery Challan",

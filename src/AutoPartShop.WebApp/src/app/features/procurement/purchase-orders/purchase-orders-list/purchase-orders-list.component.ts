@@ -11,6 +11,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { ApplyAdvanceCreditDialogComponent } from '../apply-advance-credit/apply-advance-credit-dialog.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
@@ -24,7 +25,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     ConfirmDialogModule,
     TooltipModule,
     RouterModule,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [ConfirmationService, MessageService, DialogService],
   templateUrl: './purchase-orders-list.component.html',
@@ -98,7 +100,7 @@ export class PurchaseOrdersListComponent implements OnInit {
         visible: po ? po.status === 'DRAFT' && this.canManage : false
       },
       {
-        label: 'Download PDF',
+        label: this.i18n.t('purchaseOrders.downloadPdf'),
         icon: 'pi pi-file-pdf',
         command: () => {
           if (po) this.downloadPdf(po);
@@ -169,6 +171,11 @@ export class PurchaseOrdersListComponent implements OnInit {
     return this.statusDisplay.getSeverity(status, 'purchase-order');
   }
 
+  /** Localized status label; falls back to a humanized form when untranslated. */
+  statusLabel(status: string): string {
+    return this.statusDisplay.getLabel(status, 'purchaseOrders.statusOptions');
+  }
+
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.pageChange.emit({ page, rows: this.rows });
@@ -217,7 +224,7 @@ export class PurchaseOrdersListComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: this.i18n.t('common.messages.error'),
-          detail: 'Failed to download the purchase order PDF'
+          detail: this.i18n.t('purchaseOrders.listMessages.pdfFailed')
         });
       }
     });
