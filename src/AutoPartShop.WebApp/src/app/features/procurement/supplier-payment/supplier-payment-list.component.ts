@@ -9,7 +9,6 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TagModule } from 'primeng/tag';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
-import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
@@ -24,14 +23,16 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 
 @Component({
     selector: 'app-supplier-payment-list',
     standalone: true,
     imports: [CommonModule, FormsModule, RouterModule, ButtonModule, TableModule, InputTextModule,
-              ToastModule, ConfirmDialogModule, TagModule, ContextMenuModule, Select, DatePicker,
+              ToastModule, ConfirmDialogModule, TagModule, ContextMenuModule, DatePicker,
               TooltipModule, StatusBadgeComponent, PageContainerComponent, PageHeaderComponent,
-              FilterBarComponent, DataPaginationComponent],
+              FilterBarComponent, DataPaginationComponent, StatusPillFilterComponent, MoreFiltersDialogComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './supplier-payment-list.component.html',
     styleUrls: ['./supplier-payment-list.component.css']
@@ -58,7 +59,7 @@ export class SupplierPaymentListComponent implements OnInit {
     loading: boolean = false;
     contextMenuItems: MenuItem[] = [];
     selectedPayment: SupplierPaymentResponse | null = null;
-    filterStatus: SupplierPaymentStatus | null = null;
+    filterStatus: SupplierPaymentStatus | '' = '';
     dateRange: Date[] = [];
     sortField: string | null = null;
     sortOrder: number | null = null;
@@ -66,8 +67,9 @@ export class SupplierPaymentListComponent implements OnInit {
     pageSizeSelectOptions = this.pageSizeOptions.map((size) => ({ label: size.toString(), value: size }));
     supplierFilter: string | null = null;
     supplierFilterName: string = '';
+    moreFiltersVisible = false;
 
-    statusOptions: { label: string; value: string | null }[] = [];
+    statusOptions: { label: string; value: string }[] = [];
 
     ngOnInit(): void {
         this.buildStatusOptions();
@@ -88,7 +90,7 @@ export class SupplierPaymentListComponent implements OnInit {
 
     private buildStatusOptions(): void {
         this.statusOptions = [
-            { label: this.i18n.t('supplierPayments.statusOptions.all'),        value: null },
+            { label: this.i18n.t('supplierPayments.statusOptions.all'),        value: '' },
             { label: this.i18n.t('supplierPayments.statusOptions.pending'),     value: 'PENDING' },
             { label: this.i18n.t('supplierPayments.statusOptions.completed'),   value: 'COMPLETED' },
             { label: this.i18n.t('supplierPayments.statusOptions.processing'),  value: 'PROCESSING' },
@@ -419,6 +421,11 @@ export class SupplierPaymentListComponent implements OnInit {
         this.loadSupplierPayments();
     }
 
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value as SupplierPaymentStatus | '';
+        this.onFilterChange();
+    }
+
     onDateRangeSelect(): void {
         if (this.dateRange?.length === 2 && this.dateRange[0] && this.dateRange[1]) {
             this.resetPagination();
@@ -434,7 +441,7 @@ export class SupplierPaymentListComponent implements OnInit {
 
     clearFilters(): void {
         this.searchTerm = '';
-        this.filterStatus = null;
+        this.filterStatus = '';
         this.dateRange = [];
         this.supplierFilter = null;
         this.supplierFilterName = '';

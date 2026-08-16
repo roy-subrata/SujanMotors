@@ -8,19 +8,22 @@
 <app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Discounts"
-    subtitle="Manage discount rules and promotions"
+    [title]="'discounts.title' | translate"
+    [subtitle]="'discounts.subtitle' | translate"
     [count]="totalRecords" countLabel="discounts">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createDiscount()">
         <i class="pi pi-plus"></i>
-        <span>New Discount</span>
+        <span>{{ 'discounts.addDiscount' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
+
+  <!-- ==================== STATS ==================== -->
+  <app-stat-strip [stats]="stats"></app-stat-strip>
 
   <!-- ==================== FILTER SECTION ==================== -->
   <app-filter-bar>
@@ -31,7 +34,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search discounts..."
+          [placeholder]="'discounts.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
@@ -45,7 +48,7 @@
       <p-select
         [options]="scopeOptions"
         [(ngModel)]="filterScope"
-        placeholder="All Scopes"
+        [placeholder]="'discounts.scopeFilterAll' | translate"
         [showClear]="true"
         appendTo="body"
         (onChange)="onFilterChange()"
@@ -55,46 +58,51 @@
 
     <!-- Status Filter -->
     <div filters class="filter-group">
-      <p-select
-        [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        appendTo="body"
-        (onChange)="onFilterChange()"
-        styleClass="filter-dropdown">
-      </p-select>
+      <app-status-pill-filter
+        [options]="statusPillOptions"
+        [value]="filterStatus === null ? '' : (filterStatus ? 'true' : 'false')"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <!-- Filter Actions -->
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Apply
+        {{ 'common.actions.apply' | translate }}
       </button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <!-- Active Filters Display -->
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="clearSearchInput(); onSearch()"></i>
       </span>
       <span *ngIf="filterScope !== null" class="filter-chip">
-        Scope: {{ getScopeLabel(filterScope) }}
+        {{ 'discounts.scope' | translate }}: {{ getScopeLabel(filterScope) }}
         <i class="pi pi-times" (click)="filterScope = null; onFilterChange()"></i>
       </span>
       <span *ngIf="filterStatus !== null" class="filter-chip">
-        Status: {{ getStatusLabel(filterStatus) }}
-        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+        {{ 'common.labels.status' | translate }}: {{ getStatusLabel(filterStatus) }}
+        <i class="pi pi-times" (click)="onStatusFilterChange('')"></i>
       </span>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusPillOptions"
+    [selected]="filterStatus === null ? '' : (filterStatus ? 'true' : 'false')"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== LIST SECTION ==================== -->
   <app-discounts-list

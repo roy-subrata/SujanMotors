@@ -28,7 +28,10 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-invoices-list',
@@ -50,7 +53,10 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './invoices-list.component.html',
@@ -86,6 +92,7 @@ export class InvoicesListComponent implements OnInit {
     filterStatus = '';
     dateRange: Date[] = [];
     customerIdFilter: string | null = null;
+    moreFiltersVisible = false;
 
     showPaymentDialog = false;
     selectedInvoice: InvoiceResponse | null = null;
@@ -130,6 +137,17 @@ export class InvoicesListComponent implements OnInit {
         this.loadInvoices();
     }
 
+
+    /** Invoice status is a server enum rendered directly in the table; map it to its
+     *  translated label, falling back to the raw value for any unmapped member. */
+    formatStatus(status: string): string {
+        if (!status) return '';
+        const key = 'invoices.statusOptions.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        return label === key ? status : label;
+    }
+
     private buildStatusOptions(): void {
         this.statusOptions = [
             { label: this.i18n.t('invoices.statusOptions.allStatuses'), value: '' },
@@ -153,11 +171,11 @@ export class InvoicesListComponent implements OnInit {
                 this.paymentMethods = this.paymentProviders.map(p => ({ label: p.label, value: p.value }));
                 const hasCash = this.paymentMethods.some((m) => m.value === 'CASH');
                 if (!hasCash) {
-                    this.paymentMethods.unshift({ label: 'Cash', value: 'CASH' });
+                    this.paymentMethods.unshift({ label: this.i18n.t('invoices.cashLabel'), value: 'CASH' });
                 }
             },
             error: () => {
-                this.paymentMethods = [{ label: 'Cash', value: 'CASH' }];
+                this.paymentMethods = [{ label: this.i18n.t('invoices.cashLabel'), value: 'CASH' }];
                 this.paymentProviders = [];
             }
         });
@@ -203,6 +221,11 @@ export class InvoicesListComponent implements OnInit {
     onFilterChange(): void {
         this.pageNumber = 1;
         this.loadInvoices();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value;
+        this.onFilterChange();
     }
 
     clearSearch(): void {

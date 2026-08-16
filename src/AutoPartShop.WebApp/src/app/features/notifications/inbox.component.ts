@@ -79,7 +79,7 @@ import {
 export class InboxComponent implements OnInit {
   private readonly service = inject(InboxNotificationService);
   private readonly messageService = inject(MessageService);
-  private readonly i18n = inject(I18nService);
+  readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -91,10 +91,10 @@ export class InboxComponent implements OnInit {
   first = 0;
   unreadOnly = signal(false);
   unreadFilter: 'ALL' | 'UNREAD' = 'ALL';
-  filterOptions = [
-    { label: 'All', value: 'ALL' },
-    { label: 'Unread', value: 'UNREAD' }
-  ];
+  filterOptions = computed(() => [
+    { label: this.i18n.t('notifications.filterAll'), value: 'ALL' },
+    { label: this.i18n.t('notifications.filterUnread'), value: 'UNREAD' }
+  ]);
 
   unreadCount = signal(0);
 
@@ -103,6 +103,7 @@ export class InboxComponent implements OnInit {
   selectedPayload: InboxNotificationPayload | null = null;
 
   pageTitle = computed(() => this.i18n.t('notifications.title'));
+  unreadCountLabel = computed(() => this.i18n.t('notifications.unreadCount', { count: String(this.unreadCount()) }));
 
   ngOnInit(): void {
     this.load();
@@ -222,11 +223,11 @@ export class InboxComponent implements OnInit {
   timeAgo(value: string | Date): string {
     const date = typeof value === 'string' ? new Date(value) : value;
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (seconds < 60) return 'just now';
+    if (seconds < 60) return this.i18n.t('common.time.justNow');
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return this.i18n.t('common.time.minutesAgo', { count: String(minutes) });
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+    if (hours < 24) return this.i18n.t('common.time.hoursAgo', { count: String(hours) });
+    return this.i18n.t('common.time.daysAgo', { count: String(Math.floor(hours / 24)) });
   }
 }

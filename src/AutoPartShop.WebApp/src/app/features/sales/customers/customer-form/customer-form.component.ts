@@ -19,10 +19,13 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
 import { ItemResponse, CountryService, CustomerTypeService } from '@/shared/services/CountryService';
 import { tap } from 'rxjs';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 @Component({
     selector: 'app-customer-form',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, DatePickerModule, CardModule, ToastModule, TextareaModule, TooltipModule, DialogModule, ConfirmDialogModule],
+    imports: [CommonModule, ReactiveFormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, DatePickerModule, CardModule, ToastModule, TextareaModule, TooltipModule, DialogModule, ConfirmDialogModule,
+        TranslatePipe],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customer-form.component.html',
     styleUrls: ['./customer-form.component.css']
@@ -38,6 +41,7 @@ export class CustomerFormComponent implements OnInit {
     private readonly codeGenerationService = inject(CodeGenerationService);
     private readonly countryService = inject(CountryService);
     private readonly customerTypeService = inject(CustomerTypeService);
+    private readonly i18n = inject(I18nService);
 
     customerForm!: FormGroup;
     loading = signal(false);
@@ -105,7 +109,7 @@ export class CustomerFormComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Failed to call country list:', error);
-                        this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Could not load country.' });
+                        this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('customers.form.messages.countryLoadFailed') });
                     }
                 })
             )
@@ -122,7 +126,7 @@ export class CustomerFormComponent implements OnInit {
                     },
                     error: (error) => {
                         console.error('Failed to call customer types list:', error);
-                        this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Could not load customer types.' });
+                        this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('customers.form.messages.typesLoadFailed') });
                     }
                 })
             )
@@ -138,7 +142,7 @@ export class CustomerFormComponent implements OnInit {
             },
             error: (err) => {
                 console.error('Failed to generate customer code:', err);
-                this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Could not auto-generate code. Please enter manually.' });
+                this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('customers.form.messages.codeGenerateFailed') });
                 this.generatingCode.set(false);
             }
         });
@@ -197,7 +201,7 @@ export class CustomerFormComponent implements OnInit {
             error: (err: any) => {
                 this.error.set('Failed to load customer');
                 this.loading.set(false);
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load customer' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('customers.form.messages.loadFailed') });
                 console.error('Error loading customer:', err);
             }
         });
@@ -211,7 +215,7 @@ export class CustomerFormComponent implements OnInit {
                     control.markAsTouched();
                 }
             });
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please fill all required fields correctly' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('customers.form.messages.validationTitle'), detail: this.i18n.t('customers.form.messages.fillRequired') });
             return;
         }
 
@@ -246,20 +250,23 @@ export class CustomerFormComponent implements OnInit {
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Customer ${this.mode() === 'edit' ? 'updated' : 'created'} successfully!`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t(this.mode() === 'edit' ? 'customers.form.messages.updateSuccess' : 'customers.form.messages.createSuccess')
                 });
                 setTimeout(() => {
                     this.router.navigate(['/sales/customers']);
                 }, 1000);
             },
             error: (err: any) => {
-                this.error.set(`Failed to ${this.mode() === 'edit' ? 'update' : 'create'} customer`);
+                const failedMessage = this.i18n.t(
+                    this.mode() === 'edit' ? 'customers.form.messages.updateFailed' : 'customers.form.messages.createFailed'
+                );
+                this.error.set(failedMessage);
                 this.saving.set(false);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: `Failed to ${this.mode() === 'edit' ? 'update' : 'create'} customer`
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: failedMessage
                 });
                 console.error(`Error ${this.mode() === 'edit' ? 'updating' : 'creating'} customer:`, err);
             }
@@ -333,13 +340,13 @@ export class CustomerFormComponent implements OnInit {
 
         op$.subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Saved', detail: editingId ? 'Vehicle updated' : 'Vehicle added' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('customers.form.messages.savedTitle'), detail: this.i18n.t(editingId ? 'customers.form.messages.vehicleUpdated' : 'customers.form.messages.vehicleAdded') });
                 this.savingVehicle.set(false);
                 this.vehicleDialogVisible.set(false);
                 this.loadVehicles(customerId);
             },
             error: (error) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to save vehicle' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: error?.error?.message || this.i18n.t('customers.form.messages.vehicleSaveFailed') });
                 this.savingVehicle.set(false);
             }
         });
@@ -349,18 +356,18 @@ export class CustomerFormComponent implements OnInit {
         const customerId = this.customerId();
         if (!customerId) return;
         this.confirmationService.confirm({
-            message: `Delete vehicle "${vehicle.label}"?`,
-            header: 'Confirm Delete',
+            message: this.i18n.t('customers.form.messages.vehicleDeleteConfirm', { label: vehicle.label }),
+            header: this.i18n.t('customers.form.messages.vehicleDeleteHeader'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
                 this.vehicleService.delete(customerId, vehicle.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Vehicle removed' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('customers.form.messages.deletedTitle'), detail: this.i18n.t('customers.form.messages.vehicleRemoved') });
                         this.loadVehicles(customerId);
                     },
                     error: (error) => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to delete vehicle' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: error?.error?.message || this.i18n.t('customers.form.messages.vehicleDeleteFailed') });
                     }
                 });
             }
@@ -374,24 +381,24 @@ export class CustomerFormComponent implements OnInit {
     getPageTitle(): string {
         switch (this.mode()) {
             case 'create':
-                return 'Add New Customer';
+                return this.i18n.t('customers.form.pageTitleCreate');
             case 'edit':
-                return 'Edit Customer';
+                return this.i18n.t('customers.form.pageTitleEdit');
             case 'view':
-                return 'Customer Details';
+                return this.i18n.t('customers.form.pageTitleView');
             default:
-                return 'Customer';
+                return this.i18n.t('customers.form.pageTitleDefault');
         }
     }
 
     getPageSubtitle(): string {
         switch (this.mode()) {
             case 'create':
-                return 'Fill in the details to register a new customer';
+                return this.i18n.t('customers.form.pageSubtitleCreate');
             case 'edit':
-                return 'Update customer information';
+                return this.i18n.t('customers.form.pageSubtitleEdit');
             case 'view':
-                return 'View customer details and account information';
+                return this.i18n.t('customers.form.pageSubtitleView');
             default:
                 return '';
         }

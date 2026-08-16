@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -24,6 +24,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-audit-logs',
@@ -55,6 +57,8 @@ export class AuditLogsComponent implements OnInit {
   private readonly auditService = inject(AuditTrailService);
   private readonly messageService = inject(MessageService);
   private readonly dialogService = inject(DialogService);
+  readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   logs: AuditLogResponse[] = [];
   loading = false;
@@ -75,38 +79,60 @@ export class AuditLogsComponent implements OnInit {
   // Filter options
   entities: { label: string; value: string }[] = [];
   users: { label: string; value: string }[] = [];
-  actions = [
-    { label: 'All Actions', value: '' },
-    { label: 'Insert', value: 'INSERT' },
-    { label: 'Update', value: 'UPDATE' },
-    { label: 'Delete', value: 'DELETE' }
-  ];
+  actions: { label: string; value: string }[] = [];
+  private rawEntities: string[] = [];
+  private rawUsers: string[] = [];
 
   // Sort
   sortField = 'performedAt';
   sortOrder = -1;
 
   ngOnInit(): void {
+    this.buildActionOptions();
     this.loadFilterOptions();
     this.loadLogs();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildActionOptions();
+      this.buildEntityOptions();
+      this.buildUserOptions();
+    });
+  }
+
+  private buildActionOptions(): void {
+    this.actions = [
+      { label: this.i18n.t('audit.logs.actions.all'), value: '' },
+      { label: this.i18n.t('audit.logs.actions.insert'), value: 'INSERT' },
+      { label: this.i18n.t('audit.logs.actions.update'), value: 'UPDATE' },
+      { label: this.i18n.t('audit.logs.actions.delete'), value: 'DELETE' }
+    ];
+  }
+
+  private buildEntityOptions(): void {
+    this.entities = [
+      { label: this.i18n.t('audit.logs.allEntities'), value: '' },
+      ...this.rawEntities.map(e => ({ label: e, value: e }))
+    ];
+  }
+
+  private buildUserOptions(): void {
+    this.users = [
+      { label: this.i18n.t('audit.logs.allUsers'), value: '' },
+      ...this.rawUsers.map(u => ({ label: u, value: u }))
+    ];
   }
 
   loadFilterOptions(): void {
     this.auditService.getAuditedEntities().subscribe({
       next: (entities) => {
-        this.entities = [
-          { label: 'All Entities', value: '' },
-          ...entities.map(e => ({ label: e, value: e }))
-        ];
+        this.rawEntities = entities;
+        this.buildEntityOptions();
       }
     });
 
     this.auditService.getAuditUsers().subscribe({
       next: (users) => {
-        this.users = [
-          { label: 'All Users', value: '' },
-          ...users.map(u => ({ label: u, value: u }))
-        ];
+        this.rawUsers = users;
+        this.buildUserOptions();
       }
     });
   }
@@ -138,8 +164,8 @@ export class AuditLogsComponent implements OnInit {
         console.error('Error loading audit logs:', err);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load audit logs'
+          summary: this.i18n.t('audit.logs.messages.errorSummary'),
+          detail: this.i18n.t('audit.logs.messages.loadFailed')
         });
         this.loading = false;
       }
@@ -203,7 +229,7 @@ export class AuditLogsComponent implements OnInit {
 
   viewTimeline(log: AuditLogResponse): void {
     this.dialogService.open(EntityTimelineDialogComponent, {
-      header: `Timeline: ${log.entityName} #${log.entityId.substring(0, 8)}...`,
+      header: `${this.i18n.t('audit.dashboard.timelinePrefix')} ${log.entityName} #${log.entityId.substring(0, 8)}...`,
       width: '70vw',
       modal: true,
       data: {
@@ -231,15 +257,15 @@ export class AuditLogsComponent implements OnInit {
         window.URL.revokeObjectURL(url);
         this.messageService.add({
           severity: 'success',
-          summary: 'Export Complete',
-          detail: `Audit logs exported as ${format.toUpperCase()}`
+          summary: this.i18n.t('audit.logs.messages.exportCompleteSummary'),
+          detail: this.i18n.t('audit.logs.messages.exportSuccessFormat', { format: format.toUpperCase() })
         });
       },
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to export audit logs'
+          summary: this.i18n.t('audit.logs.messages.errorSummary'),
+          detail: this.i18n.t('audit.logs.messages.exportFailed')
         });
       }
     });

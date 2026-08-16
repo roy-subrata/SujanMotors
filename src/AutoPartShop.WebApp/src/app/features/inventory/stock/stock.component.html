@@ -4,43 +4,46 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Stock Management"
-    subtitle="Monitor inventory levels and manage stock across warehouses"
-    [count]="allTotalRecords" countLabel="items">
+    [title]="'stock.title' | translate"
+    [subtitle]="'stock.subtitle' | translate"
+    [count]="allTotalRecords" [countLabel]="'stock.itemLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="onRefresh()">
+      <button class="btn-icon" pTooltip="{{ 'common.actions.refresh' | translate }}" tooltipPosition="bottom" (click)="onRefresh()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="onNewStockEntry()">
         <i class="pi pi-plus"></i>
-        <span>New Stock Entry</span>
+        <span>{{ 'stock.newStockEntry' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
+
+  <!-- ==================== STATS ==================== -->
+  <app-stat-strip [stats]="stats"></app-stat-strip>
 
   <!-- ==================== TAB NAVIGATION ==================== -->
   <div class="tab-navigation">
     <button class="tab-button" [class.active]="activeTab === 0" (click)="setActiveTab(0)">
       <i class="pi pi-box"></i>
-      <span>All Stock</span>
+      <span>{{ 'stock.tabs.allStock' | translate }}</span>
       <span class="tab-badge">{{ allTotalRecords }}</span>
     </button>
     <button class="tab-button" [class.active]="activeTab === 1" (click)="setActiveTab(1)">
       <i class="pi pi-exclamation-triangle"></i>
-      <span>Low Stock</span>
+      <span>{{ 'stock.lowStock' | translate }}</span>
       <span class="tab-badge" [class.tab-badge-danger]="lowTotalRecords > 0">{{ lowTotalRecords }}</span>
     </button>
     <button class="tab-button" [class.active]="activeTab === 2" (click)="setActiveTab(2)">
       <i class="pi pi-history"></i>
-      <span>Movement History</span>
+      <span>{{ 'stock.tabs.movementHistory' | translate }}</span>
     </button>
     <button class="tab-button" [class.active]="activeTab === 3" (click)="setActiveTab(3)">
       <i class="pi pi-building"></i>
-      <span>By Warehouse</span>
+      <span>{{ 'stock.tabs.byWarehouse' | translate }}</span>
     </button>
     <button class="tab-button" [class.active]="activeTab === 4" (click)="setActiveTab(4)">
       <i class="pi pi-dollar"></i>
-      <span>Price History</span>
+      <span>{{ 'stock.tabs.priceHistory' | translate }}</span>
     </button>
   </div>
 
@@ -53,7 +56,7 @@
           <div search class="filter-group search-group">
             <div class="search-input-wrapper">
               <i class="pi pi-search"></i>
-              <input type="text" class="search-input" placeholder="Search parts, SKU..." [(ngModel)]="allStockFilters.search"
+              <input type="text" class="search-input" placeholder="{{ 'stock.searchPlaceholder' | translate }}" [(ngModel)]="allStockFilters.search"
                 (keyup.enter)="onAllStockSearch()"
                 (input)="onAllStockSearchInput()" />
               <button *ngIf="allStockFilters.search" class="search-clear" (click)="onAllStockSearchClear()">
@@ -63,15 +66,28 @@
           </div>
           <div filters class="filter-group">
             <p-select [options]="warehouseOptions" [(ngModel)]="allStockFilters.warehouseId"
-              placeholder="Warehouse" [showClear]="true"
+              placeholder="{{ 'stock.warehouse' | translate }}" [showClear]="true"
               (onChange)="onAllStockFilterChange()" styleClass="filter-dropdown"></p-select>
           </div>
           <div filters class="filter-group">
-            <p-select [options]="stockStatusOptions" [(ngModel)]="allStockFilters.status"
-              placeholder="Status" [showClear]="true"
-              (onChange)="onAllStockFilterChange()" styleClass="filter-dropdown"></p-select>
+            <app-status-pill-filter
+              [options]="stockStatusPillOptions"
+              [value]="allStockFilters.status ?? ''"
+              (valueChange)="onAllStockStatusFilterChange($event)">
+            </app-status-pill-filter>
+          </div>
+          <div filterActions class="filter-group filter-actions">
+            <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
           </div>
         </app-filter-bar>
+
+        <app-more-filters-dialog
+          [options]="stockStatusPillOptions"
+          [selected]="allStockFilters.status ?? ''"
+          [previewCount]="allTotalRecords"
+          [(visible)]="moreFiltersVisible"
+          (apply)="onAllStockStatusFilterChange($event)">
+        </app-more-filters-dialog>
 
         <!-- All Stock Table -->
         <section class="table-section desktop-only">
@@ -85,19 +101,19 @@
           <ng-template pTemplate="header">
             <tr>
               <th>
-                <span class="th-content">Part</span>
+                <span class="th-content">{{ 'stock.columns.part' | translate }}</span>
               </th>
-              <th>Warehouse</th>
+              <th>{{ 'stock.warehouse' | translate }}</th>
               <th class="text-right">
-                <span class="th-content th-right">On Hand</span>
+                <span class="th-content th-right">{{ 'stock.columns.onHand' | translate }}</span>
               </th>
-              <th class="text-right">Reserved</th>
+              <th class="text-right">{{ 'stock.columns.reserved' | translate }}</th>
               <th class="text-right">
-                <span class="th-content th-right">Available</span>
+                <span class="th-content th-right">{{ 'stock.columns.available' | translate }}</span>
               </th>
-              <th class="text-center">Issues</th>
-              <th>Status</th>
-              <th class="text-center">Actions</th>
+              <th class="text-center">{{ 'stock.columns.issues' | translate }}</th>
+              <th>{{ 'common.labels.status' | translate }}</th>
+              <th class="text-center">{{ 'common.labels.actions' | translate }}</th>
             </tr>
           </ng-template>
 
@@ -152,11 +168,11 @@
               <td class="text-center">
                 <div class="issues-cell" *ngIf="stock.damagedQuantity > 0 || stock.quarantineQuantity > 0; else noIssues">
                   <span *ngIf="stock.damagedQuantity > 0" class="issue-badge issue-danger"
-                    pTooltip="{{ stock.damagedQuantity | number }} damaged" tooltipPosition="top">
+                    pTooltip="{{ stock.damagedQuantity | number }} {{ 'stock.damagedLabel' | translate }}" tooltipPosition="top">
                     <i class="pi pi-exclamation-circle"></i>{{ stock.damagedQuantity | number }}
                   </span>
                   <span *ngIf="stock.quarantineQuantity > 0" class="issue-badge issue-warning"
-                    pTooltip="{{ stock.quarantineQuantity | number }} in quarantine" tooltipPosition="top">
+                    pTooltip="{{ stock.quarantineQuantity | number }} {{ 'stock.quarantineLabel' | translate }}" tooltipPosition="top">
                     <i class="pi pi-ban"></i>{{ stock.quarantineQuantity | number }}
                   </span>
                 </div>
@@ -173,10 +189,10 @@
               <td>
                 <div class="actions-cell">
                   <button pButton type="button" icon="pi pi-sliders-h"
-                    class="p-button-text p-button-rounded p-button-sm" pTooltip="Adjust Stock"
+                    class="p-button-text p-button-rounded p-button-sm" pTooltip="{{ 'stock.adjustStock' | translate }}"
                     (click)="onAdjustStock(stock)"></button>
                   <button pButton type="button" icon="pi pi-history" class="p-button-text p-button-rounded p-button-sm"
-                    pTooltip="View History" (click)="viewStockHistory(stock)"></button>
+                    pTooltip="{{ 'stock.columns.viewHistory' | translate }}" (click)="viewStockHistory(stock)"></button>
                 </div>
               </td>
             </tr>
@@ -187,8 +203,8 @@
               <td colspan="8">
                 <div class="empty-state">
                   <i class="pi pi-inbox"></i>
-                  <h3>No stock items found</h3>
-                  <p>Try adjusting your search or filter criteria</p>
+                  <h3>{{ 'stock.emptyTitle' | translate }}</h3>
+                  <p>{{ 'stock.emptyHint' | translate }}</p>
                 </div>
               </td>
             </tr>
@@ -202,7 +218,7 @@
           [pageSize]="allPageSize"
           [pageSizeOptions]="pageSizeOptions"
           [totalRecords]="allTotalRecords"
-          itemLabel="items"
+          [itemLabel]="'stock.itemLabel' | translate"
           (pageChange)="goToAllPage($event)"
           (pageSizeChange)="onAllPageSizeChange($event)">
         </app-data-pagination>
@@ -213,8 +229,8 @@
             <div class="empty-icon">
               <i class="pi pi-inbox"></i>
             </div>
-            <h3>No Stock Items</h3>
-            <p>Try adjusting your filters or search</p>
+            <h3>{{ 'stock.emptyTitleMobile' | translate }}</h3>
+            <p>{{ 'stock.emptyHintMobile' | translate }}</p>
           </div>
 
           <div *ngIf="!loading && allStockLevels.length > 0" class="cards-grid">
@@ -236,27 +252,27 @@
 
               <div class="card-body">
                 <div class="card-row">
-                  <span class="label">Warehouse</span>
+                  <span class="label">{{ 'stock.warehouse' | translate }}</span>
                   <span class="value">{{ stock.warehouseName || getWarehouseName(stock.warehouseId) }}</span>
                 </div>
                 <div class="card-row">
-                  <span class="label">On Hand</span>
+                  <span class="label">{{ 'stock.columns.onHand' | translate }}</span>
                   <span class="value">{{ stock.quantity | number }}</span>
                 </div>
                 <div class="card-row">
-                  <span class="label">Reserved</span>
+                  <span class="label">{{ 'stock.columns.reserved' | translate }}</span>
                   <span class="value">{{ stock.reservedQuantity | number }}</span>
                 </div>
                 <div class="card-row">
-                  <span class="label">Available</span>
+                  <span class="label">{{ 'stock.columns.available' | translate }}</span>
                   <span class="value">{{ stock.availableQuantity | number }}</span>
                 </div>
                 <div class="card-row" *ngIf="stock.damagedQuantity > 0">
-                  <span class="label">Damaged</span>
+                  <span class="label">{{ 'stock.columns.damaged' | translate }}</span>
                   <span class="value text-red-600">{{ stock.damagedQuantity | number }}</span>
                 </div>
                 <div class="card-row" *ngIf="stock.quarantineQuantity > 0">
-                  <span class="label">Wrong / Quarantine</span>
+                  <span class="label">{{ 'stock.columns.quarantine' | translate }}</span>
                   <span class="value text-orange-600">{{ stock.quarantineQuantity | number }}</span>
                 </div>
               </div>
@@ -264,11 +280,11 @@
               <div class="card-footer">
                 <button class="btn-card-action" (click)="onAdjustStock(stock)">
                   <i class="pi pi-sliders-h"></i>
-                  Adjust
+                  {{ 'stock.adjustShort' | translate }}
                 </button>
                 <button class="btn-card-action" (click)="viewStockHistory(stock)">
                   <i class="pi pi-history"></i>
-                  History
+                  {{ 'stock.historyShort' | translate }}
                 </button>
               </div>
             </div>
@@ -282,10 +298,10 @@
         <div class="alert-banner" *ngIf="lowTotalRecords > 0">
           <i class="pi pi-exclamation-triangle"></i>
           <div class="alert-content">
-            <strong>{{ lowTotalRecords }} items require attention</strong>
-            <span>These items are below their reorder levels and may need replenishment</span>
+            <strong>{{ 'stock.itemsRequireAttentionCount' | translate: { count: lowTotalRecords + '' } }}</strong>
+            <span>{{ 'stock.itemsRequireAttentionHint' | translate }}</span>
           </div>
-          <button pButton type="button" label="Create Purchase Order" icon="pi pi-shopping-cart"
+          <button pButton type="button" label="{{ 'stock.createPurchaseOrder' | translate }}" icon="pi pi-shopping-cart"
             class="p-button-warning p-button-sm"></button>
         </div>
 
@@ -294,7 +310,7 @@
           <div search class="filter-group search-group">
             <div class="search-input-wrapper">
               <i class="pi pi-search"></i>
-              <input type="text" class="search-input" placeholder="Search parts, SKU..." [(ngModel)]="lowStockFilters.search"
+              <input type="text" class="search-input" placeholder="{{ 'stock.searchPlaceholder' | translate }}" [(ngModel)]="lowStockFilters.search"
                 (keyup.enter)="onLowStockSearch()"
                 (input)="onLowStockSearchInput()" />
               <button *ngIf="lowStockFilters.search" class="search-clear" (click)="onLowStockSearchClear()">
@@ -304,7 +320,7 @@
           </div>
           <div filters class="filter-group">
             <p-select [options]="warehouseOptions" [(ngModel)]="lowStockFilters.warehouseId"
-              placeholder="Warehouse" [showClear]="true"
+              placeholder="{{ 'stock.warehouse' | translate }}" [showClear]="true"
               (onChange)="onLowStockFilterChange()" styleClass="filter-dropdown"></p-select>
           </div>
         </app-filter-bar>
@@ -319,13 +335,13 @@
 
           <ng-template pTemplate="header">
             <tr>
-              <th>Part</th>
-              <th>Warehouse</th>
-              <th class="text-right">Available</th>
-              <th class="text-right">Reorder Level</th>
-              <th class="text-right">Shortage</th>
-              <th>Urgency</th>
-              <th class="text-center">Actions</th>
+              <th>{{ 'stock.columns.part' | translate }}</th>
+              <th>{{ 'stock.warehouse' | translate }}</th>
+              <th class="text-right">{{ 'stock.columns.available' | translate }}</th>
+              <th class="text-right">{{ 'stock.columns.reorderLevel' | translate }}</th>
+              <th class="text-right">{{ 'stock.columns.shortage' | translate }}</th>
+              <th>{{ 'stock.columns.urgency' | translate }}</th>
+              <th class="text-center">{{ 'common.labels.actions' | translate }}</th>
             </tr>
           </ng-template>
 
@@ -369,10 +385,10 @@
               <td>
                 <div class="actions-cell">
                   <button pButton type="button" icon="pi pi-sliders-h"
-                    class="p-button-text p-button-rounded p-button-sm" pTooltip="Adjust Stock"
+                    class="p-button-text p-button-rounded p-button-sm" pTooltip="{{ 'stock.adjustStock' | translate }}"
                     (click)="onAdjustStock(stock)"></button>
                   <button pButton type="button" icon="pi pi-shopping-cart"
-                    class="p-button-text p-button-rounded p-button-sm" pTooltip="Create PO"
+                    class="p-button-text p-button-rounded p-button-sm" pTooltip="{{ 'stock.createPoShort' | translate }}"
                     (click)="createReorder(stock)"></button>
                 </div>
               </td>
@@ -384,8 +400,8 @@
               <td colspan="7">
                 <div class="empty-state success-state">
                   <i class="pi pi-check-circle"></i>
-                  <h3>All stock levels are healthy</h3>
-                  <p>No items are currently below their reorder levels</p>
+                  <h3>{{ 'stock.allHealthyTitle' | translate }}</h3>
+                  <p>{{ 'stock.allHealthyHint' | translate }}</p>
                 </div>
               </td>
             </tr>
@@ -399,7 +415,7 @@
           [pageSize]="lowPageSize"
           [pageSizeOptions]="pageSizeOptions"
           [totalRecords]="lowTotalRecords"
-          itemLabel="items"
+          [itemLabel]="'stock.itemLabel' | translate"
           (pageChange)="goToLowPage($event)"
           (pageSizeChange)="onLowPageSizeChange($event)">
         </app-data-pagination>
@@ -410,8 +426,8 @@
             <div class="empty-icon">
               <i class="pi pi-check-circle"></i>
             </div>
-            <h3>All Stock Healthy</h3>
-            <p>No items are currently below their reorder levels</p>
+            <h3>{{ 'stock.allHealthyTitleMobile' | translate }}</h3>
+            <p>{{ 'stock.allHealthyHint' | translate }}</p>
           </div>
 
           <div *ngIf="!loading && lowStockLevels.length > 0" class="cards-grid">
@@ -433,19 +449,19 @@
 
               <div class="card-body">
                 <div class="card-row">
-                  <span class="label">Warehouse</span>
+                  <span class="label">{{ 'stock.warehouse' | translate }}</span>
                   <span class="value">{{ stock.warehouseName || getWarehouseName(stock.warehouseId) }}</span>
                 </div>
                 <div class="card-row">
-                  <span class="label">Available</span>
+                  <span class="label">{{ 'stock.columns.available' | translate }}</span>
                   <span class="value text-danger">{{ stock.availableQuantity | number }}</span>
                 </div>
                 <div class="card-row">
-                  <span class="label">Reorder Level</span>
+                  <span class="label">{{ 'stock.columns.reorderLevel' | translate }}</span>
                   <span class="value">{{ stock.reorderLevel | number }}</span>
                 </div>
                 <div class="card-row">
-                  <span class="label">Shortage</span>
+                  <span class="label">{{ 'stock.columns.shortage' | translate }}</span>
                   <span class="value text-danger">-{{ getShortage(stock) | number }}</span>
                 </div>
               </div>
@@ -453,11 +469,11 @@
               <div class="card-footer">
                 <button class="btn-card-action" (click)="onAdjustStock(stock)">
                   <i class="pi pi-sliders-h"></i>
-                  Adjust
+                  {{ 'stock.adjustShort' | translate }}
                 </button>
                 <button class="btn-card-action" (click)="createReorder(stock)">
                   <i class="pi pi-shopping-cart"></i>
-                  Create PO
+                  {{ 'stock.createPoShort' | translate }}
                 </button>
               </div>
             </div>

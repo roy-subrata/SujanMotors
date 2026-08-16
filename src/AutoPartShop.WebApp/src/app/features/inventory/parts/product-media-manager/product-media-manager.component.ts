@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, Input, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -13,11 +13,14 @@ import { MessageService } from 'primeng/api';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ProductMedia, ProductMediaService } from '../../services/product-media.service';
 import { FileUploadService, UPLOAD_LIMITS, resolveFileUrl } from '../../../../shared/services/file-upload.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-product-media-manager',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, DialogModule, InputTextModule, TextareaModule, TagModule, ToastModule, TooltipModule, SelectModule],
+    imports: [CommonModule, FormsModule, ButtonModule, DialogModule, InputTextModule, TextareaModule, TagModule, ToastModule, TooltipModule, SelectModule, TranslatePipe],
     providers: [MessageService],
     templateUrl: './product-media-manager.component.html',
     styleUrls: ['./product-media-manager.component.css']
@@ -29,6 +32,8 @@ export class ProductMediaManagerComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly mediaService = inject(ProductMediaService);
     private readonly fileUploadService = inject(FileUploadService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     media: ProductMedia[] = [];
     loading = false;
@@ -46,13 +51,26 @@ export class ProductMediaManagerComponent implements OnInit {
     selectedFile: File | null = null;
     selectedFilePreview: string | null = null; // object URL for local image preview
 
-    readonly typeOptions = [
-        { label: 'Image', value: 'image' },
-        { label: 'Video (URL or YouTube)', value: 'video' }
-    ];
+    typeOptions: { label: string; value: string }[] = [];
+
+    private buildTypeOptions(): void {
+        this.typeOptions = [
+            { label: this.i18n.t('parts.mediaManager.imageType'), value: 'image' },
+            { label: this.i18n.t('parts.mediaManager.videoType'), value: 'video' }
+        ];
+    }
 
     ngOnInit(): void {
+        this.buildTypeOptions();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildTypeOptions();
+        });
         this.load();
+    }
+
+    /** Button label for the file picker — recomputed on every render so it tracks language + selection. */
+    get chooseFileButtonLabel(): string {
+        return this.selectedFile ? this.selectedFile.name : `${this.i18n.t('parts.mediaManager.chooseLabel')} ${this.formType}…`;
     }
 
     private load(): void {
@@ -65,7 +83,7 @@ export class ProductMediaManagerComponent implements OnInit {
             },
             error: (err) => {
                 this.loading = false;
-                this.toastError(err, 'Failed to load media');
+                this.toastError(err, this.i18n.t('parts.mediaManager.messages.loadFailed'));
             }
         });
     }
@@ -108,7 +126,7 @@ export class ProductMediaManagerComponent implements OnInit {
 
         const limit = this.formType === 'video' ? UPLOAD_LIMITS.video : UPLOAD_LIMITS.image;
         if (file.size > limit.maxBytes) {
-            this.formError = `File exceeds the ${limit.label} limit for ${this.formType}s.`;
+            this.formError = this.i18n.t('parts.mediaManager.fileSizeExceeds', { limit: limit.label, type: this.formType });
             return;
         }
 
@@ -144,7 +162,7 @@ export class ProductMediaManagerComponent implements OnInit {
 
         if (this.formSource === 'upload') {
             if (!this.selectedFile) {
-                this.formError = 'Choose a file to upload';
+                this.formError = this.i18n.t('parts.mediaManager.chooseFileRequired');
                 return;
             }
             this.saving = true;
@@ -153,13 +171,13 @@ export class ProductMediaManagerComponent implements OnInit {
                 next: (stored) => this.addMediaRow(stored.url, stored.fileName),
                 error: (err) => {
                     this.saving = false;
-                    this.toastError(err, 'Upload failed');
+                    this.toastError(err, this.i18n.t('parts.mediaManager.messages.uploadFailed'));
                 }
             });
         } else {
             this.formUrl = this.formUrl.trim();
             if (!this.formUrl) {
-                this.formError = 'URL is required';
+                this.formError = this.i18n.t('parts.mediaManager.urlRequired');
                 return;
             }
             this.saving = true;
@@ -180,11 +198,11 @@ export class ProductMediaManagerComponent implements OnInit {
                     this.saving = false;
                     this.load();
                     this.closeDialog();
-                    this.messageService.add({ severity: 'success', summary: 'Added', detail: 'Media item added' });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.mediaManager.messages.addedSummary'), detail: this.i18n.t('parts.mediaManager.messages.addedDetail') });
                 },
                 error: (err) => {
                     this.saving = false;
-                    this.toastError(err, 'Failed to add media');
+                    this.toastError(err, this.i18n.t('parts.mediaManager.messages.addFailed'));
                 }
             });
     }
@@ -192,7 +210,7 @@ export class ProductMediaManagerComponent implements OnInit {
     private saveEdit(): void {
         this.formUrl = this.formUrl.trim();
         if (!this.formUrl) {
-            this.formError = 'URL is required';
+            this.formError = this.i18n.t('parts.mediaManager.urlRequired');
             return;
         }
         const item = this.editingItem!;
@@ -211,11 +229,11 @@ export class ProductMediaManagerComponent implements OnInit {
                     this.saving = false;
                     this.load();
                     this.closeDialog();
-                    this.messageService.add({ severity: 'success', summary: 'Updated', detail: 'Media item updated' });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.mediaManager.messages.updatedSummary'), detail: this.i18n.t('parts.mediaManager.messages.updatedDetail') });
                 },
                 error: (err) => {
                     this.saving = false;
-                    this.toastError(err, 'Failed to update media');
+                    this.toastError(err, this.i18n.t('parts.mediaManager.messages.updateFailed'));
                 }
             });
     }
@@ -226,9 +244,13 @@ export class ProductMediaManagerComponent implements OnInit {
         this.mediaService.setPrimary(this.partId, item.id).subscribe({
             next: () => {
                 this.media = this.media.map((m) => ({ ...m, isPrimary: m.id === item.id }));
-                this.messageService.add({ severity: 'success', summary: 'Primary set', detail: `"${this.labelFor(item)}" is now the primary image` });
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.i18n.t('parts.mediaManager.messages.primarySetSummary'),
+                    detail: this.i18n.t('parts.mediaManager.messages.primarySetDetail', { name: this.labelFor(item) })
+                });
             },
-            error: (err) => this.toastError(err, 'Failed to set primary')
+            error: (err) => this.toastError(err, this.i18n.t('parts.mediaManager.messages.primarySetFailed'))
         });
     }
 
@@ -236,9 +258,9 @@ export class ProductMediaManagerComponent implements OnInit {
         this.mediaService.delete(this.partId, item.id).subscribe({
             next: () => {
                 this.load();
-                this.messageService.add({ severity: 'info', summary: 'Removed', detail: 'Media item removed' });
+                this.messageService.add({ severity: 'info', summary: this.i18n.t('parts.mediaManager.messages.removedSummary'), detail: this.i18n.t('parts.mediaManager.messages.removedDetail') });
             },
-            error: (err) => this.toastError(err, 'Failed to remove media')
+            error: (err) => this.toastError(err, this.i18n.t('parts.mediaManager.messages.removeFailed'))
         });
     }
 
@@ -266,7 +288,7 @@ export class ProductMediaManagerComponent implements OnInit {
                 next: (items) => (this.media = items),
                 error: (err) => {
                     this.media = previous; // roll back on failure
-                    this.toastError(err, 'Failed to reorder media');
+                    this.toastError(err, this.i18n.t('parts.mediaManager.messages.reorderFailed'));
                 }
             });
     }
@@ -299,13 +321,13 @@ export class ProductMediaManagerComponent implements OnInit {
     }
 
     get dialogHeader(): string {
-        return this.editingItem ? 'Edit Media Item' : 'Add Media';
+        return this.editingItem ? this.i18n.t('parts.mediaManager.dialogEditHeader') : this.i18n.t('parts.mediaManager.dialogAddHeader');
     }
 
     private toastError(err: any, fallback: string): void {
         this.messageService.add({
             severity: 'error',
-            summary: 'Error',
+            summary: this.i18n.t('common.messages.error'),
             detail: err?.error?.message || fallback
         });
     }

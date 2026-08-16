@@ -1,10 +1,9 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ButtonModule } from 'primeng/button';
-import { Select } from 'primeng/select';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { BrandResponse, BrandService } from '../services/brand.service';
 import { BrandsListComponent } from './brands-list/brands-list.component';
@@ -12,8 +11,13 @@ import { BrandsFormDialogComponent } from './brands-form-dialog/brands-form-dial
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { TooltipModule } from 'primeng/tooltip';
 import { tap } from 'rxjs';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-brands',
@@ -24,13 +28,15 @@ import { tap } from 'rxjs';
     ToastModule,
     ConfirmDialogModule,
     ButtonModule,
-    Select,
     TooltipModule,
     BrandsListComponent,
     BrandsFormDialogComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    FilterBarComponent
+    FilterBarComponent,
+    StatusPillFilterComponent,
+    MoreFiltersDialogComponent,
+    TranslatePipe
   ],
   providers: [BrandService, MessageService, ConfirmationService],
   templateUrl: './brands.component.html',
@@ -40,6 +46,8 @@ export class BrandsComponent implements OnInit {
   private readonly brandService = inject(BrandService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // Data
   brands: BrandResponse[] = [];
@@ -60,14 +68,33 @@ export class BrandsComponent implements OnInit {
   searchTerm = '';
   filterStatus: boolean | null = null;
   filterCountry = '';
+  moreFiltersVisible = false;
 
-  statusOptions = [
-    { label: 'All',      value: null  },
-    { label: 'Active',   value: true  },
-    { label: 'Inactive', value: false }
-  ];
+  /** String-keyed for <app-status-pill-filter>/<app-more-filters-dialog>; mapped to/from the boolean|null filterStatus. */
+  statusOptions: { label: string; value: string }[] = [];
+
+  get filterStatusValue(): string {
+    return this.filterStatus === true ? 'true' : this.filterStatus === false ? 'false' : '';
+  }
+
+  onStatusFilterChange(value: string): void {
+    this.filterStatus = value === 'true' ? true : value === 'false' ? false : null;
+    this.onFilterChange();
+  }
+
+  private buildStatusOptions(): void {
+    this.statusOptions = [
+      { label: this.i18n.t('common.status.all'),      value: '' },
+      { label: this.i18n.t('common.status.active'),   value: 'true' },
+      { label: this.i18n.t('common.status.inactive'), value: 'false' }
+    ];
+  }
 
   ngOnInit(): void {
+    this.buildStatusOptions();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildStatusOptions();
+    });
     this.loadBrands();
   }
 
@@ -91,7 +118,7 @@ export class BrandsComponent implements OnInit {
         this.loading      = false;
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load brands' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('brands.messages.loadFailed') });
         this.loading = false;
       }
     });
@@ -131,9 +158,9 @@ export class BrandsComponent implements OnInit {
 
   /** Label for status filter chip. */
   getStatusLabel(isActive: boolean | null): string {
-    if (isActive === true)  return 'Active';
-    if (isActive === false) return 'Inactive';
-    return 'All';
+    if (isActive === true)  return this.i18n.t('common.status.active');
+    if (isActive === false) return this.i18n.t('common.status.inactive');
+    return this.i18n.t('common.status.all');
   }
 
   selectAndOpenUpdate(brand: BrandResponse): void {
@@ -157,14 +184,14 @@ export class BrandsComponent implements OnInit {
       isActive: !brand.isActive
     }).subscribe({
       next: () => {
-        const action = brand.isActive ? 'deactivated' : 'activated';
-        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `"${brand.name}" ${action}` });
+        const detailKey = brand.isActive ? 'brands.messages.deactivateSuccess' : 'brands.messages.activateSuccess';
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t(detailKey) });
         this.togglingStatusId = null;
         this.loadBrands(this.currentPage, this.rows);
       },
       error: () => {
         this.togglingStatusId = null;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update brand status' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('common.messages.updateFailed') });
       }
     });
   }
@@ -184,20 +211,20 @@ export class BrandsComponent implements OnInit {
   selectAndDelete(brand: BrandResponse): void {
     this.selectedBrand = brand;
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete "${brand.name}"?`,
-      header: 'Confirm Delete',
+      message: this.i18n.t('brands.messages.deleteConfirm', { name: brand.name }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.brandService.deleteBrand(brand.id)
           .pipe(tap(() => {
-            this.messageService.add({ severity: 'success', summary: 'Deleted', detail: `"${brand.name}" deleted` });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('brands.messages.deleteSuccess') });
             this.selectedBrand = null;
             // If we deleted the last item on a page beyond page 1, go back a page
             const isLastItemOnPage = this.brands.length === 1 && this.currentPage > 1;
             this.loadBrands(isLastItemOnPage ? this.currentPage - 1 : this.currentPage, this.rows);
           }))
           .subscribe({
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete brand' })
+            error: () => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('brands.messages.deleteFailed') })
           });
       }
     });

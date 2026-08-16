@@ -14,11 +14,11 @@ import { AppBrandingService } from './app/shared/services/app-branding.service';
 import { firstValueFrom } from 'rxjs';
 
 /**
- * Maps the "modern SaaS" data-page design tokens (see
- * design_handoff_pos_dashboard/README.md, assets/_data-page.scss) onto
- * PrimeNG's own semantic design tokens, so stock PrimeNG components
- * (buttons, tags, selects, inputs, cards…) pick up the same near-black/
- * slate palette everywhere — not just the hand-styled shell/dashboard
+ * Maps the Sujan Motors theme design tokens (see
+ * docs/design_handoff_sujan_motors_theme/README.md, assets/layout/_tokens.scss,
+ * assets/_data-page.scss) onto PrimeNG's own semantic design tokens, so stock
+ * PrimeNG components (buttons, tags, selects, inputs, cards…) pick up the same
+ * orange accent palette everywhere — not just the hand-styled shell/dashboard
  * markup, but also pages like the Parts create/edit form and detail
  * view that lean on PrimeNG's own --p-* vars directly.
  * Dark mode is driven by the existing `.app-dark` class (darkModeSelector
@@ -28,14 +28,14 @@ const AppPreset = definePreset(Aura, {
     semantic: {
         colorScheme: {
             light: {
-                primary: { color: '#0f172a', contrastColor: '#ffffff', hoverColor: '#1e293b', activeColor: '#334155' },
-                highlight: { background: '#0f172a', focusBackground: '#1e293b', color: '#ffffff', focusColor: '#ffffff' },
-                text: { color: '#0f172a', hoverColor: '#0f172a', mutedColor: '#5b6472', hoverMutedColor: '#0f172a' },
-                content: { background: '#ffffff', hoverBackground: '#fafafb', borderColor: '#e6e8ec', color: '{text.color}', hoverColor: '{text.hover.color}' }
+                primary: { color: '#ea580c', contrastColor: '#ffffff', hoverColor: '#c2410c', activeColor: '#9a3412' },
+                highlight: { background: '#ea580c', focusBackground: '#c2410c', color: '#ffffff', focusColor: '#ffffff' },
+                text: { color: '#1c1f26', hoverColor: '#1c1f26', mutedColor: '#5b6472', hoverMutedColor: '#1c1f26' },
+                content: { background: '#ffffff', hoverBackground: '#fafafb', borderColor: '#e7e9ee', color: '{text.color}', hoverColor: '{text.hover.color}' }
             },
             dark: {
-                primary: { color: '#e2e8f0', contrastColor: '#0f172a', hoverColor: '#cbd5e1', activeColor: '#94a3b8' },
-                highlight: { background: '#e2e8f0', focusBackground: '#cbd5e1', color: '#0f172a', focusColor: '#0f172a' },
+                primary: { color: '#fb923c', contrastColor: '#1c1108', hoverColor: '#fdba74', activeColor: '#f97316' },
+                highlight: { background: '#fb923c', focusBackground: '#fdba74', color: '#1c1108', focusColor: '#1c1108' },
                 text: { color: '#eef1f6', hoverColor: '#eef1f6', mutedColor: '#9aa4b5', hoverMutedColor: '#eef1f6' },
                 content: { background: '#151922', hoverBackground: '#1a1f2a', borderColor: '#252b38', color: '{text.color}', hoverColor: '{text.hover.color}' }
             }

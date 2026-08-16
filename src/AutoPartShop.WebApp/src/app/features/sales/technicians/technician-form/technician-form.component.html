@@ -8,16 +8,16 @@
         <div class="breadcrumb">
           <a (click)="cancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Technicians
+            {{ 'technicians.title' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : mode() === 'edit' ? 'Edit' : 'View' }}</span>
+          <span class="breadcrumb-current">{{ (mode() === 'create' ? 'common.labels.new' : mode() === 'edit' ? 'common.labels.edit' : 'common.labels.view') | translate }}</span>
         </div>
         <h1 class="form-title">{{ getPageTitle() }}</h1>
         <p class="form-subtitle">{{ getPageSubtitle() }}</p>
       </div>
       <div class="header-actions" *ngIf="mode() === 'view'">
-        <button pButton icon="pi pi-pencil" label="Edit" class="p-button-outlined"
+        <button pButton icon="pi pi-pencil" [label]="'common.actions.edit' | translate" class="p-button-outlined"
           (click)="mode.set('edit'); technicianForm.enable()">
         </button>
       </div>
@@ -27,7 +27,7 @@
   <!-- Loading State -->
   <div *ngIf="loading()" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-    <p>Loading technician details...</p>
+    <p>{{ 'technicians.form.loading' | translate }}</p>
   </div>
 
   <!-- Form -->
@@ -38,49 +38,49 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-wrench section-icon"></i>
-          Basic Information
+          {{ 'technicians.form.basicSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Technician Code <span class="required">*</span></label>
+            <label>{{ 'technicians.form.codeLabel' | translate }} <span class="required">*</span></label>
             <div class="code-input-wrapper">
-              <input pInputText formControlName="technicianCode" placeholder="Auto-generated"
+              <input pInputText formControlName="technicianCode" [placeholder]="'technicians.form.codePlaceholder' | translate"
                 [disabled]="mode() === 'create'" />
               <i *ngIf="generatingCode()" class="pi pi-spin pi-spinner code-spinner"></i>
             </div>
             <small class="field-hint" *ngIf="mode() === 'create'">
               <i class="pi pi-info-circle"></i>
-              Code is auto-generated and cannot be changed
+              {{ 'technicians.form.codeHint' | translate }}
             </small>
             <small class="p-error"
               *ngIf="technicianForm.get('technicianCode')?.invalid && technicianForm.get('technicianCode')?.touched && mode() !== 'create'">
-              Technician code is required (min 2 characters)
+              {{ 'technicians.form.codeRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Full Name <span class="required">*</span></label>
-            <input pInputText formControlName="name" placeholder="e.g., John Doe" />
+            <label>{{ 'technicians.form.nameLabel' | translate }} <span class="required">*</span></label>
+            <input pInputText formControlName="name" [placeholder]="'technicians.form.namePlaceholder' | translate" />
             <small class="p-error"
               *ngIf="technicianForm.get('name')?.invalid && technicianForm.get('name')?.touched">
-              Name is required (min 2 characters)
+              {{ 'technicians.form.nameRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Phone <span class="required">*</span></label>
-            <input pInputText formControlName="phone" placeholder="e.g., +8801716625369" />
+            <label>{{ 'technicians.form.phoneLabel' | translate }} <span class="required">*</span></label>
+            <input pInputText formControlName="phone" [placeholder]="'technicians.form.phonePlaceholder' | translate" />
             <small class="p-error" *ngIf="technicianForm.get('phone')?.invalid && technicianForm.get('phone')?.touched">
-              Phone is required
+              {{ 'technicians.form.phoneRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Email</label>
-            <input pInputText formControlName="email" type="email" placeholder="e.g., technician@example.com" />
+            <label>{{ 'technicians.form.emailLabel' | translate }}</label>
+            <input pInputText formControlName="email" type="email" [placeholder]="'technicians.form.emailPlaceholder' | translate" />
             <small class="p-error" *ngIf="technicianForm.get('email')?.invalid && technicianForm.get('email')?.touched">
-              Valid email is required
+              {{ 'technicians.form.emailInvalid' | translate }}
             </small>
           </div>
         </div>
@@ -90,24 +90,24 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-building section-icon"></i>
-          Shop Information
+          {{ 'technicians.form.shopSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Shop Name</label>
-            <input pInputText formControlName="shopName" placeholder="e.g., ABC Auto Repair" />
+            <label>{{ 'technicians.form.shopNameLabel' | translate }}</label>
+            <input pInputText formControlName="shopName" [placeholder]="'technicians.form.shopNamePlaceholder' | translate" />
           </div>
           <div class="form-group">
-            <label>City</label>
-            <input pInputText formControlName="city" placeholder="e.g., Dhaka" />
+            <label>{{ 'technicians.form.cityLabel' | translate }}</label>
+            <input pInputText formControlName="city" [placeholder]="'technicians.form.cityPlaceholder' | translate" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Address</label>
-            <input pInputText formControlName="address" placeholder="e.g., 123 Main Street, Gulshan" />
+            <label>{{ 'technicians.form.addressLabel' | translate }}</label>
+            <input pInputText formControlName="address" [placeholder]="'technicians.form.addressPlaceholder' | translate" />
           </div>
         </div>
       </div>
@@ -116,13 +116,13 @@
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-file-edit section-icon"></i>
-          Additional Notes
+          {{ 'technicians.form.notesSection' | translate }}
         </h3>
         <div class="form-row">
           <div class="form-group full">
-            <label>Notes</label>
+            <label>{{ 'technicians.form.notesLabel' | translate }}</label>
             <textarea pInputTextarea formControlName="notes" rows="3"
-              placeholder="Additional notes about this technician...">
+              [placeholder]="'technicians.form.notesPlaceholder' | translate">
             </textarea>
           </div>
         </div>
@@ -130,11 +130,11 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
+        <button pButton type="button" [label]="(mode() === 'view' ? 'common.actions.back' : 'common.actions.cancel') | translate" icon="pi pi-times"
           class="p-button-outlined" (click)="cancel()">
         </button>
         <button pButton *ngIf="mode() !== 'view'" type="submit"
-          [label]="saving() ? 'Saving...' : (mode() === 'edit' ? 'Update Technician' : 'Create Technician')"
+          [label]="(saving() ? 'common.actions.saving' : mode() === 'edit' ? 'technicians.form.submitEdit' : 'technicians.form.submitCreate') | translate"
           icon="pi pi-check" class="p-button-primary" (click)="onSubmit()" [loading]="saving()"
           [disabled]="saving() || technicianForm.invalid">
         </button>

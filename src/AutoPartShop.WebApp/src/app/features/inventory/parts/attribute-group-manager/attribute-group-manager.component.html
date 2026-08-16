@@ -8,19 +8,19 @@
 <app-page-container>
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Attribute Groups"
-    subtitle="Define reusable attribute groups used across all product variants"
-    [count]="totalRecords" countLabel="groups">
+    [title]="'parts.attributeGroupManager.pageTitle' | translate"
+    [subtitle]="'parts.attributeGroupManager.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'parts.attributeGroupManager.countLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Back to Parts" tooltipPosition="bottom" (click)="goBack()">
+      <button class="btn-icon" [pTooltip]="'parts.attributeGroupManager.backTooltip' | translate" tooltipPosition="bottom" (click)="goBack()">
         <i class="pi pi-arrow-left"></i>
       </button>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="isLoading"></i>
       </button>
       <button class="btn-primary" (click)="startAddGroup()">
         <i class="pi pi-plus"></i>
-        <span>New Group</span>
+        <span>{{ 'parts.attributeGroupManager.newGroup' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -34,7 +34,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search attribute groups..."
+          [placeholder]="'parts.attributeGroupManager.searchPlaceholder' | translate"
           (input)="onSearchInput()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onFilterChange()">
@@ -45,38 +45,45 @@
 
     <!-- Status Filter -->
     <div filters class="filter-group">
-      <p-select
+      <app-status-pill-filter
         [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        appendTo="body"
-        styleClass="filter-dropdown"
-        (onChange)="onFilterChange()">
-      </p-select>
+        [value]="filterStatusValue"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <!-- Filter Actions -->
     <div filterActions class="filter-group filter-actions">
+      <button class="text-btn" (click)="moreFiltersVisible = true">
+        {{ 'common.labels.moreFilters' | translate }}
+      </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <!-- Active Filters Display -->
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'parts.searchFilterChip' | translate: { term: searchTerm } }}
         <i class="pi pi-times" (click)="searchTerm = ''; onFilterChange()"></i>
       </span>
       <span *ngIf="filterStatus !== null" class="filter-chip">
-        Status: {{ filterStatus ? 'Active' : 'Inactive' }}
+        {{ 'parts.statusFilterChip' | translate: { status: (filterStatus ? ('common.status.active' | translate) : ('common.status.inactive' | translate)) } }}
         <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
       </span>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatusValue"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== CONTENT SECTION ==================== -->
   <section class="content-section">
@@ -86,34 +93,34 @@
       <div class="form-panel-header">
         <span class="form-panel-title">
           <i class="pi pi-{{ editingGroupId ? 'pencil' : 'plus-circle' }}"></i>
-          {{ editingGroupId ? 'Edit Group' : 'New Attribute Group' }}
+          {{ (editingGroupId ? 'parts.attributeGroupManager.editGroupTitle' : 'parts.attributeGroupManager.newGroupTitle') | translate }}
         </span>
       </div>
       <form [formGroup]="groupForm" class="inline-form">
         <div class="inline-row">
           <div class="inline-field">
-            <label class="field-label">Group Name <span class="required">*</span></label>
-            <input pInputText formControlName="name" placeholder="e.g. Color, Size, Storage" class="form-input" />
-            <small class="field-error" *ngIf="groupForm.get('name')?.invalid && groupForm.get('name')?.touched">Name is required</small>
+            <label class="field-label">{{ 'parts.attributeGroupManager.groupNameLabel' | translate }} <span class="required">*</span></label>
+            <input pInputText formControlName="name" [placeholder]="'parts.attributeGroupManager.groupNamePlaceholder' | translate" class="form-input" />
+            <small class="field-error" *ngIf="groupForm.get('name')?.invalid && groupForm.get('name')?.touched">{{ 'parts.attributeGroupManager.nameRequiredError' | translate }}</small>
           </div>
           <div class="inline-field narrow">
-            <label class="field-label">Sort Order</label>
+            <label class="field-label">{{ 'parts.attributeGroupManager.sortOrderLabel' | translate }}</label>
             <p-inputNumber formControlName="sortOrder" [min]="0" [step]="1" mode="decimal" styleClass="form-input-number"></p-inputNumber>
           </div>
           <div class="inline-field narrow checkbox-field">
             <label class="field-label">&nbsp;</label>
             <div class="checkbox-row">
               <p-checkbox formControlName="isActive" [binary]="true" inputId="grpActive"></p-checkbox>
-              <label for="grpActive" class="checkbox-label">Active</label>
+              <label for="grpActive" class="checkbox-label">{{ 'common.status.active' | translate }}</label>
             </div>
           </div>
         </div>
         <div class="form-actions">
           <button class="btn-cancel" type="button" (click)="showGroupForm = false">
-            <i class="pi pi-times"></i> Cancel
+            <i class="pi pi-times"></i> {{ 'common.actions.cancel' | translate }}
           </button>
           <button class="btn-save" type="button" (click)="saveGroup()">
-            <i class="pi pi-check"></i> Save Group
+            <i class="pi pi-check"></i> {{ 'parts.attributeGroupManager.saveGroupButton' | translate }}
           </button>
         </div>
       </form>
@@ -124,43 +131,43 @@
       <div class="form-panel-header">
         <span class="form-panel-title">
           <i class="pi pi-{{ editingAttrId ? 'pencil' : 'plus-circle' }}"></i>
-          {{ editingAttrId ? 'Edit Attribute' : 'New Attribute' }}
+          {{ (editingAttrId ? 'parts.attributeGroupManager.editAttributeTitle' : 'parts.attributeGroupManager.newAttributeTitle') | translate }}
         </span>
       </div>
       <form [formGroup]="attrForm" class="inline-form">
         <div class="inline-row">
           <div class="inline-field">
-            <label class="field-label">Attribute Name <span class="required">*</span></label>
-            <input pInputText formControlName="name" placeholder="e.g. Color" class="form-input" />
-            <small class="field-error" *ngIf="attrForm.get('name')?.invalid && attrForm.get('name')?.touched">Name is required</small>
+            <label class="field-label">{{ 'parts.attributeGroupManager.attributeNameLabel' | translate }} <span class="required">*</span></label>
+            <input pInputText formControlName="name" [placeholder]="'parts.attributeGroupManager.attributeNamePlaceholder' | translate" class="form-input" />
+            <small class="field-error" *ngIf="attrForm.get('name')?.invalid && attrForm.get('name')?.touched">{{ 'parts.attributeGroupManager.nameRequiredError' | translate }}</small>
           </div>
           <div class="inline-field narrow">
-            <label class="field-label">Code <span class="required">*</span></label>
-            <input pInputText formControlName="code" placeholder="e.g. COLOR" class="form-input" />
-            <small class="field-error" *ngIf="attrForm.get('code')?.invalid && attrForm.get('code')?.touched">Code is required</small>
+            <label class="field-label">{{ 'parts.attributeGroupManager.codeLabel' | translate }} <span class="required">*</span></label>
+            <input pInputText formControlName="code" [placeholder]="'parts.attributeGroupManager.codePlaceholder' | translate" class="form-input" />
+            <small class="field-error" *ngIf="attrForm.get('code')?.invalid && attrForm.get('code')?.touched">{{ 'parts.attributeGroupManager.codeRequiredError' | translate }}</small>
           </div>
           <div class="inline-field">
-            <label class="field-label">Data Type <span class="required">*</span></label>
+            <label class="field-label">{{ 'parts.attributeGroupManager.dataTypeLabel' | translate }} <span class="required">*</span></label>
             <p-select formControlName="dataType" [options]="dataTypeOptions" optionLabel="label" optionValue="value" appendTo="body" styleClass="filter-dropdown"></p-select>
           </div>
           <div class="inline-field narrow">
-            <label class="field-label">Unit</label>
-            <input pInputText formControlName="unit" placeholder="e.g. GB, cm" class="form-input" />
+            <label class="field-label">{{ 'parts.attributeGroupManager.unitLabel' | translate }}</label>
+            <input pInputText formControlName="unit" [placeholder]="'parts.attributeGroupManager.unitPlaceholder' | translate" class="form-input" />
           </div>
           <div class="inline-field narrow checkbox-field">
             <label class="field-label">&nbsp;</label>
             <div class="checkbox-row">
               <p-checkbox formControlName="isActive" [binary]="true" inputId="attrActive"></p-checkbox>
-              <label for="attrActive" class="checkbox-label">Active</label>
+              <label for="attrActive" class="checkbox-label">{{ 'common.status.active' | translate }}</label>
             </div>
           </div>
         </div>
         <div class="form-actions">
           <button class="btn-cancel" type="button" (click)="showAttrForm = false">
-            <i class="pi pi-times"></i> Cancel
+            <i class="pi pi-times"></i> {{ 'common.actions.cancel' | translate }}
           </button>
           <button class="btn-save" type="button" (click)="saveAttr()">
-            <i class="pi pi-check"></i> Save Attribute
+            <i class="pi pi-check"></i> {{ 'parts.attributeGroupManager.saveAttributeButton' | translate }}
           </button>
         </div>
       </form>
@@ -171,8 +178,8 @@
       <div class="templates-header">
         <i class="pi pi-bolt templates-icon"></i>
         <div>
-          <h3 class="templates-title">Quick-start Templates</h3>
-          <p class="templates-hint">Create a common attribute group in one click — you can edit it afterwards.</p>
+          <h3 class="templates-title">{{ 'parts.attributeGroupManager.templatesTitle' | translate }}</h3>
+          <p class="templates-hint">{{ 'parts.attributeGroupManager.templatesHint' | translate }}</p>
         </div>
       </div>
       <div class="templates-grid">
@@ -206,10 +213,10 @@
         <div class="empty-icon">
           <i class="pi pi-tag"></i>
         </div>
-        <h3>No Attribute Groups Yet</h3>
-        <p>Create your first attribute group to start defining product attributes.</p>
+        <h3>{{ 'parts.attributeGroupManager.noGroupsTitle' | translate }}</h3>
+        <p>{{ 'parts.attributeGroupManager.noGroupsHint' | translate }}</p>
         <button class="btn-primary-empty" (click)="startAddGroup()">
-          <i class="pi pi-plus"></i> Create First Group
+          <i class="pi pi-plus"></i> {{ 'parts.attributeGroupManager.createFirstGroup' | translate }}
         </button>
       </div>
 
@@ -218,9 +225,9 @@
         <div class="empty-icon">
           <i class="pi pi-search"></i>
         </div>
-        <h3>No Results Found</h3>
-        <p>No attribute groups match your current filters.</p>
-        <button class="btn-secondary-action" (click)="clearFilters()">Clear Filters</button>
+        <h3>{{ 'parts.attributeGroupManager.noResultsTitle' | translate }}</h3>
+        <p>{{ 'parts.attributeGroupManager.noResultsHint' | translate }}</p>
+        <button class="btn-secondary-action" (click)="clearFilters()">{{ 'common.actions.clearFilters' | translate }}</button>
       </div>
 
       <!-- Group cards -->
@@ -232,20 +239,20 @@
             </div>
             <div class="group-details">
               <span class="group-name">{{ group.name }}</span>
-              <span class="group-meta">{{ group.attributes.length }} attribute(s) · Sort: {{ group.sortOrder }}</span>
+              <span class="group-meta">{{ 'parts.attributeGroupManager.attributesCountSort' | translate: { count: group.attributes.length + '', sort: group.sortOrder + '' } }}</span>
             </div>
             <span class="status-pill" [attr.data-status]="group.isActive ? 'active' : 'inactive'">
-              {{ group.isActive ? 'Active' : 'Inactive' }}
+              {{ (group.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
             </span>
           </div>
           <div class="group-actions">
-            <button class="btn-action btn-action-info" type="button" (click)="startAddAttr(group.id)" pTooltip="Add Attribute" tooltipPosition="top">
+            <button class="btn-action btn-action-info" type="button" (click)="startAddAttr(group.id)" [pTooltip]="'parts.attributeGroupManager.addAttributeTooltip' | translate" tooltipPosition="top">
               <i class="pi pi-plus"></i>
             </button>
-            <button class="btn-action" type="button" (click)="startEditGroup(group)" pTooltip="Edit Group" tooltipPosition="top">
+            <button class="btn-action" type="button" (click)="startEditGroup(group)" [pTooltip]="'parts.attributeGroupManager.editGroupTooltip' | translate" tooltipPosition="top">
               <i class="pi pi-pencil"></i>
             </button>
-            <button class="btn-action btn-action-danger" type="button" (click)="deleteGroup(group)" pTooltip="Delete Group" tooltipPosition="top">
+            <button class="btn-action btn-action-danger" type="button" (click)="deleteGroup(group)" [pTooltip]="'parts.attributeGroupManager.deleteGroupTooltip' | translate" tooltipPosition="top">
               <i class="pi pi-trash"></i>
             </button>
           </div>
@@ -256,13 +263,13 @@
           <p-table [value]="group.attributes" styleClass="p-datatable-sm attr-table" [tableStyle]="{ 'min-width': '40rem' }">
             <ng-template pTemplate="header">
               <tr>
-                <th>Attribute</th>
-                <th>Code</th>
-                <th>Type</th>
-                <th>Unit</th>
-                <th>Options</th>
-                <th>Status</th>
-                <th class="col-actions">Actions</th>
+                <th>{{ 'parts.attributeGroupManager.columnAttribute' | translate }}</th>
+                <th>{{ 'parts.attributeGroupManager.columnCode' | translate }}</th>
+                <th>{{ 'parts.attributeGroupManager.columnType' | translate }}</th>
+                <th>{{ 'parts.attributeGroupManager.columnUnit' | translate }}</th>
+                <th>{{ 'parts.attributeGroupManager.columnOptions' | translate }}</th>
+                <th>{{ 'common.labels.status' | translate }}</th>
+                <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-attr>
@@ -277,28 +284,28 @@
                   <div class="option-chips" *ngIf="attr.dataType === 'option'">
                     <span class="option-chip" *ngFor="let opt of attr.options">
                       {{ opt.value }}
-                      <button class="opt-del-btn" type="button" (click)="deleteOption(group.id, attr.id, opt)" pTooltip="Remove" tooltipPosition="top">
+                      <button class="opt-del-btn" type="button" (click)="deleteOption(group.id, attr.id, opt)" [pTooltip]="'common.actions.delete' | translate" tooltipPosition="top">
                         <i class="pi pi-times"></i>
                       </button>
                     </span>
-                    <button class="btn-add-option" type="button" pTooltip="Add option" tooltipPosition="top"
+                    <button class="btn-add-option" type="button" [pTooltip]="'parts.attributeGroupManager.addOptionTooltip' | translate" tooltipPosition="top"
                       (click)="startAddOption(group.id, attr.id)">
                       <i class="pi pi-plus"></i>
                     </button>
                   </div>
-                  <span *ngIf="attr.dataType !== 'option'" class="text-muted">N/A</span>
+                  <span *ngIf="attr.dataType !== 'option'" class="text-muted">{{ 'parts.attributeGroupManager.notApplicable' | translate }}</span>
                 </td>
                 <td>
                   <span class="status-pill" [attr.data-status]="attr.isActive ? 'active' : 'inactive'">
-                    {{ attr.isActive ? 'Active' : 'Off' }}
+                    {{ (attr.isActive ? 'common.status.active' : 'parts.attributeGroupManager.off') | translate }}
                   </span>
                 </td>
                 <td>
                   <div class="action-cell">
-                    <button class="btn-action" type="button" (click)="startEditAttr(group.id, attr)" pTooltip="Edit" tooltipPosition="top">
+                    <button class="btn-action" type="button" (click)="startEditAttr(group.id, attr)" [pTooltip]="'common.actions.edit' | translate" tooltipPosition="top">
                       <i class="pi pi-pencil"></i>
                     </button>
-                    <button class="btn-action btn-action-danger" type="button" (click)="deleteAttr(group.id, attr)" pTooltip="Delete" tooltipPosition="top">
+                    <button class="btn-action btn-action-danger" type="button" (click)="deleteAttr(group.id, attr)" [pTooltip]="'common.actions.delete' | translate" tooltipPosition="top">
                       <i class="pi pi-trash"></i>
                     </button>
                   </div>
@@ -308,9 +315,9 @@
               <tr *ngIf="showOptionInput && optionTargetAttrId === attr.id">
                 <td colspan="7">
                   <div class="option-input-row">
-                    <input pInputText [(ngModel)]="optionValue" placeholder="Option value (e.g. Red)" class="option-input" />
+                    <input pInputText [(ngModel)]="optionValue" [placeholder]="'parts.attributeGroupManager.optionValuePlaceholder' | translate" class="option-input" />
                     <button class="btn-save" type="button" [disabled]="!optionValue.trim()" (click)="saveOption()">
-                      <i class="pi pi-check"></i> Add
+                      <i class="pi pi-check"></i> {{ 'parts.attributeGroupManager.addButton' | translate }}
                     </button>
                     <button class="btn-cancel" type="button" (click)="showOptionInput = false">
                       <i class="pi pi-times"></i>
@@ -322,7 +329,7 @@
             <ng-template pTemplate="emptymessage">
               <tr>
                 <td colspan="7" class="empty-attrs-row">
-                  No attributes — click <b>Add Attribute</b> above to add the first one.
+                  {{ 'parts.attributeGroupManager.emptyAttributesRow' | translate }}
                 </td>
               </tr>
             </ng-template>
@@ -332,8 +339,8 @@
         <!-- No attributes yet -->
         <div *ngIf="group.attributes.length === 0" class="empty-attrs">
           <i class="pi pi-info-circle"></i>
-          No attributes yet —
-          <a (click)="startAddAttr(group.id)" class="link-action">add the first one</a>
+          {{ 'parts.attributeGroupManager.noAttributesYet' | translate }}
+          <a (click)="startAddAttr(group.id)" class="link-action">{{ 'parts.attributeGroupManager.addFirstOne' | translate }}</a>
         </div>
       </div>
     </div>
@@ -345,7 +352,7 @@
     [first]="first"
     [pageSize]="rows"
     [totalRecords]="totalRecords"
-    itemLabel="groups"
+    [itemLabel]="'parts.attributeGroupManager.countLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>

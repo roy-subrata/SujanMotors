@@ -13,18 +13,21 @@ import {
     ProductImportCommitResult,
     ProductImportMode
 } from '../../services/part-import.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 type ImportStep = 'upload' | 'review' | 'done';
 
 @Component({
     selector: 'app-parts-import-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, DialogModule, ButtonModule, TableModule, TagModule, ProgressSpinnerModule, TooltipModule],
+    imports: [CommonModule, FormsModule, DialogModule, ButtonModule, TableModule, TagModule, ProgressSpinnerModule, TooltipModule, TranslatePipe],
     templateUrl: './parts-import-dialog.component.html',
     styleUrls: ['./parts-import-dialog.component.css']
 })
 export class PartsImportDialogComponent {
     private readonly importService = inject(PartImportService);
+    private readonly i18n = inject(I18nService);
 
     @Input() visible = false;
     @Output() visibleChange = new EventEmitter<boolean>();
@@ -96,7 +99,7 @@ export class PartsImportDialogComponent {
                 this.downloading = false;
             },
             error: () => {
-                this.errorMessage = 'Failed to download the template. Please try again.';
+                this.errorMessage = this.i18n.t('parts.importDialog.messages.downloadTemplateFailed');
                 this.downloading = false;
             }
         });
@@ -116,7 +119,7 @@ export class PartsImportDialogComponent {
                 this.onModeChange();
             },
             error: () => {
-                this.errorMessage = 'Failed to export the current parts. Please try again.';
+                this.errorMessage = this.i18n.t('parts.importDialog.messages.exportFailed');
                 this.exporting = false;
             }
         });
@@ -130,7 +133,7 @@ export class PartsImportDialogComponent {
 
     runValidate(): void {
         if (!this.selectedFile) {
-            this.errorMessage = 'Please choose an .xlsx file first.';
+            this.errorMessage = this.i18n.t('parts.importDialog.messages.chooseFileFirst');
             return;
         }
         this.validating = true;
@@ -142,7 +145,7 @@ export class PartsImportDialogComponent {
                 this.validating = false;
             },
             error: (err) => {
-                this.errorMessage = err?.error?.detail || 'The file could not be validated. Make sure it matches the template.';
+                this.errorMessage = err?.error?.detail || this.i18n.t('parts.importDialog.messages.validateFailed');
                 this.validating = false;
             }
         });
@@ -165,7 +168,7 @@ export class PartsImportDialogComponent {
                 this.imported.emit(result.createdCount + result.updatedCount);
             },
             error: (err) => {
-                this.errorMessage = err?.error?.detail || 'The import failed. Please try again.';
+                this.errorMessage = err?.error?.detail || this.i18n.t('parts.importDialog.messages.commitFailed');
                 this.committing = false;
             }
         });

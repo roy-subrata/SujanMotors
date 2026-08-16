@@ -8,16 +8,16 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Stock Take"
-    subtitle="Physical inventory counts and variance reconciliation"
+    [title]="'stockTakes.title' | translate"
+    [subtitle]="'stockTakes.subtitle' | translate"
     [count]="totalRecords" countLabel="stock takes">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="openCreateDialog()">
         <i class="pi pi-plus"></i>
-        <span>New Stock Take</span>
+        <span>{{ 'stockTakes.newStockTake' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -30,7 +30,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by number..."
+          [placeholder]="'stockTakes.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
@@ -40,27 +40,21 @@
     </div>
 
     <div filters class="filter-group">
-      <label class="filter-label">Status</label>
-      <p-select
+      <app-status-pill-filter
         [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="All Statuses"
-        [showClear]="true"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
+        [value]="filterStatus ?? ''"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <div filters class="filter-group">
-      <label class="filter-label">Warehouse</label>
+      <label class="filter-label">{{ 'stock.warehouse' | translate }}</label>
       <p-select
         [options]="warehouses"
         [(ngModel)]="filterWarehouseId"
         optionLabel="name"
         optionValue="id"
-        placeholder="All Warehouses"
+        [placeholder]="'stockTakes.allWarehouses' | translate"
         [showClear]="true"
         [filter]="true"
         appendTo="body"
@@ -71,30 +65,39 @@
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Apply
+        {{ 'common.actions.apply' | translate }}
       </button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="clearSearchInput(); onSearch()"></i>
       </span>
       <span *ngIf="filterStatus" class="filter-chip">
-        Status: {{ statusLabel(filterStatus) }}
-        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+        {{ 'common.labels.status' | translate }}: {{ statusLabel(filterStatus) }}
+        <i class="pi pi-times" (click)="onStatusFilterChange('')"></i>
       </span>
       <span *ngIf="filterWarehouseId" class="filter-chip">
-        Warehouse: {{ warehouseLabel(filterWarehouseId) }}
+        {{ 'stock.warehouse' | translate }}: {{ warehouseLabel(filterWarehouseId) }}
         <i class="pi pi-times" (click)="filterWarehouseId = null; onFilterChange()"></i>
       </span>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatus ?? ''"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== DATA TABLE (Desktop) ==================== -->
   <section class="table-section desktop-only">
@@ -114,15 +117,15 @@
 
         <ng-template #header>
           <tr>
-            <th>Number</th>
-            <th>Warehouse</th>
-            <th>Scope</th>
-            <th class="col-num">Progress</th>
-            <th class="col-num">Variances</th>
-            <th class="col-num">Variance Value</th>
-            <th>Started</th>
-            <th>Status</th>
-            <th class="col-actions">Actions</th>
+            <th>{{ 'stockTakes.number' | translate }}</th>
+            <th>{{ 'stock.warehouse' | translate }}</th>
+            <th>{{ 'stockTakes.scope' | translate }}</th>
+            <th class="col-num">{{ 'stockTakes.progress' | translate }}</th>
+            <th class="col-num">{{ 'stockTakes.variances' | translate }}</th>
+            <th class="col-num">{{ 'stockTakes.varianceValue' | translate }}</th>
+            <th>{{ 'stockTakes.started' | translate }}</th>
+            <th>{{ 'common.labels.status' | translate }}</th>
+            <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -130,7 +133,7 @@
           <tr class="data-row" (click)="openDetail(st)" style="cursor:pointer">
             <td><span class="customer-name">{{ st.stockTakeNumber }}</span></td>
             <td>{{ st.warehouseName }}</td>
-            <td>{{ st.categoryName || 'Full warehouse' }}</td>
+            <td>{{ st.categoryName || ('stockTakes.fullWarehouse' | translate) }}</td>
             <td class="col-num">{{ st.countedLines }} / {{ st.totalLines }}</td>
             <td class="col-num">{{ st.varianceLines }}</td>
             <td class="col-num">
@@ -146,7 +149,7 @@
             </td>
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="Open" tooltipPosition="top" (click)="openDetail(st); $event.stopPropagation()">
+                <button class="btn-action" [pTooltip]="'stockTakes.open' | translate" tooltipPosition="top" (click)="openDetail(st); $event.stopPropagation()">
                   <i class="pi pi-arrow-right"></i>
                 </button>
               </div>
@@ -159,8 +162,8 @@
             <td colspan="9">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-list-check"></i></div>
-                <h3>No Stock Takes Found</h3>
-                <p>Start a stock take to count and reconcile physical inventory</p>
+                <h3>{{ 'stockTakes.noResultsTitle' | translate }}</h3>
+                <p>{{ 'stockTakes.noResultsHint' | translate }}</p>
               </div>
             </td>
           </tr>
@@ -180,8 +183,8 @@
   <section class="cards-section mobile-only">
     <div *ngIf="!loading && stockTakes.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-list-check"></i></div>
-      <h3>No Stock Takes</h3>
-      <p>Start a stock take to count physical inventory</p>
+      <h3>{{ 'stockTakes.noResultsMobileTitle' | translate }}</h3>
+      <p>{{ 'stockTakes.noResultsMobileHint' | translate }}</p>
     </div>
 
     <div *ngIf="!loading && stockTakes.length > 0" class="cards-grid">
@@ -195,11 +198,11 @@
         <div class="card-body">
           <div class="card-customer">
             <span class="customer-name">{{ st.warehouseName }}</span>
-            <span class="customer-phone">{{ st.categoryName || 'Full warehouse' }}</span>
+            <span class="customer-phone">{{ st.categoryName || ('stockTakes.fullWarehouse' | translate) }}</span>
           </div>
           <div class="card-meta">
-            <span class="card-meta-item"><i class="pi pi-check-square"></i>&nbsp;{{ st.countedLines }}/{{ st.totalLines }} counted</span>
-            <span class="card-meta-item"><i class="pi pi-arrow-right-arrow-left"></i>&nbsp;{{ st.varianceLines }} variances</span>
+            <span class="card-meta-item"><i class="pi pi-check-square"></i>&nbsp;{{ st.countedLines }}/{{ st.totalLines }} {{ 'stockTakes.countedSuffix' | translate }}</span>
+            <span class="card-meta-item"><i class="pi pi-arrow-right-arrow-left"></i>&nbsp;{{ st.varianceLines }} {{ 'stockTakes.variancesWord' | translate }}</span>
             <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ st.snapshotDate | date:'dd MMM yyyy' }}</span>
           </div>
         </div>
@@ -224,29 +227,29 @@
   [(visible)]="showCreateDialog"
   [modal]="true"
   [style]="{ width: '480px' }"
-  header="Start Stock Take">
+  [header]="'stockTakes.startStockTake' | translate">
   <div class="create-form">
     <div class="create-field">
-      <label>Warehouse *</label>
+      <label>{{ 'stock.warehouse' | translate }} *</label>
       <p-select
         [options]="warehouses"
         [(ngModel)]="createForm.warehouseId"
         optionLabel="name"
         optionValue="id"
-        placeholder="Select warehouse"
+        [placeholder]="'stockTakes.selectWarehouse' | translate"
         [filter]="true"
         appendTo="body"
         styleClass="w-full">
       </p-select>
     </div>
     <div class="create-field">
-      <label>Category <span class="optional">(optional — cycle count one category only)</span></label>
+      <label>{{ 'common.labels.category' | translate }} <span class="optional">{{ 'stockTakes.categoryOptionalHint' | translate }}</span></label>
       <p-select
         [options]="categories"
         [(ngModel)]="createForm.categoryId"
         optionLabel="name"
         optionValue="id"
-        placeholder="All categories"
+        [placeholder]="'stockTakes.allCategoriesPlaceholder' | translate"
         [showClear]="true"
         [filter]="true"
         appendTo="body"
@@ -254,20 +257,19 @@
       </p-select>
     </div>
     <div class="create-field">
-      <label>Notes</label>
-      <textarea pTextarea [(ngModel)]="createForm.notes" rows="2" placeholder="Optional notes..."></textarea>
+      <label>{{ 'common.labels.notes' | translate }}</label>
+      <textarea pTextarea [(ngModel)]="createForm.notes" rows="2" [placeholder]="'stockTakes.notesPlaceholder' | translate"></textarea>
     </div>
     <p class="create-hint">
       <i class="pi pi-info-circle"></i>
-      Expected quantities are snapshotted now. Selling can continue while you count —
-      variances are applied as adjustments on approval.
+      {{ 'stockTakes.createHint' | translate }}
     </p>
   </div>
   <ng-template #footer>
-    <button class="btn-secondary" (click)="showCreateDialog = false">Cancel</button>
+    <button class="btn-secondary" (click)="showCreateDialog = false">{{ 'common.actions.cancel' | translate }}</button>
     <button class="btn-primary" [disabled]="!createForm.warehouseId || creating" (click)="createStockTake()">
       <i class="pi" [ngClass]="creating ? 'pi-spin pi-spinner' : 'pi-play'"></i>
-      {{ creating ? 'Starting...' : 'Start Counting' }}
+      {{ creating ? ('stockTakes.starting' | translate) : ('stockTakes.startCounting' | translate) }}
     </button>
   </ng-template>
 </p-dialog>

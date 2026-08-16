@@ -14,6 +14,7 @@ import {
   TimelineEvent,
   PropertyChange
 } from '../../../shared/services/audit-trail.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-entity-timeline-dialog',
@@ -42,15 +43,15 @@ import {
         <!-- Summary -->
         <div class="timeline-summary mb-4">
           <div class="summary-item">
-            <span class="summary-label">Entity:</span>
+            <span class="summary-label">{{ i18n.t('audit.timelineDialog.entityLabel') }}</span>
             <span class="summary-value">{{ timeline.entityName }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-label">ID:</span>
+            <span class="summary-label">{{ i18n.t('audit.timelineDialog.idLabel') }}</span>
             <span class="summary-value id-value">{{ timeline.entityId }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-label">Total Events:</span>
+            <span class="summary-label">{{ i18n.t('audit.timelineDialog.totalEventsLabel') }}</span>
             <span class="summary-value">{{ timeline.events.length }}</span>
           </div>
         </div>
@@ -86,9 +87,9 @@ import {
                 <p-table [value]="event.changes" styleClass="p-datatable-sm changes-table">
                   <ng-template pTemplate="header">
                     <tr>
-                      <th style="width: 30%">Property</th>
-                      <th style="width: 35%">Old Value</th>
-                      <th style="width: 35%">New Value</th>
+                      <th style="width: 30%">{{ i18n.t('audit.timelineDialog.columns.property') }}</th>
+                      <th style="width: 35%">{{ i18n.t('audit.timelineDialog.columns.oldValue') }}</th>
+                      <th style="width: 35%">{{ i18n.t('audit.timelineDialog.columns.newValue') }}</th>
                     </tr>
                   </ng-template>
                   <ng-template pTemplate="body" let-change>
@@ -113,7 +114,7 @@ import {
 
               <div class="no-changes" *ngIf="!event.changes || event.changes.length === 0">
                 <i class="pi pi-info-circle"></i>
-                No property changes recorded
+                {{ i18n.t('audit.timelineDialog.noPropertyChanges') }}
               </div>
             </div>
           </ng-template>
@@ -122,22 +123,22 @@ import {
         <!-- Empty State -->
         <div *ngIf="timeline.events.length === 0" class="empty-state">
           <i class="pi pi-inbox"></i>
-          <h3>No history found</h3>
-          <p>No audit events recorded for this entity</p>
+          <h3>{{ i18n.t('audit.timelineDialog.emptyTitle') }}</h3>
+          <p>{{ i18n.t('audit.timelineDialog.emptySubtitle') }}</p>
         </div>
       </div>
 
       <!-- Error State -->
       <div *ngIf="!loading && error" class="error-state">
         <i class="pi pi-exclamation-triangle"></i>
-        <h3>Failed to load timeline</h3>
+        <h3>{{ i18n.t('audit.timelineDialog.errorTitle') }}</h3>
         <p>{{ error }}</p>
-        <button pButton type="button" label="Retry" icon="pi pi-refresh" (click)="loadTimeline()"></button>
+        <button pButton type="button" [label]="i18n.t('audit.timelineDialog.retry')" icon="pi pi-refresh" (click)="loadTimeline()"></button>
       </div>
 
       <!-- Footer -->
       <div class="dialog-footer">
-        <button pButton type="button" label="Close" class="p-button-text" (click)="close()"></button>
+        <button pButton type="button" [label]="i18n.t('audit.timelineDialog.close')" class="p-button-text" (click)="close()"></button>
       </div>
     </div>
   `,
@@ -348,6 +349,7 @@ export class EntityTimelineDialogComponent implements OnInit {
   private readonly config = inject(DynamicDialogConfig);
   private readonly ref = inject(DynamicDialogRef);
   private readonly auditService = inject(AuditTrailService);
+  readonly i18n = inject(I18nService);
 
   timeline: EntityTimeline | null = null;
   loading = true;
@@ -369,7 +371,7 @@ export class EntityTimelineDialogComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading timeline:', err);
-        this.error = 'Failed to load entity timeline. Please try again.';
+        this.error = this.i18n.t('audit.timelineDialog.errorMessage');
         this.loading = false;
       }
     });

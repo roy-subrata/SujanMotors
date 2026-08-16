@@ -3,18 +3,18 @@
 
     <!-- HEADER -->
     <app-page-header
-        title="Customer Account Summary"
-        subtitle="Purchase history and outstanding balance">
+        [title]="'customerAccountSummary.title' | translate"
+        [subtitle]="'customerAccountSummary.subtitle' | translate">
         <ng-container actions>
-            <button class="btn-icon" pTooltip="Back" tooltipPosition="bottom" (click)="goBack()">
+            <button class="btn-icon" [pTooltip]="'common.actions.back' | translate" tooltipPosition="bottom" (click)="goBack()">
                 <i class="pi pi-arrow-left"></i>
             </button>
             @if (summary()) {
-                <button class="btn-icon" pTooltip="Download PDF" tooltipPosition="bottom"
+                <button class="btn-icon" [pTooltip]="'customerAccountSummary.downloadPdf' | translate" tooltipPosition="bottom"
                     [disabled]="pdfLoading()" (click)="onDownloadPdf()">
                     <i class="pi" [ngClass]="pdfLoading() ? 'pi-spin pi-spinner' : 'pi-file-pdf'"></i>
                 </button>
-                <button class="btn-icon" pTooltip="Print" tooltipPosition="bottom"
+                <button class="btn-icon" [pTooltip]="'common.actions.print' | translate" tooltipPosition="bottom"
                     [disabled]="pdfLoading()" (click)="onPrint()">
                     <i class="pi pi-print"></i>
                 </button>
@@ -29,7 +29,7 @@
             <app-lazy-autocomplete
                 [fetchFn]="customerFetchFn"
                 optionLabel="fullName"
-                placeholder="Search customer..."
+                [placeholder]="'customerAccountSummary.customerPlaceholder' | translate"
                 (onItemSelect)="onCustomerSelected($event)"
                 (onClearEvent)="onCustomerCleared()">
             </app-lazy-autocomplete>
@@ -40,7 +40,7 @@
                 [(ngModel)]="fromDate"
                 [showIcon]="true"
                 dateFormat="dd M yy"
-                placeholder="Start date"
+                [placeholder]="'customerAccountSummary.startDate' | translate"
                 styleClass="w-full">
             </p-datepicker>
         </div>
@@ -50,7 +50,7 @@
                 [(ngModel)]="toDate"
                 [showIcon]="true"
                 dateFormat="dd M yy"
-                placeholder="End date"
+                [placeholder]="'customerAccountSummary.endDate' | translate"
                 styleClass="w-full">
             </p-datepicker>
         </div>
@@ -61,7 +61,7 @@
                 [options]="vehicles()"
                 optionLabel="label"
                 optionValue="id"
-                placeholder="All vehicles"
+                [placeholder]="'customerAccountSummary.allVehicles' | translate"
                 [showClear]="true"
                 [disabled]="!selectedCustomer"
                 appendTo="body"
@@ -69,7 +69,7 @@
                 (onChange)="onVehicleChange()">
             </p-select>
         </div>
-        <button pButton type="button" icon="pi pi-search" label="Generate"
+        <button pButton type="button" icon="pi pi-search" [label]="'customerAccountSummary.generate' | translate"
             class="generate-btn" (click)="generateReport()" [loading]="loading()"></button>
     </div>
 
@@ -88,8 +88,8 @@
         <!-- Empty State -->
         <div *ngIf="!loading() && !summary()" class="as-empty-state">
             <i class="pi pi-file-check"></i>
-            <p>No report generated</p>
-            <span>Select a customer and click Generate to view account summary</span>
+            <p>{{ 'customerAccountSummary.emptyTitle' | translate }}</p>
+            <span>{{ 'customerAccountSummary.emptyHint' | translate }}</span>
         </div>
 
         <!-- Loading State -->
@@ -113,35 +113,35 @@
                 <div class="metric-card metric-primary">
                     <div class="metric-icon"><i class="pi pi-shopping-cart"></i></div>
                     <div class="metric-body">
-                        <span class="metric-label">Total Purchase</span>
+                        <span class="metric-label">{{ 'customerAccountSummary.totalPurchase' | translate }}</span>
                         <span class="metric-value">{{ formatCurrency(summary()!.totalPurchaseAmount) }}</span>
-                        <span class="metric-helper">{{ summary()!.totalInvoices }} invoice(s)</span>
+                        <span class="metric-helper">{{ 'customerAccountSummary.invoiceCount' | translate:{ count: summary()!.totalInvoices } }}</span>
                     </div>
                 </div>
                 <div class="metric-card metric-success">
                     <div class="metric-icon"><i class="pi pi-check-circle"></i></div>
                     <div class="metric-body">
-                        <span class="metric-label">Total Paid</span>
+                        <span class="metric-label">{{ 'customerAccountSummary.totalPaid' | translate }}</span>
                         <span class="metric-value">{{ formatCurrency(summary()!.totalPaidAmount) }}</span>
                     </div>
                 </div>
                 <div class="metric-card" [ngClass]="summary()!.currentDue > 0 ? 'metric-danger' : 'metric-success'">
                     <div class="metric-icon"><i class="pi pi-exclamation-triangle"></i></div>
                     <div class="metric-body">
-                        <span class="metric-label">Current Due</span>
+                        <span class="metric-label">{{ 'customerAccountSummary.currentDue' | translate }}</span>
                         <span class="metric-value">{{ formatCurrency(summary()!.currentDue) }}</span>
-                        <span class="metric-helper" *ngIf="summary()!.currentDue <= 0">All paid up!</span>
+                        <span class="metric-helper" *ngIf="summary()!.currentDue <= 0">{{ 'customerAccountSummary.allPaidUp' | translate }}</span>
                     </div>
                 </div>
                 <div class="metric-card metric-info">
                     <div class="metric-icon"><i class="pi pi-history"></i></div>
                     <div class="metric-body">
-                        <span class="metric-label">Last Payment</span>
+                        <span class="metric-label">{{ 'customerAccountSummary.lastPayment' | translate }}</span>
                         <span class="metric-value">
                             {{ summary()!.lastPaymentDate ? formatCurrency(summary()!.lastPaymentAmount) : '—' }}
                         </span>
-                        <span class="metric-helper" *ngIf="summary()!.lastPaymentDate">on {{ formatDate(summary()!.lastPaymentDate!) }}</span>
-                        <span class="metric-helper" *ngIf="!summary()!.lastPaymentDate">No payments yet</span>
+                        <span class="metric-helper" *ngIf="summary()!.lastPaymentDate">{{ 'customerAccountSummary.lastPaymentOn' | translate:{ date: formatDate(summary()!.lastPaymentDate!) } }}</span>
+                        <span class="metric-helper" *ngIf="!summary()!.lastPaymentDate">{{ 'customerAccountSummary.noPaymentsYet' | translate }}</span>
                     </div>
                 </div>
             </div>
@@ -149,23 +149,23 @@
             <!-- Purchase Items Table -->
             <div class="as-table-section">
                 <div class="table-header-row">
-                    <h3 class="table-title">Purchase Items</h3>
-                    <span class="table-count">{{ summary()!.purchaseItemsTotalCount }} items</span>
+                    <h3 class="table-title">{{ 'customerAccountSummary.purchaseItems' | translate }}</h3>
+                    <span class="table-count">{{ 'customerAccountSummary.itemsCount' | translate:{ count: summary()!.purchaseItemsTotalCount } }}</span>
                 </div>
 
                 <!-- Desktop Table -->
                 <div class="desktop-view">
                     <div class="as-list-header">
-                        <span class="col-date">Invoice Date</span>
-                        <span class="col-invoice">Invoice #</span>
-                        <span class="col-status">Status</span>
-                        <span class="col-item">Item Name</span>
-                        <span class="col-vehicle">Vehicle</span>
-                        <span class="col-part">Part #</span>
-                        <span class="col-qty">Qty</span>
-                        <span class="col-price">Unit Price</span>
-                        <span class="col-disc">Discount</span>
-                        <span class="col-total">Line Total</span>
+                        <span class="col-date">{{ 'customerAccountSummary.columns.invoiceDate' | translate }}</span>
+                        <span class="col-invoice">{{ 'customerAccountSummary.columns.invoiceNumber' | translate }}</span>
+                        <span class="col-status">{{ 'common.labels.status' | translate }}</span>
+                        <span class="col-item">{{ 'customerAccountSummary.columns.itemName' | translate }}</span>
+                        <span class="col-vehicle">{{ 'customerAccountSummary.columns.vehicle' | translate }}</span>
+                        <span class="col-part">{{ 'customerAccountSummary.columns.partNumber' | translate }}</span>
+                        <span class="col-qty">{{ 'common.document.qty' | translate }}</span>
+                        <span class="col-price">{{ 'common.labels.unitPrice' | translate }}</span>
+                        <span class="col-disc">{{ 'common.labels.discount' | translate }}</span>
+                        <span class="col-total">{{ 'customerAccountSummary.columns.lineTotal' | translate }}</span>
                     </div>
                     <div class="as-list-body">
                         <div class="as-list-item" *ngFor="let item of summary()!.purchaseItems">
@@ -185,7 +185,7 @@
                             <div class="col-total bold">{{ formatCurrency(item.lineTotal) }}</div>
                         </div>
                         <div *ngIf="summary()!.purchaseItems.length === 0" class="as-list-empty">
-                            No purchase items found for the selected criteria
+                            {{ 'customerAccountSummary.noPurchaseItems' | translate }}
                         </div>
                     </div>
                 </div>
@@ -204,33 +204,33 @@
                         </div>
                         <div class="mobile-card-body">
                             <div class="mobile-field">
-                                <label>Invoice</label>
+                                <label>{{ 'customerAccountSummary.mobileInvoice' | translate }}</label>
                                 <span class="mono">{{ item.invoiceNumber }}</span>
                             </div>
                             <div class="mobile-field">
-                                <label>Date</label>
+                                <label>{{ 'common.labels.date' | translate }}</label>
                                 <span>{{ formatDate(item.invoiceDate) }}</span>
                             </div>
                             <div class="mobile-field" *ngIf="item.vehicleLabel">
-                                <label>Vehicle</label>
+                                <label>{{ 'customerAccountSummary.columns.vehicle' | translate }}</label>
                                 <span>{{ item.vehicleLabel }}</span>
                             </div>
                             <div class="mobile-field">
-                                <label>Qty</label>
+                                <label>{{ 'common.document.qty' | translate }}</label>
                                 <span>{{ item.quantity }}</span>
                             </div>
                             <div class="mobile-field">
-                                <label>Price</label>
+                                <label>{{ 'common.labels.price' | translate }}</label>
                                 <span>{{ formatCurrency(item.unitPrice) }}</span>
                             </div>
                             <div class="mobile-field total">
-                                <label>Total</label>
+                                <label>{{ 'common.labels.total' | translate }}</label>
                                 <strong>{{ formatCurrency(item.lineTotal) }}</strong>
                             </div>
                         </div>
                     </div>
                     <div *ngIf="summary()!.purchaseItems.length === 0" class="as-list-empty">
-                        No purchase items found
+                        {{ 'customerAccountSummary.noPurchaseItemsShort' | translate }}
                     </div>
                 </div>
 
@@ -239,11 +239,148 @@
                     [first]="first"
                     [pageSize]="pageSize"
                     [totalRecords]="summary()!.purchaseItemsTotalCount"
-                    itemLabel="items"
+                    [itemLabel]="'customerAccountSummary.itemsLabel' | translate"
                     (pageChange)="goToPage($event)"
                     (pageSizeChange)="onPageSizeChange($event)">
                 </app-data-pagination>
             </div>
+
+            <!-- Ageing (Receivables) -->
+            @if (agingRow(); as aging) {
+                <div class="as-table-section">
+                    <div class="table-header-row">
+                        <h3 class="table-title">{{ 'customerAccountSummary.receivablesAgeing' | translate }}</h3>
+                    </div>
+                    <div class="aging-panel">
+                        <div class="aging-bucket">
+                            <span class="aging-bucket-label">{{ 'customerAccountSummary.ageing.current' | translate }}</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar" [style.width.%]="(aging.currentAmount / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.currentAmount) }}</span>
+                        </div>
+                        <div class="aging-bucket">
+                            <span class="aging-bucket-label">{{ 'customerAccountSummary.ageing.days1To30' | translate }}</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar" [style.width.%]="(aging.days1To30 / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.days1To30) }}</span>
+                        </div>
+                        <div class="aging-bucket">
+                            <span class="aging-bucket-label">{{ 'customerAccountSummary.ageing.days31To60' | translate }}</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar" [style.width.%]="(aging.days31To60 / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.days31To60) }}</span>
+                        </div>
+                        <div class="aging-bucket">
+                            <span class="aging-bucket-label">{{ 'customerAccountSummary.ageing.days61To90' | translate }}</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar" [style.width.%]="(aging.days61To90 / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.days61To90) }}</span>
+                        </div>
+                        <div class="aging-bucket aging-bucket-overdue">
+                            <span class="aging-bucket-label">{{ 'customerAccountSummary.ageing.days90Plus' | translate }}</span>
+                            <div class="aging-bar-track">
+                                <div class="aging-bar aging-bar-overdue" [style.width.%]="(aging.days90Plus / agingMaxBucket(aging)) * 100"></div>
+                            </div>
+                            <span class="aging-bucket-value">{{ formatCurrency(aging.days90Plus) }}</span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Account Ledger -->
+            @if (ledgerSummary(); as ledger) {
+                <div class="as-table-section">
+                    <div class="table-header-row">
+                        <h3 class="table-title">{{ 'customerAccountSummary.accountLedger' | translate }}</h3>
+                        <span class="table-count">{{ 'customerAccountSummary.entriesCount' | translate:{ count: ledgerTotalCount() } }}</span>
+                    </div>
+
+                    <!-- Desktop Table -->
+                    <div class="desktop-view">
+                        <div class="as-list-header">
+                            <span class="col-date">{{ 'common.labels.date' | translate }}</span>
+                            <span class="col-type">{{ 'customerAccountSummary.columns.type' | translate }}</span>
+                            <span class="col-ref">{{ 'customerAccountSummary.columns.referenceNumber' | translate }}</span>
+                            <span class="col-desc">{{ 'common.labels.description' | translate }}</span>
+                            <span class="col-debit">{{ 'customerAccountSummary.columns.debit' | translate }}</span>
+                            <span class="col-credit">{{ 'customerAccountSummary.columns.credit' | translate }}</span>
+                            <span class="col-balance">{{ 'customerAccountSummary.columns.balance' | translate }}</span>
+                        </div>
+                        <div class="as-list-body">
+                            <div class="as-list-item" *ngFor="let entry of ledgerEntries()">
+                                <div class="col-date">{{ formatDate(entry.transactionDate) }}</div>
+                                <div class="col-type">
+                                    <span class="type-pill" [attr.data-type]="getLedgerTransactionTypeStatus(entry.transactionType)">
+                                        {{ getLedgerTransactionTypeLabel(entry.transactionType) }}
+                                    </span>
+                                </div>
+                                <div class="col-ref mono">{{ entry.referenceNumber || '-' }}</div>
+                                <div class="col-desc">{{ entry.description || '-' }}</div>
+                                <div class="col-debit" [class.text-debit]="entry.debitAmount > 0">
+                                    {{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}
+                                </div>
+                                <div class="col-credit" [class.text-credit]="entry.creditAmount > 0">
+                                    {{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}
+                                </div>
+                                <div class="col-balance bold">{{ formatCurrency(entry.runningBalance) }}</div>
+                            </div>
+                            <div *ngIf="ledgerEntries().length === 0" class="as-list-empty">
+                                {{ 'customerAccountSummary.noLedgerEntries' | translate }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Cards -->
+                    <div class="mobile-view">
+                        <div class="as-mobile-card" *ngFor="let entry of ledgerEntries()">
+                            <div class="mobile-card-header">
+                                <div class="mobile-card-title">
+                                    <div class="item-name">{{ getLedgerTransactionTypeLabel(entry.transactionType) }}</div>
+                                    <div class="item-meta">{{ entry.referenceNumber || '-' }}</div>
+                                </div>
+                                <span class="type-pill" [attr.data-type]="getLedgerTransactionTypeStatus(entry.transactionType)">
+                                    {{ (entry.debitAmount > 0 ? 'customerAccountSummary.debitShort' : 'customerAccountSummary.creditShort') | translate }}
+                                </span>
+                            </div>
+                            <div class="mobile-card-body">
+                                <div class="mobile-field">
+                                    <label>{{ 'common.labels.date' | translate }}</label>
+                                    <span>{{ formatDate(entry.transactionDate) }}</span>
+                                </div>
+                                <div class="mobile-field">
+                                    <label>{{ 'customerAccountSummary.columns.debit' | translate }}</label>
+                                    <span [class.text-debit]="entry.debitAmount > 0">{{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}</span>
+                                </div>
+                                <div class="mobile-field">
+                                    <label>{{ 'customerAccountSummary.columns.credit' | translate }}</label>
+                                    <span [class.text-credit]="entry.creditAmount > 0">{{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}</span>
+                                </div>
+                                <div class="mobile-field total">
+                                    <label>{{ 'customerAccountSummary.columns.balance' | translate }}</label>
+                                    <strong>{{ formatCurrency(entry.runningBalance) }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div *ngIf="ledgerEntries().length === 0" class="as-list-empty">
+                            {{ 'customerAccountSummary.noLedgerEntriesShort' | translate }}
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <app-data-pagination
+                        [first]="ledgerFirst"
+                        [pageSize]="ledgerPageSize"
+                        [totalRecords]="ledgerTotalCount()"
+                        [itemLabel]="'customerAccountSummary.entriesLabel' | translate"
+                        (pageChange)="goToLedgerPage($event)"
+                        (pageSizeChange)="onLedgerPageSizeChange($event)">
+                    </app-data-pagination>
+                </div>
+            }
         }
     </div>
 
@@ -251,15 +388,15 @@
     <div class="as-footer" *ngIf="summary()">
         <div class="as-footer-summary">
             <div class="summary-row">
-                <span>Total Purchase</span>
+                <span>{{ 'customerAccountSummary.totalPurchase' | translate }}</span>
                 <span class="value">{{ formatCurrency(summary()!.totalPurchaseAmount) }}</span>
             </div>
             <div class="summary-row">
-                <span>Total Paid</span>
+                <span>{{ 'customerAccountSummary.totalPaid' | translate }}</span>
                 <span class="value paid">{{ formatCurrency(summary()!.totalPaidAmount) }}</span>
             </div>
             <div class="summary-row total-row" [class.due]="summary()!.currentDue > 0">
-                <span>Current Due</span>
+                <span>{{ 'customerAccountSummary.currentDue' | translate }}</span>
                 <span class="value total-value">{{ formatCurrency(summary()!.currentDue) }}</span>
             </div>
         </div>

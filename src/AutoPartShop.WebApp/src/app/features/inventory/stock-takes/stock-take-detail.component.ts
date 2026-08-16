@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -20,6 +21,8 @@ import {
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { StatusDisplayService } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 type LineFilter = 'ALL' | 'UNCOUNTED' | 'VARIANCE';
 
@@ -36,7 +39,8 @@ type LineFilter = 'ALL' | 'UNCOUNTED' | 'VARIANCE';
     ConfirmDialogModule,
     SelectButtonModule,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './stock-take-detail.component.html',
@@ -50,6 +54,8 @@ export class StockTakeDetailComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   stockTake: StockTakeDetailResponse | null = null;
   loading = false;
@@ -60,18 +66,26 @@ export class StockTakeDetailComponent implements OnInit {
   draftCounts = new Map<string, number | null>();
   searchTerm = '';
   lineFilter: LineFilter = 'ALL';
-  lineFilterOptions = [
-    { label: 'All', value: 'ALL' as LineFilter },
-    { label: 'Uncounted', value: 'UNCOUNTED' as LineFilter },
-    { label: 'Variances', value: 'VARIANCE' as LineFilter }
-  ];
+  lineFilterOptions: { label: string; value: LineFilter }[] = [];
 
   /** Conflict lines returned by a failed approval (stock moved since counting). */
   approvalConflicts: string[] = [];
 
   ngOnInit(): void {
+    this.buildLineFilterOptions();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildLineFilterOptions();
+    });
     const id = this.route.snapshot.paramMap.get('id');
     if (id) this.load(id);
+  }
+
+  private buildLineFilterOptions(): void {
+    this.lineFilterOptions = [
+      { label: this.i18n.t('common.status.all'), value: 'ALL' },
+      { label: this.i18n.t('stockTakes.uncounted'), value: 'UNCOUNTED' },
+      { label: this.i18n.t('stockTakes.variances'), value: 'VARIANCE' }
+    ];
   }
 
   load(id: string): void {
@@ -84,7 +98,7 @@ export class StockTakeDetailComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load stock take' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('stockTakes.messages.loadOneFailed') });
         this.router.navigate(['/inventory/stock-takes']);
       }
     });
@@ -194,12 +208,20 @@ export class StockTakeDetailComponent implements OnInit {
     this.stockTakeService.recordCounts(this.stockTake.id, entries).subscribe({
       next: () => {
         this.saving = false;
-        this.messageService.add({ severity: 'success', summary: 'Counts Saved', detail: `${entries.length} line(s) updated` });
+        this.messageService.add({
+          severity: 'success',
+          summary: this.i18n.t('stockTakes.messages.countsSavedTitle'),
+          detail: this.i18n.t('stockTakes.messages.countsSavedDetail', { count: String(entries.length) })
+        });
         if (onSaved) onSaved(); else this.reload();
       },
       error: (err) => {
         this.saving = false;
-        this.messageService.add({ severity: 'error', summary: 'Save Failed', detail: extractApiError(err, 'Could not save counts') });
+        this.messageService.add({
+          severity: 'error',
+          summary: this.i18n.t('stockTakes.messages.saveFailedTitle'),
+          detail: extractApiError(err, this.i18n.t('stockTakes.messages.saveCountsFailed'))
+        });
       }
     });
   }
@@ -208,18 +230,22 @@ export class StockTakeDetailComponent implements OnInit {
     if (!this.stockTake) return;
     const uncounted = this.stockTake.lines.filter(l => this.effectiveCount(l) === null).length;
     const message = uncounted > 0
-      ? `${uncounted} line(s) are still uncounted and will be SKIPPED when adjustments are applied. Submit for review anyway?`
-      : 'Lock counting and move to variance review?';
+      ? this.i18n.t('stockTakes.messages.submitConfirmUncounted', { count: String(uncounted) })
+      : this.i18n.t('stockTakes.messages.submitConfirmClean');
 
     this.confirmationService.confirm({
       message,
-      header: 'Submit for Review',
+      header: this.i18n.t('common.actions.submitForReview'),
       icon: 'pi pi-question-circle',
       accept: () => this.saveCounts(() => {
         this.stockTakeService.submit(this.stockTake!.id).subscribe({
           next: () => this.reload(),
           error: (err) => {
-            this.messageService.add({ severity: 'error', summary: 'Submit Failed', detail: extractApiError(err, 'Could not submit') });
+            this.messageService.add({
+              severity: 'error',
+              summary: this.i18n.t('stockTakes.messages.submitFailedTitle'),
+              detail: extractApiError(err, this.i18n.t('stockTakes.messages.submitFailed'))
+            });
             this.reload();
           }
         });
@@ -234,7 +260,11 @@ export class StockTakeDetailComponent implements OnInit {
         this.approvalConflicts = [];
         this.reload();
       },
-      error: (err) => this.messageService.add({ severity: 'error', summary: 'Reopen Failed', detail: extractApiError(err, 'Could not reopen') })
+      error: (err) => this.messageService.add({
+        severity: 'error',
+        summary: this.i18n.t('stockTakes.messages.reopenFailedTitle'),
+        detail: extractApiError(err, this.i18n.t('stockTakes.messages.reopenFailed'))
+      })
     });
   }
 
@@ -243,9 +273,9 @@ export class StockTakeDetailComponent implements OnInit {
     const variances = this.varianceTotal;
     this.confirmationService.confirm({
       message: variances > 0
-        ? `Apply ${variances} variance adjustment(s) (${this.formatCurrency(this.varianceValueTotal)}) to stock now? This cannot be undone.`
-        : 'No variances found — complete this stock take without any stock changes?',
-      header: 'Approve Stock Take',
+        ? this.i18n.t('stockTakes.messages.approveConfirmVariances', { count: String(variances), value: this.formatCurrency(this.varianceValueTotal) })
+        : this.i18n.t('stockTakes.messages.approveConfirmClean'),
+      header: this.i18n.t('stockTakes.approveStockTake'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.approving = true;
@@ -255,14 +285,14 @@ export class StockTakeDetailComponent implements OnInit {
             this.approving = false;
             this.messageService.add({
               severity: 'success',
-              summary: 'Stock Take Completed',
-              detail: `${result.adjustmentsApplied} adjustment(s) applied, ${result.linesSkippedUncounted} uncounted line(s) skipped`
+              summary: this.i18n.t('stockTakes.messages.completedTitle'),
+              detail: this.i18n.t('stockTakes.messages.completedDetail', { applied: String(result.adjustmentsApplied), skipped: String(result.linesSkippedUncounted) })
             });
             if (result.lotSyncWarnings.length > 0) {
               this.messageService.add({
                 severity: 'warn',
-                summary: 'Lot Sync Warnings',
-                detail: `${result.lotSyncWarnings.length} line(s) adjusted with incomplete lot data — see stock lots`,
+                summary: this.i18n.t('stockTakes.messages.lotSyncWarningsTitle'),
+                detail: this.i18n.t('stockTakes.messages.lotSyncWarningsDetail', { count: String(result.lotSyncWarnings.length) }),
                 life: 8000
               });
             }
@@ -273,8 +303,8 @@ export class StockTakeDetailComponent implements OnInit {
             this.approvalConflicts = err?.error?.conflicts ?? [];
             this.messageService.add({
               severity: 'error',
-              summary: 'Approval Failed',
-              detail: extractApiError(err, 'Could not approve stock take'),
+              summary: this.i18n.t('stockTakes.messages.approvalFailedTitle'),
+              detail: extractApiError(err, this.i18n.t('stockTakes.messages.approvalFailed')),
               life: 8000
             });
           }
@@ -286,13 +316,17 @@ export class StockTakeDetailComponent implements OnInit {
   cancelStockTake(): void {
     if (!this.stockTake) return;
     this.confirmationService.confirm({
-      message: `Cancel stock take ${this.stockTake.stockTakeNumber}? Recorded counts are kept for reference but no stock will be adjusted.`,
-      header: 'Cancel Stock Take',
+      message: this.i18n.t('stockTakes.messages.cancelConfirm', { number: this.stockTake.stockTakeNumber }),
+      header: this.i18n.t('stockTakes.cancelStockTake'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.stockTakeService.cancel(this.stockTake!.id).subscribe({
           next: () => this.reload(),
-          error: (err) => this.messageService.add({ severity: 'error', summary: 'Cancel Failed', detail: extractApiError(err, 'Could not cancel') })
+          error: (err) => this.messageService.add({
+            severity: 'error',
+            summary: this.i18n.t('stockTakes.messages.cancelFailedTitle'),
+            detail: extractApiError(err, this.i18n.t('stockTakes.messages.cancelFailed'))
+          })
         });
       }
     });

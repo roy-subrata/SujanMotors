@@ -16,12 +16,14 @@ import { CustomerPaymentService, CreateCustomerPaymentRequest, CustomerPaymentRe
 import { CustomerService, CustomerResponse } from '../services/customer.service';
 import { InvoiceService, InvoiceResponse } from '../services/invoice.service';
 import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
-import { CUSTOMER_PAYMENT_METHODS, PaymentMethodOption, getPaymentMethodIcon as getMethodIcon } from '../../../shared/constants/payment-methods.constants';
+import { CUSTOMER_PAYMENT_METHODS, PaymentMethodOption, translateOptions, getPaymentMethodIcon as getMethodIcon } from '../../../shared/constants/payment-methods.constants';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { map } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-customer-payment-form',
@@ -39,7 +41,8 @@ import { of } from 'rxjs';
     TagModule,
     CheckboxModule,
     AppCurrencyPipe,
-    LazyAutocompleteComponent
+    LazyAutocompleteComponent,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './customer-payment-form.component.html',
@@ -55,6 +58,7 @@ export class CustomerPaymentFormComponent implements OnInit {
   private readonly invoiceService = inject(InvoiceService);
   private readonly paymentProviderService = inject(PaymentProviderService);
   private readonly currencyService = inject(CurrencyService);
+  private readonly i18n = inject(I18nService);
 
   form: FormGroup;
   loading = false;
@@ -69,7 +73,20 @@ export class CustomerPaymentFormComponent implements OnInit {
   paymentProviders: PaymentProviderResponse[] = [];
 
   // Use shared payment methods from centralized constants
-  paymentMethods: PaymentMethodOption[] = CUSTOMER_PAYMENT_METHODS;
+  /** Getter, not a field: resolving t() once at construction would freeze these labels
+   *  in whichever language was active then, instead of following the language switcher. */
+  get paymentMethods(): PaymentMethodOption[] {
+    return translateOptions(this.i18n, CUSTOMER_PAYMENT_METHODS, 'paymentMethods.customer');
+  }
+
+  /** Payment status is a server enum rendered directly in the success panel's tag. */
+  formatStatus(status: string): string {
+    if (!status) return '';
+    const key = 'customerPayments.statusOptions.' + status.toLowerCase()
+      .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+    const label = this.i18n.t(key);
+    return label === key ? status : label;
+  }
 
   // Lazy fetch function
   fetchCustomersLazy = (req: LazyRequest) =>
@@ -180,8 +197,8 @@ export class CustomerPaymentFormComponent implements OnInit {
         console.error('Error loading customer:', error);
         this.messageService.add({ 
           severity: 'error', 
-          summary: 'Error', 
-          detail: 'Failed to load customer details' 
+          summary: this.i18n.t('common.messages.error'), 
+          detail: this.i18n.t('customerPayments.form.messages.customerLoadFailed') 
         });
       }
     });
@@ -253,8 +270,8 @@ export class CustomerPaymentFormComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load customer payment'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('customerPayments.form.messages.loadFailed')
         });
         this.loading = false;
       }
@@ -265,8 +282,8 @@ export class CustomerPaymentFormComponent implements OnInit {
     if (!this.form.valid) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required fields'
+        summary: this.i18n.t('customerPayments.form.messages.validationTitle'),
+        detail: this.i18n.t('customerPayments.form.messages.fillRequired')
       });
       return;
     }
@@ -286,8 +303,8 @@ export class CustomerPaymentFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Customer payment updated successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('customerPayments.form.messages.updateSuccess')
           });
           this.loading = false;
           this.router.navigate(['/sales/customer-payments']);
@@ -295,8 +312,8 @@ export class CustomerPaymentFormComponent implements OnInit {
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to update customer payment')
+            summary: this.i18n.t('common.messages.error'),
+            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.form.messages.updateFailed'))
           });
           this.loading = false;
         }
@@ -331,8 +348,8 @@ export class CustomerPaymentFormComponent implements OnInit {
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to create customer payment')
+            summary: this.i18n.t('common.messages.error'),
+            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.form.messages.createFailed'))
           });
           this.loading = false;
         }
@@ -356,8 +373,8 @@ export class CustomerPaymentFormComponent implements OnInit {
         this.receiptLoading.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to generate receipt. Please try again.',
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('customerPayments.form.messages.receiptFailed'),
           life: 5000
         });
       }

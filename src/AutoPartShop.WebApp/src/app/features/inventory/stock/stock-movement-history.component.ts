@@ -16,6 +16,8 @@ import { StockService, StockMovementResponse } from '../services/stock.service';
 import { PartService } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-stock-movement-history',
@@ -32,7 +34,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     InputTextModule,
     SelectModule,
     DatePicker,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService],
   template: `
@@ -46,7 +49,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             <input
               type="text"
               [(ngModel)]="searchTerm"
-              placeholder="Search by part, warehouse, reference..."
+              [placeholder]="'stockMovements.searchPlaceholder' | translate"
               (keyup.enter)="onSearch()"
               class="search-input" />
             <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
@@ -59,7 +62,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
           <p-select
             [options]="movementTypeOptions"
             [(ngModel)]="filterType"
-            placeholder="Type"
+            [placeholder]="'stockMovements.typePlaceholder' | translate"
             [showClear]="true"
             (onChange)="onFilterChange()"
             appendTo="body"
@@ -71,7 +74,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
           <p-select
             [options]="statusOptions"
             [(ngModel)]="filterStatus"
-            placeholder="Status"
+            [placeholder]="'stockMovements.statusPlaceholder' | translate"
             [showClear]="true"
             (onChange)="onFilterChange()"
             appendTo="body"
@@ -86,7 +89,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             [showIcon]="true"
             [showButtonBar]="true"
             dateFormat="dd-M-yy"
-            placeholder="Date range"
+            [placeholder]="'stockMovements.dateRangePlaceholder' | translate"
             [maxDate]="today"
             (onSelect)="onDateChange()"
             (onClearButtonClick)="onClearDateRange()"
@@ -107,25 +110,25 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
       </div>
 
       <div *ngIf="hasActiveFilters()" class="active-filters">
-        <span class="active-filters-label">Active filters:</span>
+        <span class="active-filters-label">{{ 'stockMovements.activeFilters' | translate }}</span>
         <span *ngIf="searchTerm" class="filter-chip">
-          Search: "{{ searchTerm }}"
+          {{ 'stockMovements.chips.search' | translate }}: "{{ searchTerm }}"
           <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
         </span>
         <span *ngIf="filterType" class="filter-chip">
-          Type: {{ filterType }}
+          {{ 'stockMovements.chips.type' | translate }}: {{ getMovementTypeLabel(filterType) }}
           <i class="pi pi-times" (click)="filterType = ''; onFilterChange()"></i>
         </span>
         <span *ngIf="filterStatus" class="filter-chip">
-          Status: {{ filterStatus }}
+          {{ 'stockMovements.chips.status' | translate }}: {{ getStatusLabel(filterStatus) }}
           <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
         </span>
         <span *ngIf="dateRange && dateRange[0]" class="filter-chip">
-          From: {{ dateRange[0] | date:'dd-MMM-yyyy' }}
+          {{ 'stockMovements.chips.from' | translate }}: {{ dateRange[0] | date:'dd-MMM-yyyy' }}
           <i class="pi pi-times" (click)="onClearDateRange()"></i>
         </span>
         <span *ngIf="dateRange && dateRange[1]" class="filter-chip">
-          To: {{ dateRange[1] | date:'dd-MMM-yyyy' }}
+          {{ 'stockMovements.chips.to' | translate }}: {{ dateRange[1] | date:'dd-MMM-yyyy' }}
           <i class="pi pi-times" (click)="onClearDateRange()"></i>
         </span>
       </div>
@@ -140,13 +143,13 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         <!-- Header Template -->
         <ng-template pTemplate="header">
           <tr>
-            <th style="width: 15%">Date & Time</th>
-            <th style="width: 15%">Part</th>
-            <th style="width: 15%">Warehouse</th>
-            <th style="width: 10%" class="text-right">Quantity</th>
-            <th style="width: 12%">Type</th>
-            <th style="width: 12%">Status</th>
-            <th style="width: 20%">Notes / Reference</th>
+            <th style="width: 15%">{{ 'stockMovements.columns.dateTime' | translate }}</th>
+            <th style="width: 15%">{{ 'stockMovements.columns.part' | translate }}</th>
+            <th style="width: 15%">{{ 'stockMovements.columns.warehouse' | translate }}</th>
+            <th style="width: 10%" class="text-right">{{ 'stockMovements.columns.quantity' | translate }}</th>
+            <th style="width: 12%">{{ 'stockMovements.columns.type' | translate }}</th>
+            <th style="width: 12%">{{ 'stockMovements.columns.status' | translate }}</th>
+            <th style="width: 20%">{{ 'stockMovements.columns.notes' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -183,7 +186,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             </td>
             <td>
               <p-tag
-                [value]="movement.status"
+                [value]="getStatusLabel(movement.status)"
                 [severity]="getStatusSeverity(movement.status)">
               </p-tag>
             </td>
@@ -203,7 +206,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
           <tr>
             <td colspan="7" class="text-center py-4">
               <i class="pi pi-inbox mr-2"></i>
-              No stock movements found
+              {{ 'stockMovements.empty' | translate }}
             </td>
           </tr>
         </ng-template>
@@ -213,7 +216,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         [first]="first"
         [pageSize]="pageSize"
         [totalRecords]="totalRecords"
-        itemLabel="movements"
+        [itemLabel]="'stockMovements.itemLabel' | translate"
         (pageChange)="goToPage($event)"
         (pageSizeChange)="onPageSizeChange($event)">
       </app-data-pagination>
@@ -497,6 +500,7 @@ export class StockMovementHistoryComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   movements: StockMovementResponse[] = [];
   warehouses: WarehouseResponse[] = [];
@@ -517,20 +521,26 @@ export class StockMovementHistoryComponent implements OnInit {
   dateRange: Date[] = [];
   today = new Date();
 
-  movementTypeOptions = [
-    { label: 'All Types', value: '' },
-    { label: 'Stock In', value: 'IN' },
-    { label: 'Stock Out', value: 'OUT' },
-    { label: 'Return', value: 'RETURN' },
-    { label: 'Adjustment', value: 'ADJUST' },
-    { label: 'Transfer', value: 'TRANSFER' }
-  ];
+  /** Getters, not fields: resolving t() once at construction would freeze the labels in whichever
+   *  language happened to be active then, instead of following the language switcher. */
+  get movementTypeOptions() {
+    return [
+      { label: this.i18n.t('stockMovements.typeOptions.all'), value: '' },
+      { label: this.i18n.t('stockMovements.types.IN'), value: 'IN' },
+      { label: this.i18n.t('stockMovements.types.OUT'), value: 'OUT' },
+      { label: this.i18n.t('stockMovements.types.RETURN'), value: 'RETURN' },
+      { label: this.i18n.t('stockMovements.types.ADJUST'), value: 'ADJUST' },
+      { label: this.i18n.t('stockMovements.types.TRANSFER'), value: 'TRANSFER' }
+    ];
+  }
 
-  statusOptions = [
-    { label: 'All Statuses', value: '' },
-    { label: 'Pending', value: 'PENDING' },
-    { label: 'Approved', value: 'APPROVED' }
-  ];
+  get statusOptions() {
+    return [
+      { label: this.i18n.t('stockMovements.statusOptions.all'), value: '' },
+      { label: this.i18n.t('stockMovements.statuses.PENDING'), value: 'PENDING' },
+      { label: this.i18n.t('stockMovements.statuses.APPROVED'), value: 'APPROVED' }
+    ];
+  }
 
   ngOnInit(): void {
     this.loadAllData();
@@ -551,8 +561,8 @@ export class StockMovementHistoryComponent implements OnInit {
           this.loading = false;
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to load reference data'
+            summary: this.i18n.t('common.messages.error'),
+            detail: this.i18n.t('stockMovements.messages.loadReferenceFailed')
           });
         }
       });
@@ -604,8 +614,8 @@ export class StockMovementHistoryComponent implements OnInit {
       error: (_error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load stock movements'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('stockMovements.messages.loadFailed')
         });
         this.loading = false;
       }
@@ -672,7 +682,7 @@ export class StockMovementHistoryComponent implements OnInit {
       return code ? `${name} (${code})` : name;
     }
     // Fallback: resolve on demand (movement rows normally already carry partName/displayName).
-    return movement.partId ? this.resolvePartLabel(movement.partId) : 'Unknown Part';
+    return movement.partId ? this.resolvePartLabel(movement.partId) : this.i18n.t('stockMovements.unknownPart');
   }
 
   getWarehouseDisplay(movement: StockMovementResponse): string {
@@ -685,7 +695,7 @@ export class StockMovementHistoryComponent implements OnInit {
     if (warehouse) {
       return warehouse.code ? `${warehouse.name} (${warehouse.code})` : warehouse.name;
     }
-    return movement.warehouseId || 'Unknown Warehouse';
+    return movement.warehouseId || this.i18n.t('stockMovements.unknownWarehouse');
   }
 
   // Keep old methods for backward compatibility
@@ -703,18 +713,17 @@ export class StockMovementHistoryComponent implements OnInit {
   }
 
   getMovementTypeLabel(type: string): string {
-    const types: { [key: string]: string } = {
-      'IN': 'Stock In',
-      'OUT': 'Stock Out',
-      'RETURN': 'Return',
-      'ADJUST': 'Adjustment',
-      'ADJUSTMENT': 'Adjustment',
-      'TRANSFER': 'Transfer',
-      'DAMAGE': 'Damage',
-      'SHRINKAGE': 'Shrinkage',
-      'COUNT_CORRECTION': 'Count Correction'
-    };
-    return types[type] || type;
+    if (!type) return '';
+    const key = 'stockMovements.types.' + type;
+    const label = this.i18n.t(key);
+    return label === key ? type : label;
+  }
+
+  getStatusLabel(status: string): string {
+    if (!status) return '';
+    const key = 'stockMovements.statuses.' + status;
+    const label = this.i18n.t(key);
+    return label === key ? status : label;
   }
 
   getMovementTypeSeverity(type: string): 'success' | 'info' | 'danger' | 'warn' {
@@ -792,19 +801,19 @@ export class StockMovementHistoryComponent implements OnInit {
     const reason = movement.reason || '';
 
     if (ref.startsWith('PR-')) {
-      return 'Returned to supplier';
+      return this.i18n.t('stockMovements.descriptions.returnedToSupplier');
     } else if (ref.startsWith('INV-') || reason.includes('Quick Sale')) {
-      return 'Quick sale to customer';
+      return this.i18n.t('stockMovements.descriptions.quickSale');
     } else if (ref.startsWith('SO-') || ref.startsWith('Sales Order')) {
-      return 'Sold to customer';
+      return this.i18n.t('stockMovements.descriptions.soldToCustomer');
     } else if (ref.startsWith('SR-') || ref.includes('Sales Return')) {
-      return 'Returned by customer';
+      return this.i18n.t('stockMovements.descriptions.returnedByCustomer');
     } else if (ref.startsWith('GRN-') || ref.includes('GRN')) {
-      return 'Received from supplier';
+      return this.i18n.t('stockMovements.descriptions.receivedFromSupplier');
     } else if (ref.startsWith('ADJ-')) {
-      return 'Stock adjustment';
+      return this.i18n.t('stockMovements.descriptions.stockAdjustment');
     } else if (ref.startsWith('TRF-')) {
-      return 'Warehouse transfer';
+      return this.i18n.t('stockMovements.descriptions.warehouseTransfer');
     }
 
     return movement.notes || '';

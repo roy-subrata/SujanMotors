@@ -7,7 +7,7 @@
   [draggable]="false"
   [resizable]="false"
   [style]="{ width: '900px', maxWidth: '95vw' }"
-  header="Import Parts from Excel"
+  [header]="'parts.importDialog.header' | translate"
   [dismissableMask]="true">
 
   <!-- Error banner -->
@@ -19,46 +19,46 @@
   <!-- ==================== STEP 1: UPLOAD ==================== -->
   <div *ngIf="step === 'upload'" class="import-step">
     <fieldset class="import-mode">
-      <legend>What should this import do?</legend>
+      <legend>{{ 'parts.importDialog.modeLegend' | translate }}</legend>
 
       <label class="mode-option" [class.selected]="mode === 'CreateOnly'">
         <input type="radio" name="importMode" value="CreateOnly" [(ngModel)]="mode" (ngModelChange)="onModeChange()" />
         <span class="mode-text">
-          <strong>Create new parts only</strong>
-          <small>Rows that carry a SKU are rejected. Existing parts are never touched.</small>
+          <strong>{{ 'parts.importDialog.modeCreateOnlyTitle' | translate }}</strong>
+          <small>{{ 'parts.importDialog.modeCreateOnlyHint' | translate }}</small>
         </span>
       </label>
 
       <label class="mode-option" [class.selected]="mode === 'CreateAndUpdate'">
         <input type="radio" name="importMode" value="CreateAndUpdate" [(ngModel)]="mode" (ngModelChange)="onModeChange()" />
         <span class="mode-text">
-          <strong>Create and update</strong>
-          <small>A row with a SKU updates that part; blank SKU still creates a new one. Requires edit permission.</small>
+          <strong>{{ 'parts.importDialog.modeCreateAndUpdateTitle' | translate }}</strong>
+          <small>{{ 'parts.importDialog.modeCreateAndUpdateHint' | translate }}</small>
         </span>
       </label>
     </fieldset>
 
     <ol class="import-instructions">
-      <li>To <strong>add</strong> parts, download the blank template and fill in one part per row.</li>
-      <li>To <strong>update</strong> parts, export the current ones, edit the rows in Excel, and upload the same file back &mdash; the SKU column tells the import which part each row belongs to.</li>
-      <li><strong>SKU</strong> is the key. Leave it blank to create a new part; keep the exported SKU to update that part (create-and-update mode only). On an update, a blank cell keeps the current value &mdash; it never clears data.</li>
-      <li><strong>Category</strong> supports hierarchy using <code>&gt;</code> (e.g., <code>Brake System &gt; Front Brakes</code>). Missing categories are created automatically.</li>
-      <li><strong>Brand</strong> and <strong>Unit</strong> are created automatically if they don't already exist &mdash; the review step lists any new ones so you can catch typos.</li>
-      <li>To import <strong>variants</strong>, fill in the Variant columns (Variant Name, Variant Code, etc.) on each row. Rows describing the same part become one product with multiple variants, matched by Variant Code.</li>
-      <li><strong>Part Number</strong> is optional &mdash; leave it blank for brands that don't publish a catalog code. Rows with the same Name and a blank Part Number are grouped as one product.</li>
-      <li><strong>Local Name</strong> is optional &mdash; the local-language name (e.g. Bengali) staff see alongside the English name.</li>
-      <li>Upload the completed file, review the validation report, then confirm the import.</li>
+      <li [innerHTML]="'parts.importDialog.instruction1' | translate"></li>
+      <li [innerHTML]="'parts.importDialog.instruction2' | translate"></li>
+      <li [innerHTML]="'parts.importDialog.instruction3' | translate"></li>
+      <li [innerHTML]="'parts.importDialog.instruction4' | translate"></li>
+      <li [innerHTML]="'parts.importDialog.instruction5' | translate"></li>
+      <li [innerHTML]="'parts.importDialog.instruction6' | translate"></li>
+      <li [innerHTML]="'parts.importDialog.instruction7' | translate"></li>
+      <li [innerHTML]="'parts.importDialog.instruction8' | translate"></li>
+      <li>{{ 'parts.importDialog.instruction9' | translate }}</li>
     </ol>
 
     <div class="import-actions-row">
       <button class="btn-secondary" (click)="downloadTemplate()" [disabled]="downloading">
         <i class="pi" [ngClass]="downloading ? 'pi-spin pi-spinner' : 'pi-download'"></i>
-        <span>Download Blank Template</span>
+        <span>{{ 'parts.importDialog.downloadTemplateButton' | translate }}</span>
       </button>
       <button class="btn-secondary" (click)="downloadExport()" [disabled]="exporting"
-        pTooltip="Current parts with their SKUs — edit and upload back to update them" tooltipPosition="bottom">
+        [pTooltip]="'parts.importDialog.exportTooltip' | translate" tooltipPosition="bottom">
         <i class="pi" [ngClass]="exporting ? 'pi-spin pi-spinner' : 'pi-file-excel'"></i>
-        <span>Export Current Parts</span>
+        <span>{{ 'parts.importDialog.exportCurrentPartsButton' | translate }}</span>
       </button>
     </div>
 
@@ -77,46 +77,46 @@
     <div class="import-summary">
       <div class="summary-stat">
         <span class="stat-value">{{ validation.totalRows }}</span>
-        <span class="stat-label">Total rows</span>
+        <span class="stat-label">{{ 'parts.importDialog.totalRows' | translate }}</span>
       </div>
       <div class="summary-stat valid">
         <span class="stat-value">{{ validation.validCount }}</span>
-        <span class="stat-label">Valid</span>
+        <span class="stat-label">{{ 'parts.importDialog.valid' | translate }}</span>
       </div>
       <div class="summary-stat error">
         <span class="stat-value">{{ validation.errorCount }}</span>
-        <span class="stat-label">With errors</span>
+        <span class="stat-label">{{ 'parts.importDialog.withErrors' | translate }}</span>
       </div>
       <div class="summary-stat">
         <span class="stat-value">{{ validation.createCount }}</span>
-        <span class="stat-label">Parts to create</span>
+        <span class="stat-label">{{ 'parts.importDialog.partsToCreate' | translate }}</span>
       </div>
       <div class="summary-stat" *ngIf="mode === 'CreateAndUpdate'">
         <span class="stat-value">{{ validation.updateCount }}</span>
-        <span class="stat-label">Parts to update</span>
+        <span class="stat-label">{{ 'parts.importDialog.partsToUpdate' | translate }}</span>
       </div>
     </div>
 
     <p *ngIf="validation.errorCount > 0" class="import-hint">
-      Only the {{ validation.validCount }} valid row(s) will be imported. Fix the errors below in your file and re-upload to import the rest.
+      {{ 'parts.importDialog.validRowsHint' | translate: { count: validation.validCount + '' } }}
     </p>
 
     <!-- Master data that will be created on commit — a typo shows up here first -->
     <div *ngIf="hasNewReferenceData" class="import-new-refs">
       <div class="new-refs-title">
         <i class="pi pi-info-circle"></i>
-        <span>These will be created as new records. Check for spelling mistakes before importing.</span>
+        <span>{{ 'parts.importDialog.newRefsWarning' | translate }}</span>
       </div>
       <div *ngIf="validation.newBrands.length" class="new-refs-group">
-        <span class="new-refs-label">New brands ({{ validation.newBrands.length }}):</span>
+        <span class="new-refs-label">{{ 'parts.importDialog.newBrandsLabel' | translate: { count: validation.newBrands.length + '' } }}</span>
         <span class="new-refs-values">{{ validation.newBrands.join(', ') }}</span>
       </div>
       <div *ngIf="validation.newCategories.length" class="new-refs-group">
-        <span class="new-refs-label">New categories ({{ validation.newCategories.length }}):</span>
+        <span class="new-refs-label">{{ 'parts.importDialog.newCategoriesLabel' | translate: { count: validation.newCategories.length + '' } }}</span>
         <span class="new-refs-values">{{ validation.newCategories.join(', ') }}</span>
       </div>
       <div *ngIf="validation.newUnits.length" class="new-refs-group">
-        <span class="new-refs-label">New units ({{ validation.newUnits.length }}):</span>
+        <span class="new-refs-label">{{ 'parts.importDialog.newUnitsLabel' | translate: { count: validation.newUnits.length + '' } }}</span>
         <span class="new-refs-values">{{ validation.newUnits.join(', ') }}</span>
       </div>
     </div>
@@ -125,23 +125,23 @@
       <p-table [value]="validation.rows" [scrollable]="true" scrollHeight="320px" styleClass="app-table import-table">
         <ng-template #header>
           <tr>
-            <th style="width: 70px">Row</th>
-            <th style="width: 90px">Status</th>
-            <th style="width: 90px">Action</th>
-            <th>Name</th>
-            <th style="width: 130px">Part No.</th>
-            <th>Issues</th>
+            <th style="width: 70px">{{ 'parts.importDialog.columnRow' | translate }}</th>
+            <th style="width: 90px">{{ 'common.labels.status' | translate }}</th>
+            <th style="width: 90px">{{ 'parts.importDialog.columnAction' | translate }}</th>
+            <th>{{ 'common.labels.name' | translate }}</th>
+            <th style="width: 130px">{{ 'parts.columnPartNo' | translate }}</th>
+            <th>{{ 'parts.importDialog.columnIssues' | translate }}</th>
           </tr>
         </ng-template>
         <ng-template #body let-r>
           <tr [class.row-error]="!r.isValid">
             <td>{{ r.rowNumber }}</td>
             <td>
-              <p-tag *ngIf="r.isValid" severity="success" value="Valid"></p-tag>
-              <p-tag *ngIf="!r.isValid" severity="danger" value="Error"></p-tag>
+              <p-tag *ngIf="r.isValid" severity="success" [value]="'parts.importDialog.statusValid' | translate"></p-tag>
+              <p-tag *ngIf="!r.isValid" severity="danger" [value]="'parts.importDialog.statusError' | translate"></p-tag>
             </td>
             <td>
-              <p-tag [severity]="r.action === 'Update' ? 'warn' : 'info'" [value]="r.action === 'Update' ? 'Update' : 'Create'"></p-tag>
+              <p-tag [severity]="r.action === 'Update' ? 'warn' : 'info'" [value]="(r.action === 'Update' ? 'common.actions.update' : 'common.actions.create') | translate"></p-tag>
             </td>
             <td>{{ r.name || '—' }}</td>
             <td>{{ r.partNumber || '—' }}</td>
@@ -162,13 +162,13 @@
     <div class="import-result-banner" [class.has-failures]="commitResult.failedCount > 0">
       <i class="pi" [ngClass]="commitResult.failedCount > 0 ? 'pi-exclamation-circle' : 'pi-check-circle'"></i>
       <div>
-        <strong>{{ commitResult.createdCount }} part(s) created<span *ngIf="commitResult.updatedCount">, {{ commitResult.updatedCount }} updated</span>.</strong>
-        <span *ngIf="commitResult.createdVariantsCount"> {{ commitResult.createdVariantsCount }} variant(s) created.</span>
-        <span *ngIf="commitResult.updatedVariantsCount"> {{ commitResult.updatedVariantsCount }} variant(s) updated.</span>
-        <span *ngIf="commitResult.createdBrandsCount"> {{ commitResult.createdBrandsCount }} brand(s) created.</span>
-        <span *ngIf="commitResult.createdCategoriesCount"> {{ commitResult.createdCategoriesCount }} category(ies) created.</span>
-        <span *ngIf="commitResult.createdUnitsCount"> {{ commitResult.createdUnitsCount }} unit(s) created.</span>
-        <span *ngIf="commitResult.failedCount > 0"> {{ commitResult.failedCount }} row(s) failed.</span>
+        <strong>{{ 'parts.importDialog.partsCreatedResult' | translate: { count: commitResult.createdCount + '' } }}<span *ngIf="commitResult.updatedCount">{{ 'parts.importDialog.andUpdatedResult' | translate: { count: commitResult.updatedCount + '' } }}</span>.</strong>
+        <span *ngIf="commitResult.createdVariantsCount"> {{ 'parts.importDialog.variantsCreatedResult' | translate: { count: commitResult.createdVariantsCount + '' } }}</span>
+        <span *ngIf="commitResult.updatedVariantsCount"> {{ 'parts.importDialog.variantsUpdatedResult' | translate: { count: commitResult.updatedVariantsCount + '' } }}</span>
+        <span *ngIf="commitResult.createdBrandsCount"> {{ 'parts.importDialog.brandsCreatedResult' | translate: { count: commitResult.createdBrandsCount + '' } }}</span>
+        <span *ngIf="commitResult.createdCategoriesCount"> {{ 'parts.importDialog.categoriesCreatedResult' | translate: { count: commitResult.createdCategoriesCount + '' } }}</span>
+        <span *ngIf="commitResult.createdUnitsCount"> {{ 'parts.importDialog.unitsCreatedResult' | translate: { count: commitResult.createdUnitsCount + '' } }}</span>
+        <span *ngIf="commitResult.failedCount > 0"> {{ 'parts.importDialog.rowsFailedResult' | translate: { count: commitResult.failedCount + '' } }}</span>
       </div>
     </div>
 
@@ -176,10 +176,10 @@
       <p-table [value]="commitResult.failures" [scrollable]="true" scrollHeight="280px" styleClass="app-table import-table">
         <ng-template #header>
           <tr>
-            <th style="width: 70px">Row</th>
-            <th>Name</th>
-            <th style="width: 130px">Part No.</th>
-            <th>Issues</th>
+            <th style="width: 70px">{{ 'parts.importDialog.columnRow' | translate }}</th>
+            <th>{{ 'common.labels.name' | translate }}</th>
+            <th style="width: 130px">{{ 'parts.columnPartNo' | translate }}</th>
+            <th>{{ 'parts.importDialog.columnIssues' | translate }}</th>
           </tr>
         </ng-template>
         <ng-template #body let-r>
@@ -201,23 +201,23 @@
   <!-- ==================== FOOTER ==================== -->
   <ng-template #footer>
     <ng-container *ngIf="step === 'upload'">
-      <button class="btn-secondary" (click)="close()">Cancel</button>
+      <button class="btn-secondary" (click)="close()">{{ 'common.actions.cancel' | translate }}</button>
       <button class="btn-primary" (click)="runValidate()" [disabled]="!selectedFile || validating">
         <i class="pi" [ngClass]="validating ? 'pi-spin pi-spinner' : 'pi-search'"></i>
-        <span>Validate</span>
+        <span>{{ 'parts.importDialog.validateButton' | translate }}</span>
       </button>
     </ng-container>
 
     <ng-container *ngIf="step === 'review'">
-      <button class="btn-secondary" (click)="backToUpload()" [disabled]="committing">Back</button>
+      <button class="btn-secondary" (click)="backToUpload()" [disabled]="committing">{{ 'common.actions.back' | translate }}</button>
       <button class="btn-primary" (click)="runCommit()" [disabled]="!canImport">
         <i class="pi" [ngClass]="committing ? 'pi-spin pi-spinner' : 'pi-check'"></i>
-        <span>Import {{ validation?.validCount || 0 }} valid row(s)</span>
+        <span>{{ 'parts.importDialog.importValidRowsButton' | translate: { count: (validation?.validCount || 0) + '' } }}</span>
       </button>
     </ng-container>
 
     <ng-container *ngIf="step === 'done'">
-      <button class="btn-primary" (click)="close()">Done</button>
+      <button class="btn-primary" (click)="close()">{{ 'parts.importDialog.doneButton' | translate }}</button>
     </ng-container>
   </ng-template>
 

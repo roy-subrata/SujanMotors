@@ -20,14 +20,14 @@
       <!-- Table Header -->
       <ng-template #header>
         <tr>
-          <th class="col-name">Name</th>
-          <th class="col-type">Type</th>
-          <th class="col-value">Value</th>
-          <th class="col-scope">Scope</th>
-          <th class="col-promo">Promo Code</th>
-          <th class="col-period">Valid Period</th>
-          <th class="col-status">Status</th>
-          <th class="col-actions">Actions</th>
+          <th class="col-name">{{ 'common.labels.name' | translate }}</th>
+          <th class="col-type">{{ 'common.labels.type' | translate }}</th>
+          <th class="col-value">{{ 'discounts.value' | translate }}</th>
+          <th class="col-scope">{{ 'discounts.scope' | translate }}</th>
+          <th class="col-promo">{{ 'discounts.promoCode' | translate }}</th>
+          <th class="col-period">{{ 'discounts.validPeriod' | translate }}</th>
+          <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+          <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -73,7 +73,7 @@
               {{ discount.promoCode }}
             </span>
             <span *ngIf="discount.scope === 'CART' && !discount.promoCode && discount.minimumCartAmount" class="threshold-text">
-              Min ৳{{ discount.minimumCartAmount.toLocaleString() }}
+              {{ 'discounts.minLabel' | translate }} ৳{{ discount.minimumCartAmount.toLocaleString() }}
             </span>
             <span *ngIf="discount.scope !== 'CART'" class="muted-text">-</span>
           </td>
@@ -93,7 +93,7 @@
           <!-- Actions -->
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, discount)">
+              <button class="btn-action" [pTooltip]="'common.labels.actions' | translate" (click)="showContextMenu($event, discount)">
                 <i class="pi pi-ellipsis-v"></i>
               </button>
             </div>
@@ -109,8 +109,8 @@
               <div class="empty-icon">
                 <i class="pi pi-percentage"></i>
               </div>
-              <h3>No Discounts Found</h3>
-              <p>Try adjusting your filters or create a new discount</p>
+              <h3>{{ 'discounts.noResultsTitle' | translate }}</h3>
+              <p>{{ 'discounts.noResultsHint' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -174,8 +174,8 @@
     <div class="empty-icon">
       <i class="pi pi-percentage"></i>
     </div>
-    <h3>No Discounts</h3>
-    <p>Try different filters or create a new discount</p>
+    <h3>{{ 'discounts.noResultsTitle' | translate }}</h3>
+    <p>{{ 'discounts.noResultsHint' | translate }}</p>
   </div>
 
   <!-- Discount Cards -->
@@ -216,7 +216,7 @@
           <span class="card-date">
             <i class="pi pi-ticket"></i>
             <span *ngIf="discount.promoCode">{{ discount.promoCode }}</span>
-            <span *ngIf="!discount.promoCode && discount.minimumCartAmount">Min ৳{{ discount.minimumCartAmount.toLocaleString() }}</span>
+            <span *ngIf="!discount.promoCode && discount.minimumCartAmount">{{ 'discounts.minLabel' | translate }} ৳{{ discount.minimumCartAmount.toLocaleString() }}</span>
           </span>
         </div>
       </div>

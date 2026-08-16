@@ -29,6 +29,8 @@ import { map } from 'rxjs/operators';
 import { ApplyCreditNotesComponent } from '../../purchase-credits/apply-credit-notes.component';
 import { CreditNoteService } from '../../services/credit-note.service';
 import { StatusDisplayService } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-purchase-order-form',
@@ -51,7 +53,8 @@ import { StatusDisplayService } from '@/shared/services/status-display.service';
         TextareaModule,
         TagModule,
         LazyAutocompleteComponent,
-        ApplyCreditNotesComponent
+        ApplyCreditNotesComponent,
+        TranslatePipe
     ],
     templateUrl: './purchase-order-form.component.html',
     styleUrls: ['./purchase-order-form.component.css'],
@@ -102,20 +105,25 @@ export class PurchaseOrderFormComponent implements OnInit {
     // Product search
     selectedPartToAdd: PartResponse | null = null;
 
-    paymentTermsOptions = [
-        { label: 'Net 15', value: 'NET15' },
-        { label: 'Net 30', value: 'NET30' },
-        { label: 'Net 45', value: 'NET45' },
-        { label: 'Net 60', value: 'NET60' },
-        { label: 'COD (Cash on Delivery)', value: 'COD' },
-        { label: 'Prepaid', value: 'PREPAID' }
-    ];
+    /** Getters, not fields: a field freezes the labels in the language active at construction. */
+    get paymentTermsOptions() {
+        return [
+            { label: this.i18n.t('purchaseOrders.form.paymentTerms.NET15'), value: 'NET15' },
+            { label: this.i18n.t('purchaseOrders.form.paymentTerms.NET30'), value: 'NET30' },
+            { label: this.i18n.t('purchaseOrders.form.paymentTerms.NET45'), value: 'NET45' },
+            { label: this.i18n.t('purchaseOrders.form.paymentTerms.NET60'), value: 'NET60' },
+            { label: this.i18n.t('purchaseOrders.form.paymentTerms.COD'), value: 'COD' },
+            { label: this.i18n.t('purchaseOrders.form.paymentTerms.PREPAID'), value: 'PREPAID' }
+        ];
+    }
 
-    priorityOptions = [
-        { label: 'Low', value: 'LOW', severity: 'info' },
-        { label: 'Medium', value: 'MEDIUM', severity: 'warning' },
-        { label: 'High', value: 'HIGH', severity: 'danger' }
-    ];
+    get priorityOptions() {
+        return [
+            { label: this.i18n.t('purchaseOrders.form.priorities.LOW'), value: 'LOW', severity: 'info' },
+            { label: this.i18n.t('purchaseOrders.form.priorities.MEDIUM'), value: 'MEDIUM', severity: 'warning' },
+            { label: this.i18n.t('purchaseOrders.form.priorities.HIGH'), value: 'HIGH', severity: 'danger' }
+        ];
+    }
 
     private readonly poService = inject(PurchaseOrderService);
     private readonly supplierService = inject(SupplierService);
@@ -125,6 +133,7 @@ export class PurchaseOrderFormComponent implements OnInit {
     private readonly currencyService = inject(CurrencyService);
     private readonly creditNoteService = inject(CreditNoteService);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
 
@@ -246,8 +255,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load purchase order'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('purchaseOrders.form.formMessages.loadFailed')
                 });
                 console.error('Error loading purchase order:', error);
             }
@@ -355,8 +364,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             this.markFormGroupTouched(this.form);
             this.messageService.add({
                 severity: 'error',
-                summary: 'Validation Error',
-                detail: 'Please fill all required fields'
+                summary: this.i18n.t('purchaseOrders.form.formMessages.validationError'),
+                detail: this.i18n.t('purchaseOrders.form.formMessages.fillRequired')
             });
             return;
         }
@@ -364,8 +373,8 @@ export class PurchaseOrderFormComponent implements OnInit {
         if (this.linesArray.length === 0) {
             this.messageService.add({
                 severity: 'error',
-                summary: 'Validation Error',
-                detail: 'Please add at least one product to the order'
+                summary: this.i18n.t('purchaseOrders.form.formMessages.validationError'),
+                detail: this.i18n.t('purchaseOrders.form.formMessages.addAtLeastOne')
             });
             return;
         }
@@ -404,8 +413,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             next: (po) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Purchase Order '${po.poNumber}' created successfully`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('purchaseOrders.form.formMessages.createSuccess', { number: po.poNumber })
                 });
                 setTimeout(() => {
                     this.router.navigate(['/procurement/purchase-orders']);
@@ -414,8 +423,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to create purchase order'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('purchaseOrders.form.formMessages.createFailed')
                 });
                 console.error('Error:', error);
                 this.isSubmitting = false;
@@ -451,8 +460,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             next: (po) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Purchase Order '${po.poNumber}' updated successfully`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('purchaseOrders.form.formMessages.updateSuccess', { number: po.poNumber })
                 });
                 setTimeout(() => {
                     this.router.navigate(['/procurement/purchase-orders']);
@@ -461,8 +470,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to update purchase order'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('purchaseOrders.form.formMessages.updateFailed')
                 });
                 console.error('Error:', error);
                 this.isSubmitting = false;
@@ -481,8 +490,8 @@ export class PurchaseOrderFormComponent implements OnInit {
         this.totalCreditApplied += amount;
         this.messageService.add({
             severity: 'success',
-            summary: 'Credit Applied',
-            detail: `${this.formatCurrency(amount)} credit applied to this purchase order`
+            summary: this.i18n.t('purchaseOrders.form.formMessages.creditAppliedSummary'),
+            detail: this.i18n.t('purchaseOrders.form.formMessages.creditAppliedDetail', { amount: this.formatCurrency(amount) })
         });
 
         // Reload PO to get updated data
@@ -562,13 +571,18 @@ export class PurchaseOrderFormComponent implements OnInit {
     }
 
     getPageTitle(): string {
-        if (this.mode === 'view') return 'View Purchase Order';
-        if (this.mode === 'edit') return 'Edit Purchase Order';
-        return 'Create New Purchase Order';
+        if (this.mode === 'view') return this.i18n.t('purchaseOrders.form.viewTitle');
+        if (this.mode === 'edit') return this.i18n.t('purchaseOrders.form.editTitle');
+        return this.i18n.t('purchaseOrders.form.createTitle');
     }
 
     getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
         return this.statusDisplay.getSeverity(status, 'purchase-order');
+    }
+
+    /** Localized status label; falls back to a humanized form when untranslated. */
+    statusLabel(status: string): string {
+        return this.statusDisplay.getLabel(status, 'purchaseOrders.statusOptions');
     }
 
     submitPurchaseOrder(): void {
@@ -576,24 +590,24 @@ export class PurchaseOrderFormComponent implements OnInit {
         if (!this.poId || !this.currentPO) return;
 
         this.confirmationService.confirm({
-            message: `Are you sure you want to submit Purchase Order ${this.currentPO.poNumber}?`,
-            header: 'Confirm Submission',
+            message: this.i18n.t('purchaseOrders.form.formMessages.submitConfirm', { number: this.currentPO.poNumber }),
+            header: this.i18n.t('purchaseOrders.form.formMessages.submitHeader'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.poService.submitPurchaseOrder(this.poId!).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: `Purchase Order ${this.currentPO!.poNumber} submitted successfully`
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('purchaseOrders.form.formMessages.submitSuccess', { number: this.currentPO!.poNumber })
                         });
                         this.loadPurchaseOrder(this.poId!);
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to submit purchase order'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('purchaseOrders.form.formMessages.submitFailed')
                         });
                         console.error('Error submitting purchase order:', error);
                     }
@@ -607,8 +621,8 @@ export class PurchaseOrderFormComponent implements OnInit {
         if (!this.poId || !this.currentPO) return;
 
         this.confirmationService.confirm({
-            message: `Are you sure you want to confirm Purchase Order ${this.currentPO.poNumber}? This action will make the order official and binding.`,
-            header: 'Confirm Purchase Order',
+            message: this.i18n.t('purchaseOrders.form.formMessages.confirmMessage', { number: this.currentPO.poNumber }),
+            header: this.i18n.t('purchaseOrders.form.formMessages.confirmHeader'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-success',
             accept: () => {
@@ -616,16 +630,16 @@ export class PurchaseOrderFormComponent implements OnInit {
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: `Purchase Order ${this.currentPO!.poNumber} confirmed successfully`
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('purchaseOrders.form.formMessages.confirmSuccess', { number: this.currentPO!.poNumber })
                         });
                         this.loadPurchaseOrder(this.poId!);
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to confirm purchase order'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('purchaseOrders.form.formMessages.confirmFailed')
                         });
                         console.error('Error confirming purchase order:', error);
                     }
@@ -638,8 +652,8 @@ export class PurchaseOrderFormComponent implements OnInit {
         if (!this.poId || !this.currentPO) return;
 
         this.confirmationService.confirm({
-            message: `Are you sure you want to cancel Purchase Order ${this.currentPO.poNumber}?`,
-            header: 'Confirm Cancellation',
+            message: this.i18n.t('purchaseOrders.form.formMessages.cancelConfirm', { number: this.currentPO.poNumber }),
+            header: this.i18n.t('purchaseOrders.form.formMessages.cancelHeader'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-warning',
             accept: () => {
@@ -647,16 +661,16 @@ export class PurchaseOrderFormComponent implements OnInit {
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: `Purchase Order ${this.currentPO!.poNumber} cancelled successfully`
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('purchaseOrders.form.formMessages.cancelSuccess', { number: this.currentPO!.poNumber })
                         });
                         this.loadPurchaseOrder(this.poId!);
                     },
                     error: (error) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.error?.message || 'Failed to cancel purchase order'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: error?.error?.message || this.i18n.t('purchaseOrders.form.formMessages.cancelFailed')
                         });
                         console.error('Error cancelling purchase order:', error);
                     }
@@ -686,8 +700,8 @@ export class PurchaseOrderFormComponent implements OnInit {
             existingLine.patchValue({ quantity: currentQty + 1 });
             this.messageService.add({
                 severity: 'info',
-                summary: 'Updated',
-                detail: `Increased quantity for ${displayLabel}`
+                summary: this.i18n.t('purchaseOrders.form.formMessages.updated'),
+                detail: this.i18n.t('purchaseOrders.form.formMessages.qtyIncreased', { name: displayLabel })
             });
         } else {
             const newLine = this.fb.group({
@@ -716,8 +730,8 @@ export class PurchaseOrderFormComponent implements OnInit {
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'Added',
-                detail: `Added ${displayLabel} to order`
+                summary: this.i18n.t('purchaseOrders.form.formMessages.added'),
+                detail: this.i18n.t('purchaseOrders.form.formMessages.addedDetail', { name: displayLabel })
             });
         }
 
@@ -775,8 +789,8 @@ export class PurchaseOrderFormComponent implements OnInit {
                 console.error('Error converting unit price:', err);
                 this.messageService.add({
                     severity: 'warn',
-                    summary: 'Unit Conversion Missing',
-                    detail: 'No conversion configured between the selected units.'
+                    summary: this.i18n.t('purchaseOrders.form.formMessages.unitConversionMissing'),
+                    detail: this.i18n.t('purchaseOrders.form.formMessages.unitConversionMissingDetail')
                 });
                 this.lineUnitSelection.set(lineIndex, nextUnitId);
             }
@@ -837,8 +851,8 @@ export class PurchaseOrderFormComponent implements OnInit {
         if (!this.currentPO) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Warning',
-                detail: 'No purchase order data available to print'
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('purchaseOrders.form.formMessages.noPrintData')
             });
             return;
         }

@@ -9,7 +9,7 @@
 
       <!-- Warehouse -->
       <div class="form-group">
-        <label for="warehouseId">Warehouse <span class="required">*</span></label>
+        <label for="warehouseId">{{ 'stock.warehouse' | translate }} <span class="required">*</span></label>
         <p-select
           inputId="warehouseId"
           formControlName="warehouseId"
@@ -18,7 +18,7 @@
           optionValue="value"
           [filter]="true"
           filterBy="label"
-          placeholder="Select a warehouse"
+          [placeholder]="'warehouseLocations.selectWarehousePlaceholder' | translate"
           appendTo="body"
           class="w-full"
           [class.ng-invalid]="hasError('warehouseId')">
@@ -31,13 +31,13 @@
       <!-- Zone / Aisle / Rack / Bin -->
       <div class="form-row form-row-4">
         <div class="form-group col">
-          <label for="zone">Zone <span class="required">*</span></label>
+          <label for="zone">{{ 'warehouseLocations.zone' | translate }} <span class="required">*</span></label>
           <input
             pInputText
             id="zone"
             type="text"
             formControlName="zone"
-            placeholder="e.g. A"
+            [placeholder]="'warehouseLocations.zonePlaceholder' | translate"
             maxlength="10"
             class="w-full"
             [class.ng-invalid]="hasError('zone')">
@@ -45,13 +45,13 @@
         </div>
 
         <div class="form-group col">
-          <label for="aisle">Aisle <span class="required">*</span></label>
+          <label for="aisle">{{ 'warehouseLocations.aisle' | translate }} <span class="required">*</span></label>
           <input
             pInputText
             id="aisle"
             type="text"
             formControlName="aisle"
-            placeholder="e.g. 04"
+            [placeholder]="'warehouseLocations.aislePlaceholder' | translate"
             maxlength="10"
             class="w-full"
             [class.ng-invalid]="hasError('aisle')">
@@ -59,13 +59,13 @@
         </div>
 
         <div class="form-group col">
-          <label for="rack">Rack <span class="required">*</span></label>
+          <label for="rack">{{ 'warehouseLocations.rack' | translate }} <span class="required">*</span></label>
           <input
             pInputText
             id="rack"
             type="text"
             formControlName="rack"
-            placeholder="e.g. B"
+            [placeholder]="'warehouseLocations.rackPlaceholder' | translate"
             maxlength="10"
             class="w-full"
             [class.ng-invalid]="hasError('rack')">
@@ -73,13 +73,13 @@
         </div>
 
         <div class="form-group col">
-          <label for="bin">Bin <span class="required">*</span></label>
+          <label for="bin">{{ 'warehouseLocations.bin' | translate }} <span class="required">*</span></label>
           <input
             pInputText
             id="bin"
             type="text"
             formControlName="bin"
-            placeholder="e.g. 12"
+            [placeholder]="'warehouseLocations.binPlaceholder' | translate"
             maxlength="10"
             class="w-full"
             [class.ng-invalid]="hasError('bin')">
@@ -89,7 +89,7 @@
 
       <!-- Category (optional) -->
       <div class="form-group">
-        <label for="categoryId">Category</label>
+        <label for="categoryId">{{ 'common.labels.category' | translate }}</label>
         <p-select
           inputId="categoryId"
           formControlName="categoryId"
@@ -99,24 +99,24 @@
           [filter]="true"
           filterBy="label"
           [showClear]="true"
-          placeholder="No category (optional)"
+          [placeholder]="'warehouseLocations.noCategoryPlaceholder' | translate"
           appendTo="body"
           class="w-full">
         </p-select>
         <span class="field-hint">
           <i class="pi pi-info-circle"></i>
-          Informational only — shown on the printed label, doesn't restrict what can be stocked here.
+          {{ 'warehouseLocations.categoryHint' | translate }}
         </span>
       </div>
 
       <!-- Notes -->
       <div class="form-group">
-        <label for="notes">Notes</label>
+        <label for="notes">{{ 'common.labels.notes' | translate }}</label>
         <textarea
           pInputTextarea
           id="notes"
           formControlName="notes"
-          placeholder="Optional notes about this location"
+          [placeholder]="'warehouseLocations.notesPlaceholder' | translate"
           class="w-full"
           rows="4">
         </textarea>
@@ -124,11 +124,11 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button pButton type="button" label="Cancel" class="p-button-text" (click)="goBack()"></button>
+        <button pButton type="button" [label]="'common.actions.cancel' | translate" class="p-button-text" (click)="goBack()"></button>
         <button
           pButton
           type="submit"
-          [label]="isEditMode ? 'Update Location' : 'Create Location'"
+          [label]="isEditMode ? ('warehouseLocations.updateLocationBtn' | translate) : ('warehouseLocations.createLocationBtn' | translate)"
           class="p-button-success"
           [loading]="isSubmitting"
           [disabled]="isSubmitting">

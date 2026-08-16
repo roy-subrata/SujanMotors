@@ -13,6 +13,8 @@ import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-supplier-form',
@@ -27,7 +29,8 @@ import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
     CardModule,
     ToastModule,
     TextareaModule,
-    TooltipModule
+    TooltipModule,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './supplier-form.component.html',
@@ -40,6 +43,7 @@ export class SupplierFormComponent implements OnInit {
   private readonly supplierService = inject(SupplierService);
   private readonly messageService = inject(MessageService);
   private readonly codeGenerationService = inject(CodeGenerationService);
+  private readonly i18n = inject(I18nService);
 
   supplierForm!: FormGroup;
   loading = signal(false);
@@ -145,11 +149,11 @@ export class SupplierFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set('Failed to load supplier details');
+        this.error.set(this.i18n.t('suppliers.messages.loadDetailsFailed'));
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load supplier details'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('suppliers.messages.loadDetailsFailed')
         });
         this.loading.set(false);
       }
@@ -161,8 +165,8 @@ export class SupplierFormComponent implements OnInit {
       this.markFormGroupTouched(this.supplierForm);
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required fields correctly'
+        summary: this.i18n.t('common.messages.validationError'),
+        detail: this.i18n.t('common.messages.fillRequiredFields')
       });
       return;
     }
@@ -197,8 +201,8 @@ export class SupplierFormComponent implements OnInit {
       next: (supplier) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Supplier created successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('suppliers.messages.createSuccess')
         });
         this.saving.set(false);
         this.router.navigate(['/inventory/suppliers']);
@@ -206,8 +210,8 @@ export class SupplierFormComponent implements OnInit {
       error: (err) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: err?.error?.message || 'Failed to create supplier'
+          summary: this.i18n.t('common.messages.error'),
+          detail: err?.error?.message || this.i18n.t('suppliers.messages.createFailed')
         });
         this.saving.set(false);
       }
@@ -235,8 +239,8 @@ export class SupplierFormComponent implements OnInit {
       next: (supplier) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Supplier updated successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('suppliers.messages.updateSuccess')
         });
         this.saving.set(false);
         this.router.navigate(['/inventory/suppliers']);
@@ -244,8 +248,8 @@ export class SupplierFormComponent implements OnInit {
       error: (err) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: err?.error?.message || 'Failed to update supplier'
+          summary: this.i18n.t('common.messages.error'),
+          detail: err?.error?.message || this.i18n.t('suppliers.messages.updateFailed')
         });
         this.saving.set(false);
       }
@@ -269,24 +273,24 @@ export class SupplierFormComponent implements OnInit {
   getPageTitle(): string {
     switch (this.mode()) {
       case 'create':
-        return 'Create New Supplier';
+        return this.i18n.t('suppliers.createNewSupplier');
       case 'edit':
-        return 'Edit Supplier';
+        return this.i18n.t('suppliers.editSupplier');
       case 'view':
-        return 'Supplier Details';
+        return this.i18n.t('suppliers.supplierDetails');
       default:
-        return 'Supplier';
+        return this.i18n.t('suppliers.supplierLabel');
     }
   }
 
   getPageSubtitle(): string {
     switch (this.mode()) {
       case 'create':
-        return 'Add a new supplier to your inventory';
+        return this.i18n.t('suppliers.addSupplierSubtitle');
       case 'edit':
-        return 'Update supplier information';
+        return this.i18n.t('suppliers.updateSupplierSubtitle');
       case 'view':
-        return 'View supplier details';
+        return this.i18n.t('suppliers.viewSupplierSubtitle');
       default:
         return '';
     }

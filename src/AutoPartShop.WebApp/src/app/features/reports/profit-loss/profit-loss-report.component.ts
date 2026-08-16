@@ -12,6 +12,7 @@ import { PageContainerComponent } from '../../../shared/components/page-containe
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { extractApiError } from '../../../shared/utils/api-error.util';
+import { I18nService } from '@/shared/services/i18n.service';
 import { REPORT_REGISTRY } from '../report-configs';
 import { ReportExportFormat, ReportQuery, ReportsService } from '../services/reports.service';
 
@@ -58,6 +59,7 @@ export class ProfitLossReportComponent implements OnInit {
     private readonly http = inject(HttpClient);
     private readonly reportsService = inject(ReportsService);
     private readonly messageService = inject(MessageService);
+    readonly i18n = inject(I18nService);
 
     dateRange: Date[] | null = null;
     summary: FinancialSummaryResponse | null = null;
@@ -95,8 +97,8 @@ export class ProfitLossReportComponent implements OnInit {
                 this.summary = null;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Report failed',
-                    detail: extractApiError(err, 'Could not load the profit & loss statement.')
+                    summary: this.i18n.t('reports.messages.reportFailed'),
+                    detail: extractApiError(err, this.i18n.t('reports.profitLoss.loadFailed'))
                 });
             }
         });
@@ -120,8 +122,8 @@ export class ProfitLossReportComponent implements OnInit {
                 this.exporting = null;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Export failed',
-                    detail: 'Could not export the statement. Please try again.'
+                    summary: this.i18n.t('reports.messages.exportFailed'),
+                    detail: this.i18n.t('reports.profitLoss.exportFailed')
                 });
             }
         });

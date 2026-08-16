@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { AppSettingsService } from '../../../shared/services/app-settings.service';
 
 // Payment method types
 export type PaymentMethod = 'CASH' | 'MOBILE_BANKING' | 'CARD' | 'DUE' | 'PART_PAY';
@@ -131,6 +132,7 @@ export interface QuickSaleDraft {
 @Injectable({ providedIn: 'root' })
 export class QuickSaleService {
   private readonly http = inject(HttpClient);
+  private readonly settingsService = inject(AppSettingsService);
   private readonly apiUrl = `${environment.apiUrl}`;
 
   // Draft management
@@ -184,7 +186,17 @@ export class QuickSaleService {
   }
 
   getVATConfig(): Observable<{ enabled: boolean; percentage: number }> {
-    return of({ enabled: false, percentage: 15 });
+    return this.settingsService.getByCategory('TAX').pipe(
+      map(settings => {
+        const enabledSetting = settings.find(s => s.key === 'VAT_ENABLED');
+        const rateSetting = settings.find(s => s.key === 'VAT_RATE');
+        const percentage = rateSetting ? parseFloat(rateSetting.value) : 15;
+        return {
+          enabled: enabledSetting ? enabledSetting.value === 'true' : false,
+          percentage: isNaN(percentage) ? 15 : percentage,
+        };
+      })
+    );
   }
 
   resendInvoiceNotification(salesOrderId: string): Observable<void> {

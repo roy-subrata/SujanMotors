@@ -68,6 +68,45 @@ export function getPaymentMethodLabel(value: string): string {
 }
 
 /**
+ * Minimal surface of I18nService needed here — typed structurally so this constants
+ * module stays free of an Angular service import (and of a circular dependency).
+ */
+export interface OptionTranslator {
+    t(key: string): string;
+}
+
+/**
+ * Translate an option list for display, keying off each option's `value` under the
+ * given namespace (`<namespace>.<VALUE>.label` / `.description`).
+ *
+ * The English text baked into the constants above stays the fallback, so an option
+ * whose value has no locale entry still renders its original label rather than a
+ * raw dotted key. Namespaces exist because the same value carries different wording
+ * per context — CASH is "Cash payment" for a supplier payment but "Cash on Delivery"
+ * at customer checkout and "Cash drawer/register" for a provider.
+ *
+ * Call this from a getter, never a field initializer: resolving once at construction
+ * would freeze the labels in whichever language happened to be active then.
+ */
+export function translateOptions<T extends PaymentMethodOption>(
+    i18n: OptionTranslator,
+    options: readonly T[],
+    namespace: string
+): T[] {
+    const resolve = (key: string, fallback: string | undefined): string | undefined => {
+        if (fallback === undefined) return undefined;
+        const label = i18n.t(key);
+        return label === key ? fallback : label;
+    };
+
+    return options.map(option => ({
+        ...option,
+        label: resolve(`${namespace}.${option.value}.label`, option.label) as string,
+        description: resolve(`${namespace}.${option.value}.description`, option.description)
+    }));
+}
+
+/**
  * Helper function to get payment method by value
  */
 export function getPaymentMethod(value: string): PaymentMethodOption | undefined {

@@ -17,6 +17,8 @@ import { CurrencySelectorComponent } from '@/shared/components/currency-selector
 import { CurrencyService } from '@/shared/services/currency.service';
 import { CustomerService, CustomerResponse } from '../../services/customer.service';
 import { InvoiceService, InvoiceResponse } from '../../services/invoice.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import {
     CustomerDebitNoteService,
     CreateCustomerDebitNoteRequest
@@ -37,7 +39,8 @@ import {
         TooltipModule,
         ToastModule,
         CurrencySelectorComponent,
-        LazyAutocompleteComponent
+        LazyAutocompleteComponent,
+        TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './debit-note-form.component.html',
@@ -51,6 +54,7 @@ export class DebitNoteFormComponent implements OnInit, OnDestroy {
     private readonly invoiceService = inject(InvoiceService);
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
 
     @ViewChild('invoicePicker') invoicePicker?: LazyAutocompleteComponent<InvoiceResponse>;
 
@@ -133,7 +137,7 @@ export class DebitNoteFormComponent implements OnInit, OnDestroy {
 
     onSubmit(): void {
         if (!this.selectedCustomerId) {
-            this.error.set('Please select a customer from the dropdown');
+            this.error.set(this.i18n.t('debitNotes.form.messages.selectCustomer'));
             return;
         }
 
@@ -142,7 +146,7 @@ export class DebitNoteFormComponent implements OnInit, OnDestroy {
                 const control = this.debitNoteForm.get(key);
                 if (control?.invalid) control.markAsTouched();
             });
-            this.error.set('Please fill in all required fields');
+            this.error.set(this.i18n.t('debitNotes.form.messages.fillRequired'));
             return;
         }
 
@@ -163,13 +167,13 @@ export class DebitNoteFormComponent implements OnInit, OnDestroy {
             next: (debitNote) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Debit note ${debitNote.debitNoteNumber} created successfully!`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('debitNotes.form.messages.createSuccess', { number: debitNote.debitNoteNumber })
                 });
                 this.router.navigate(['/sales/debit-notes']);
             },
             error: (err) => {
-                let errorMessage = 'Failed to create debit note';
+                let errorMessage = this.i18n.t('debitNotes.form.messages.createFailed');
                 if (err.error?.message) errorMessage = err.error.message;
                 else if (err.error?.errors) errorMessage = Object.values(err.error.errors).flat().join(', ');
                 else if (err.message) errorMessage = err.message;

@@ -28,6 +28,10 @@ export const appRoutes: Routes = [
                 loadChildren: () => import('./app/features/notifications/notifications.routes').then(m => m.notificationsRoutes)
             },
             {
+                path: 'shortcuts',
+                loadComponent: () => import('./app/features/shortcuts/keyboard-shortcuts.component').then(m => m.KeyboardShortcutsComponent)
+            },
+            {
                 path: 'inventory',
                 loadChildren: () => import('./app/features/inventory/inventory.routes').then(m => m.inventoryRoutes),
                 canActivate: [permissionGuard],

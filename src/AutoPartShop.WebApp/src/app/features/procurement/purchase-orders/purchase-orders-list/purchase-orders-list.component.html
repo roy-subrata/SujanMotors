@@ -19,13 +19,13 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th class="col-po">PO Number</th>
-            <th class="col-supplier">Supplier</th>
-            <th class="col-date">Order Date</th>
-            <th class="col-date">Delivery Date</th>
-            <th class="col-status">Status</th>
-            <th class="col-amount">Outstanding</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-po">{{ 'purchaseOrders.columns.poNumber' | translate }}</th>
+            <th class="col-supplier">{{ 'purchaseOrders.columns.supplier' | translate }}</th>
+            <th class="col-date">{{ 'purchaseOrders.columns.orderDate' | translate }}</th>
+            <th class="col-date">{{ 'purchaseOrders.columns.deliveryDate' | translate }}</th>
+            <th class="col-status">{{ 'purchaseOrders.columns.status' | translate }}</th>
+            <th class="col-amount">{{ 'purchaseOrders.columns.outstanding' | translate }}</th>
+            <th class="col-actions">{{ 'purchaseOrders.columns.actions' | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -33,7 +33,7 @@
             <td colspan="7">
               <div class="loading-spinner">
                 <i class="pi pi-spin pi-spinner"></i>
-                <span>Loading purchase orders...</span>
+                <span>{{ 'purchaseOrders.loading' | translate }}</span>
               </div>
             </td>
           </tr>
@@ -44,8 +44,8 @@
                 <div class="empty-icon">
                   <i class="pi pi-shopping-bag"></i>
                 </div>
-                <h3>No Purchase Orders Found</h3>
-                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase order' }}</p>
+                <h3>{{ 'purchaseOrders.emptyTitle' | translate }}</h3>
+                <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'purchaseOrders.emptyHintCreate') | translate }}</p>
               </div>
             </td>
           </tr>
@@ -54,7 +54,7 @@
             <td class="col-po">
               <div class="so-cell">
                 <a class="so-link" (click)="viewPurchaseOrder(po)">{{ po.poNumber }}</a>
-                <span *ngIf="po.isOverdue" class="overdue-badge">Overdue</span>
+                <span *ngIf="po.isOverdue" class="overdue-badge">{{ 'purchaseOrders.overdue' | translate }}</span>
               </div>
             </td>
             <td class="col-supplier">
@@ -76,7 +76,7 @@
             </td>
             <td class="col-status">
               <span class="status-pill" [attr.data-status]="po.status.toLowerCase()">
-                {{ po.status }}
+                {{ statusLabel(po.status) }}
               </span>
             </td>
             <td class="col-amount">
@@ -86,7 +86,7 @@
             </td>
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, po)">
+                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showContextMenu($event, po)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -103,7 +103,7 @@
   [first]="(currentPage - 1) * rows"
   [pageSize]="rows"
   [totalRecords]="totalRecords"
-  itemLabel="orders"
+  [itemLabel]="'purchaseOrders.itemLabel' | translate"
   (pageChange)="goToPage($event)"
   (pageSizeChange)="onPageSizeChange($event)">
 </app-data-pagination>
@@ -131,15 +131,15 @@
     <div class="empty-icon">
       <i class="pi pi-shopping-bag"></i>
     </div>
-    <h3>No Purchase Orders</h3>
-    <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase order' }}</p>
+    <h3>{{ 'purchaseOrders.emptyTitleMobile' | translate }}</h3>
+    <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'purchaseOrders.emptyHintCreate') | translate }}</p>
   </div>
 
   <div *ngIf="!loading && purchaseOrders.length > 0" class="cards-grid">
     <div *ngFor="let po of purchaseOrders" class="order-card" (click)="viewPurchaseOrder(po)">
       <div class="card-header">
         <span class="card-so-number">{{ po.poNumber }}</span>
-        <span class="status-pill" [attr.data-status]="po.status.toLowerCase()">{{ po.status }}</span>
+        <span class="status-pill" [attr.data-status]="po.status.toLowerCase()">{{ statusLabel(po.status) }}</span>
       </div>
       <div class="card-body">
         <div class="card-customer">

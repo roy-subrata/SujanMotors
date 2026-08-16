@@ -6,6 +6,7 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { StockLevelResponse } from '../services/stock.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
@@ -17,6 +18,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     ButtonModule,
     TagModule,
     TooltipModule,
+    TranslatePipe,
     DataPaginationComponent
   ],
   templateUrl: './stock-levels-list.component.html',

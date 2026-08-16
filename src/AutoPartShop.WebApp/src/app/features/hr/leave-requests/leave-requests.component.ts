@@ -19,6 +19,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { LeaveRequestStatus } from '@/shared/models/status.types';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
@@ -27,7 +29,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     standalone: true,
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, TextareaModule, Select, DatePickerModule,
         DialogModule, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent,
+        StatusPillFilterComponent, MoreFiltersDialogComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './leave-requests.component.html',
     styleUrls: ['./leave-requests.component.css']
@@ -48,6 +51,7 @@ export class LeaveRequestsComponent implements OnInit {
 
     searchTerm = '';
     filterStatus: LeaveRequestStatus | '' = '';
+    moreFiltersVisible = false;
 
     statusOptions = [
         { label: 'All Statuses', value: '' },
@@ -127,6 +131,11 @@ export class LeaveRequestsComponent implements OnInit {
     onFilterChange(): void {
         this.pageNumber = 1;
         this.loadRequests();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value as LeaveRequestStatus | '';
+        this.onFilterChange();
     }
 
     clearSearch(): void {

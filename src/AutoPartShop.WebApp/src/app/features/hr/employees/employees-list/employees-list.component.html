@@ -40,18 +40,31 @@
     </div>
 
     <div filters class="filter-group">
-      <!-- <label class="filter-label">Status</label> -->
-      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="All Statuses"
-        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
+      <app-status-pill-filter
+        [options]="statusOptions"
+        [value]="filterStatus"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">
+        More filters
+      </button>
       <button *ngIf="searchTerm || filterStatus || filterDepartment" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i> Clear
       </button>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatus"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== DATA TABLE (Desktop) ==================== -->
   <section class="table-section desktop-only">

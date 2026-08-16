@@ -10,16 +10,16 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Warehouse Locations"
-    subtitle="Manage physical bin/shelf locations for barcode labeling"
+    [title]="'warehouseLocations.title' | translate"
+    [subtitle]="'warehouseLocations.subtitle' | translate"
     [count]="totalRecords" countLabel="locations">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createLocation()">
         <i class="pi pi-plus"></i>
-        <span>New Location</span>
+        <span>{{ 'warehouseLocations.newLocation' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -32,7 +32,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by zone, aisle, rack, bin, or code..."
+          [placeholder]="'warehouseLocations.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
@@ -45,7 +45,7 @@
       <p-select
         [options]="warehouseOptions"
         [(ngModel)]="filterWarehouseId"
-        placeholder="All Warehouses"
+        [placeholder]="'warehouseLocations.allWarehouses' | translate"
         [showClear]="true"
         (onChange)="onFilterChange()"
         appendTo="body"
@@ -57,7 +57,7 @@
       <p-select
         [options]="categoryOptions"
         [(ngModel)]="filterCategoryId"
-        placeholder="All Categories"
+        [placeholder]="'warehouseLocations.allCategories' | translate"
         [showClear]="true"
         (onChange)="onFilterChange()"
         appendTo="body"
@@ -68,26 +68,26 @@
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Search
+        {{ 'common.actions.search' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
       </span>
       <span *ngIf="filterWarehouseId" class="filter-chip">
-        Warehouse: {{ getWarehouseLabel(filterWarehouseId) }}
+        {{ 'stock.warehouse' | translate }}: {{ getWarehouseLabel(filterWarehouseId) }}
         <i class="pi pi-times" (click)="filterWarehouseId = null; onFilterChange()"></i>
       </span>
       <span *ngIf="filterCategoryId" class="filter-chip">
-        Category: {{ getCategoryLabel(filterCategoryId) }}
+        {{ 'common.labels.category' | translate }}: {{ getCategoryLabel(filterCategoryId) }}
         <i class="pi pi-times" (click)="filterCategoryId = null; onFilterChange()"></i>
       </span>
     </div>
@@ -111,15 +111,15 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-code">Location Code</th>
-            <th class="col-warehouse">Warehouse</th>
-            <th class="col-zone">Zone</th>
-            <th class="col-cell">Aisle</th>
-            <th class="col-cell">Rack</th>
-            <th class="col-cell">Bin</th>
-            <th class="col-category">Category</th>
-            <th class="col-status">Status</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-code">{{ 'warehouseLocations.locationCode' | translate }}</th>
+            <th class="col-warehouse">{{ 'stock.warehouse' | translate }}</th>
+            <th class="col-zone">{{ 'warehouseLocations.zone' | translate }}</th>
+            <th class="col-cell">{{ 'warehouseLocations.aisle' | translate }}</th>
+            <th class="col-cell">{{ 'warehouseLocations.rack' | translate }}</th>
+            <th class="col-cell">{{ 'warehouseLocations.bin' | translate }}</th>
+            <th class="col-category">{{ 'common.labels.category' | translate }}</th>
+            <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+            <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -153,16 +153,16 @@
 
             <td class="col-status">
               <span class="status-pill" [attr.data-status]="location.isActive ? 'active' : 'inactive'">
-                {{ location.isActive ? 'Active' : 'Inactive' }}
+                {{ location.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate) }}
               </span>
             </td>
 
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="Print Label" tooltipPosition="top" (click)="printLabel(location)">
+                <button class="btn-action" [pTooltip]="'warehouseLocations.printLabelTooltip' | translate" tooltipPosition="top" (click)="printLabel(location)">
                   <i class="pi pi-print"></i>
                 </button>
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, location)">
+                <button class="btn-action" [pTooltip]="'common.labels.more' | translate" (click)="showActionMenu($event, location)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -175,16 +175,16 @@
             <td colspan="9">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-map-marker"></i></div>
-                <h3>No Warehouse Locations Found</h3>
-                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
-                <p *ngIf="!hasActiveFilters()">Get started by creating your first bin/shelf location</p>
+                <h3>{{ 'warehouseLocations.noResultsTitle' | translate }}</h3>
+                <p *ngIf="hasActiveFilters()">{{ 'warehouseLocations.noResultsHint' | translate }}</p>
+                <p *ngIf="!hasActiveFilters()">{{ 'warehouseLocations.noResultsHintEmpty' | translate }}</p>
                 <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createLocation()">
                   <i class="pi pi-plus"></i>
-                  New Location
+                  {{ 'warehouseLocations.newLocation' | translate }}
                 </button>
                 <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
                   <i class="pi pi-filter-slash"></i>
-                  Clear Filters
+                  {{ 'common.actions.clearFilters' | translate }}
                 </button>
               </div>
             </td>
@@ -231,11 +231,11 @@
 
     <div *ngIf="!loading && locations.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-map-marker"></i></div>
-      <h3>No Warehouse Locations</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first location' }}</p>
+      <h3>{{ 'warehouseLocations.noResultsMobileTitle' | translate }}</h3>
+      <p>{{ hasActiveFilters() ? ('common.labels.tryDifferentFilters' | translate) : ('warehouseLocations.createFirstLocationMobile' | translate) }}</p>
       <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createLocation()">
         <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ hasActiveFilters() ? 'Clear Filters' : 'New Location' }}
+        {{ hasActiveFilters() ? ('common.actions.clearFilters' | translate) : ('warehouseLocations.newLocation' | translate) }}
       </button>
     </div>
 
@@ -253,7 +253,7 @@
           <div class="card-dates">
             <span *ngIf="location.categoryName" class="card-date"><i class="pi pi-tag"></i> {{ location.categoryName }}</span>
             <span class="status-pill" [attr.data-status]="location.isActive ? 'active' : 'inactive'">
-              {{ location.isActive ? 'Active' : 'Inactive' }}
+              {{ location.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate) }}
             </span>
           </div>
         </div>

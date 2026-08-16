@@ -11,7 +11,7 @@ export type StatusType = 'purchase-order' | 'goods-receipt' | 'payment';
   imports: [CommonModule, TagModule],
   template: `
     <p-tag
-      [value]="status"
+      [value]="label"
       [severity]="getSeverity()"
       [styleClass]="'text-sm'">
     </p-tag>
@@ -30,6 +30,11 @@ export class StatusBadgeComponent {
 
   @Input() status: string = '';
   @Input() type: StatusType = 'purchase-order';
+
+  /** Getter, not a field: re-resolves per change-detection pass so it follows a language switch. */
+  get label(): string {
+    return this.statusDisplay.getLabel(this.status);
+  }
 
   getSeverity(): 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast' {
     return this.statusDisplay.getSeverity(this.status, this.type as StatusDomain);

@@ -11,7 +11,7 @@
           (onItemSelect)="onPartSelected($event)"
           (onClearEvent)="onPartSelected(null)"
           optionLabel="displayName"
-          placeholder="Select part"
+          [placeholder]="'priceHistory.partPlaceholder' | translate"
           [minLength]="0"
           [pageSize]="20"
           scrollHeight="300px">
@@ -26,7 +26,7 @@
       </div>
 
       <div class="filter-actions">
-        <button pButton type="button" icon="pi pi-search" label="Load History"
+        <button pButton type="button" icon="pi pi-search" [label]="'priceHistory.loadHistory' | translate"
           (click)="loadPriceHistory()"
           [disabled]="!selectedPart">
         </button>
@@ -40,12 +40,12 @@
       <div class="card-header">
         <div>
           <h3>{{ selectedPart?.displayName || priceHistory.partName }} ({{ selectedPart?.variantSKU || priceHistory.partSKU }})</h3>
-          <p class="text-sm text-gray-600">Price tracking across {{ priceHistory.lots.length }} purchase(s)</p>
+          <p class="text-sm text-gray-600">{{ 'priceHistory.trackingSubtitle' | translate:{ count: priceHistory.lots.length } }}</p>
         </div>
         @if (priceCodeService.isConfigured()) {
           <button pButton type="button" class="p-button-text p-button-sm"
             [icon]="priceCodeService.showActualPrice() ? 'pi pi-eye' : 'pi pi-eye-slash'"
-            [pTooltip]="priceCodeService.showActualPrice() ? 'Hide prices' : 'Show prices'"
+            [pTooltip]="priceCodeService.showActualPrice() ? ('priceHistory.hidePrices' | translate) : ('priceHistory.showPrices' | translate)"
             (click)="priceCodeService.toggleVisibility()">
           </button>
         }
@@ -55,7 +55,7 @@
     <!-- Statistics -->
     <div class="stats-grid">
       <div class="stat-card">
-        <label>Latest Price</label>
+        <label>{{ 'priceHistory.stats.latest' | translate }}</label>
         @if (priceCodeService.getDisplayPrice(priceHistory.latestPrice) !== null) {
           <span class="stat-value coded-price">{{ priceCodeService.getDisplayPrice(priceHistory.latestPrice) }}</span>
         } @else {
@@ -63,7 +63,7 @@
         }
       </div>
       <div class="stat-card">
-        <label>Average Price</label>
+        <label>{{ 'priceHistory.stats.average' | translate }}</label>
         @if (priceCodeService.getDisplayPrice(priceHistory.averagePrice) !== null) {
           <span class="stat-value coded-price">{{ priceCodeService.getDisplayPrice(priceHistory.averagePrice) }}</span>
         } @else {
@@ -71,7 +71,7 @@
         }
       </div>
       <div class="stat-card">
-        <label>Minimum Price</label>
+        <label>{{ 'priceHistory.stats.minimum' | translate }}</label>
         @if (priceCodeService.getDisplayPrice(priceHistory.minPrice) !== null) {
           <span class="stat-value coded-price">{{ priceCodeService.getDisplayPrice(priceHistory.minPrice) }}</span>
         } @else {
@@ -79,7 +79,7 @@
         }
       </div>
       <div class="stat-card">
-        <label>Maximum Price</label>
+        <label>{{ 'priceHistory.stats.maximum' | translate }}</label>
         @if (priceCodeService.getDisplayPrice(priceHistory.maxPrice) !== null) {
           <span class="stat-value coded-price">{{ priceCodeService.getDisplayPrice(priceHistory.maxPrice) }}</span>
         } @else {
@@ -105,14 +105,14 @@
       <!-- Header -->
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 15%">System Lot No.</th>
-          <th style="width: 15%">Supplier</th>
-          <th style="width: 12%" class="text-right">Unit Price</th>
-          <th style="width: 14%" class="text-right">Qty Received</th>
-          <th style="width: 14%" class="text-right">Qty Available</th>
-          <th style="width: 10%">Receiving Date</th>
-          <th style="width: 10%">Expiry</th>
-          <th style="width: 10%">Status</th>
+          <th style="width: 15%">{{ 'priceHistory.columns.lotNumber' | translate }}</th>
+          <th style="width: 15%">{{ 'priceHistory.columns.supplier' | translate }}</th>
+          <th style="width: 12%" class="text-right">{{ 'priceHistory.columns.unitPrice' | translate }}</th>
+          <th style="width: 14%" class="text-right">{{ 'priceHistory.columns.qtyReceived' | translate }}</th>
+          <th style="width: 14%" class="text-right">{{ 'priceHistory.columns.qtyAvailable' | translate }}</th>
+          <th style="width: 10%">{{ 'priceHistory.columns.receivingDate' | translate }}</th>
+          <th style="width: 10%">{{ 'priceHistory.columns.expiry' | translate }}</th>
+          <th style="width: 10%">{{ 'priceHistory.columns.status' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -151,11 +151,11 @@
               [value]="getExpiryDisplay(lot)"
               [severity]="lot.isExpired ? 'danger' : 'warn'">
             </p-tag>
-            <span class="text-gray-500" *ngIf="!lot.expiryDate">N/A</span>
+            <span class="text-gray-500" *ngIf="!lot.expiryDate">{{ 'priceHistory.notAvailable' | translate }}</span>
           </td>
           <td>
             <p-tag
-              [value]="lot.quantityAvailable === 0 ? 'Consumed' : 'Available'"
+              [value]="lot.quantityAvailable === 0 ? ('priceHistory.status.consumed' | translate) : ('priceHistory.status.available' | translate)"
               [severity]="lot.quantityAvailable === 0 ? 'danger' : 'success'">
             </p-tag>
           </td>
@@ -168,7 +168,7 @@
           <td colspan="8">
             <div class="empty-state">
               <i class="pi pi-inbox"></i>
-              <p>No price history found</p>
+              <p>{{ 'priceHistory.emptyTitle' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -182,7 +182,7 @@
       [first]="first"
       [pageSize]="pageSize"
       [totalRecords]="totalRecords"
-      itemLabel="lots"
+      [itemLabel]="'priceHistory.itemLabel' | translate"
       (pageChange)="goToPage($event)"
       (pageSizeChange)="onPageSizeChangeHandler($event)">
     </app-data-pagination>
@@ -205,8 +205,8 @@
 
       <div *ngIf="!loading && priceHistory.lots.length === 0" class="empty-state-mobile">
         <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-        <h3>No Price History</h3>
-        <p>No purchase lots found for this part</p>
+        <h3>{{ 'priceHistory.emptyTitleMobile' | translate }}</h3>
+        <p>{{ 'priceHistory.emptyHintMobile' | translate }}</p>
       </div>
 
       <div *ngIf="!loading && priceHistory.lots.length > 0" class="cards-grid">
@@ -215,7 +215,7 @@
           <div class="card-header">
             <span class="card-so-number">{{ lot.lotNumber }}</span>
             <span class="status-pill" [attr.data-status]="lot.quantityAvailable === 0 ? 'inactive' : 'active'">
-              {{ lot.quantityAvailable === 0 ? 'Consumed' : 'Available' }}
+              {{ lot.quantityAvailable === 0 ? ('priceHistory.status.consumed' | translate) : ('priceHistory.status.available' | translate) }}
             </span>
           </div>
 
@@ -225,7 +225,7 @@
             </div>
             <div class="card-meta">
               <span class="card-meta-item">
-                <i class="pi pi-tag"></i>&nbsp;Unit Price:
+                <i class="pi pi-tag"></i>&nbsp;{{ 'priceHistory.card.unitPrice' | translate }}:
                 @if (priceCodeService.getDisplayPrice(lot.costPrice) !== null) {
                   <span class="coded-price">{{ priceCodeService.getDisplayPrice(lot.costPrice) }}</span>
                 } @else {
@@ -233,16 +233,16 @@
                 }
               </span>
               <span class="card-meta-item">
-                <i class="pi pi-box"></i>&nbsp;Received: {{ lot.quantityReceived }}
+                <i class="pi pi-box"></i>&nbsp;{{ 'priceHistory.card.received' | translate }}: {{ lot.quantityReceived }}
               </span>
               <span class="card-meta-item">
-                <i class="pi pi-check-circle"></i>&nbsp;Available: {{ lot.quantityAvailable }}
+                <i class="pi pi-check-circle"></i>&nbsp;{{ 'priceHistory.card.available' | translate }}: {{ lot.quantityAvailable }}
               </span>
               <span class="card-meta-item">
                 <i class="pi pi-calendar"></i>&nbsp;{{ lot.receivingDate | date:'dd-MMM-yyyy' }}
               </span>
               <span class="card-meta-item" *ngIf="lot.expiryDate">
-                <i class="pi pi-exclamation-triangle"></i>&nbsp;Expiry: {{ getExpiryDisplay(lot) }}
+                <i class="pi pi-exclamation-triangle"></i>&nbsp;{{ 'priceHistory.card.expiry' | translate }}: {{ getExpiryDisplay(lot) }}
               </span>
             </div>
           </div>
@@ -253,25 +253,25 @@
 
     <!-- Insights -->
     <div class="insights-section">
-      <h4>Price Insights</h4>
+      <h4>{{ 'priceHistory.insights.title' | translate }}</h4>
       <ul class="insights-list">
         <li *ngIf="getPriceVariation() > 0">
           <i class="pi pi-arrow-up"></i>
-          Price increased by {{ getPriceVariation() | currency:currencyCode:'symbol':'1.2-2' }}
+          {{ 'priceHistory.insights.increased' | translate }} {{ getPriceVariation() | currency:currencyCode:'symbol':'1.2-2' }}
           ({{ getPriceVariationPercent() }}%)
         </li>
         <li *ngIf="getPriceVariation() < 0">
           <i class="pi pi-arrow-down"></i>
-          Price decreased by {{ Math.abs(getPriceVariation()) | currency:currencyCode:'symbol':'1.2-2' }}
+          {{ 'priceHistory.insights.decreased' | translate }} {{ Math.abs(getPriceVariation()) | currency:currencyCode:'symbol':'1.2-2' }}
           ({{ Math.abs(getPriceVariationPercent()) }}%)
         </li>
         <li *ngIf="getPriceVariation() === 0">
           <i class="pi pi-minus"></i>
-          Price remained constant
+          {{ 'priceHistory.insights.constant' | translate }}
         </li>
         <li>
           <i class="pi pi-chart-line"></i>
-          Total purchases: {{ priceHistory.lots.length }} lot(s)
+          {{ 'priceHistory.insights.totalPurchases' | translate:{ count: priceHistory.lots.length } }}
         </li>
       </ul>
     </div>
@@ -281,14 +281,14 @@
   <p-card class="content-card" *ngIf="!priceHistory && selectedPart">
     <div class="empty-state">
       <i class="pi pi-inbox"></i>
-      <p>No price history found for this part</p>
+      <p>{{ 'priceHistory.emptyForPart' | translate }}</p>
     </div>
   </p-card>
 
   <p-card class="content-card" *ngIf="!selectedPart">
     <div class="empty-state">
       <i class="pi pi-inbox"></i>
-      <p>Select a part to view its price history</p>
+      <p>{{ 'priceHistory.selectPrompt' | translate }}</p>
     </div>
   </p-card>
 </div>

@@ -27,8 +27,19 @@ public class QuotationController(
     IUnitConversionService unitConversionService,
     ICurrencyConversionService currencyConversionService,
     AutoPartDbContext dbContext,
-    ILogger<QuotationController> logger) : ControllerBase
+    ILogger<QuotationController> logger,
+    IApplicationSettingsRepository settingsRepository) : ControllerBase
 {
+    /// <summary>
+    /// Configurable document-number prefix (Company Profile &gt; Document Numbering) —
+    /// falls back to the historical hardcoded prefix if no setting has been configured yet.
+    /// </summary>
+    private async Task<string> GetPrefixAsync(string settingKey, string fallback, CancellationToken cancellationToken)
+    {
+        var value = await settingsRepository.GetValueAsync(settingKey, cancellationToken);
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
+    }
+
     [HttpPost]
     [HasPermission(Permissions.SalesCreate)]
     public async Task<IActionResult> Create(CreateQuotationRequest request, CancellationToken cancellationToken)
@@ -45,7 +56,7 @@ public class QuotationController(
             var strategy = dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                var quotationNumber = await codeGenerateService.GenerateAsync("QT", cancellationToken);
+                var quotationNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("QUOTATION_NUMBER_PREFIX", "QT", cancellationToken), cancellationToken);
                 await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
@@ -217,7 +228,7 @@ public class QuotationController(
             var strategy = dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                var soNumber = await codeGenerateService.GenerateAsync("SO", cancellationToken);
+                var soNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {

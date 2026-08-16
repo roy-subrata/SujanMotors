@@ -18,6 +18,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -28,6 +30,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 import { I18nService } from '@/shared/services/i18n.service';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-customer-payment-list',
@@ -50,7 +53,10 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customer-payment-list.component.html',
@@ -76,6 +82,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     searchTerm: string = '';
     statusFilter: CustomerPaymentStatus | null = null;
     dateRange: Date[] = [];
+    moreFiltersVisible = false;
     pageSize: number = 25;
     pageSizeOptions = [10, 25, 50, 100];
     totalCount: number = 0;
@@ -256,6 +263,11 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     onFilterChange(): void {
         this.first = 0;
         this.loadCustomerPayments();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.statusFilter = (value || null) as CustomerPaymentStatus | null;
+        this.onFilterChange();
     }
 
     onDateRangeSelect(): void {
@@ -622,8 +634,25 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         return `${year}-${month}-${day}`;
     }
 
+    /** Payment status is a server enum rendered directly in tags; map it to its label. */
+    formatStatus(status: string): string {
+        if (!status) return '';
+        const key = 'customerPayments.statusOptions.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        return label === key ? status : label;
+    }
+
     getStatusSeverity(status: string): StatusSeverity {
         return this.statusDisplay.getSeverity(status, 'customer-payment');
+    }
+
+    /** Payment-method enum -> localized label, falling back to the raw value. */
+    methodLabel(method: string | undefined): string {
+        if (!method) return '';
+        const key = 'paymentMethods.pos.' + method;
+        const label = this.i18n.t(key);
+        return label === key ? method : label;
     }
 
     getMethodSeverity(method: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {

@@ -29,6 +29,8 @@ import { ProductVariantManagerComponent } from '../product-variant-manager/produ
 import { ProductMediaManagerComponent } from '../product-media-manager/product-media-manager.component';
 import { ProductSpecsManagerComponent } from '../product-specs-manager/product-specs-manager.component';
 import { PriceCodeService } from '@/shared/services/price-code.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-part-details',
@@ -40,7 +42,7 @@ import { PriceCodeService } from '@/shared/services/price-code.service';
         TextareaModule, DatePickerModule, TooltipModule, TabsModule,
         ToggleSwitchModule, CheckboxModule, SelectModule, ConfirmDialogModule,
         ProductLocationManagerComponent, ProductVariantManagerComponent, ProductMediaManagerComponent,
-        ProductSpecsManagerComponent
+        ProductSpecsManagerComponent, TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './part-details.component.html',
@@ -57,6 +59,7 @@ export class PartDetailsComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly fb = inject(FormBuilder);
     readonly priceCodeService = inject(PriceCodeService);
+    readonly i18n = inject(I18nService);
 
     part: PartResponse | null = null;
     compatibleVehicles: VehicleCompatibilityResponse[] = [];
@@ -115,7 +118,7 @@ export class PartDetailsComponent implements OnInit {
         this.loading = true;
         this.partService.getPartById(this.partId!).subscribe({
             next: p => { this.part = p; this.loading = false; },
-            error: () => { this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load part details' }); this.loading = false; }
+            error: () => { this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.partDetails.messages.loadFailed') }); this.loading = false; }
         });
     }
 
@@ -140,13 +143,13 @@ export class PartDetailsComponent implements OnInit {
         this.vehicleService.addPartCompatibility(this.selectedVehicleId, this.partId, { isCompatible: true })
             .subscribe({
                 next: () => {
-                    this.messageService.add({ severity: 'success', summary: 'Added', detail: 'Vehicle compatibility added' });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.partDetails.messages.addedSummary'), detail: this.i18n.t('parts.partDetails.messages.compatibilityAddedDetail') });
                     this.selectedVehicleId = '';
                     this.loadCompatibleVehicles();
                     this.addingCompatibility = false;
                 },
                 error: err => {
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to add compatibility' });
+                    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('parts.partDetails.messages.addCompatibilityFailed') });
                     this.addingCompatibility = false;
                 }
             });
@@ -154,18 +157,18 @@ export class PartDetailsComponent implements OnInit {
 
     onRemoveCompatibility(compat: VehicleCompatibilityResponse): void {
         this.confirmationService.confirm({
-            message: `Remove compatibility with ${compat.vehicleMake} ${compat.vehicleModel} ${compat.vehicleYear}?`,
-            header: 'Confirm',
+            message: this.i18n.t('parts.partDetails.messages.removeCompatibilityConfirm', { make: compat.vehicleMake, model: compat.vehicleModel, year: String(compat.vehicleYear) }),
+            header: this.i18n.t('parts.partDetails.confirmHeader'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
                 this.vehicleService.removeCompatibility(compat.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Removed', detail: 'Compatibility removed' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.partDetails.messages.removedSummary'), detail: this.i18n.t('parts.partDetails.messages.compatibilityRemovedDetail') });
                         this.loadCompatibleVehicles();
                     },
                     error: () => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to remove compatibility' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.partDetails.messages.removeCompatibilityFailed') });
                     }
                 });
             }
@@ -248,12 +251,12 @@ export class PartDetailsComponent implements OnInit {
                 } else {
                     this.basePrice.set(updated);
                 }
-                this.messageService.add({ severity: 'success', summary: 'Price Saved', detail: `${this.setPriceTarget!.label} updated to ${saved.sellingPrice} ${saved.currency}` });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.partDetails.messages.priceSavedSummary'), detail: this.i18n.t('parts.partDetails.messages.priceSavedDetail', { label: this.setPriceTarget!.label, price: String(saved.sellingPrice), currency: saved.currency }) });
                 this.savingPrice.set(false);
                 this.showSetPriceDialog.set(false);
             },
             error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'Failed to save price' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err.error?.message || this.i18n.t('parts.partDetails.messages.savePriceFailed') });
                 this.savingPrice.set(false);
             }
         });

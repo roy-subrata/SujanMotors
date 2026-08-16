@@ -6,37 +6,36 @@
         <div>
             <h3 class="sm-title">
                 <i class="pi pi-list-check sm-icon"></i>
-                Specifications
+                {{ 'parts.specsManager.title' | translate }}
                 <span class="sm-count" *ngIf="filledCount > 0">({{ filledCount }})</span>
             </h3>
             <p class="sm-hint">
-                Simple <strong>Label / Value</strong> facts shown on the product page — Material, Origin, Thread Size and
-                so on. These apply to the whole product; per-variant differences belong in
-                <strong>variant attributes</strong>.
+                {{ 'parts.specsManager.hintPart1' | translate }} <strong>{{ 'parts.specsManager.hintStrong1' | translate }}</strong> {{ 'parts.specsManager.hintPart2' | translate }}
+                <strong>{{ 'parts.specsManager.hintStrong2' | translate }}</strong>{{ 'parts.specsManager.hintEnd' | translate }}
             </p>
         </div>
-        <button pButton type="button" label="Add Row" icon="pi pi-plus" class="p-button-sm p-button-success"
+        <button pButton type="button" [label]="'parts.specsManager.addRow' | translate" icon="pi pi-plus" class="p-button-sm p-button-success"
             [disabled]="loading" (click)="addRow()"></button>
     </div>
 
     <!-- Loading state -->
     <div *ngIf="loading" class="sm-empty">
         <i class="pi pi-spinner pi-spin"></i>
-        <p>Loading specifications…</p>
+        <p>{{ 'parts.specsManager.loadingText' | translate }}</p>
     </div>
 
     <!-- Empty state -->
     <div *ngIf="!loading && rows.length === 0" class="sm-empty">
         <i class="pi pi-list-check"></i>
-        <p>No specifications yet. Click <strong>Add Row</strong> to add one.</p>
+        <p>{{ 'parts.specsManager.emptyPart1' | translate }} <strong>{{ 'parts.specsManager.addRow' | translate }}</strong> {{ 'parts.specsManager.emptyPart2' | translate }}</p>
     </div>
 
     <!-- Editor rows -->
     <div class="sm-rows" *ngIf="!loading && rows.length > 0">
         <div class="sm-row-head">
             <span class="sm-col-order"></span>
-            <span class="sm-col-label">Label</span>
-            <span class="sm-col-value">Value</span>
+            <span class="sm-col-label">{{ 'parts.specsManager.columnLabel' | translate }}</span>
+            <span class="sm-col-value">{{ 'parts.specsManager.columnValue' | translate }}</span>
             <span class="sm-col-actions"></span>
         </div>
 
@@ -44,9 +43,9 @@
             <!-- Reorder — display order follows row order -->
             <div class="sm-col-order">
                 <button pButton type="button" icon="pi pi-chevron-up" class="p-button-text p-button-sm sm-move"
-                    pTooltip="Move up" tooltipPosition="left" [disabled]="i === 0" (click)="moveUp(i)"></button>
+                    [pTooltip]="'parts.specsManager.moveUpTooltip' | translate" tooltipPosition="left" [disabled]="i === 0" (click)="moveUp(i)"></button>
                 <button pButton type="button" icon="pi pi-chevron-down" class="p-button-text p-button-sm sm-move"
-                    pTooltip="Move down" tooltipPosition="left" [disabled]="i === rows.length - 1"
+                    [pTooltip]="'parts.specsManager.moveDownTooltip' | translate" tooltipPosition="left" [disabled]="i === rows.length - 1"
                     (click)="moveDown(i)"></button>
             </div>
 
@@ -54,8 +53,8 @@
             <div class="sm-col-label">
                 <p-autocomplete [(ngModel)]="row.label" [suggestions]="row.labelSuggestions"
                     (completeMethod)="searchLabels(row, $event)" [minLength]="1" [delay]="250" [dropdown]="true"
-                    [showEmptyMessage]="true" emptyMessage="No matching label — type your own" appendTo="body"
-                    placeholder="e.g. Material" styleClass="sm-ac" inputStyleClass="sm-ac-input">
+                    [showEmptyMessage]="true" [emptyMessage]="'parts.specsManager.noMatchingLabel' | translate" appendTo="body"
+                    [placeholder]="'parts.specsManager.labelPlaceholder' | translate" styleClass="sm-ac" inputStyleClass="sm-ac-input">
                 </p-autocomplete>
             </div>
 
@@ -63,34 +62,34 @@
             <div class="sm-col-value">
                 <p-autocomplete [(ngModel)]="row.value" [suggestions]="row.valueSuggestions"
                     (completeMethod)="searchValues(row, $event)" [minLength]="1" [delay]="250" [dropdown]="true"
-                    [showEmptyMessage]="true" emptyMessage="No matching value — type your own" appendTo="body"
-                    placeholder="e.g. Ceramic" styleClass="sm-ac" inputStyleClass="sm-ac-input">
+                    [showEmptyMessage]="true" [emptyMessage]="'parts.specsManager.noMatchingValue' | translate" appendTo="body"
+                    [placeholder]="'parts.specsManager.valuePlaceholder' | translate" styleClass="sm-ac" inputStyleClass="sm-ac-input">
                 </p-autocomplete>
             </div>
 
             <div class="sm-col-actions">
                 <button pButton type="button" icon="pi pi-times" class="p-button-text p-button-sm p-button-danger"
-                    pTooltip="Remove row" tooltipPosition="left" (click)="removeRow(i)"></button>
+                    [pTooltip]="'parts.specsManager.removeRowTooltip' | translate" tooltipPosition="left" (click)="removeRow(i)"></button>
             </div>
 
             <!-- Inline warnings — neither blocks saving -->
             <small class="sm-row-msg" *ngIf="isDuplicate(i)">
                 <i class="pi pi-exclamation-triangle"></i>
-                Another row uses this label — they will collapse into one filter later.
+                {{ 'parts.specsManager.duplicateWarning' | translate }}
             </small>
             <small class="sm-row-msg" *ngIf="isIgnored(row)">
                 <i class="pi pi-exclamation-triangle"></i>
-                A label is required — this row will be dropped on save.
+                {{ 'parts.specsManager.requiredWarning' | translate }}
             </small>
         </div>
     </div>
 
     <!-- Footer actions -->
     <div class="sm-footer" *ngIf="!loading">
-        <span class="sm-dirty" *ngIf="isDirty"><i class="pi pi-circle-fill"></i> Unsaved changes</span>
-        <button pButton type="button" label="Reset" icon="pi pi-undo" class="p-button-sm p-button-text"
+        <span class="sm-dirty" *ngIf="isDirty"><i class="pi pi-circle-fill"></i> {{ 'parts.specsManager.unsavedChanges' | translate }}</span>
+        <button pButton type="button" [label]="'parts.reset' | translate" icon="pi pi-undo" class="p-button-sm p-button-text"
             [disabled]="saving || !isDirty" (click)="reset()"></button>
-        <button pButton type="button" label="Save Specifications" icon="pi pi-check" class="p-button-sm"
+        <button pButton type="button" [label]="'parts.specsManager.saveButton' | translate" icon="pi pi-check" class="p-button-sm"
             [disabled]="saving || !isDirty" [loading]="saving" (click)="save()"></button>
     </div>
 </div>

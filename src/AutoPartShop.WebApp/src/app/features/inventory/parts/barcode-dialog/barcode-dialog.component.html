@@ -5,11 +5,11 @@
   <div class="barcode-main-layout">
     <!-- Left: Controls -->
     <div class="barcode-controls-panel">
-      <h4 class="panel-title"><i class="pi pi-cog"></i> Settings</h4>
+      <h4 class="panel-title"><i class="pi pi-cog"></i> {{ 'parts.barcodeDialog.settingsTitle' | translate }}</h4>
 
       <!-- Label Style -->
       <div class="field">
-        <label for="labelLayout">Label Style</label>
+        <label for="labelLayout">{{ 'parts.barcodeDialog.labelStyle' | translate }}</label>
         <p-select id="labelLayout"
           [(ngModel)]="selectedLayout"
           [options]="layoutOptions"
@@ -22,7 +22,7 @@
 
       <!-- Combo Design (Spotlight / Detailed) -->
       <div class="field" *ngIf="selectedLayout === 'combo'">
-        <label for="comboDesign">Design</label>
+        <label for="comboDesign">{{ 'parts.barcodeDialog.design' | translate }}</label>
         <p-select id="comboDesign"
           [(ngModel)]="selectedComboDesign"
           [options]="comboDesignOptions"
@@ -35,7 +35,7 @@
 
       <!-- Label Size -->
       <div class="field">
-        <label for="barcodeSize">Label Size</label>
+        <label for="barcodeSize">{{ 'parts.barcodeDialog.labelSize' | translate }}</label>
         <p-select id="barcodeSize"
           [(ngModel)]="selectedSize"
           [options]="barcodeSizeOptions"
@@ -49,7 +49,7 @@
       <!-- Custom Size Controls -->
       <div class="field-row" *ngIf="selectedSize === 'custom'">
         <div class="field compact">
-          <label>Width (mm)</label>
+          <label>{{ 'parts.barcodeDialog.widthMm' | translate }}</label>
           <input pInputText type="number"
             [(ngModel)]="customWidthMm"
             (change)="onCustomSizeChange()"
@@ -57,7 +57,7 @@
             class="w-full">
         </div>
         <div class="field compact">
-          <label>Height (mm)</label>
+          <label>{{ 'parts.barcodeDialog.heightMm' | translate }}</label>
           <input pInputText type="number"
             [(ngModel)]="customHeightMm"
             (change)="onCustomSizeChange()"
@@ -68,7 +68,7 @@
 
       <!-- Barcode Type -->
       <div class="field">
-        <label for="barcodeType">Barcode Type</label>
+        <label for="barcodeType">{{ 'parts.barcodeDialog.barcodeType' | translate }}</label>
         <p-select id="barcodeType"
           [(ngModel)]="selectedBarcodeType"
           [options]="barcodeTypes"
@@ -82,7 +82,7 @@
 
       <!-- Barcode Value Source -->
       <div class="field">
-        <label for="valueSource">Value Source</label>
+        <label for="valueSource">{{ 'parts.barcodeDialog.valueSource' | translate }}</label>
         <p-select id="valueSource"
           [(ngModel)]="selectedValueSource"
           [options]="valueSourceOptions"
@@ -95,17 +95,17 @@
 
       <!-- Custom Value -->
       <div class="field" *ngIf="selectedValueSource === 'custom'">
-        <label for="customVal">Custom Value</label>
+        <label for="customVal">{{ 'parts.barcodeDialog.customValueLabel' | translate }}</label>
         <input pInputText id="customVal"
           [(ngModel)]="customValue"
           (input)="onValueSourceChange('custom')"
           class="w-full"
-          placeholder="Enter custom value">
+          [placeholder]="'parts.barcodeDialog.customValuePlaceholder' | translate">
       </div>
 
       <!-- Quantity -->
       <div class="field">
-        <label for="qty">Print Quantity</label>
+        <label for="qty">{{ 'parts.barcodeDialog.printQuantity' | translate }}</label>
         <div class="qty-input-group">
           <button pButton icon="pi pi-minus" class="p-button-sm p-button-outlined"
             (click)="quantity = quantity > 1 ? quantity - 1 : 1"
@@ -119,21 +119,21 @@
             (click)="quantity = quantity < maxQuantity ? quantity + 1 : maxQuantity"
             [disabled]="quantity >= maxQuantity"></button>
         </div>
-        <small class="field-hint">Max {{ maxQuantity }} per batch</small>
+        <small class="field-hint">{{ 'parts.barcodeDialog.maxPerBatch' | translate:{ max: maxQuantity.toString() } }}</small>
       </div>
 
       <!-- Company Name -->
       <div class="field">
-        <label for="company">Company Name</label>
+        <label for="company">{{ 'parts.barcodeDialog.companyNameLabel' | translate }}</label>
         <input pInputText id="company"
           [(ngModel)]="companyName"
           (input)="onFieldChange()"
           class="w-full"
-          placeholder="Company / shop name">
+          [placeholder]="'parts.barcodeDialog.companyNamePlaceholder' | translate">
       </div>
 
       <!-- Label Fields Toggle -->
-      <h4 class="panel-title" style="margin-top: 0.5rem;"><i class="pi pi-tag"></i> Label Fields</h4>
+      <h4 class="panel-title" style="margin-top: 0.5rem;"><i class="pi pi-tag"></i> {{ 'parts.barcodeDialog.labelFieldsTitle' | translate }}</h4>
       <div class="label-fields-list">
         <div class="label-field-toggle" *ngFor="let field of labelFields">
           <p-checkbox
@@ -154,7 +154,7 @@
 
     <!-- Right: Label Preview -->
     <div class="barcode-preview-panel">
-      <h4 class="panel-title"><i class="pi pi-eye"></i> Label Preview</h4>
+      <h4 class="panel-title"><i class="pi pi-eye"></i> {{ 'parts.barcodeDialog.labelPreview' | translate }}</h4>
 
       <!-- Label rendered from the single source of truth (matches print) -->
       <div class="label-preview-wrapper">
@@ -184,7 +184,7 @@
       <div class="value-display">
         <code>{{ barcodeValue }}</code>
         <button pButton icon="pi pi-copy" class="p-button-sm p-button-text p-button-rounded"
-          (click)="copyBarcodeValue()" pTooltip="Copy value" tooltipPosition="top"></button>
+          (click)="copyBarcodeValue()" [pTooltip]="'parts.barcodeDialog.copyValueTooltip' | translate" tooltipPosition="top"></button>
       </div>
     </div>
   </div>
@@ -192,25 +192,25 @@
   <!-- Action Bar -->
   <div class="action-bar">
     <div class="action-bar-left">
-      <button pButton icon="pi pi-download" label="PNG"
+      <button pButton icon="pi pi-download" [label]="'parts.barcodeDialog.btnPng' | translate"
         class="p-button-sm p-button-outlined"
         (click)="downloadBarcode()"
         [loading]="isDownloading"
         [disabled]="isDownloading || isGenerating"
-        pTooltip="Download barcode as PNG image"></button>
-      <button pButton icon="pi pi-download" label="SVG"
+        [pTooltip]="'parts.barcodeDialog.btnPngTooltip' | translate"></button>
+      <button pButton icon="pi pi-download" [label]="'parts.barcodeDialog.btnSvg' | translate"
         class="p-button-sm p-button-outlined"
         (click)="downloadBarcodeSVG()"
         [disabled]="isGenerating || !barcodeSvg"
-        pTooltip="Download barcode as SVG"></button>
+        [pTooltip]="'parts.barcodeDialog.btnSvgTooltip' | translate"></button>
     </div>
     <div class="action-bar-right">
       <button pButton icon="pi pi-print"
-        [label]="quantity > 1 ? 'Print Labels (' + quantity + ')' : 'Print Label'"
+        [label]="quantity > 1 ? ('parts.barcodeDialog.printLabelsCount' | translate:{ count: quantity.toString() }) : ('parts.barcodeDialog.printLabel' | translate)"
         class="p-button-sm"
         (click)="printBarcode()"
         [disabled]="isGenerating || !!validationMessage"></button>
-      <button pButton icon="pi pi-times" label="Close"
+      <button pButton icon="pi pi-times" [label]="'common.actions.close' | translate"
         class="p-button-sm p-button-text"
         (click)="closeDialog()"></button>
     </div>

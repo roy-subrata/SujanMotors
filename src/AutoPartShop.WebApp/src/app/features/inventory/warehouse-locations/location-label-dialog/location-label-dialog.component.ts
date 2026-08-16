@@ -12,6 +12,8 @@ import { BarcodeService } from '../../services/barcode.service';
 import { WarehouseLocationResponse } from '../../services/warehouse-location.service';
 import { getZoneColor } from '../zone-color';
 import { LocationLabelMarkupOptions, LOCATION_LABEL_CSS, buildLocationLabelMarkup } from './location-label-template';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 const LABEL_STYLE_ELEMENT_ID = 'wl-location-label-styles';
 
@@ -23,7 +25,7 @@ const LABEL_STYLE_ELEMENT_ID = 'wl-location-label-styles';
 @Component({
     selector: 'app-location-label-dialog',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TranslatePipe],
     providers: [MessageService],
     templateUrl: './location-label-dialog.component.html',
     styleUrls: ['./location-label-dialog.component.css']
@@ -34,6 +36,7 @@ export class LocationLabelDialogComponent implements OnInit {
     private readonly dialogRef = inject(DynamicDialogRef);
     private readonly dialogConfig = inject(DynamicDialogConfig);
     private readonly sanitizer = inject(DomSanitizer);
+    private readonly i18n = inject(I18nService);
 
     location: WarehouseLocationResponse | null = null;
 
@@ -72,8 +75,8 @@ export class LocationLabelDialogComponent implements OnInit {
         if (!this.location) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Missing Data',
-                detail: 'No warehouse location provided for label generation'
+                summary: this.i18n.t('warehouseLocations.labelDialog.missingDataTitle'),
+                detail: this.i18n.t('warehouseLocations.labelDialog.missingDataDetail')
             });
             return;
         }
@@ -125,7 +128,7 @@ export class LocationLabelDialogComponent implements OnInit {
             this.rebuildLabel();
         } catch (error) {
             console.error('Error generating location label:', error);
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to generate label' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('warehouseLocations.labelDialog.generateFailed') });
         } finally {
             this.isGenerating = false;
         }
@@ -134,6 +137,13 @@ export class LocationLabelDialogComponent implements OnInit {
     private rebuildLabel(): void {
         const html = buildLocationLabelMarkup(this.labelOptions());
         this.labelHtmlSafe = this.sanitizer.bypassSecurityTrustHtml(html);
+    }
+
+    /** Print button label — pluralized with the current quantity, re-evaluated on every CD cycle (incl. language switch). */
+    get printButtonLabel(): string {
+        return this.quantity > 1
+            ? this.i18n.t('warehouseLocations.labelDialog.printLabelsCount', { count: String(this.quantity) })
+            : this.i18n.t('warehouseLocations.labelDialog.printLabel');
     }
 
     validateQuantity(): void {
@@ -156,7 +166,7 @@ export class LocationLabelDialogComponent implements OnInit {
             const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
-    <title>${this.escapeHtml(this.location.locationCode)} — Location Labels</title>
+    <title>${this.escapeHtml(this.location.locationCode)} ${this.i18n.t('warehouseLocations.labelDialog.printWindowTitleSuffix')}</title>
     <style>
         @page { size: ${this.widthMm}mm ${this.heightMm}mm; margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -186,12 +196,12 @@ export class LocationLabelDialogComponent implements OnInit {
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'Success',
-                detail: `Ready to print ${this.quantity} label(s)`
+                summary: this.i18n.t('common.messages.success'),
+                detail: this.i18n.t('warehouseLocations.labelDialog.readyToPrint', { count: String(this.quantity) })
             });
         } catch (error) {
             console.error('Error printing location label:', error);
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to print label' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('warehouseLocations.labelDialog.printFailed') });
         }
     }
 

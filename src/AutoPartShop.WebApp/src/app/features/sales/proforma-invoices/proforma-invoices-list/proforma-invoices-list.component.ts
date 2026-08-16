@@ -20,6 +20,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { GenerateProformaDialogComponent } from '../generate-proforma-dialog/generate-proforma-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-proforma-invoices-list',
@@ -37,7 +39,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         DataPaginationComponent,
-        GenerateProformaDialogComponent
+        GenerateProformaDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './proforma-invoices-list.component.html',
@@ -49,6 +52,7 @@ export class ProformaInvoicesListComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -75,12 +79,12 @@ export class ProformaInvoicesListComponent implements OnInit {
     private buildActionMenuItems(proforma: ProformaInvoiceResponse): void {
         this.actionMenuItems = [
             {
-                label: 'Download PDF',
+                label: this.i18n.t('proformaInvoices.actions.downloadPdf'),
                 icon: 'pi pi-file-pdf',
                 command: () => this.downloadPdf(proforma)
             },
             {
-                label: 'View Sales Order',
+                label: this.i18n.t('proformaInvoices.actions.viewSalesOrder'),
                 icon: 'pi pi-external-link',
                 command: () => this.viewSalesOrder(proforma)
             }
@@ -100,8 +104,8 @@ export class ProformaInvoicesListComponent implements OnInit {
                 console.error('Error loading proforma invoices:', err);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load proforma invoices.'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('proformaInvoices.messages.loadFailed')
                 });
                 this.loading = false;
             }
@@ -153,8 +157,8 @@ export class ProformaInvoicesListComponent implements OnInit {
             error: () => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to download the proforma invoice PDF'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('proformaInvoices.messages.pdfFailed')
                 });
             }
         });
@@ -186,7 +190,12 @@ export class ProformaInvoicesListComponent implements OnInit {
     }
 
     formatStatus(status: string): string {
-        return (status ?? '-').split('_')
+        if (!status) return '-';
+        const key = 'proformaInvoices.statusOptions.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        if (label !== key) return label;
+        return status.split('_')
             .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
     }
 }

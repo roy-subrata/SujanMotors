@@ -20,11 +20,12 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-suppliers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, MenuModule, RippleModule, ToastModule, PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
+  imports: [CommonModule, FormsModule, TableModule, ButtonModule, ConfirmDialogModule, TooltipModule, TagModule, MenuModule, RippleModule, ToastModule, PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent, TranslatePipe],
   providers: [ConfirmationService, MessageService],
   templateUrl: './suppliers-list.component.html',
   styleUrls: ['./suppliers-list.component.css']

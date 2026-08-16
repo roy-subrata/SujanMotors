@@ -1,17 +1,17 @@
 <!-- ══ Print toolbar (hidden when printing) ══════════════════════════ -->
 <div class="print-toolbar no-print" *ngIf="!loading() && !error()">
   <button class="btn-print" (click)="print()">
-    <i class="pi pi-print"></i> Print / Save PDF
+    <i class="pi pi-print"></i> {{ 'common.document.printSavePdf' | translate }}
   </button>
   <a class="btn-back" routerLink="/sales/invoices">
-    <i class="pi pi-arrow-left"></i> Back to Invoices
+    <i class="pi pi-arrow-left"></i> {{ 'invoicePrint.backToInvoices' | translate }}
   </a>
   <span class="doc-title">{{ title }} — {{ data()?.invoice?.invoiceNumber }}</span>
 </div>
 
 <!-- ══ Loading ══════════════════════════════════════════════════════ -->
 <div class="loading-wrap no-print" *ngIf="loading()">
-  <i class="pi pi-spin pi-spinner"></i> Loading document…
+  <i class="pi pi-spin pi-spinner"></i> {{ 'common.document.loadingDocument' | translate }}
 </div>
 
 <!-- ══ Error ════════════════════════════════════════════════════════ -->
@@ -23,8 +23,8 @@
 <div class="document" *ngIf="!loading() && !error() && data() as d">
 
   <!-- PAID watermark (print only) -->
-  <div class="watermark" *ngIf="isPaid">PAID</div>
-  <div class="watermark partial" *ngIf="isPartiallyPaid">PARTIAL</div>
+  <div class="watermark" *ngIf="isPaid">{{ 'invoicePrint.watermarkPaid' | translate }}</div>
+  <div class="watermark partial" *ngIf="isPartiallyPaid">{{ 'invoicePrint.watermarkPartial' | translate }}</div>
 
   <!-- ── Document header ──────────────────────────────────────────── -->
   <div class="doc-header">
@@ -34,21 +34,21 @@
       <div class="shop-name">{{ d.shop.name }}</div>
       <div class="shop-detail shop-tagline" *ngIf="d.shop.tagline">{{ d.shop.tagline }}</div>
       <div class="shop-detail" *ngIf="d.shop.address">{{ d.shop.address }}</div>
-      <div class="shop-detail" *ngIf="d.shop.phone">Tel: {{ d.shop.phone }}</div>
+      <div class="shop-detail" *ngIf="d.shop.phone">{{ 'invoicePrint.tel' | translate }} {{ d.shop.phone }}</div>
       <div class="shop-detail" *ngIf="d.shop.email">{{ d.shop.email }}</div>
-      <div class="shop-detail" *ngIf="d.shop.taxNo">Tax Reg: {{ d.shop.taxNo }}</div>
+      <div class="shop-detail" *ngIf="d.shop.taxNo">{{ 'common.document.taxReg' | translate }} {{ d.shop.taxNo }}</div>
     </div>
     <div class="doc-meta">
       <div class="doc-type">{{ title }}</div>
       <table class="meta-table">
-        <tr><td>No.</td><td><strong>{{ d.invoice.invoiceNumber }}</strong></td></tr>
-        <tr><td>Date</td><td>{{ formatDate(d.invoice.invoiceDate) }}</td></tr>
-        <tr *ngIf="!isChallan"><td>Due Date</td><td [class.overdue]="d.invoice.isOverdue">{{ formatDate(d.invoice.dueDate) }}</td></tr>
-        <tr><td>SO No.</td><td>{{ d.salesOrderNumber }}</td></tr>
+        <tr><td>{{ 'common.document.number' | translate }}</td><td><strong>{{ d.invoice.invoiceNumber }}</strong></td></tr>
+        <tr><td>{{ 'common.labels.date' | translate }}</td><td>{{ formatDate(d.invoice.invoiceDate) }}</td></tr>
+        <tr *ngIf="!isChallan"><td>{{ 'invoicePrint.dueDate' | translate }}</td><td [class.overdue]="d.invoice.isOverdue">{{ formatDate(d.invoice.dueDate) }}</td></tr>
+        <tr><td>{{ 'common.document.soNo' | translate }}</td><td>{{ d.salesOrderNumber }}</td></tr>
         <tr>
-          <td>Status</td>
+          <td>{{ 'common.labels.status' | translate }}</td>
           <td>
-            <span class="status-pill" [attr.data-status]="d.invoice.status">{{ d.invoice.status }}</span>
+            <span class="status-pill" [attr.data-status]="d.invoice.status">{{ statusLabel(d.invoice.status) }}</span>
           </td>
         </tr>
       </table>
@@ -60,8 +60,8 @@
   <!-- ── Bill To ──────────────────────────────────────────────────── -->
   <div class="parties">
     <div class="party">
-      <div class="party-label">{{ isChallan ? 'Deliver To' : 'Bill To' }}</div>
-      <div class="party-name">{{ d.customer.name || 'Walk-in Customer' }}</div>
+      <div class="party-label">{{ (isChallan ? 'common.document.deliverTo' : 'common.document.billTo') | translate }}</div>
+      <div class="party-name">{{ d.customer.name || ('common.document.walkInCustomer' | translate) }}</div>
       <div class="party-detail" *ngIf="d.customer.phone">{{ d.customer.phone }}</div>
       <div class="party-detail" *ngIf="d.customer.email">{{ d.customer.email }}</div>
       <div class="party-detail" *ngIf="d.customer.address">{{ d.customer.address }}</div>
@@ -78,13 +78,13 @@
     <thead>
       <tr>
         <th class="col-num">#</th>
-        <th class="col-item">Item Description</th>
-        <th class="col-sku">SKU</th>
-        <th class="col-qty">Qty</th>
-        <th class="col-unit">Unit</th>
-        <th class="col-price" *ngIf="!isChallan">Unit Price</th>
-        <th class="col-disc"  *ngIf="!isChallan">Disc.</th>
-        <th class="col-total" *ngIf="!isChallan">Total</th>
+        <th class="col-item">{{ 'common.document.itemDescription' | translate }}</th>
+        <th class="col-sku">{{ 'common.document.sku' | translate }}</th>
+        <th class="col-qty">{{ 'common.document.qty' | translate }}</th>
+        <th class="col-unit">{{ 'common.document.unit' | translate }}</th>
+        <th class="col-price" *ngIf="!isChallan">{{ 'common.labels.unitPrice' | translate }}</th>
+        <th class="col-disc"  *ngIf="!isChallan">{{ 'invoicePrint.disc' | translate }}</th>
+        <th class="col-total" *ngIf="!isChallan">{{ 'common.labels.total' | translate }}</th>
       </tr>
     </thead>
     <tbody>
@@ -95,7 +95,7 @@
         </td>
         <td class="col-sku">{{ line.partSku }}</td>
         <td class="col-qty">{{ line.quantity }}</td>
-        <td class="col-unit">{{ line.unitSymbol || line.unitName || 'PCS' }}</td>
+        <td class="col-unit">{{ line.unitSymbol || line.unitName || ('common.document.pcs' | translate) }}</td>
         <td class="col-price" *ngIf="!isChallan">{{ formatCurrency(line.unitPrice) }}</td>
         <td class="col-disc"  *ngIf="!isChallan">
           <span *ngIf="line.discount > 0">{{ formatCurrency(line.discount) }}</span>
@@ -110,19 +110,19 @@
   <div class="totals-section" *ngIf="!isChallan">
     <div class="totals-table">
       <div class="totals-row">
-        <span>Subtotal</span>
+        <span>{{ 'common.labels.subtotal' | translate }}</span>
         <span>{{ formatCurrency(d.invoice.subTotal) }}</span>
       </div>
       <div class="totals-row" *ngIf="d.invoice.discountAmount > 0">
-        <span>Discount</span>
+        <span>{{ 'common.labels.discount' | translate }}</span>
         <span class="text-discount">− {{ formatCurrency(d.invoice.discountAmount) }}</span>
       </div>
       <div class="totals-row" *ngIf="d.invoice.taxAmount > 0">
-        <span>Tax / VAT</span>
+        <span>{{ 'invoicePrint.taxVat' | translate }}</span>
         <span>{{ formatCurrency(d.invoice.taxAmount) }}</span>
       </div>
       <div class="totals-row grand">
-        <span>Grand Total</span>
+        <span>{{ 'invoicePrint.grandTotal' | translate }}</span>
         <span>{{ formatCurrency(d.invoice.grandTotal) }}</span>
       </div>
     </div>
@@ -134,20 +134,20 @@
     <div class="divider" *ngIf="(d.invoice.payments?.length ?? 0) > 0"></div>
 
     <div class="payments-section" *ngIf="(d.invoice.payments?.length ?? 0) > 0">
-      <div class="section-title">Payment History</div>
+      <div class="section-title">{{ 'invoicePrint.paymentHistory' | translate }}</div>
       <table class="payments-table">
         <thead>
           <tr>
-            <th>Date &amp; Time</th>
-            <th>Method</th>
-            <th>Reference</th>
-            <th class="text-right">Amount</th>
+            <th>{{ 'invoicePrint.dateTime' | translate }}</th>
+            <th>{{ 'invoicePrint.method' | translate }}</th>
+            <th>{{ 'common.labels.reference' | translate }}</th>
+            <th class="text-right">{{ 'common.labels.amount' | translate }}</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of (d.invoice.payments ?? [])">
             <td>{{ formatDateTime(p.paymentDate) }}</td>
-            <td>{{ p.paymentMethod }}</td>
+            <td>{{ methodLabel(p.paymentMethod) }}</td>
             <td class="text-muted">{{ p.referenceNumber || '—' }}</td>
             <td class="text-right text-paid">{{ formatCurrency(p.amount) }}</td>
           </tr>
@@ -160,15 +160,15 @@
     <!-- Balance summary -->
     <div class="balance-summary">
       <div class="balance-row">
-        <span>Total Paid</span>
+        <span>{{ 'invoicePrint.totalPaid' | translate }}</span>
         <span class="text-paid">{{ formatCurrency(d.invoice.amountPaid) }}</span>
       </div>
       <div class="balance-row due" *ngIf="d.invoice.outstandingAmount > 0">
-        <span>Balance Due</span>
+        <span>{{ 'invoicePrint.balanceDue' | translate }}</span>
         <span class="due-amount">{{ formatCurrency(d.invoice.outstandingAmount) }}</span>
       </div>
       <div class="balance-row paid-stamp" *ngIf="isPaid">
-        <span>Balance Due</span>
+        <span>{{ 'invoicePrint.balanceDue' | translate }}</span>
         <span class="zero-due">{{ formatCurrency(0) }}</span>
       </div>
     </div>
@@ -181,11 +181,11 @@
     <div class="signatures">
       <div class="sig-box">
         <div class="sig-line"></div>
-        <div class="sig-label">Delivered By</div>
+        <div class="sig-label">{{ 'invoicePrint.deliveredBy' | translate }}</div>
       </div>
       <div class="sig-box">
         <div class="sig-line"></div>
-        <div class="sig-label">Received By (Signature &amp; Date)</div>
+        <div class="sig-label">{{ 'common.document.receivedBy' | translate }}</div>
       </div>
     </div>
   </div>
@@ -193,7 +193,7 @@
   <!-- ── Footer ───────────────────────────────────────────────────── -->
   <div class="doc-footer">
     <div class="footer-note" *ngIf="d.invoice.notes">{{ d.invoice.notes }}</div>
-    <div class="footer-thanks">{{ d.shop.footerText || 'Thank you for your business!' }}</div>
+    <div class="footer-thanks">{{ d.shop.footerText || ('invoicePrint.footerThanks' | translate) }}</div>
   </div>
 
 </div>

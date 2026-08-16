@@ -18,6 +18,7 @@ import { FilterBarComponent } from '../../../shared/components/filter-bar/filter
 import { DataPaginationComponent } from '../../../shared/components/data-pagination/data-pagination.component';
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { extractApiError } from '../../../shared/utils/api-error.util';
+import { I18nService } from '@/shared/services/i18n.service';
 
 import { WarehouseService } from '../../inventory/services/warehouse.service';
 import { CategoryService } from '../../inventory/services/category.service';
@@ -56,6 +57,7 @@ export class ReportPageComponent implements OnInit, OnDestroy {
     private readonly warehouseService = inject(WarehouseService);
     private readonly categoryService = inject(CategoryService);
     private readonly brandService = inject(BrandService);
+    readonly i18n = inject(I18nService);
 
     config!: ReportPageConfig;
 
@@ -78,6 +80,9 @@ export class ReportPageComponent implements OnInit, OnDestroy {
 
     chartData: any = null;
     chartOptions: any = null;
+
+    /** Translated static select options, cached per filter key + language (see optionsFor). */
+    private readonly translatedOptions = new Map<string, { lang: string; options: ReportSelectOption[] }>();
 
     private routeSub?: Subscription;
 
@@ -139,8 +144,8 @@ export class ReportPageComponent implements OnInit, OnDestroy {
         this.totalRecords = 0;
         this.messageService.add({
             severity: 'error',
-            summary: 'Report failed',
-            detail: extractApiError(err, 'Could not load the report. Please try again.')
+            summary: this.i18n.t('reports.messages.reportFailed'),
+            detail: extractApiError(err, this.i18n.t('reports.messages.loadFailed'))
         });
     }
 
@@ -232,8 +237,8 @@ export class ReportPageComponent implements OnInit, OnDestroy {
                 this.exporting = null;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Export failed',
-                    detail: 'Could not export the report. Please try again.'
+                    summary: this.i18n.t('reports.messages.exportFailed'),
+                    detail: this.i18n.t('reports.messages.exportFailedDetail')
                 });
             }
         });
@@ -258,18 +263,37 @@ export class ReportPageComponent implements OnInit, OnDestroy {
     }
 
     get searchPlaceholder(): string {
-        return this.config.filters.find(f => f.kind === 'search')?.placeholder ?? 'Search...';
+        const key = this.config.filters.find(f => f.kind === 'search')?.placeholder;
+        return this.i18n.t(key ?? 'common.labels.searchPlaceholder');
+    }
+
+    get itemLabel(): string {
+        return this.i18n.t(this.config.itemLabel || 'reports.items.rows');
     }
 
     get mobilePrimaryField(): string {
         return (this.config.columns.find(c => c.mobilePrimary) ?? this.config.columns[0]).field;
     }
 
+    /**
+     * Static select options carry i18n keys, so they are translated here (render time) rather
+     * than in the config files. Memoised per filter + language so the array identity stays
+     * stable across change-detection runs and p-select is not rebuilt on every cycle.
+     */
     optionsFor(filter: ReportFilterDef): ReportSelectOption[] {
-        return filter.kind === 'lookup' ? (this.lookupOptions[filter.key] ?? []) : (filter.options ?? []);
+        if (filter.kind === 'lookup') return this.lookupOptions[filter.key] ?? [];
+
+        const lang = this.i18n.getCurrentLanguage();
+        const cached = this.translatedOptions.get(filter.key);
+        if (cached && cached.lang === lang) return cached.options;
+
+        const options = (filter.options ?? []).map(o => ({ label: this.i18n.t(o.label), value: o.value }));
+        this.translatedOptions.set(filter.key, { lang, options });
+        return options;
     }
 
     private resetState(): void {
+        this.translatedOptions.clear(); // filter keys repeat across reports with different labels
         this.rows = [];
         this.totals = null;
         this.totalRecords = 0;
@@ -370,7 +394,7 @@ export class ReportPageComponent implements OnInit, OnDestroy {
             this.chartData = {
                 labels,
                 datasets: chart.series.map((series, i) => ({
-                    label: series.label,
+                    label: this.i18n.t(series.label),
                     data: this.rows.map(row => Number(row[series.field] ?? 0)),
                     borderColor: palette[i % palette.length],
                     backgroundColor: chart.type === 'bar' ? palette[i % palette.length] : 'transparent',

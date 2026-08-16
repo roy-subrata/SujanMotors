@@ -9,19 +9,19 @@
 <app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Purchase Orders"
-    subtitle="Manage and track your purchase orders"
-    [count]="totalRecords" countLabel="orders">
+    [title]="'purchaseOrders.listTitle' | translate"
+    [subtitle]="'purchaseOrders.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'purchaseOrders.countLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
-      <button class="btn-icon" pTooltip="More options" tooltipPosition="bottom" (click)="menu.toggle($event)">
+      <button class="btn-icon" [pTooltip]="'purchaseOrders.moreOptions' | translate" tooltipPosition="bottom" (click)="menu.toggle($event)">
         <i class="pi pi-ellipsis-v"></i>
       </button>
       <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
         <i class="pi pi-plus"></i>
-        <span>New Order</span>
+        <span>{{ 'purchaseOrders.newOrder' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -34,7 +34,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by PO number, supplier..."
+          [placeholder]="'purchaseOrders.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
@@ -44,22 +44,18 @@
     </div>
 
     <div filters class="filter-group">
-      <p-select
+      <app-status-pill-filter
         [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        (onChange)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
+        [value]="filterStatus"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <div filters class="filter-group">
       <p-datepicker
         [(ngModel)]="dateRange"
         selectionMode="range"
-        placeholder="Select date range"
+        [placeholder]="'purchaseOrders.dateRangePlaceholder' | translate"
         dateFormat="dd M yy"
         [showIcon]="true"
         [showButtonBar]="true"
@@ -74,6 +70,9 @@
         <i class="pi pi-search"></i>
         Search
       </button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">
+        More filters
+      </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
         Clear
@@ -81,14 +80,14 @@
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
         Search: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="clearSearch()"></i>
       </span>
       <span *ngIf="filterStatus" class="filter-chip">
         Status: {{ filterStatus }}
-        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
       </span>
       <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
         Date Range
@@ -96,6 +95,14 @@
       </span>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatus"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== TABLE + CARDS ==================== -->
   <section class="table-section">

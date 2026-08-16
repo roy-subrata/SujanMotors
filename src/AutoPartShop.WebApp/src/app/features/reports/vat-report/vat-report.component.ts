@@ -14,6 +14,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { PdfDownloadService } from '../../../shared/services/pdf-download.service';
+import { I18nService } from '@/shared/services/i18n.service';
 import { ReportQuery } from '../services/reports.service';
 
 /** Backend VatReportDto (see Application/DTOs/ReportDtos/FinancialReportDtos.cs). */
@@ -49,6 +50,7 @@ export class VatReportComponent implements OnInit {
     private readonly http = inject(HttpClient);
     private readonly messageService = inject(MessageService);
     private readonly pdfDownloadService = inject(PdfDownloadService);
+    readonly i18n = inject(I18nService);
 
     dateRange: Date[] | null = null;
     vatRatePercent = 15;
@@ -85,8 +87,8 @@ export class VatReportComponent implements OnInit {
                 this.report = null;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Report failed',
-                    detail: extractApiError(err, 'Could not load the VAT report.')
+                    summary: this.i18n.t('reports.messages.reportFailed'),
+                    detail: extractApiError(err, this.i18n.t('reports.vat.loadFailed'))
                 });
             }
         });
@@ -109,8 +111,8 @@ export class VatReportComponent implements OnInit {
                 this.downloading = false;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Download failed',
-                    detail: 'Could not generate the VAT report PDF. Please try again.'
+                    summary: this.i18n.t('reports.messages.downloadFailed'),
+                    detail: this.i18n.t('reports.vat.downloadFailed')
                 });
             }
         });

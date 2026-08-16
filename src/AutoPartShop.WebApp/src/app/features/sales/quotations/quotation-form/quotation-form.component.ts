@@ -27,6 +27,8 @@ import { CurrencySelectorComponent } from '@/shared/components/currency-selector
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/components/lazy-autocomplete';
 import { Subject, takeUntil, map } from 'rxjs';
 import { StatusDisplayService } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-quotation-form',
@@ -47,7 +49,8 @@ import { StatusDisplayService } from '@/shared/services/status-display.service';
         TextareaModule,
         TooltipModule,
         DatePickerModule,
-        LazyAutocompleteComponent
+        LazyAutocompleteComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './quotation-form.component.html',
@@ -65,6 +68,7 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
 
     private readonly destroy$ = new Subject<void>();
 
@@ -393,7 +397,7 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
                 this.loading.set(false);
             },
             error: (err: Error) => {
-                this.error.set('Failed to load quotation');
+                this.error.set(this.i18n.t('quotationForm.messages.loadFailed'));
                 this.loading.set(false);
                 console.error('Error loading quotation:', err);
             }
@@ -402,7 +406,7 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
 
     onSubmit(): void {
         if (!this.selectedCustomerId) {
-            this.error.set('Please select a customer from the dropdown');
+            this.error.set(this.i18n.t('quotationForm.messages.selectCustomerFirst'));
             return;
         }
 
@@ -417,12 +421,12 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
                     if (control?.invalid) control.markAsTouched();
                 });
             });
-            this.error.set('Please fill in all required fields');
+            this.error.set(this.i18n.t('quotationForm.messages.fillRequired'));
             return;
         }
 
         if (this.lines.length === 0) {
-            this.error.set('At least one line item is required.');
+            this.error.set(this.i18n.t('quotationForm.messages.lineRequired'));
             return;
         }
 
@@ -469,11 +473,11 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
 
         this.quotationService.create(request).pipe(takeUntil(this.destroy$)).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Quotation created successfully!' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('quotationForm.messages.createSuccess') });
                 this.router.navigate(['/sales/quotations']);
             },
             error: (err) => {
-                let errorMessage = 'Failed to create quotation';
+                let errorMessage = this.i18n.t('quotationForm.messages.createFailed');
                 if (err.error?.message) errorMessage = err.error.message;
                 else if (err.error?.errors) errorMessage = Object.values(err.error.errors).flat().join(', ');
                 else if (err.message) errorMessage = err.message;
@@ -494,20 +498,20 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
         if (!this.quotationId() || !this.currentQuotation) return;
         this.confirmationService.confirm({
             message: `Send quotation ${this.currentQuotation.quotationNumber} to the customer?`,
-            header: 'Send Quotation',
+            header: this.i18n.t('quotationForm.messages.sendHeader'),
             icon: 'pi pi-send',
             acceptButtonStyleClass: 'p-button-success',
             accept: () => {
                 this.processing.set(true);
                 this.quotationService.send(this.quotationId()!).pipe(takeUntil(this.destroy$)).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Quotation marked as Sent.' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('quotationForm.messages.sendSuccess') });
                         this.processing.set(false);
                         this.loadQuotation(this.quotationId()!);
                     },
                     error: (err) => {
                         this.processing.set(false);
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to send quotation.' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('quotationForm.messages.sendFailed') });
                     }
                 });
             }
@@ -518,20 +522,20 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
         if (!this.quotationId() || !this.currentQuotation) return;
         this.confirmationService.confirm({
             message: `Mark quotation ${this.currentQuotation.quotationNumber} as Accepted?`,
-            header: 'Accept Quotation',
+            header: this.i18n.t('quotationForm.messages.acceptHeader'),
             icon: 'pi pi-check-circle',
             acceptButtonStyleClass: 'p-button-success',
             accept: () => {
                 this.processing.set(true);
                 this.quotationService.accept(this.quotationId()!).pipe(takeUntil(this.destroy$)).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Quotation accepted.' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('quotationForm.messages.acceptSuccess') });
                         this.processing.set(false);
                         this.loadQuotation(this.quotationId()!);
                     },
                     error: (err) => {
                         this.processing.set(false);
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to accept quotation.' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('quotationForm.messages.acceptFailed') });
                     }
                 });
             }
@@ -546,13 +550,13 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
         this.processing.set(true);
         this.quotationService.reject(this.quotationId()!, reason).pipe(takeUntil(this.destroy$)).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Quotation rejected.' });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('quotationForm.messages.rejectSuccess') });
                 this.processing.set(false);
                 this.loadQuotation(this.quotationId()!);
             },
             error: (err) => {
                 this.processing.set(false);
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to reject quotation.' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('quotationForm.messages.rejectFailed') });
             }
         });
     }
@@ -561,7 +565,7 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
         if (!this.quotationId() || !this.currentQuotation) return;
         this.confirmationService.confirm({
             message: `Convert quotation ${this.currentQuotation.quotationNumber} into a new Sales Order?`,
-            header: 'Convert to Sales Order',
+            header: this.i18n.t('quotationForm.messages.convertHeader'),
             icon: 'pi pi-arrow-right-arrow-left',
             acceptButtonStyleClass: 'p-button-success',
             accept: () => {
@@ -569,12 +573,12 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
                 this.quotationService.convertToSalesOrder(this.quotationId()!).pipe(takeUntil(this.destroy$)).subscribe({
                     next: (result) => {
                         this.processing.set(false);
-                        this.messageService.add({ severity: 'success', summary: 'Converted', detail: `Sales Order ${result.soNumber} created.` });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('quotationForm.messages.converted'), detail: this.i18n.t('quotationForm.messages.convertedDetail', { number: result.soNumber }) });
                         this.router.navigate(['/sales/sales-orders/view'], { queryParams: { id: result.salesOrderId } });
                     },
                     error: (err) => {
                         this.processing.set(false);
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to convert quotation.' });
+                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('quotationForm.messages.convertFailed') });
                     }
                 });
             }
@@ -585,7 +589,7 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
         if (!this.quotationId() || !this.currentQuotation) return;
         this.quotationService.downloadPdf(this.quotationId()!, this.currentQuotation.quotationNumber).subscribe({
             error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to download the quotation PDF' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('quotationForm.messages.pdfFailed') });
             }
         });
     }
@@ -603,5 +607,14 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
 
     getStatusSeverity(status: string): string {
         return this.statusDisplay.getSeverity(status, 'quotation');
+    }
+
+    /** Server enum -> localized label, falling back to the raw value when untranslated. */
+    statusLabel(status: string | undefined): string {
+        if (!status) return '';
+        const key = 'quotations.statusOptions.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        return label === key ? status : label;
     }
 }

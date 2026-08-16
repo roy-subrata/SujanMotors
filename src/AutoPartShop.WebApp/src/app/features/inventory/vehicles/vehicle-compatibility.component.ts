@@ -11,12 +11,15 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { VehicleService, VehicleResponse, PartCompatibilityResponse, CreatePartCompatibilityRequest } from '../services/vehicle.service';
 import { PartService, PartResponse } from '../services/part.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { map } from 'rxjs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-vehicle-compatibility',
@@ -33,9 +36,11 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     ConfirmDialogModule,
     ToastModule,
     TagModule,
+    TooltipModule,
     LazyAutocompleteComponent,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './vehicle-compatibility.component.html',
@@ -49,6 +54,7 @@ export class VehicleCompatibilityComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly i18n = inject(I18nService);
 
   vehicleId: string | null = null;
   vehicle: VehicleResponse | null = null;
@@ -85,8 +91,8 @@ export class VehicleCompatibilityComponent implements OnInit {
       } else {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Vehicle ID is required'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('vehicles.compatibility.messages.vehicleIdRequired')
         });
         this.router.navigate(['/inventory/vehicles']);
       }
@@ -111,8 +117,8 @@ export class VehicleCompatibilityComponent implements OnInit {
       error: (error: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load vehicle details'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('vehicles.messages.loadDetailsFailed')
         });
         console.error('Error loading vehicle:', error);
       }
@@ -131,8 +137,8 @@ export class VehicleCompatibilityComponent implements OnInit {
       error: (error: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load compatibilities'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('vehicles.compatibility.messages.loadCompatibilitiesFailed')
         });
         console.error('Error loading compatibilities:', error);
         this.loading = false;
@@ -154,8 +160,8 @@ export class VehicleCompatibilityComponent implements OnInit {
     if (!this.addForm.valid || !this.vehicleId) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Please select a part'
+        summary: this.i18n.t('common.messages.error'),
+        detail: this.i18n.t('vehicles.compatibility.messages.selectPartRequired')
       });
       Object.keys(this.addForm.controls).forEach(key => {
         this.addForm.get(key)?.markAsTouched();
@@ -175,8 +181,8 @@ export class VehicleCompatibilityComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Part '${selectedPart.name}' added to compatibility list`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('vehicles.compatibility.messages.addSuccess', { name: selectedPart.name })
         });
         this.loadCompatibilities();
         this.resetForm();
@@ -185,8 +191,8 @@ export class VehicleCompatibilityComponent implements OnInit {
       error: (error: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to add compatibility'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('vehicles.compatibility.messages.addFailed')
         });
         console.error('Error adding compatibility:', error);
         this.isSubmitting = false;
@@ -196,8 +202,8 @@ export class VehicleCompatibilityComponent implements OnInit {
 
   removeCompatibility(compatibility: PartCompatibilityResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to remove compatibility with "${compatibility.partName}"?`,
-      header: 'Confirm Removal',
+      message: this.i18n.t('vehicles.compatibility.messages.removeConfirm', { name: compatibility.partName }),
+      header: this.i18n.t('vehicles.compatibility.removeConfirmHeader'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
@@ -205,16 +211,16 @@ export class VehicleCompatibilityComponent implements OnInit {
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Compatibility removed successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('vehicles.compatibility.messages.removeSuccess')
             });
             this.loadCompatibilities();
           },
           error: (error: any) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to remove compatibility'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('vehicles.compatibility.messages.removeFailed')
             });
             console.error('Error removing compatibility:', error);
           }
@@ -251,6 +257,8 @@ export class VehicleCompatibilityComponent implements OnInit {
   }
 
   getCompatibilityLabel(isCompatible: boolean): string {
-    return isCompatible ? 'Compatible' : 'Not Compatible';
+    return isCompatible
+      ? this.i18n.t('vehicles.compatibility.compatible')
+      : this.i18n.t('vehicles.compatibility.notCompatible');
   }
 }

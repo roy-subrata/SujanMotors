@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angula
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { I18nService } from '../../../shared/services/i18n.service';
+import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
@@ -35,7 +36,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     ConfirmDialogModule,
     PageContainerComponent,
     PageHeaderComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -85,7 +87,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             <td>{{ currency.decimalPlaces }}</td>
             <td>
               <span class="status-pill" [attr.data-status]="currency.isActive ? 'active' : 'inactive'">
-                {{ currency.isActive ? 'Active' : 'Inactive' }}
+                {{ (currency.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
               </span>
             </td>
             <td>

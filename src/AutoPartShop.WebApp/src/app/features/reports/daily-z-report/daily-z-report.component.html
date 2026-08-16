@@ -3,14 +3,14 @@
 <app-page-container>
 
   <app-page-header
-    title="Daily Sales (Z) Report"
-    subtitle="End-of-day sales summary and cash-up report for a single business day"
+    [title]="i18n.t('reports.dailyZ.title')"
+    [subtitle]="i18n.t('reports.dailyZ.subtitle')"
     [backLink]="['/reports']">
   </app-page-header>
 
   <div class="report-filter">
     <div class="filter-item">
-      <label class="filter-label">Business Date</label>
+      <label class="filter-label">{{ i18n.t('reports.dailyZ.businessDate') }}</label>
       <p-datepicker
         [(ngModel)]="businessDate"
         dateFormat="dd M yy"
@@ -20,11 +20,11 @@
       </p-datepicker>
     </div>
     <div class="filter-item">
-      <label class="filter-label">Warehouse</label>
+      <label class="filter-label">{{ i18n.t('reports.filters.warehouse') }}</label>
       <p-select
         [options]="warehouseOptions"
         [(ngModel)]="warehouseId"
-        placeholder="All warehouses"
+        [placeholder]="i18n.t('reports.filters.allWarehouses')"
         [showClear]="true"
         [filter]="warehouseOptions.length > 10"
         appendTo="body"
@@ -38,20 +38,20 @@
       <i class="pi pi-file-pdf"></i>
     </div>
     <div class="z-report-body">
-      <h3>Z Report contents</h3>
-      <p>The report reconciles a single business day and includes:</p>
+      <h3>{{ i18n.t('reports.dailyZ.contentsTitle') }}</h3>
+      <p>{{ i18n.t('reports.dailyZ.contentsIntro') }}</p>
       <ul>
-        <li>Gross sales, returns and discounts, and net sales</li>
-        <li>VAT collected for the day</li>
-        <li>Receipt / order count</li>
-        <li>Payment collections broken down by method</li>
-        <li>Sales broken down by category</li>
+        <li>{{ i18n.t('reports.dailyZ.contentGrossSales') }}</li>
+        <li>{{ i18n.t('reports.dailyZ.contentVat') }}</li>
+        <li>{{ i18n.t('reports.dailyZ.contentReceiptCount') }}</li>
+        <li>{{ i18n.t('reports.dailyZ.contentPaymentsByMethod') }}</li>
+        <li>{{ i18n.t('reports.dailyZ.contentSalesByCategory') }}</li>
       </ul>
     </div>
     <ng-container *appHasPermission="'reports.export'">
       <button class="btn-primary z-report-download" (click)="downloadPdf()" [disabled]="downloading || !businessDate">
         <i [class]="downloading ? 'pi pi-spin pi-spinner' : 'pi pi-download'"></i>
-        <span>Download Z Report PDF</span>
+        <span>{{ i18n.t('reports.dailyZ.downloadButton') }}</span>
       </button>
     </ng-container>
   </div>

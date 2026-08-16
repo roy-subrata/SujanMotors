@@ -19,6 +19,8 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { TextareaModule } from 'primeng/textarea';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-invoice-form',
@@ -37,7 +39,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     InputNumberModule,
     Select,
     DatePickerModule,
-    TextareaModule
+    TextareaModule,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './invoice-form.component.html',
@@ -53,6 +56,7 @@ export class InvoiceFormComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly statusDisplay = inject(StatusDisplayService);
+  private readonly i18n = inject(I18nService);
 
   invoiceForm!: FormGroup;
   paymentForm!: FormGroup;
@@ -144,8 +148,8 @@ export class InvoiceFormComponent implements OnInit {
       error: (err: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load sales orders'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('invoiceForm.messages.loadSalesOrdersFailed')
         });
         this.loadingSalesOrders.set(false);
       }
@@ -181,8 +185,8 @@ export class InvoiceFormComponent implements OnInit {
       error: (err: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load invoice'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('invoiceForm.messages.loadInvoiceFailed')
         });
         this.loading.set(false);
       }
@@ -216,18 +220,18 @@ export class InvoiceFormComponent implements OnInit {
       next: (invoice) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Invoice created successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('invoiceForm.messages.createSuccess')
         });
         this.router.navigate(['/sales/invoices/view'], {
           queryParams: { id: invoice.id }
         });
       },
       error: (err: any) => {
-        const detail = err?.error?.message || 'Failed to create invoice';
+        const detail = err?.error?.message || this.i18n.t('invoiceForm.messages.createFailed');
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
+          summary: this.i18n.t('common.messages.error'),
           detail
         });
         this.saving.set(false);
@@ -239,24 +243,24 @@ export class InvoiceFormComponent implements OnInit {
     if (!this.invoiceId()) return;
 
     this.confirmationService.confirm({
-      message: 'Are you sure you want to issue this invoice? This action cannot be undone.',
-      header: 'Confirm',
+      message: this.i18n.t('invoiceForm.messages.issueConfirm'),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.invoiceService.issueInvoice(this.invoiceId()!).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Invoice issued successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('invoices.messages.issueSuccess')
             });
             this.loadInvoice(this.invoiceId()!);
           },
           error: () => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to issue invoice'
+              summary: this.i18n.t('common.messages.error'),
+              detail: this.i18n.t('invoices.messages.issueFailed')
             });
           }
         });
@@ -296,8 +300,10 @@ export class InvoiceFormComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Payment Recorded',
-          detail: `Payment of ${this.formatCurrency(formValue.amount)} recorded successfully`
+          summary: this.i18n.t('invoiceForm.messages.paymentRecorded'),
+          detail: this.i18n.t('invoiceForm.messages.paymentRecordedDetail', {
+            amount: this.formatCurrency(formValue.amount)
+          })
         });
         this.closePaymentDialog();
         this.loadInvoice(this.invoiceId()!);
@@ -305,8 +311,8 @@ export class InvoiceFormComponent implements OnInit {
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to record payment'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('invoices.messages.recordPaymentFailed')
         });
       }
     });
@@ -328,6 +334,23 @@ export class InvoiceFormComponent implements OnInit {
 
   getStatusSeverity(status: string): StatusSeverity {
     return this.statusDisplay.getSeverity(status, 'invoice');
+  }
+
+  /** Payment-method enum -> localized label, falling back to the raw value. */
+  methodLabel(method: string | undefined): string {
+    if (!method) return '';
+    const key = 'paymentMethods.pos.' + method;
+    const label = this.i18n.t(key);
+    return label === key ? method : label;
+  }
+
+  /** Server enum -> localized label, falling back to the raw value when untranslated. */
+  statusLabel(status: string | undefined): string {
+    if (!status) return '';
+    const key = 'invoices.statusOptions.' + status.toLowerCase()
+      .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+    const label = this.i18n.t(key);
+    return label === key ? status : label;
   }
 
   formatCurrency(amount: number): string {

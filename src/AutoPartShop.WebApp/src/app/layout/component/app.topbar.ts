@@ -257,7 +257,7 @@ interface StaffNotification {
             position: absolute;
             top: 2px;
             right: 2px;
-            background: var(--red-500, #ef4444);
+            background: var(--red);
             color: #fff;
             border-radius: 10px;
             min-width: 18px;
@@ -460,18 +460,71 @@ interface StaffNotification {
             font-size: 1.25rem;
         }
 
-        .quick-sale-shortcut-btn {
-            background: #0ea5e9 !important;
-            color: white !important;
+        /* Presentational global search — visual only, matches the design reference
+           which is likewise a static, non-functional box (see template comment). */
+        .topbar-search {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 300px;
+            min-width: 140px;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-color-secondary);
+            cursor: default;
+            flex: 1 1 auto;
         }
 
-        .quick-sale-shortcut-btn:hover {
-            background: #0284c7 !important;
-            transform: scale(1.05);
+        .topbar-search .pi-search {
+            font-size: 0.8rem;
+            opacity: 0.7;
         }
 
-        .quick-sale-shortcut-btn i {
-            color: white !important;
+        .topbar-search-placeholder {
+            flex: 1;
+            font-size: 0.8125rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .topbar-search-kbd {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 5px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-color-secondary);
+            flex-shrink: 0;
+        }
+
+        .quick-sale-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 36px;
+            padding: 0 14px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent);
+            color: var(--accent-fg);
+            font-size: 0.8125rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        .quick-sale-btn:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .quick-sale-btn i {
+            font-size: 0.875rem;
         }
     `]
 })
@@ -674,6 +727,7 @@ export class AppTopbar implements OnInit, OnDestroy {
             '/admin-settings': 'menu.settings',
             '/audit/dashboard': 'menu.auditDashboard',
             '/audit/logs': 'menu.auditTrail',
+            '/shortcuts': 'menu.shortcuts',
         };
 
         // Exact match, else inherit the nearest parent list page (e.g. /sales/sales-orders/create).

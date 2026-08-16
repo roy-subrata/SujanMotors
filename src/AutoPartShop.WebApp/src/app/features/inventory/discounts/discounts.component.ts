@@ -1,10 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ButtonModule } from 'primeng/button';
 import { Select } from 'primeng/select';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { DiscountResponse, DiscountService } from '../services/discount.service';
 import { DiscountsListComponent } from './discounts-list/discounts-list.component';
@@ -13,6 +14,12 @@ import { tap } from 'rxjs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-discounts',
@@ -24,11 +31,16 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
     ConfirmDialogModule,
     ButtonModule,
     Select,
+    TooltipModule,
     DiscountsListComponent,
     DiscountFormDialogComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    FilterBarComponent
+    FilterBarComponent,
+    StatStripComponent,
+    StatusPillFilterComponent,
+    MoreFiltersDialogComponent,
+    TranslatePipe
   ],
   providers: [DiscountService, MessageService, ConfirmationService],
   templateUrl: './discounts.component.html',
@@ -38,6 +50,8 @@ export class DiscountsComponent implements OnInit {
   private readonly discountService = inject(DiscountService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // Data
   discounts: DiscountResponse[] = [];
@@ -60,21 +74,44 @@ export class DiscountsComponent implements OnInit {
   filterStatus: boolean | null = null;
 
   // Scope options for dropdown
-  scopeOptions = [
-    { label: 'All Scopes', value: null },
-    { label: 'Variant Level', value: 'VARIANT' },
-    { label: 'Product Level', value: 'PRODUCT' },
-    { label: 'Cart Level', value: 'CART' }
-  ];
+  scopeOptions: { label: string; value: 'VARIANT' | 'PRODUCT' | 'CART' | null }[] = [];
 
   // Status options for dropdown
-  statusOptions = [
-    { label: 'All Statuses', value: null },
-    { label: 'Active', value: true },
-    { label: 'Inactive', value: false }
-  ];
+  statusOptions: { label: string; value: boolean | null }[] = [];
+
+  // String-valued mirror of statusOptions for <app-status-pill-filter>/<app-more-filters-dialog>
+  statusPillOptions: { label: string; value: string }[] = [];
+
+  moreFiltersVisible = false;
+  stats: StatStripItem[] = [];
+
+  private buildFilterOptions(): void {
+    this.scopeOptions = [
+      { label: this.i18n.t('discounts.scopeFilterAll'), value: null },
+      { label: this.i18n.t('discounts.scopeFilterVariant'), value: 'VARIANT' },
+      { label: this.i18n.t('discounts.scopeFilterProduct'), value: 'PRODUCT' },
+      { label: this.i18n.t('discounts.scopeFilterCart'), value: 'CART' }
+    ];
+
+    this.statusOptions = [
+      { label: this.i18n.t('common.status.allStatuses'), value: null },
+      { label: this.i18n.t('common.status.active'), value: true },
+      { label: this.i18n.t('common.status.inactive'), value: false }
+    ];
+
+    this.statusPillOptions = [
+      { label: this.i18n.t('common.status.allStatuses'), value: '' },
+      { label: this.i18n.t('common.status.active'), value: 'true' },
+      { label: this.i18n.t('common.status.inactive'), value: 'false' }
+    ];
+  }
 
   ngOnInit(): void {
+    this.buildFilterOptions();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildFilterOptions();
+      this.updateStats();
+    });
     this.loadDiscounts();
   }
 
@@ -87,13 +124,14 @@ export class DiscountsComponent implements OnInit {
       next: (response: DiscountResponse[]) => {
         this.discounts = response || [];
         this.applyFilters();
+        this.updateStats();
         this.loading = false;
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load discounts'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('discounts.messages.loadFailed')
         });
         console.error('Error loading discounts:', error);
         this.loading = false;
@@ -127,6 +165,20 @@ export class DiscountsComponent implements OnInit {
     this.totalRecords = result.length;
     const start = (this.currentPage - 1) * this.rows;
     this.filteredDiscounts = result.slice(start, start + this.rows);
+  }
+
+  private updateStats(): void {
+    const active = this.discounts.filter(d => d.isActive).length;
+    this.stats = [
+      { label: this.i18n.t('discounts.totalDiscounts'), value: String(this.discounts.length) },
+      { label: this.i18n.t('common.status.active'), value: String(active) },
+      { label: this.i18n.t('common.status.inactive'), value: String(this.discounts.length - active) }
+    ];
+  }
+
+  onStatusFilterChange(value: string): void {
+    this.filterStatus = value === '' ? null : value === 'true';
+    this.onFilterChange();
   }
 
   /**
@@ -181,19 +233,19 @@ export class DiscountsComponent implements OnInit {
    * Status label helper
    */
   getStatusLabel(isActive: boolean | null): string {
-    if (isActive === true) return 'Active';
-    if (isActive === false) return 'Inactive';
-    return 'All';
+    if (isActive === true) return this.i18n.t('common.status.active');
+    if (isActive === false) return this.i18n.t('common.status.inactive');
+    return this.i18n.t('common.status.all');
   }
 
   /**
    * Scope label helper
    */
   getScopeLabel(scope: 'VARIANT' | 'PRODUCT' | 'CART' | null): string {
-    if (scope === 'VARIANT') return 'Variant';
-    if (scope === 'PRODUCT') return 'Product';
-    if (scope === 'CART') return 'Cart';
-    return 'All';
+    if (scope === 'VARIANT') return this.i18n.t('discounts.scopeVariant');
+    if (scope === 'PRODUCT') return this.i18n.t('discounts.scopeProduct');
+    if (scope === 'CART') return this.i18n.t('discounts.scopeCart');
+    return this.i18n.t('common.status.all');
   }
 
   /**
@@ -254,11 +306,11 @@ export class DiscountsComponent implements OnInit {
 
     this.discountService.updateDiscount(discount.id, updatedRequest).subscribe({
       next: () => {
-        const action = !discount.isActive ? 'activated' : 'deactivated';
+        const detailKey = !discount.isActive ? 'discounts.messages.activateSuccess' : 'discounts.messages.deactivateSuccess';
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Discount "${discount.name}" ${action} successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t(detailKey, { name: discount.name })
         });
         this.loadDiscounts();
       },
@@ -266,8 +318,8 @@ export class DiscountsComponent implements OnInit {
         console.error('Failed to toggle discount status', err);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to update discount status'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('discounts.messages.toggleFailed')
         });
       }
     });
@@ -279,8 +331,8 @@ export class DiscountsComponent implements OnInit {
   selectAndDelete(discount: DiscountResponse): void {
     this.selectedDiscount = discount;
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete "${discount.name}"?`,
-      header: 'Confirm Delete',
+      message: this.i18n.t('discounts.messages.deleteConfirm', { name: discount.name }),
+      header: this.i18n.t('common.messages.confirmDeletion'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.discountService.deleteDiscount(discount.id)
@@ -288,8 +340,8 @@ export class DiscountsComponent implements OnInit {
             tap(() => {
               this.messageService.add({
                 severity: 'success',
-                summary: 'Success',
-                detail: 'Discount deleted successfully'
+                summary: this.i18n.t('common.messages.success'),
+                detail: this.i18n.t('discounts.messages.deleteSuccess')
               });
               this.selectedDiscount = null;
               this.loadDiscounts();
@@ -300,8 +352,8 @@ export class DiscountsComponent implements OnInit {
               console.error('Failed to delete discount', err);
               this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
-                detail: 'Failed to delete discount'
+                summary: this.i18n.t('common.messages.error'),
+                detail: this.i18n.t('discounts.messages.deleteFailed')
               });
             }
           });

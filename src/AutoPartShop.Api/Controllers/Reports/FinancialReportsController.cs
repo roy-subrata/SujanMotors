@@ -250,13 +250,16 @@ public class FinancialReportsController(
     public async Task<IActionResult> DownloadVatReportPdf(
         [FromBody] ReportQuery query,
         [FromServices] IShopProfileProvider shopProfiles,
+        [FromServices] AutoPartShop.Domain.Repositories.IApplicationSettingsRepository settingsRepository,
         CancellationToken cancellationToken)
     {
         try
         {
             var report = await reportRepository.GetVatReportAsync(query, cancellationToken);
             var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
-            var rate = query.VatRatePercent ?? 15m;
+            var configuredRate = await settingsRepository.GetValueAsync("VAT_RATE", cancellationToken);
+            var rate = query.VatRatePercent
+                ?? (decimal.TryParse(configuredRate, out var parsedRate) ? parsedRate : 15m);
 
             var data = new AutoPartShop.Api.Pdf.VatReportDocumentData(
                 ReportNumber: $"VAT-{query.FromDate:yyyyMMdd}",

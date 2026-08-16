@@ -2,7 +2,7 @@
 <p-dialog
   [(visible)]="displayCreateDialog"
   (visibleChange)="displayCreateDialogChange.emit($event)"
-  [header]="'Create New Unit'"
+  [header]="'units.addUnit' | translate"
   [modal]="true"
   [style]="{width: '100%', maxWidth: '500px'}"
   [draggable]="true"
@@ -14,14 +14,14 @@
     <!-- Name Field -->
     <div class="form-group">
       <label for="create-name" class="form-label">
-        <span class="required">*</span> Unit Name
+        <span class="required">*</span> {{ 'units.unitName' | translate }}
       </label>
       <input
         id="create-name"
         pInputText
         type="text"
         formControlName="name"
-        placeholder="e.g., Kilogram"
+        [placeholder]="'units.placeholders.name' | translate"
         class="form-input"
         [class.error]="hasError(createForm, 'name')"
         [class.success]="isFieldValid(createForm, 'name')" />
@@ -33,14 +33,14 @@
     <!-- Symbol Field -->
     <div class="form-group">
       <label for="create-symbol" class="form-label">
-        <span class="required">*</span> Symbol
+        <span class="required">*</span> {{ 'units.symbol' | translate }}
       </label>
       <input
         id="create-symbol"
         pInputText
         type="text"
         formControlName="symbol"
-        placeholder="e.g., kg"
+        [placeholder]="'units.placeholders.symbol' | translate"
         class="form-input"
         [class.error]="hasError(createForm, 'symbol')"
         [class.success]="isFieldValid(createForm, 'symbol')" />
@@ -52,19 +52,19 @@
     <!-- Description Field (Optional) -->
     <div class="form-group">
       <label for="create-description" class="form-label">
-        Description <span class="optional-label">(Optional)</span>
+        {{ 'common.labels.description' | translate }} <span class="optional-label">({{ 'common.labels.optional' | translate }})</span>
       </label>
       <textarea
         id="create-description"
         pInputTextarea
         formControlName="description"
-        placeholder="Optional description"
+        [placeholder]="'units.placeholders.description' | translate"
         rows="3"
         class="form-input"
         [class.error]="hasError(createForm, 'description')"
         [class.success]="isFieldValid(createForm, 'description')">
       </textarea>
-      <small class="hint-message">Max 500 characters</small>
+      <small class="hint-message">{{ 'common.labels.max500CharsHint' | translate }}</small>
     </div>
   </form>
 
@@ -73,7 +73,7 @@
       <button
         pButton
         type="button"
-        label="Cancel"
+        [label]="'common.actions.cancel' | translate"
         icon="pi pi-times"
         class="p-button-text p-button-secondary"
         (click)="onCreateDialogHide()"
@@ -82,7 +82,7 @@
       <button
         pButton
         type="button"
-        label="Create"
+        [label]="'common.actions.create' | translate"
         icon="pi pi-check"
         class="p-button p-button-success"
         (click)="onCreateSubmit()"
@@ -97,7 +97,7 @@
 <p-dialog
   [(visible)]="displayUpdateDialog"
   (visibleChange)="displayUpdateDialogChange.emit($event)"
-  [header]="'Edit Unit'"
+  [header]="'units.editUnit' | translate"
   [modal]="true"
   [style]="{width: '100%', maxWidth: '500px'}"
   [draggable]="true"
@@ -108,14 +108,14 @@
     <!-- Name Field -->
     <div class="form-group">
       <label for="update-name" class="form-label">
-        <span class="required">*</span> Unit Name
+        <span class="required">*</span> {{ 'units.unitName' | translate }}
       </label>
       <input
         id="update-name"
         pInputText
         type="text"
         formControlName="name"
-        placeholder="e.g., Kilogram"
+        [placeholder]="'units.placeholders.name' | translate"
         class="form-input"
         [class.error]="hasError(updateForm, 'name')"
         [class.success]="isFieldValid(updateForm, 'name')" />
@@ -127,14 +127,14 @@
     <!-- Symbol Field -->
     <div class="form-group">
       <label for="update-symbol" class="form-label">
-        <span class="required">*</span> Symbol
+        <span class="required">*</span> {{ 'units.symbol' | translate }}
       </label>
       <input
         id="update-symbol"
         pInputText
         type="text"
         formControlName="symbol"
-        placeholder="e.g., kg"
+        [placeholder]="'units.placeholders.symbol' | translate"
         class="form-input"
         [class.error]="hasError(updateForm, 'symbol')"
         [class.success]="isFieldValid(updateForm, 'symbol')" />
@@ -146,24 +146,24 @@
     <!-- Description Field (Optional) -->
     <div class="form-group">
       <label for="update-description" class="form-label">
-        Description <span class="optional-label">(Optional)</span>
+        {{ 'common.labels.description' | translate }} <span class="optional-label">({{ 'common.labels.optional' | translate }})</span>
       </label>
       <textarea
         id="update-description"
         pInputTextarea
         formControlName="description"
-        placeholder="Optional description"
+        [placeholder]="'units.placeholders.description' | translate"
         rows="3"
         class="form-input"
         [class.error]="hasError(updateForm, 'description')"
         [class.success]="isFieldValid(updateForm, 'description')">
       </textarea>
-      <small class="hint-message">Max 500 characters</small>
+      <small class="hint-message">{{ 'common.labels.max500CharsHint' | translate }}</small>
     </div>
 
     <!-- Status Field -->
     <div class="form-group">
-      <label for="update-status" class="form-label">Status</label>
+      <label for="update-status" class="form-label">{{ 'common.labels.status' | translate }}</label>
       <div class="status-toggle">
         <input
           id="update-status"
@@ -172,10 +172,10 @@
           class="status-checkbox" />
         <label for="update-status" class="status-label">
           <span *ngIf="updateForm.get('isActive')?.value" class="status-active">
-            <i class="pi pi-check-circle"></i> Active
+            <i class="pi pi-check-circle"></i> {{ 'common.status.active' | translate }}
           </span>
           <span *ngIf="!updateForm.get('isActive')?.value" class="status-inactive">
-            <i class="pi pi-times-circle"></i> Inactive
+            <i class="pi pi-times-circle"></i> {{ 'common.status.inactive' | translate }}
           </span>
         </label>
       </div>
@@ -187,7 +187,7 @@
       <button
         pButton
         type="button"
-        label="Cancel"
+        [label]="'common.actions.cancel' | translate"
         icon="pi pi-times"
         class="p-button-text p-button-secondary"
         (click)="onUpdateDialogHide()"
@@ -196,7 +196,7 @@
       <button
         pButton
         type="button"
-        label="Update"
+        [label]="'common.actions.update' | translate"
         icon="pi pi-check"
         class="p-button p-button-info"
         (click)="onUpdateSubmit()"

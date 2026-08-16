@@ -6,16 +6,16 @@
 
   <!-- Header -->
   <app-page-header
-    title="Payment Accounts"
-    [subtitle]="'Bank accounts & payment methods for ' + supplierName"
+    [title]="'supplierPaymentAccounts.title' | translate"
+    [subtitle]="subtitle"
     [count]="accounts.length" countLabel="accounts">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadAccounts()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadAccounts()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createNew()">
         <i class="pi pi-plus"></i>
-        <span>Add Account</span>
+        <span>{{ 'supplierPaymentAccounts.addAccount' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -32,13 +32,13 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-name">Account Name</th>
-            <th class="col-type">Type</th>
-            <th class="col-details">Account Details</th>
-            <th class="col-beneficiary">Beneficiary</th>
-            <th class="col-status">Status</th>
-            <th class="col-default">Default</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-name">{{ 'supplierPaymentAccounts.accountName' | translate }}</th>
+            <th class="col-type">{{ 'common.labels.type' | translate }}</th>
+            <th class="col-details">{{ 'supplierPaymentAccounts.accountDetails' | translate }}</th>
+            <th class="col-beneficiary">{{ 'supplierPaymentAccounts.beneficiary' | translate }}</th>
+            <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+            <th class="col-default">{{ 'supplierPaymentAccounts.default' | translate }}</th>
+            <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -68,16 +68,16 @@
             </td>
             <td class="col-status">
               <span class="status-pill" [attr.data-status]="account.isActive ? 'active' : 'inactive'">
-                {{ account.isActive ? 'Active' : 'Inactive' }}
+                {{ account.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate) }}
               </span>
             </td>
             <td class="col-default">
-              <span *ngIf="account.isDefault" class="default-badge">DEFAULT</span>
+              <span *ngIf="account.isDefault" class="default-badge">{{ 'supplierPaymentAccounts.defaultBadge' | translate }}</span>
               <span *ngIf="!account.isDefault" class="text-muted">—</span>
             </td>
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, account)">
+                <button class="btn-action" [pTooltip]="'common.labels.more' | translate" (click)="showContextMenu($event, account)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -90,10 +90,10 @@
             <td colspan="7">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-credit-card"></i></div>
-                <h3>No Payment Accounts</h3>
-                <p>Add the first payment account for this supplier</p>
+                <h3>{{ 'supplierPaymentAccounts.noResultsTitle' | translate }}</h3>
+                <p>{{ 'supplierPaymentAccounts.noResultsHint' | translate }}</p>
                 <button class="btn-primary" (click)="createNew()">
-                  <i class="pi pi-plus"></i> Add Account
+                  <i class="pi pi-plus"></i> {{ 'supplierPaymentAccounts.addAccount' | translate }}
                 </button>
               </div>
             </td>
@@ -114,10 +114,10 @@
 
     <div *ngIf="!loading && accounts.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-credit-card"></i></div>
-      <h3>No Payment Accounts</h3>
-      <p>Add the first payment account for this supplier</p>
+      <h3>{{ 'supplierPaymentAccounts.noResultsTitle' | translate }}</h3>
+      <p>{{ 'supplierPaymentAccounts.noResultsHint' | translate }}</p>
       <button class="btn-primary" (click)="createNew()">
-        <i class="pi pi-plus"></i> Add Account
+        <i class="pi pi-plus"></i> {{ 'supplierPaymentAccounts.addAccount' | translate }}
       </button>
     </div>
 
@@ -131,19 +131,19 @@
         </div>
         <div class="card-body">
           <div class="card-row">
-            <span class="label">Details</span>
+            <span class="label">{{ 'supplierPaymentAccounts.detailsLabel' | translate }}</span>
             <span class="value">{{ getAccountDisplay(account) }}</span>
           </div>
           <div class="card-row" *ngIf="account.beneficiaryName || account.mobileAccountHolderName">
-            <span class="label">Beneficiary</span>
+            <span class="label">{{ 'supplierPaymentAccounts.beneficiary' | translate }}</span>
             <span class="value">{{ account.beneficiaryName || account.mobileAccountHolderName }}</span>
           </div>
         </div>
         <div class="card-footer">
           <span class="status-pill" [attr.data-status]="account.isActive ? 'active' : 'inactive'">
-            {{ account.isActive ? 'Active' : 'Inactive' }}
+            {{ account.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate) }}
           </span>
-          <span *ngIf="account.isDefault" class="default-badge">DEFAULT</span>
+          <span *ngIf="account.isDefault" class="default-badge">{{ 'supplierPaymentAccounts.defaultBadge' | translate }}</span>
           <button class="btn-card-action" (click)="showContextMenu($event, account); $event.stopPropagation()">
             <i class="pi pi-ellipsis-h"></i>
           </button>

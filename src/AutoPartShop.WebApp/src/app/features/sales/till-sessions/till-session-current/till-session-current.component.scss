@@ -177,6 +177,10 @@
   }
 }
 
+.recon-row.recon-row-deduction span:last-child {
+  color: var(--color-danger);
+}
+
 .recon-row.recon-total {
   border-top: 2px solid var(--color-border);
   border-bottom: none;

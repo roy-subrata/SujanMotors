@@ -1,7 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
@@ -23,6 +25,11 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-stock',
@@ -44,7 +51,11 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     PageContainerComponent,
     PageHeaderComponent,
     FilterBarComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    StatStripComponent,
+    StatusPillFilterComponent,
+    MoreFiltersDialogComponent,
+    TranslatePipe
   ],
   providers: [MessageService, DialogService],
   templateUrl: './stock.component.html',
@@ -57,6 +68,8 @@ export class StockComponent implements OnInit {
   private readonly warehouseService = inject(WarehouseService);
   private readonly dialogService = inject(DialogService);
   private readonly route = inject(ActivatedRoute);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   allStockLevels: StockLevelResponse[] = [];
   lowStockLevels: StockLevelResponse[] = [];
@@ -101,14 +114,25 @@ export class StockComponent implements OnInit {
   warehouseOptions: { label: string; value: string }[] = [];
 
   // Stock status options
-  stockStatusOptions = [
-    { label: 'In Stock', value: 'in-stock' },
-    { label: 'Low Stock', value: 'low' },
-    { label: 'Critical', value: 'critical' },
-    { label: 'Out of Stock', value: 'out-of-stock' }
-  ];
+  stockStatusOptions: { label: string; value: string }[] = [];
+
+  // Adds an "All" pill to the front — stockStatusOptions itself stays as-is since
+  // other tabs/consumers of that exact list expect only the 4 real values.
+  stockStatusPillOptions: { label: string; value: string }[] = [];
+
+  moreFiltersVisible = false;
+  stats: StatStripItem[] = [];
+
+  /** Raw counts behind `stats` — kept around so the labels can be re-translated on language switch without a refetch. */
+  private statCounts: { inStock: number; low: number; critical: number; outOfStock: number } | null = null;
 
   ngOnInit(): void {
+    this.buildStockStatusOptions();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildStockStatusOptions();
+      this.buildStats();
+    });
+
     // Deep-link support (e.g. the topbar reorder alert links to /inventory/stock?tab=low).
     // Subscribed (not snapshot) so the link also works when the page is already open.
     this.route.queryParamMap.subscribe(params => {
@@ -118,6 +142,53 @@ export class StockComponent implements OnInit {
     this.loadWarehouses();
     this.loadAllStock();
     this.loadLowStock();
+    this.loadStats();
+  }
+
+  private buildStockStatusOptions(): void {
+    this.stockStatusOptions = [
+      { label: this.i18n.t('stock.status.inStock'), value: 'in-stock' },
+      { label: this.i18n.t('stock.lowStock'), value: 'low' },
+      { label: this.i18n.t('stock.status.critical'), value: 'critical' },
+      { label: this.i18n.t('stock.outOfStock'), value: 'out-of-stock' }
+    ];
+    this.stockStatusPillOptions = [{ label: this.i18n.t('common.status.all'), value: '' }, ...this.stockStatusOptions];
+  }
+
+  /**
+   * Grand-total counts per stock-health status for the stat strip — independent of
+   * the All Stock tab's live filters/search, so the strip doesn't jump around as the
+   * user filters the table below it. Reuses the existing list endpoint with
+   * pageSize:1 per status bucket, reading only response.pagination.totalCount.
+   */
+  private loadStats(): void {
+    forkJoin({
+      inStock: this.stockService.getStockLevels({ pageNumber: 1, pageSize: 1, status: 'in-stock' }),
+      low: this.stockService.getStockLevels({ pageNumber: 1, pageSize: 1, status: 'low' }),
+      critical: this.stockService.getStockLevels({ pageNumber: 1, pageSize: 1, status: 'critical' }),
+      outOfStock: this.stockService.getStockLevels({ pageNumber: 1, pageSize: 1, status: 'out-of-stock' })
+    }).subscribe({
+      next: ({ inStock, low, critical, outOfStock }) => {
+        this.statCounts = {
+          inStock: inStock.pagination.totalCount,
+          low: low.pagination.totalCount,
+          critical: critical.pagination.totalCount,
+          outOfStock: outOfStock.pagination.totalCount
+        };
+        this.buildStats();
+      },
+      error: () => { /* strip just stays empty — not worth a toast */ }
+    });
+  }
+
+  private buildStats(): void {
+    if (!this.statCounts) return;
+    this.stats = [
+      { label: this.i18n.t('stock.status.inStock'), value: String(this.statCounts.inStock) },
+      { label: this.i18n.t('stock.lowStock'), value: String(this.statCounts.low) },
+      { label: this.i18n.t('stock.status.critical'), value: String(this.statCounts.critical) },
+      { label: this.i18n.t('stock.outOfStock'), value: String(this.statCounts.outOfStock) }
+    ];
   }
 
   loadAllStock(): void {
@@ -137,8 +208,8 @@ export class StockComponent implements OnInit {
       error: (_error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load stock levels'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('stock.messages.loadLevelsFailed')
         });
         this.loading = false;
       }
@@ -160,8 +231,8 @@ export class StockComponent implements OnInit {
       error: (_error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load low stock items'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('stock.messages.loadLowFailed')
         });
       }
     });
@@ -191,6 +262,11 @@ export class StockComponent implements OnInit {
     this.loadAllStock();
   }
 
+  onAllStockStatusFilterChange(value: string): void {
+    this.allStockFilters.status = value || null;
+    this.onAllStockFilterChange();
+  }
+
   // Low Stock Tab Filters
   onLowStockSearch(): void {
     this.resetLowPagination();
@@ -218,7 +294,7 @@ export class StockComponent implements OnInit {
 
   onAdjustStock(stock: StockLevelResponse): void {
     const dialogRef = this.dialogService.open(StockAdjustmentDialogComponent, {
-      header: 'Stock Adjustment',
+      header: this.i18n.t('stock.adjustmentDialog.title'),
       width: '720px',
       breakpoints: {
         '960px': '95vw',
@@ -233,8 +309,8 @@ export class StockComponent implements OnInit {
       if (result?.success) {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Stock adjustment recorded successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('stock.adjustmentDialog.messages.success')
         });
         // Refresh stock levels
         this.loadAllStock();
@@ -245,7 +321,7 @@ export class StockComponent implements OnInit {
 
   onNewStockEntry(): void {
     const dialogRef = this.dialogService.open(StockAdjustmentDialogComponent, {
-      header: 'New Stock Entry',
+      header: this.i18n.t('stock.newStockEntry'),
       width: '720px',
       breakpoints: {
         '960px': '95vw',
@@ -260,8 +336,8 @@ export class StockComponent implements OnInit {
       if (result?.success) {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Stock entry created successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('stock.adjustmentDialog.messages.createSuccess')
         });
         this.loadAllStock();
         this.loadLowStock();
@@ -415,10 +491,10 @@ export class StockComponent implements OnInit {
    */
   getStockStatus(stock: StockLevelResponse): string {
     const availBase = stock.availableQuantityInBaseUnit;
-    if (availBase === 0) return 'Out of Stock';
-    if (availBase <= stock.reorderLevel * 0.5) return 'Critical';
-    if (availBase <= stock.reorderLevel) return 'Low Stock';
-    return 'In Stock';
+    if (availBase === 0) return this.i18n.t('stock.outOfStock');
+    if (availBase <= stock.reorderLevel * 0.5) return this.i18n.t('stock.status.critical');
+    if (availBase <= stock.reorderLevel) return this.i18n.t('stock.lowStock');
+    return this.i18n.t('stock.status.inStock');
   }
 
   /**
@@ -454,9 +530,9 @@ export class StockComponent implements OnInit {
    */
   getUrgencyLevel(stock: StockLevelResponse): string {
     const ratio = stock.availableQuantity / stock.reorderLevel;
-    if (ratio === 0 || stock.availableQuantity === 0) return 'Critical';
-    if (ratio <= 0.25) return 'High';
-    return 'Medium';
+    if (ratio === 0 || stock.availableQuantity === 0) return this.i18n.t('stock.status.critical');
+    if (ratio <= 0.25) return this.i18n.t('stock.status.high');
+    return this.i18n.t('stock.status.medium');
   }
 
   /**
@@ -483,8 +559,8 @@ export class StockComponent implements OnInit {
   createReorder(stock: StockLevelResponse): void {
     this.messageService.add({
       severity: 'info',
-      summary: 'Coming Soon',
-      detail: 'Purchase order creation will be available soon'
+      summary: this.i18n.t('stock.messages.comingSoonTitle'),
+      detail: this.i18n.t('stock.messages.poComingSoon')
     });
   }
 }

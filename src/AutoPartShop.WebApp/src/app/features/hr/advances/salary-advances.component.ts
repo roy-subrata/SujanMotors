@@ -20,13 +20,16 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 
 @Component({
     selector: 'app-salary-advances',
     standalone: true,
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, InputNumberModule, Select, DatePickerModule,
         DialogModule, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent,
+        StatusPillFilterComponent, MoreFiltersDialogComponent],
     providers: [MessageService, ConfirmationService],
     templateUrl: './salary-advances.component.html',
     styleUrls: ['./salary-advances.component.css']
@@ -46,6 +49,7 @@ export class SalaryAdvancesComponent implements OnInit {
 
     searchTerm = '';
     filterStatus: SalaryAdvanceStatus | '' = '';
+    moreFiltersVisible = false;
 
     statusOptions = [
         { label: 'All Statuses', value: '' },
@@ -120,6 +124,11 @@ export class SalaryAdvancesComponent implements OnInit {
     onFilterChange(): void {
         this.pageNumber = 1;
         this.loadAdvances();
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value as SalaryAdvanceStatus | '';
+        this.onFilterChange();
     }
 
     clearSearch(): void {

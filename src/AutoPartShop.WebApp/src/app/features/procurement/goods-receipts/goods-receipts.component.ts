@@ -6,7 +6,6 @@ import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CardModule } from 'primeng/card';
-import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
@@ -16,6 +15,8 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 
 @Component({
   selector: 'app-goods-receipts',
@@ -27,14 +28,15 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
     ToastModule,
     ConfirmDialogModule,
     CardModule,
-    Select,
     DatePicker,
     TooltipModule,
     GoodsReceiptsListComponent,
     HasRoleDirective,
     PageContainerComponent,
     PageHeaderComponent,
-    FilterBarComponent
+    FilterBarComponent,
+    StatusPillFilterComponent,
+    MoreFiltersDialogComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './goods-receipts.component.html',
@@ -51,11 +53,12 @@ export class GoodsReceiptsComponent implements OnInit {
   rows = 10;
   currentPage = 1;
   searchTerm = '';
-  filterStatus: string | null = null;
+  filterStatus = '';
   dateRange: Date[] = [];
+  moreFiltersVisible = false;
 
   statusOptions = [
-    { label: 'All', value: null },
+    { label: 'All', value: '' },
     { label: 'Pending', value: 'PENDING' },
     { label: 'Verified', value: 'VERIFIED' },
     { label: 'Accepted', value: 'ACCEPTED' },
@@ -136,6 +139,11 @@ export class GoodsReceiptsComponent implements OnInit {
     this.loadGoodsReceipts(1, this.rows, this.searchTerm);
   }
 
+  onStatusFilterChange(value: string): void {
+    this.filterStatus = value;
+    this.onFilterChange();
+  }
+
   /**
    * Check if any filter is active
    */
@@ -148,7 +156,7 @@ export class GoodsReceiptsComponent implements OnInit {
    */
   clearFilters(): void {
     this.searchTerm = '';
-    this.filterStatus = null;
+    this.filterStatus = '';
     this.dateRange = [];
     this.loadGoodsReceipts(1, this.rows);
   }

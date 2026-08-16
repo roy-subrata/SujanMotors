@@ -9,16 +9,16 @@
 <app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Sales Returns"
-    subtitle="Manage customer product returns and refunds"
-    [count]="totalRecords" countLabel="returns">
+    [title]="'salesReturns.title' | translate"
+    [subtitle]="'salesReturns.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'salesReturns.countLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createReturn()">
         <i class="pi pi-plus"></i>
-        <span>Create Return</span>
+        <span>{{ 'salesReturns.createReturn' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -31,7 +31,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by return number or sales order..."
+          [placeholder]="'salesReturns.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
@@ -41,22 +41,18 @@
     </div>
 
     <div filters class="filter-group">
-      <p-select
+      <app-status-pill-filter
         [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        (onChange)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
+        [value]="filterStatus"
+        (valueChange)="onStatusFilterChange($event)">
+      </app-status-pill-filter>
     </div>
 
     <div filters class="filter-group">
       <p-datepicker
         [(ngModel)]="dateRange"
         selectionMode="range"
-        placeholder="Select date range"
+        [placeholder]="'salesReturns.dateRangePlaceholder' | translate"
         dateFormat="dd M yy"
         [showIcon]="true"
         [showButtonBar]="true"
@@ -69,30 +65,39 @@
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Search
+        {{ 'common.actions.search' | translate }}
       </button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}:</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.listPage.searchChip' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
       </span>
       <span *ngIf="filterStatus" class="filter-chip">
-        Status: {{ filterStatus }}
-        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+        {{ 'common.listPage.statusChip' | translate }}: {{ formatStatus(filterStatus) }}
+        <i class="pi pi-times" (click)="onStatusFilterChange('')"></i>
       </span>
       <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
-        Date Range
+        {{ 'common.listPage.dateRangeChip' | translate }}
         <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
       </span>
     </div>
   </app-filter-bar>
+
+  <app-more-filters-dialog
+    [options]="statusOptions"
+    [selected]="filterStatus"
+    [previewCount]="totalRecords"
+    [(visible)]="moreFiltersVisible"
+    (apply)="onStatusFilterChange($event)">
+  </app-more-filters-dialog>
 
   <!-- ==================== DATA TABLE (Desktop) ==================== -->
   <section class="table-section desktop-only">
@@ -112,13 +117,13 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-return">Return #</th>
-            <th class="col-order">Sales Order</th>
-            <th class="col-date">Date</th>
-            <th class="col-reason">Reason</th>
-            <th class="col-amount">Refund Amount</th>
-            <th class="col-status">Status</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-return">{{ 'salesReturns.columns.returnNumber' | translate }}</th>
+            <th class="col-order">{{ 'salesReturns.columns.salesOrder' | translate }}</th>
+            <th class="col-date">{{ 'salesReturns.columns.date' | translate }}</th>
+            <th class="col-reason">{{ 'salesReturns.columns.reason' | translate }}</th>
+            <th class="col-amount">{{ 'salesReturns.columns.refundAmount' | translate }}</th>
+            <th class="col-status">{{ 'salesReturns.columns.status' | translate }}</th>
+            <th class="col-actions">{{ 'salesReturns.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -148,7 +153,7 @@
             </td>
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, salesReturn)">
+                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, salesReturn)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -163,16 +168,16 @@
                 <div class="empty-icon">
                   <i class="pi pi-replay"></i>
                 </div>
-                <h3>No Sales Returns Found</h3>
-                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
-                <p *ngIf="!hasActiveFilters()">Get started by creating your first sales return</p>
+                <h3>{{ 'salesReturns.emptyTitle' | translate }}</h3>
+                <p *ngIf="hasActiveFilters()">{{ 'common.listPage.adjustFiltersHint' | translate }}</p>
+                <p *ngIf="!hasActiveFilters()">{{ 'salesReturns.emptyHintCreate' | translate }}</p>
                 <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createReturn()">
                   <i class="pi pi-plus"></i>
-                  Create Return
+                  {{ 'salesReturns.createReturn' | translate }}
                 </button>
                 <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
                   <i class="pi pi-filter-slash"></i>
-                  Clear Filters
+                  {{ 'common.actions.clearFilters' | translate }}
                 </button>
               </div>
             </td>
@@ -199,7 +204,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
-    itemLabel="returns"
+    [itemLabel]="'salesReturns.itemLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>
@@ -227,11 +232,11 @@
       <div class="empty-icon">
         <i class="pi pi-replay"></i>
       </div>
-      <h3>No Sales Returns</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first return' }}</p>
+      <h3>{{ 'salesReturns.emptyTitleMobile' | translate }}</h3>
+      <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'salesReturns.emptyHintMobileCreate') | translate }}</p>
       <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createReturn()">
         <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ hasActiveFilters() ? 'Clear Filters' : 'New Return' }}
+        {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'salesReturns.newReturn') | translate }}
       </button>
     </div>
 
@@ -262,7 +267,7 @@
 
         <div class="card-footer">
           <div class="card-amount">
-            <span class="amount-label">Refund</span>
+            <span class="amount-label">{{ 'salesReturns.cardRefund' | translate }}</span>
             <span class="amount-value">{{ formatCurrency(salesReturn.totalRefundAmount) }}</span>
           </div>
           <button class="btn-card-action" (click)="showActionMenu($event, salesReturn); $event.stopPropagation()">

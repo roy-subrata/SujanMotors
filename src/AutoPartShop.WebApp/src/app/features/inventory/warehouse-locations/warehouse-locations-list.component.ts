@@ -24,6 +24,8 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { getZoneColor } from './zone-color';
 import { LocationLabelDialogComponent } from './location-label-dialog/location-label-dialog.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 /**
  * Warehouse Locations list — standalone physical bin/shelf slots
@@ -48,7 +50,8 @@ import { LocationLabelDialogComponent } from './location-label-dialog/location-l
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './warehouse-locations-list.component.html',
@@ -62,6 +65,7 @@ export class WarehouseLocationsListComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly dialogService = inject(DialogService);
+    private readonly i18n = inject(I18nService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -125,8 +129,8 @@ export class WarehouseLocationsListComponent implements OnInit {
                     console.error('Error loading warehouse locations:', err);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load warehouse locations'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('warehouseLocations.messages.loadFailed')
                     });
                     this.loading = false;
                 }
@@ -202,7 +206,7 @@ export class WarehouseLocationsListComponent implements OnInit {
     printLabel(location: WarehouseLocationResponse): void {
         this.dialogService.open(LocationLabelDialogComponent, {
             data: { location },
-            header: 'Print Location Label',
+            header: this.i18n.t('warehouseLocations.labelDialog.printDialogHeader'),
             width: '760px',
             modal: true,
             closable: true
@@ -211,8 +215,8 @@ export class WarehouseLocationsListComponent implements OnInit {
 
     deleteLocation(location: WarehouseLocationResponse): void {
         this.confirmationService.confirm({
-            message: `Delete location "${location.locationCode}"? This cannot be undone.`,
-            header: 'Confirm Deletion',
+            message: this.i18n.t('warehouseLocations.messages.deleteConfirm', { code: location.locationCode }),
+            header: this.i18n.t('common.messages.confirmDeletion'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
@@ -220,8 +224,8 @@ export class WarehouseLocationsListComponent implements OnInit {
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Deleted',
-                            detail: `Location "${location.locationCode}" deleted`
+                            summary: this.i18n.t('warehouseLocations.messages.deletedSummary'),
+                            detail: this.i18n.t('warehouseLocations.messages.deleteSuccess', { code: location.locationCode })
                         });
                         // If we deleted the last item on a page beyond page 1, go back a page.
                         const isLastItemOnPage = this.locations.length === 1 && this.pageNumber > 1;
@@ -234,8 +238,8 @@ export class WarehouseLocationsListComponent implements OnInit {
                     error: (err) => {
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: err?.error?.message ?? 'Failed to delete location'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: err?.error?.message ?? this.i18n.t('warehouseLocations.messages.deleteFailed')
                         });
                     }
                 });
@@ -245,10 +249,10 @@ export class WarehouseLocationsListComponent implements OnInit {
 
     private buildActionMenuItems(location: WarehouseLocationResponse): void {
         this.actionMenuItems = [
-            { label: 'Edit', icon: 'pi pi-pencil', command: () => this.editLocation(location) },
-            { label: 'Print Label', icon: 'pi pi-print', command: () => this.printLabel(location) },
+            { label: this.i18n.t('common.actions.edit'), icon: 'pi pi-pencil', command: () => this.editLocation(location) },
+            { label: this.i18n.t('warehouseLocations.printLabelTooltip'), icon: 'pi pi-print', command: () => this.printLabel(location) },
             { separator: true },
-            { label: 'Delete', icon: 'pi pi-trash', command: () => this.deleteLocation(location), styleClass: 'text-red-600' }
+            { label: this.i18n.t('common.actions.delete'), icon: 'pi pi-trash', command: () => this.deleteLocation(location), styleClass: 'text-red-600' }
         ];
     }
 

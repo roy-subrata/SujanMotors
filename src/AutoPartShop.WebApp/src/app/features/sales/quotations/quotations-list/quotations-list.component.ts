@@ -6,7 +6,6 @@ import { FormsModule } from '@angular/forms';
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { PanelModule } from 'primeng/panel';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
@@ -28,7 +27,10 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
+import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-quotations-list',
@@ -39,7 +41,6 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         TableModule,
         ButtonModule,
         InputTextModule,
-        Select,
         PanelModule,
         CardModule,
         TagModule,
@@ -52,7 +53,10 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        StatusPillFilterComponent,
+        MoreFiltersDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './quotations-list.component.html',
@@ -86,6 +90,7 @@ export class QuotationsListComponent implements OnInit {
     statusOptions: { label: string; value: string }[] = [];
 
     actionMenuItems: MenuItem[] = [];
+    moreFiltersVisible = false;
 
     Math = Math;
 
@@ -109,12 +114,17 @@ export class QuotationsListComponent implements OnInit {
         this.statusOptions = [
             { label: this.i18n.t('common.status.allStatuses'), value: '' },
             { label: this.i18n.t('common.status.draft'), value: 'DRAFT' },
-            { label: 'Sent', value: 'SENT' },
+            { label: this.i18n.t('quotations.statusOptions.sent'), value: 'SENT' },
             { label: this.i18n.t('common.status.approved'), value: 'ACCEPTED' },
             { label: this.i18n.t('common.status.rejected'), value: 'REJECTED' },
-            { label: 'Converted', value: 'CONVERTED' },
-            { label: 'Expired', value: 'EXPIRED' }
+            { label: this.i18n.t('quotations.statusOptions.converted'), value: 'CONVERTED' },
+            { label: this.i18n.t('quotations.statusOptions.expired'), value: 'EXPIRED' }
         ];
+    }
+
+    onStatusFilterChange(value: string): void {
+        this.filterStatus = value as QuotationStatus | '';
+        this.onFilterChange();
     }
 
     private buildActionMenuItems(quotation: QuotationResponse): void {
@@ -387,7 +397,15 @@ export class QuotationsListComponent implements OnInit {
     }
 
     formatStatus(status: string): string {
-        return (status ?? '-').split('_')
+        if (!status) return '-';
+        // Quotation statuses live partly in common.status (draft/approved/rejected) and partly
+        // in quotations.statusOptions (sent/converted/expired); try both before falling back.
+        const camel = status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        for (const prefix of ['quotations.statusOptions.', 'common.status.']) {
+            const label = this.i18n.t(prefix + camel);
+            if (label !== prefix + camel) return label;
+        }
+        return status.split('_')
             .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
     }
 }

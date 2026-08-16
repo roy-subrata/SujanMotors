@@ -196,8 +196,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #ffffff;
+  background: var(--accent);
+  color: var(--accent-fg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -806,13 +806,13 @@
 }
 
 .mapping-item:hover {
-  box-shadow: 0 2px 8px color-mix(in srgb, #6366f1 15%, transparent);
-  border-color: color-mix(in srgb, #6366f1 30%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .mapping-item .digit {
   font-weight: 700;
-  color: #6366f1;
+  color: var(--accent);
   min-width: 0.85rem;
   text-align: center;
 }

@@ -6,6 +6,7 @@ using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
 using AutoPartShop.Domain.Enums;
+using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using AutoPartShop.Api.Pdf;
@@ -35,6 +36,7 @@ public class PurchaseOrderController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrencyConversionService _currencyService;
+    private readonly IApplicationSettingsRepository _settingsRepository;
 
     public PurchaseOrderController(
         IPurchaseOrderRepository purchaseOrderRepository,
@@ -48,7 +50,8 @@ public class PurchaseOrderController : ControllerBase
         ICurrentUserService currentUserService,
         AutoPartDbContext dbContext,
         ILogger<PurchaseOrderController> logger,
-        ICurrencyConversionService currencyService)
+        ICurrencyConversionService currencyService,
+        IApplicationSettingsRepository settingsRepository)
     {
         _purchaseOrderRepository = purchaseOrderRepository;
         _goodsReceiptRepository = goodsReceiptRepository;
@@ -62,6 +65,17 @@ public class PurchaseOrderController : ControllerBase
         _dbContext = dbContext;
         _logger = logger;
         _currencyService = currencyService;
+        _settingsRepository = settingsRepository;
+    }
+
+    /// <summary>
+    /// Configurable document-number prefix (Company Profile &gt; Document Numbering) —
+    /// falls back to the historical hardcoded prefix if no setting has been configured yet.
+    /// </summary>
+    private async Task<string> GetPrefixAsync(string settingKey, string fallback, CancellationToken cancellationToken)
+    {
+        var value = await _settingsRepository.GetValueAsync(settingKey, cancellationToken);
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
 
     [HttpGet]
@@ -274,7 +288,7 @@ public class PurchaseOrderController : ControllerBase
             if (request.SupplierId == Guid.Empty || request.DeliveryDate == default)
                 return BadRequest(new { message = "SupplierId and DeliveryDate are required" });
 
-            var purchaseOrderNumber = await _codeGenerateService.GenerateAsync("PO", cancellationToken);
+            var purchaseOrderNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("PURCHASE_ORDER_NUMBER_PREFIX", "PO", cancellationToken), cancellationToken);
             var order = PurchaseOrder.Create(
                 purchaseOrderNumber,
                 request.SupplierId,
