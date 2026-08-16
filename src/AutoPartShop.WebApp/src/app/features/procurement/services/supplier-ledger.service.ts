@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { I18nService } from '@/shared/services/i18n.service';
 
 export enum SupplierLedgerTransactionType {
     PURCHASE = 'PURCHASE',       // PO confirmation (debit - increases debt)
@@ -72,6 +73,7 @@ export interface SettlePurchaseReturnRequest {
 })
 export class SupplierLedgerService {
     private readonly http = inject(HttpClient);
+    private readonly i18n = inject(I18nService);
     private readonly apiUrl = `${environment.apiUrl}/v1/supplier-ledger`;
 
     /**
@@ -137,20 +139,10 @@ export class SupplierLedgerService {
      * Get transaction type display label
      */
     getTransactionTypeLabel(type: SupplierLedgerTransactionType): string {
-        switch (type) {
-            case SupplierLedgerTransactionType.PURCHASE:
-                return 'Purchase Order';
-            case SupplierLedgerTransactionType.PAYMENT:
-                return 'Payment';
-            case SupplierLedgerTransactionType.REFUND:
-                return 'Purchase Return';
-            case SupplierLedgerTransactionType.ADVANCE:
-                return 'Advance Payment';
-            case SupplierLedgerTransactionType.CANCELLATION:
-                return 'Cancellation';
-            default:
-                return type;
-        }
+        if (!type) return type;
+        const key = `supplierLedger.transactionTypes.${type}`;
+        const label = this.i18n.t(key);
+        return label === key ? type : label;
     }
 
     /**

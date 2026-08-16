@@ -208,7 +208,9 @@
       "failed": "Failed",
       "readyForDelivery": "Ready for Delivery",
       "all": "All",
-      "allStatuses": "All Statuses"
+      "allStatuses": "All Statuses",
+      "received": "Received",
+      "verified": "Verified"
     },
     "messages": {
       "success": "Success",
@@ -5237,5 +5239,14 @@
     "processing": "Processing…",
     "completeDueSale": "Complete (Due Sale)",
     "completeSale": "Complete Sale"
+  },
+  "supplierLedger": {
+    "transactionTypes": {
+      "PURCHASE": "Purchase Order",
+      "PAYMENT": "Payment",
+      "REFUND": "Purchase Return",
+      "ADVANCE": "Advance Payment",
+      "CANCELLATION": "Cancellation"
+    }
   }
 }

@@ -208,7 +208,9 @@
       "failed": "ব্যর্থ",
       "readyForDelivery": "বিতরণের জন্য প্রস্তুত",
       "all": "সব",
-      "allStatuses": "সব অবস্থা"
+      "allStatuses": "সব অবস্থা",
+      "received": "গৃহীত",
+      "verified": "যাচাইকৃত"
     },
     "messages": {
       "success": "সফল",
@@ -5237,5 +5239,14 @@
     "processing": "প্রক্রিয়া করা হচ্ছে…",
     "completeDueSale": "সম্পন্ন করুন (বাকিতে বিক্রয়)",
     "completeSale": "বিক্রয় সম্পন্ন করুন"
+  },
+  "supplierLedger": {
+    "transactionTypes": {
+      "PURCHASE": "ক্রয় অর্ডার",
+      "PAYMENT": "পেমেন্ট",
+      "REFUND": "ক্রয় ফেরত",
+      "ADVANCE": "অগ্রিম পেমেন্ট",
+      "CANCELLATION": "বাতিলকরণ"
+    }
   }
 }

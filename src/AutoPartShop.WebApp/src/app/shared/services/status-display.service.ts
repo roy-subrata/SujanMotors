@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { I18nService } from './i18n.service';
 
 /**
  * Centralized status → display mapping.
@@ -292,6 +293,8 @@ const DOMAIN_CATEGORY_OVERRIDES: Partial<Record<StatusDomain, Record<string, Sta
 
 @Injectable({ providedIn: 'root' })
 export class StatusDisplayService {
+  private readonly i18n = inject(I18nService);
+
   /**
    * Resolve the semantic category for a raw status value, optionally scoped to a `StatusDomain`
    * that has its own overrides. Unknown values fall back to `'neutral'`.
@@ -347,5 +350,30 @@ export class StatusDisplayService {
       .split('_')
       .map(word => (word ? word.charAt(0) + word.slice(1).toLowerCase() : word))
       .join(' ');
+  }
+
+  /**
+   * Localized label for a raw status. Tries `<keyPrefix>.<camelCase>` when a feature-specific
+   * prefix is given, then the shared `common.status.<camelCase>`, and finally falls back to
+   * {@link getDefaultLabel} so an untranslated status still reads as words rather than
+   * `SCREAMING_SNAKE_CASE`.
+   *
+   * `I18nService.t()` returns the key itself when a translation is missing, which is what makes
+   * the "did this resolve?" check below work — and why a typo'd key silently degrades to the
+   * humanized fallback instead of rendering a raw dotted key.
+   */
+  getLabel(status: string | null | undefined, keyPrefix?: string): string {
+    if (!status) {
+      return '';
+    }
+    const camel = status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+    const candidates = keyPrefix ? [`${keyPrefix}.${camel}`, `common.status.${camel}`] : [`common.status.${camel}`];
+    for (const key of candidates) {
+      const label = this.i18n.t(key);
+      if (label !== key) {
+        return label;
+      }
+    }
+    return this.getDefaultLabel(status);
   }
 }
