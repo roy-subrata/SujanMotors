@@ -1069,6 +1069,67 @@
       "activateSuccess": "ছাড় \"{{name}}\" সফলভাবে সক্রিয় হয়েছে",
       "deactivateSuccess": "ছাড় \"{{name}}\" সফলভাবে নিষ্ক্রিয় হয়েছে",
       "toggleFailed": "ছাড়ের অবস্থা আপডেট করতে ব্যর্থ হয়েছে"
+    },
+    "createTitle": "নতুন ছাড়",
+    "editTitle": "ছাড় সম্পাদনা",
+    "nameLabel": "ছাড়ের নাম",
+    "namePlaceholder": "যেমন, গ্রীষ্মকালীন সেল ১০%",
+    "nameRequired": "নাম আবশ্যক (ন্যূনতম ২ অক্ষর)",
+    "descriptionLabel": "বিবরণ",
+    "descriptionPlaceholder": "ঐচ্ছিক বিবরণ",
+    "typeLabel": "ছাড়ের ধরন",
+    "typePlaceholder": "ধরন নির্বাচন করুন",
+    "typeRequired": "ধরন আবশ্যক",
+    "typePercentage": "শতকরা (%)",
+    "typeFixed": "নির্দিষ্ট পরিমাণ (৳)",
+    "valueLabel": "মান",
+    "valueHintPercentage": "(০–১০০)",
+    "valueHintFixed": "(৳ পরিমাণ)",
+    "valuePlaceholder": "মান লিখুন",
+    "valueRequired": "মান আবশ্যক (ন্যূনতম ০.০১)",
+    "valueRequiredPercentage": "মান আবশ্যক (ন্যূনতম ০.০১, সর্বোচ্চ ১০০)",
+    "scopeCartTitle": "কার্ট পর্যায়",
+    "scopeCartHint": "আইটেম ছাড়ের উপরে প্রযোজ্য (প্রোমো কোড বা থ্রেশহোল্ড)",
+    "scopeProductTitle": "পণ্য পর্যায়",
+    "scopeProductHint": "এর সব ভ্যারিয়েন্টে প্রযোজ্য",
+    "scopeVariantTitle": "ভ্যারিয়েন্ট পর্যায়",
+    "scopeVariantHint": "শুধুমাত্র এতে প্রযোজ্য",
+    "scopeLockedSuffix": "পর্যায়",
+    "scopeLockedHint": "তৈরির পর পরিসর পরিবর্তন করা যায় না",
+    "productLabel": "পণ্য",
+    "productHint": "(ঐচ্ছিক — কার্ট পর্যায়ের ছাড়ের জন্য খালি রাখুন)",
+    "productPlaceholder": "নাম বা SKU দিয়ে পণ্য খুঁজুন...",
+    "productNoneHint": "কোনো পণ্য নির্বাচিত নয় → ছাড়টি কার্ট পর্যায়ের হবে",
+    "variantLabel": "ভ্যারিয়েন্ট",
+    "variantHint": "(ঐচ্ছিক — পণ্য পর্যায়ের ছাড়ের জন্য খালি রাখুন)",
+    "variantPlaceholder": "ভ্যারিয়েন্ট নির্বাচন করুন (ঐচ্ছিক)",
+    "variantEmpty": "কোনো সক্রিয় ভ্যারিয়েন্ট নেই",
+    "variantNoneHint": "কোনো ভ্যারিয়েন্ট নির্বাচিত নয় → ছাড়টি সব ভ্যারিয়েন্টে প্রযোজ্য",
+    "promoCodeLabel": "প্রোমো কোড",
+    "optionalHint": "(ঐচ্ছিক)",
+    "promoCodePlaceholder": "যেমন, SUMMER25",
+    "promoCodeHint": "পরিবর্তে ন্যূনতম কার্ট পরিমাণ ব্যবহার করতে খালি রাখুন",
+    "minCartLabel": "ন্যূনতম কার্ট পরিমাণ (৳)",
+    "minCartPlaceholder": "যেমন, ২০০০",
+    "minCartHint": "কার্টের মোট এই পরিমাণে পৌঁছালে ছাড় স্বয়ংক্রিয়ভাবে প্রযোজ্য হবে",
+    "startDateLabel": "শুরুর তারিখ",
+    "startDatePlaceholder": "শুরুর তারিখ নির্বাচন করুন",
+    "startDateRequired": "শুরুর তারিখ আবশ্যক",
+    "endDateLabel": "শেষের তারিখ",
+    "endDatePlaceholder": "মেয়াদ নেই",
+    "statusLabel": "অবস্থা",
+    "cancel": "বাতিল",
+    "createSubmit": "ছাড় তৈরি করুন",
+    "updateSubmit": "ছাড় হালনাগাদ করুন",
+    "formMessages": {
+      "validationTitle": "যাচাইকরণ ত্রুটি",
+      "fillRequired": "অনুগ্রহ করে সব আবশ্যক ঘর সঠিকভাবে পূরণ করুন",
+      "percentageTooHigh": "শতকরা মান ১০০ এর বেশি হতে পারে না",
+      "promoOrThreshold": "একটি প্রোমো কোড অথবা ন্যূনতম কার্ট পরিমাণ দিন, দুটোই নয়",
+      "createSuccess": "ছাড় সফলভাবে তৈরি হয়েছে",
+      "createFailed": "ছাড় তৈরি করতে ব্যর্থ",
+      "updateSuccess": "ছাড় সফলভাবে হালনাগাদ হয়েছে",
+      "updateFailed": "ছাড় হালনাগাদ করতে ব্যর্থ"
     }
   },
   "technicians": {
@@ -1846,7 +1907,25 @@
       "lowStock": "কম স্টক",
       "warning": "সতর্কতা",
       "inStock": "স্টকে আছে"
-    }
+    },
+    "columns": {
+      "partName": "পার্টের নাম",
+      "warehouse": "গুদাম",
+      "onHand": "হাতে আছে",
+      "reserved": "সংরক্ষিত",
+      "available": "উপলব্ধ",
+      "damaged": "ক্ষতিগ্রস্ত",
+      "quarantine": "কোয়ারেন্টিন",
+      "reorderLevel": "পুনঃক্রয় স্তর",
+      "reorderQty": "পুনঃক্রয় পরিমাণ",
+      "status": "অবস্থা",
+      "actions": "কার্যক্রম"
+    },
+    "adjustStock": "স্টক সমন্বয়",
+    "itemLabel": "স্টক স্তর",
+    "emptyTitle": "কোনো স্টক স্তর পাওয়া যায়নি",
+    "emptyTitleMobile": "কোনো স্টক স্তর নেই",
+    "emptyHint": "আপনার ফিল্টার বা অনুসন্ধান সামঞ্জস্য করার চেষ্টা করুন"
   },
   "parts": {
     "title": "যন্ত্রাংশ",
@@ -3350,6 +3429,195 @@
       "errorMessage": "এনটিটি টাইমলাইন লোড করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।",
       "retry": "আবার চেষ্টা করুন",
       "close": "বন্ধ করুন"
+    }
+  },
+  "stockLots": {
+    "partPlaceholder": "পার্ট নির্বাচন করুন",
+    "warehousePlaceholder": "গুদাম নির্বাচন করুন",
+    "loadLots": "লট লোড করুন",
+    "lotsForTitle": "{{warehouse}}-এ {{part}}-এর লট",
+    "lotCount": "{{count}}টি লট",
+    "hidePrices": "দাম লুকান",
+    "showPrices": "দাম দেখান",
+    "itemLabel": "লট",
+    "columns": {
+      "lotNumber": "সিস্টেম লট নং",
+      "qtyReceived": "গৃহীত পরিমাণ",
+      "available": "উপলব্ধ",
+      "unitCost": "একক খরচ",
+      "totalCost": "মোট খরচ",
+      "availableCost": "উপলব্ধ খরচ",
+      "receivingDate": "গ্রহণের তারিখ",
+      "warranty": "ওয়ারেন্টি",
+      "status": "অবস্থা",
+      "expiry": "মেয়াদ",
+      "label": "লেবেল"
+    },
+    "supplierBatchTooltip": "সরবরাহকারীর ব্যাচ নং — সরবরাহকারীর প্যাকেজিং লেবেলের প্রকৃত ব্যাচ আইডি",
+    "warrantyYes": "হ্যাঁ",
+    "printLabelTooltip": "লেবেল প্রিন্ট / পুনঃপ্রিন্ট",
+    "printLabelHeader": "লেবেল প্রিন্ট",
+    "status": {
+      "consumed": "নিঃশেষিত",
+      "active": "সক্রিয়"
+    },
+    "expired": "মেয়াদোত্তীর্ণ",
+    "notAvailable": "প্রযোজ্য নয়",
+    "emptyTitle": "কোনো স্টক লট পাওয়া যায়নি",
+    "emptyTitleMobile": "কোনো স্টক লট নেই",
+    "emptyHintMobile": "এই গুদামে এই পার্টের কোনো লট পাওয়া যায়নি",
+    "selectPrompt": "স্টক লট দেখতে একটি পার্ট ও গুদাম নির্বাচন করুন",
+    "card": {
+      "received": "গৃহীত",
+      "available": "উপলব্ধ",
+      "warranty": "ওয়ারেন্টি",
+      "expiry": "মেয়াদ"
+    },
+    "summary": {
+      "availableValue": "মোট ইনভেন্টরি মূল্য (উপলব্ধ):",
+      "totalValue": "মোট ইনভেন্টরি মূল্য (সব):",
+      "averageCost": "প্রতি এককে গড় খরচ:"
+    },
+    "messages": {
+      "loadFailed": "স্টক লট লোড করতে ব্যর্থ"
+    }
+  },
+  "priceHistory": {
+    "partPlaceholder": "পার্ট নির্বাচন করুন",
+    "loadHistory": "ইতিহাস লোড করুন",
+    "trackingSubtitle": "{{count}}টি ক্রয় জুড়ে দামের হিসাব",
+    "hidePrices": "দাম লুকান",
+    "showPrices": "দাম দেখান",
+    "itemLabel": "লট",
+    "stats": {
+      "latest": "সর্বশেষ দাম",
+      "average": "গড় দাম",
+      "minimum": "সর্বনিম্ন দাম",
+      "maximum": "সর্বোচ্চ দাম"
+    },
+    "columns": {
+      "lotNumber": "সিস্টেম লট নং",
+      "supplier": "সরবরাহকারী",
+      "unitPrice": "একক দাম",
+      "qtyReceived": "গৃহীত পরিমাণ",
+      "qtyAvailable": "উপলব্ধ পরিমাণ",
+      "receivingDate": "গ্রহণের তারিখ",
+      "expiry": "মেয়াদ",
+      "status": "অবস্থা"
+    },
+    "status": {
+      "consumed": "নিঃশেষিত",
+      "available": "উপলব্ধ"
+    },
+    "expired": "মেয়াদোত্তীর্ণ",
+    "notAvailable": "প্রযোজ্য নয়",
+    "emptyTitle": "কোনো দামের ইতিহাস পাওয়া যায়নি",
+    "emptyTitleMobile": "কোনো দামের ইতিহাস নেই",
+    "emptyHintMobile": "এই পার্টের কোনো ক্রয় লট পাওয়া যায়নি",
+    "emptyForPart": "এই পার্টের কোনো দামের ইতিহাস পাওয়া যায়নি",
+    "selectPrompt": "দামের ইতিহাস দেখতে একটি পার্ট নির্বাচন করুন",
+    "card": {
+      "unitPrice": "একক দাম",
+      "received": "গৃহীত",
+      "available": "উপলব্ধ",
+      "expiry": "মেয়াদ"
+    },
+    "insights": {
+      "title": "দামের বিশ্লেষণ",
+      "increased": "দাম বেড়েছে",
+      "decreased": "দাম কমেছে",
+      "constant": "দাম অপরিবর্তিত রয়েছে",
+      "totalPurchases": "মোট ক্রয়: {{count}}টি লট"
+    },
+    "messages": {
+      "loadFailed": "দামের ইতিহাস লোড করতে ব্যর্থ"
+    }
+  },
+  "stockMovements": {
+    "searchPlaceholder": "পার্ট, গুদাম, রেফারেন্স দিয়ে খুঁজুন...",
+    "typePlaceholder": "ধরন",
+    "statusPlaceholder": "অবস্থা",
+    "dateRangePlaceholder": "তারিখের পরিসর",
+    "activeFilters": "সক্রিয় ফিল্টার:",
+    "chips": {
+      "search": "অনুসন্ধান",
+      "type": "ধরন",
+      "status": "অবস্থা",
+      "from": "থেকে",
+      "to": "পর্যন্ত"
+    },
+    "itemLabel": "মুভমেন্ট",
+    "columns": {
+      "dateTime": "তারিখ ও সময়",
+      "part": "পার্ট",
+      "warehouse": "গুদাম",
+      "quantity": "পরিমাণ",
+      "type": "ধরন",
+      "status": "অবস্থা",
+      "notes": "নোট / রেফারেন্স"
+    },
+    "empty": "কোনো স্টক মুভমেন্ট পাওয়া যায়নি",
+    "typeOptions": {
+      "all": "সব ধরন"
+    },
+    "statusOptions": {
+      "all": "সব অবস্থা"
+    },
+    "types": {
+      "IN": "স্টক ইন",
+      "OUT": "স্টক আউট",
+      "RETURN": "ফেরত",
+      "ADJUST": "সমন্বয়",
+      "ADJUSTMENT": "সমন্বয়",
+      "TRANSFER": "স্থানান্তর",
+      "DAMAGE": "ক্ষতি",
+      "SHRINKAGE": "সংকোচন",
+      "COUNT_CORRECTION": "গণনা সংশোধন"
+    },
+    "statuses": {
+      "PENDING": "অপেক্ষমাণ",
+      "APPROVED": "অনুমোদিত",
+      "REJECTED": "প্রত্যাখ্যাত"
+    },
+    "unknownPart": "অজানা পার্ট",
+    "unknownWarehouse": "অজানা গুদাম",
+    "descriptions": {
+      "returnedToSupplier": "সরবরাহকারীকে ফেরত",
+      "quickSale": "গ্রাহকের কাছে দ্রুত বিক্রয়",
+      "soldToCustomer": "গ্রাহকের কাছে বিক্রীত",
+      "returnedByCustomer": "গ্রাহক কর্তৃক ফেরত",
+      "receivedFromSupplier": "সরবরাহকারীর কাছ থেকে গৃহীত",
+      "stockAdjustment": "স্টক সমন্বয়",
+      "warehouseTransfer": "গুদাম স্থানান্তর"
+    },
+    "messages": {
+      "loadReferenceFailed": "রেফারেন্স ডেটা লোড করতে ব্যর্থ",
+      "loadFailed": "স্টক মুভমেন্ট লোড করতে ব্যর্থ"
+    }
+  },
+  "stockTransfer": {
+    "title": "স্টক স্থানান্তর",
+    "part": "পার্ট",
+    "fromWarehouse": "উৎস গুদাম",
+    "currentStock": "বর্তমান স্টক",
+    "available": "উপলব্ধ",
+    "units": "একক",
+    "toWarehouseLabel": "গন্তব্য গুদাম *",
+    "toWarehousePlaceholder": "গন্তব্য গুদাম নির্বাচন করুন",
+    "toWarehouseRequired": "গন্তব্য গুদাম আবশ্যক",
+    "quantityLabel": "পরিমাণ *",
+    "quantityPlaceholder": "স্থানান্তরের পরিমাণ লিখুন",
+    "maxAvailable": "সর্বোচ্চ উপলব্ধ: {{qty}} একক",
+    "quantityInvalid": "বৈধ পরিমাণ আবশ্যক (সর্বোচ্চ: {{max}})",
+    "notesLabel": "নোট",
+    "notesPlaceholder": "স্থানান্তরের কারণ লিখুন (যেমন, পুনঃমজুদ, ভারসাম্যকরণ)",
+    "previewFrom": "থেকে:",
+    "previewTo": "প্রতি:",
+    "cancel": "বাতিল",
+    "submit": "স্টক স্থানান্তর করুন",
+    "messages": {
+      "success": "স্টক সফলভাবে স্থানান্তরিত হয়েছে",
+      "failed": "স্টক স্থানান্তর করতে ব্যর্থ"
     }
   }
 }

@@ -24,6 +24,8 @@ import {
 import { PublicPartService, PublicPartResponse } from '@/features/sales/services/public-part.service';
 import { ProductVariantService, ProductVariantResponse } from '../../services/product-variant.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/components/lazy-autocomplete';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-discount-form-dialog',
@@ -32,7 +34,7 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/c
     CommonModule, FormsModule, ReactiveFormsModule,
     DialogModule, ButtonModule, InputTextModule, TextareaModule,
     InputNumberModule, SelectModule, DatePickerModule, ToggleSwitchModule,
-    ToastModule, TooltipModule, LazyAutocompleteComponent
+    ToastModule, TooltipModule, LazyAutocompleteComponent, TranslatePipe
   ],
   templateUrl: './discount-form-dialog.component.html',
   styleUrls: ['./discount-form-dialog.component.css'],
@@ -53,6 +55,7 @@ export class DiscountFormDialogComponent implements OnChanges {
   private readonly partService = inject(PublicPartService);
   private readonly variantService = inject(ProductVariantService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   isCreating = signal(false);
   isUpdating = signal(false);
@@ -63,10 +66,21 @@ export class DiscountFormDialogComponent implements OnChanges {
   variants = signal<ProductVariantResponse[]>([]);
   loadingVariants = signal(false);
 
-  typeOptions = [
-    { label: 'Percentage (%)', value: 'PERCENTAGE' },
-    { label: 'Fixed Amount (৳)', value: 'FIXED' }
-  ];
+  /** Getter, not a field: t() resolved once at construction would freeze these labels in
+   *  whichever language was active then, instead of following the language switcher. */
+  get typeOptions() {
+    return [
+      { label: this.i18n.t('discounts.typePercentage'), value: 'PERCENTAGE' },
+      { label: this.i18n.t('discounts.typeFixed'), value: 'FIXED' }
+    ];
+  }
+
+  /** Scope is a server-side enum (CART/PRODUCT/VARIANT); map it to its display label. */
+  scopeLabel(scope: string): string {
+    const key = 'discounts.scope' + scope.charAt(0) + scope.slice(1).toLowerCase();
+    const label = this.i18n.t(key);
+    return label === key ? scope : label;
+  }
 
   // ── Lazy fetch for parts autocomplete ─────────────────────────────────────
   fetchPartsLazy = (req: LazyRequest) =>
@@ -208,19 +222,19 @@ export class DiscountFormDialogComponent implements OnChanges {
   onCreateSubmit(): void {
     if (!this.createForm.valid) {
       this.createForm.markAllAsTouched();
-      this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill all required fields correctly' });
+      this.messageService.add({ severity: 'error', summary: this.i18n.t('discounts.formMessages.validationTitle'), detail: this.i18n.t('discounts.formMessages.fillRequired') });
       return;
     }
 
     const v = this.createForm.getRawValue();
 
     if (v.type === 'PERCENTAGE' && (v.value ?? 0) > 100) {
-      this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Percentage value cannot exceed 100' });
+      this.messageService.add({ severity: 'error', summary: this.i18n.t('discounts.formMessages.validationTitle'), detail: this.i18n.t('discounts.formMessages.percentageTooHigh') });
       return;
     }
 
     if (this.isCreateCartLevel && v.promoCode && v.minimumCartAmount) {
-      this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Provide either a promo code or a minimum cart amount, not both' });
+      this.messageService.add({ severity: 'error', summary: this.i18n.t('discounts.formMessages.validationTitle'), detail: this.i18n.t('discounts.formMessages.promoOrThreshold') });
       return;
     }
 
@@ -241,13 +255,13 @@ export class DiscountFormDialogComponent implements OnChanges {
     this.isCreating.set(true);
     this.discountService.createDiscount(request).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Discount created successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('discounts.formMessages.createSuccess') });
         this.isCreating.set(false);
         this.onCreateDialogHide();
         this.createSuccess.emit();
       },
       error: (err) => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'Failed to create discount' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err.error?.message || this.i18n.t('discounts.formMessages.createFailed') });
         this.isCreating.set(false);
       }
     });
@@ -257,7 +271,7 @@ export class DiscountFormDialogComponent implements OnChanges {
   onUpdateSubmit(): void {
     if (!this.updateForm.valid || !this.selectedDiscount) {
       this.updateForm.markAllAsTouched();
-      this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill all required fields correctly' });
+      this.messageService.add({ severity: 'error', summary: this.i18n.t('discounts.formMessages.validationTitle'), detail: this.i18n.t('discounts.formMessages.fillRequired') });
       return;
     }
 
@@ -265,12 +279,12 @@ export class DiscountFormDialogComponent implements OnChanges {
     const isCart = this.selectedDiscount.scope === 'CART';
 
     if (v.type === 'PERCENTAGE' && (v.value ?? 0) > 100) {
-      this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Percentage value cannot exceed 100' });
+      this.messageService.add({ severity: 'error', summary: this.i18n.t('discounts.formMessages.validationTitle'), detail: this.i18n.t('discounts.formMessages.percentageTooHigh') });
       return;
     }
 
     if (isCart && v.promoCode && v.minimumCartAmount) {
-      this.messageService.add({ severity: 'error', summary: 'Validation Error', detail: 'Provide either a promo code or a minimum cart amount, not both' });
+      this.messageService.add({ severity: 'error', summary: this.i18n.t('discounts.formMessages.validationTitle'), detail: this.i18n.t('discounts.formMessages.promoOrThreshold') });
       return;
     }
 
@@ -290,13 +304,13 @@ export class DiscountFormDialogComponent implements OnChanges {
 
     this.discountService.updateDiscount(this.selectedDiscount.id, request).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Discount updated successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('discounts.formMessages.updateSuccess') });
         this.isUpdating.set(false);
         this.onUpdateDialogHide();
         this.updateSuccess.emit();
       },
       error: (err) => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: err.error?.message || 'Failed to update discount' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err.error?.message || this.i18n.t('discounts.formMessages.updateFailed') });
         this.isUpdating.set(false);
       }
     });

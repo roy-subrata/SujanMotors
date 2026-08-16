@@ -94,7 +94,7 @@ export class I18nService {
         return this.currentLang();
     }
 
-    translate(key: string, params?: { [key: string]: string }): string {
+    translate(key: string, params?: { [key: string]: string | number }): string {
         const keys = key.split('.');
         let value: any = this.translations();
 
@@ -117,7 +117,7 @@ export class I18nService {
         // Replace parameters if provided
         if (params) {
             Object.keys(params).forEach(paramKey => {
-                value = value.replace(`{{${paramKey}}}`, params[paramKey]);
+                value = value.replace(`{{${paramKey}}}`, String(params[paramKey]));
             });
         }
 
@@ -140,7 +140,7 @@ export class I18nService {
     }
 
     // Shorthand method
-    t(key: string, params?: { [key: string]: string }): string {
+    t(key: string, params?: { [key: string]: string | number }): string {
         return this.translate(key, params);
     }
 

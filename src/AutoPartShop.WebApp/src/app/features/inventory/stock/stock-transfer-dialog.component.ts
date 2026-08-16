@@ -12,6 +12,8 @@ import { MessageService } from 'primeng/api';
 import { StockService, StockLevelResponse } from '../services/stock.service';
 import { PartService, PartResponse } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-stock-transfer-dialog',
@@ -24,35 +26,36 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     InputNumberModule,
     SelectModule,
     CardModule,
-    ToastModule
+    ToastModule,
+    TranslatePipe
   ],
   providers: [MessageService],
   template: `
     <p-toast></p-toast>
     <div class="transfer-dialog">
-      <h2 class="dialog-title">Stock Transfer</h2>
+      <h2 class="dialog-title">{{ 'stockTransfer.title' | translate }}</h2>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="transfer-form">
         <!-- Current Stock Info -->
         <p-card class="info-card">
           <div class="info-row">
             <div class="info-item">
-              <label>Part</label>
+              <label>{{ 'stockTransfer.part' | translate }}</label>
               <span class="value">{{ currentStock?.displayName || part?.name }} ({{ currentStock?.variantSku || part?.sku }})</span>
             </div>
             <div class="info-item">
-              <label>From Warehouse</label>
+              <label>{{ 'stockTransfer.fromWarehouse' | translate }}</label>
               <span class="value">{{ fromWarehouse?.name }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item">
-              <label>Current Stock</label>
-              <span class="value stock-value">{{ currentStock?.quantity }} units</span>
+              <label>{{ 'stockTransfer.currentStock' | translate }}</label>
+              <span class="value stock-value">{{ currentStock?.quantity }} {{ 'stockTransfer.units' | translate }}</span>
             </div>
             <div class="info-item">
-              <label>Available</label>
-              <span class="value">{{ currentStock?.availableQuantity }} units</span>
+              <label>{{ 'stockTransfer.available' | translate }}</label>
+              <span class="value">{{ currentStock?.availableQuantity }} {{ 'stockTransfer.units' | translate }}</span>
             </div>
           </div>
         </p-card>
@@ -60,14 +63,14 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
         <!-- Transfer Form -->
         <div class="form-row">
           <div class="form-group">
-            <label for="toWarehouseId">To Warehouse *</label>
+            <label for="toWarehouseId">{{ 'stockTransfer.toWarehouseLabel' | translate }}</label>
             <p-select
               id="toWarehouseId"
               [options]="warehouses"
               optionLabel="name"
               optionValue="id"
               formControlName="toWarehouseId"
-              placeholder="Select destination warehouse"
+              [placeholder]="'stockTransfer.toWarehousePlaceholder' | translate"
               [filter]="true"
               filterBy="name,code"
               [showClear]="true">
@@ -78,36 +81,36 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
               </ng-template>
             </p-select>
             <small class="text-danger" *ngIf="form.get('toWarehouseId')?.invalid && form.get('toWarehouseId')?.touched">
-              Destination warehouse is required
+              {{ 'stockTransfer.toWarehouseRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="quantity">Quantity *</label>
+            <label for="quantity">{{ 'stockTransfer.quantityLabel' | translate }}</label>
             <p-inputNumber
               id="quantity"
               formControlName="quantity"
               [min]="1"
               [max]="currentStock?.availableQuantity || 999999"
-              placeholder="Enter quantity to transfer"
+              [placeholder]="'stockTransfer.quantityPlaceholder' | translate"
               class="w-full">
             </p-inputNumber>
-            <small class="text-muted">Max available: {{ currentStock?.availableQuantity }} units</small>
+            <small class="text-muted">{{ 'stockTransfer.maxAvailable' | translate:{ qty: currentStock?.availableQuantity || 0 } }}</small>
             <small class="text-danger" *ngIf="form.get('quantity')?.invalid && form.get('quantity')?.touched">
-              Valid quantity is required (max: {{ currentStock?.availableQuantity }})
+              {{ 'stockTransfer.quantityInvalid' | translate:{ max: currentStock?.availableQuantity || 0 } }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full">
-            <label for="notes">Notes</label>
+            <label for="notes">{{ 'stockTransfer.notesLabel' | translate }}</label>
             <textarea
               id="notes"
               formControlName="notes"
-              placeholder="Enter reason for transfer (e.g., Replenishment, Rebalancing)"
+              [placeholder]="'stockTransfer.notesPlaceholder' | translate"
               rows="3"
               class="w-full textarea-input">
             </textarea>
@@ -118,17 +121,17 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
         <p-card class="preview-card" *ngIf="form.get('toWarehouseId')?.value && form.get('quantity')?.value > 0">
           <div class="preview-row">
             <div class="preview-item">
-              <label>From:</label>
+              <label>{{ 'stockTransfer.previewFrom' | translate }}</label>
               <span class="warehouse-name">{{ fromWarehouse?.name }}</span>
-              <span class="stock-change decrease">-{{ form.get('quantity')?.value }} units</span>
+              <span class="stock-change decrease">-{{ form.get('quantity')?.value }} {{ 'stockTransfer.units' | translate }}</span>
             </div>
             <div class="arrow">
               <i class="pi pi-arrow-right"></i>
             </div>
             <div class="preview-item">
-              <label>To:</label>
+              <label>{{ 'stockTransfer.previewTo' | translate }}</label>
               <span class="warehouse-name">{{ getToWarehouseName() }}</span>
-              <span class="stock-change increase">+{{ form.get('quantity')?.value }} units</span>
+              <span class="stock-change increase">+{{ form.get('quantity')?.value }} {{ 'stockTransfer.units' | translate }}</span>
             </div>
           </div>
         </p-card>
@@ -138,7 +141,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
           <button
             pButton
             type="button"
-            label="Cancel"
+            [label]="'stockTransfer.cancel' | translate"
             icon="pi pi-times"
             class="p-button-outlined"
             (click)="onCancel()"
@@ -147,7 +150,7 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
           <button
             pButton
             type="submit"
-            label="Transfer Stock"
+            [label]="'stockTransfer.submit' | translate"
             icon="pi pi-arrow-right"
             class="p-button-success"
             [loading]="isSubmitting"
@@ -305,6 +308,7 @@ export class StockTransferDialogComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   form: FormGroup;
   isSubmitting = false;
@@ -388,8 +392,8 @@ export class StockTransferDialogComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Stock transferred successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('stockTransfer.messages.success')
         });
         this.isSubmitting = false;
         setTimeout(() => {
@@ -399,8 +403,8 @@ export class StockTransferDialogComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to transfer stock'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('stockTransfer.messages.failed')
         });
         this.isSubmitting = false;
       }

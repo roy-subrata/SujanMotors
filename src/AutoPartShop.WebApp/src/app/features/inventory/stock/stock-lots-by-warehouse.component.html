@@ -13,7 +13,7 @@
           (onItemSelect)="onPartSelected($event)"
           (onClearEvent)="onPartSelected(null)"
           optionLabel="displayName"
-          placeholder="Select part"
+          [placeholder]="'stockLots.partPlaceholder' | translate"
           [minLength]="0"
           [pageSize]="20"
           scrollHeight="300px">
@@ -33,14 +33,14 @@
           optionLabel="name"
           optionValue="id"
           [(ngModel)]="selectedWarehouseId"
-          placeholder="Select warehouse"
+          [placeholder]="'stockLots.warehousePlaceholder' | translate"
           (onChange)="onWarehouseSelected()"
           [showClear]="true">
         </p-select>
       </div>
 
       <div class="filter-actions">
-        <button pButton type="button" icon="pi pi-search" label="Load Lots"
+        <button pButton type="button" icon="pi pi-search" [label]="'stockLots.loadLots' | translate"
           (click)="loadStockLots()"
           [disabled]="!selectedPart || !selectedWarehouseId">
         </button>
@@ -52,13 +52,13 @@
   <p-card class="content-card" *ngIf="selectedPart && selectedWarehouseId">
     <ng-template pTemplate="header">
       <div class="card-header">
-        <h3>Lots for {{ selectedPartName }} in {{ selectedWarehouseName }}</h3>
+        <h3>{{ 'stockLots.lotsForTitle' | translate:{ part: selectedPartName, warehouse: selectedWarehouseName } }}</h3>
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <span class="lot-count" *ngIf="stockLots.length > 0">{{ stockLots.length }} lot(s)</span>
+          <span class="lot-count" *ngIf="stockLots.length > 0">{{ 'stockLots.lotCount' | translate:{ count: stockLots.length } }}</span>
           @if (priceCodeService.isConfigured()) {
             <button pButton type="button" class="p-button-text p-button-sm"
               [icon]="priceCodeService.showActualPrice() ? 'pi pi-eye' : 'pi pi-eye-slash'"
-              [pTooltip]="priceCodeService.showActualPrice() ? 'Hide prices' : 'Show prices'"
+              [pTooltip]="priceCodeService.showActualPrice() ? ('stockLots.hidePrices' | translate) : ('stockLots.showPrices' | translate)"
               (click)="priceCodeService.toggleVisibility()">
             </button>
           }
@@ -84,17 +84,17 @@
       <!-- Header -->
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 11%">System Lot No.</th>
-          <th style="width: 14%" class="text-right">Qty Received</th>
-          <th style="width: 14%" class="text-right">Available</th>
-          <th style="width: 10%" class="text-right">Unit Cost</th>
-          <th style="width: 9%" class="text-right">Total Cost</th>
-          <th style="width: 9%" class="text-right">Available Cost</th>
-          <th style="width: 9%">Receiving Date</th>
-          <th style="width: 7%">Warranty</th>
-          <th style="width: 7%">Status</th>
-          <th style="width: 7%">Expiry</th>
-          <th style="width: 6%" class="text-center">Label</th>
+          <th style="width: 11%">{{ 'stockLots.columns.lotNumber' | translate }}</th>
+          <th style="width: 14%" class="text-right">{{ 'stockLots.columns.qtyReceived' | translate }}</th>
+          <th style="width: 14%" class="text-right">{{ 'stockLots.columns.available' | translate }}</th>
+          <th style="width: 10%" class="text-right">{{ 'stockLots.columns.unitCost' | translate }}</th>
+          <th style="width: 9%" class="text-right">{{ 'stockLots.columns.totalCost' | translate }}</th>
+          <th style="width: 9%" class="text-right">{{ 'stockLots.columns.availableCost' | translate }}</th>
+          <th style="width: 9%">{{ 'stockLots.columns.receivingDate' | translate }}</th>
+          <th style="width: 7%">{{ 'stockLots.columns.warranty' | translate }}</th>
+          <th style="width: 7%">{{ 'stockLots.columns.status' | translate }}</th>
+          <th style="width: 7%">{{ 'stockLots.columns.expiry' | translate }}</th>
+          <th style="width: 6%" class="text-center">{{ 'stockLots.columns.label' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -104,7 +104,7 @@
           <td>
             <span class="font-semibold">{{ lot.lotNumber }}</span>
             <div class="text-sm text-gray-500" *ngIf="lot.manufacturerLotNumber"
-              pTooltip="Supplier Batch No. — the physical batch ID from the supplier's packaging label"
+              [pTooltip]="'stockLots.supplierBatchTooltip' | translate"
               tooltipPosition="right">
               <i class="pi pi-tag" style="font-size:0.7rem"></i> {{ lot.manufacturerLotNumber }}
             </div>
@@ -160,16 +160,16 @@
           <td>
             <p-tag
               *ngIf="lot.hasWarranty"
-              [value]="lot.warrantyPeriodMonths ? lot.warrantyPeriodMonths + 'M' : 'Yes'"
+              [value]="lot.warrantyPeriodMonths ? lot.warrantyPeriodMonths + 'M' : ('stockLots.warrantyYes' | translate)"
               severity="info"
-              [pTooltip]="lot.warrantyType || 'Warranty'"
+              [pTooltip]="lot.warrantyType || ('stockLots.columns.warranty' | translate)"
               tooltipPosition="top">
             </p-tag>
             <span class="text-gray-400 text-sm" *ngIf="!lot.hasWarranty">—</span>
           </td>
           <td>
             <p-tag
-              [value]="lot.quantityAvailable === 0 ? 'Consumed' : 'Active'"
+              [value]="lot.quantityAvailable === 0 ? ('stockLots.status.consumed' | translate) : ('stockLots.status.active' | translate)"
               [severity]="lot.quantityAvailable === 0 ? 'danger' : 'success'">
             </p-tag>
           </td>
@@ -179,13 +179,13 @@
               [value]="getExpiryDisplay(lot)"
               [severity]="lot.isExpired ? 'danger' : 'warn'">
             </p-tag>
-            <span class="text-gray-500" *ngIf="!lot.expiryDate">N/A</span>
+            <span class="text-gray-500" *ngIf="!lot.expiryDate">{{ 'stockLots.notAvailable' | translate }}</span>
           </td>
           <td class="text-center">
             <button pButton type="button" icon="pi pi-print"
               class="p-button-text p-button-sm p-button-rounded"
               (click)="printLabel(lot)"
-              pTooltip="Print / reprint label" tooltipPosition="left">
+              [pTooltip]="'stockLots.printLabelTooltip' | translate" tooltipPosition="left">
             </button>
           </td>
         </tr>
@@ -197,7 +197,7 @@
           <td colspan="11">
             <div class="empty-state">
               <i class="pi pi-inbox"></i>
-              <p>No stock lots found</p>
+              <p>{{ 'stockLots.emptyTitle' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -211,7 +211,7 @@
       [first]="first"
       [pageSize]="pageSize"
       [totalRecords]="totalRecords"
-      itemLabel="lots"
+      [itemLabel]="'stockLots.itemLabel' | translate"
       (pageChange)="goToPage($event)"
       (pageSizeChange)="onPageSizeChangeHandler($event)">
     </app-data-pagination>
@@ -234,8 +234,8 @@
 
       <div *ngIf="!loading && stockLots.length === 0" class="empty-state-mobile">
         <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-        <h3>No Stock Lots</h3>
-        <p>No lots found for this part in this warehouse</p>
+        <h3>{{ 'stockLots.emptyTitleMobile' | translate }}</h3>
+        <p>{{ 'stockLots.emptyHintMobile' | translate }}</p>
       </div>
 
       <div *ngIf="!loading && stockLots.length > 0" class="cards-grid">
@@ -244,7 +244,7 @@
           <div class="card-header">
             <span class="card-so-number">{{ lot.lotNumber }}</span>
             <span class="status-pill" [attr.data-status]="lot.quantityAvailable === 0 ? 'inactive' : 'active'">
-              {{ lot.quantityAvailable === 0 ? 'Consumed' : 'Active' }}
+              {{ lot.quantityAvailable === 0 ? ('stockLots.status.consumed' | translate) : ('stockLots.status.active' | translate) }}
             </span>
           </div>
 
@@ -254,26 +254,26 @@
             </div>
             <div class="card-meta">
               <span class="card-meta-item">
-                <i class="pi pi-box"></i>&nbsp;Received: {{ lot.quantityReceived }} {{ lot.unitCode || '-' }}
+                <i class="pi pi-box"></i>&nbsp;{{ 'stockLots.card.received' | translate }}: {{ lot.quantityReceived }} {{ lot.unitCode || '-' }}
               </span>
               <span class="card-meta-item">
-                <i class="pi pi-check-circle"></i>&nbsp;Available: {{ lot.quantityAvailable }} {{ lot.unitCode || '-' }}
+                <i class="pi pi-check-circle"></i>&nbsp;{{ 'stockLots.card.available' | translate }}: {{ lot.quantityAvailable }} {{ lot.unitCode || '-' }}
               </span>
               <span class="card-meta-item">
                 <i class="pi pi-calendar"></i>&nbsp;{{ lot.receivingDate | date:'dd-MMM-yyyy' }}
               </span>
               <span class="card-meta-item" *ngIf="lot.hasWarranty">
-                <i class="pi pi-shield"></i>&nbsp;Warranty {{ lot.warrantyPeriodMonths ? lot.warrantyPeriodMonths + 'M' : '' }}
+                <i class="pi pi-shield"></i>&nbsp;{{ 'stockLots.card.warranty' | translate }} {{ lot.warrantyPeriodMonths ? lot.warrantyPeriodMonths + 'M' : '' }}
               </span>
               <span class="card-meta-item" *ngIf="lot.expiryDate">
-                <i class="pi pi-exclamation-triangle"></i>&nbsp;Expiry: {{ getExpiryDisplay(lot) }}
+                <i class="pi pi-exclamation-triangle"></i>&nbsp;{{ 'stockLots.card.expiry' | translate }}: {{ getExpiryDisplay(lot) }}
               </span>
             </div>
           </div>
 
           <div class="card-footer">
             <div class="card-amount">
-              <span class="amount-label">Unit Cost</span>
+              <span class="amount-label">{{ 'stockLots.columns.unitCost' | translate }}</span>
               @if (priceCodeService.getDisplayPrice(lot.costPrice) !== null) {
                 <span class="amount-value coded-price">{{ priceCodeService.getDisplayPrice(lot.costPrice) }}</span>
               } @else {
@@ -292,15 +292,15 @@
     <!-- Summary Card -->
     <div class="summary-section" *ngIf="stockLots.length > 0">
       <div class="summary-item">
-        <label>Total Inventory Value (Available):</label>
+        <label>{{ 'stockLots.summary.availableValue' | translate }}</label>
         <span class="summary-value">{{ summary.availableCost | currency:currencyCode:'symbol':'1.2-2' }}</span>
       </div>
       <div class="summary-item">
-        <label>Total Inventory Value (All):</label>
+        <label>{{ 'stockLots.summary.totalValue' | translate }}</label>
         <span class="summary-value">{{ summary.totalCost | currency:currencyCode:'symbol':'1.2-2' }}</span>
       </div>
       <div class="summary-item">
-        <label>Average Cost per Unit:</label>
+        <label>{{ 'stockLots.summary.averageCost' | translate }}</label>
         <span class="summary-value">{{ summary.averageCostPerUnit | currency:currencyCode:'symbol':'1.2-2' }}</span>
       </div>
     </div>
@@ -310,7 +310,7 @@
   <p-card class="content-card" *ngIf="!selectedPart || !selectedWarehouseId">
     <div class="empty-state">
       <i class="pi pi-inbox"></i>
-      <p>Select a part and warehouse to view stock lots</p>
+      <p>{{ 'stockLots.selectPrompt' | translate }}</p>
     </div>
   </p-card>
 </div>

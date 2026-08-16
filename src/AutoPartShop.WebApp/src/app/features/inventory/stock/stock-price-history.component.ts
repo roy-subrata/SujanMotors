@@ -14,6 +14,8 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { PriceCodeService } from '../../../shared/services/price-code.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { map } from 'rxjs';
 
 @Component({
@@ -29,7 +31,8 @@ import { map } from 'rxjs';
     ToastModule,
     TooltipModule,
     LazyAutocompleteComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './stock-price-history.component.html',
@@ -41,6 +44,7 @@ export class StockPriceHistoryComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly currencyService = inject(CurrencyService);
   readonly priceCodeService = inject(PriceCodeService);
+  private readonly i18n = inject(I18nService);
 
   priceHistory: StockLotPriceHistoryResponse | null = null;
   selectedPart: PartResponse | null = null;
@@ -101,8 +105,8 @@ export class StockPriceHistoryComponent implements OnInit {
       error: (_error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load price history'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('priceHistory.messages.loadFailed')
         });
         this.loading = false;
       }
@@ -157,8 +161,8 @@ export class StockPriceHistoryComponent implements OnInit {
   }
 
   getExpiryDisplay(lot: StockLotHistoryItem): string {
-    if (!lot.expiryDate) return 'N/A';
-    if (lot.isExpired) return 'Expired';
+    if (!lot.expiryDate) return this.i18n.t('priceHistory.notAvailable');
+    if (lot.isExpired) return this.i18n.t('priceHistory.expired');
     return new Date(lot.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 }

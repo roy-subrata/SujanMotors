@@ -20,6 +20,8 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { PriceCodeService } from '../../../shared/services/price-code.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { map } from 'rxjs';
 
 @Component({
@@ -37,7 +39,8 @@ import { map } from 'rxjs';
     ToastModule,
     TooltipModule,
     LazyAutocompleteComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService, DialogService],
   templateUrl: './stock-lots-by-warehouse.component.html',
@@ -51,6 +54,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
   private readonly dialogService = inject(DialogService);
   private readonly currencyService = inject(CurrencyService);
   readonly priceCodeService = inject(PriceCodeService);
+  private readonly i18n = inject(I18nService);
 
   warehouses: WarehouseResponse[] = [];
   stockLots: StockLotResponse[] = [];
@@ -146,8 +150,8 @@ export class StockLotsByWarehouseComponent implements OnInit {
       error: (_error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load stock lots'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('stockLots.messages.loadFailed')
         });
         this.loading = false;
       }
@@ -178,7 +182,7 @@ export class StockLotsByWarehouseComponent implements OnInit {
   printLabel(lot: StockLotResponse): void {
     this.dialogService.open(BarcodeDialogComponent, {
       data: { label: labelFromStockLot(lot), layout: 'combo' },
-      header: 'Print Label',
+      header: this.i18n.t('stockLots.printLabelHeader'),
       width: '100vw',
       height: '100vh',
       styleClass: 'fullscreen-dialog',
@@ -188,8 +192,8 @@ export class StockLotsByWarehouseComponent implements OnInit {
   }
 
   getExpiryDisplay(lot: StockLotResponse): string {
-    if (!lot.expiryDate) return 'N/A';
-    if (lot.isExpired) return 'Expired';
+    if (!lot.expiryDate) return this.i18n.t('stockLots.notAvailable');
+    if (lot.isExpired) return this.i18n.t('stockLots.expired');
     return new Date(lot.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 }

@@ -1069,6 +1069,67 @@
       "activateSuccess": "Discount \"{{name}}\" activated successfully",
       "deactivateSuccess": "Discount \"{{name}}\" deactivated successfully",
       "toggleFailed": "Failed to update discount status"
+    },
+    "createTitle": "New Discount",
+    "editTitle": "Edit Discount",
+    "nameLabel": "Discount Name",
+    "namePlaceholder": "e.g. Summer Sale 10%",
+    "nameRequired": "Name is required (min 2 characters)",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Optional description",
+    "typeLabel": "Discount Type",
+    "typePlaceholder": "Select type",
+    "typeRequired": "Type is required",
+    "typePercentage": "Percentage (%)",
+    "typeFixed": "Fixed Amount (৳)",
+    "valueLabel": "Value",
+    "valueHintPercentage": "(0–100)",
+    "valueHintFixed": "(৳ amount)",
+    "valuePlaceholder": "Enter value",
+    "valueRequired": "Value is required (min 0.01)",
+    "valueRequiredPercentage": "Value is required (min 0.01, max 100)",
+    "scopeCartTitle": "Cart Level",
+    "scopeCartHint": "applies on top of item discounts (promo code or threshold)",
+    "scopeProductTitle": "Product Level",
+    "scopeProductHint": "applies to all variants of",
+    "scopeVariantTitle": "Variant Level",
+    "scopeVariantHint": "applies only to",
+    "scopeLockedSuffix": "Level",
+    "scopeLockedHint": "scope cannot be changed after creation",
+    "productLabel": "Product",
+    "productHint": "(optional — leave blank for cart-level discount)",
+    "productPlaceholder": "Search product by name or SKU...",
+    "productNoneHint": "No product selected → discount will be CART level",
+    "variantLabel": "Variant",
+    "variantHint": "(optional — leave blank for product-level discount)",
+    "variantPlaceholder": "Select variant (optional)",
+    "variantEmpty": "No active variants",
+    "variantNoneHint": "No variant selected → discount applies to all variants",
+    "promoCodeLabel": "Promo Code",
+    "optionalHint": "(optional)",
+    "promoCodePlaceholder": "e.g. SUMMER25",
+    "promoCodeHint": "Leave blank to use minimum cart amount threshold instead",
+    "minCartLabel": "Minimum Cart Amount (৳)",
+    "minCartPlaceholder": "e.g. 2000",
+    "minCartHint": "Discount auto-applies when cart total meets this amount",
+    "startDateLabel": "Start Date",
+    "startDatePlaceholder": "Select start date",
+    "startDateRequired": "Start date is required",
+    "endDateLabel": "End Date",
+    "endDatePlaceholder": "No expiry",
+    "statusLabel": "Status",
+    "cancel": "Cancel",
+    "createSubmit": "Create Discount",
+    "updateSubmit": "Update Discount",
+    "formMessages": {
+      "validationTitle": "Validation Error",
+      "fillRequired": "Please fill all required fields correctly",
+      "percentageTooHigh": "Percentage value cannot exceed 100",
+      "promoOrThreshold": "Provide either a promo code or a minimum cart amount, not both",
+      "createSuccess": "Discount created successfully",
+      "createFailed": "Failed to create discount",
+      "updateSuccess": "Discount updated successfully",
+      "updateFailed": "Failed to update discount"
     }
   },
   "technicians": {
@@ -1846,7 +1907,25 @@
       "lowStock": "Low Stock",
       "warning": "Warning",
       "inStock": "In Stock"
-    }
+    },
+    "columns": {
+      "partName": "Part Name",
+      "warehouse": "Warehouse",
+      "onHand": "On Hand",
+      "reserved": "Reserved",
+      "available": "Available",
+      "damaged": "Damaged",
+      "quarantine": "Quarantine",
+      "reorderLevel": "Reorder Level",
+      "reorderQty": "Reorder Qty",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "adjustStock": "Adjust Stock",
+    "itemLabel": "stock levels",
+    "emptyTitle": "No Stock Levels Found",
+    "emptyTitleMobile": "No Stock Levels",
+    "emptyHint": "Try adjusting your filters or search"
   },
   "parts": {
     "title": "Parts",
@@ -3350,6 +3429,195 @@
       "errorMessage": "Failed to load entity timeline. Please try again.",
       "retry": "Retry",
       "close": "Close"
+    }
+  },
+  "stockLots": {
+    "partPlaceholder": "Select part",
+    "warehousePlaceholder": "Select warehouse",
+    "loadLots": "Load Lots",
+    "lotsForTitle": "Lots for {{part}} in {{warehouse}}",
+    "lotCount": "{{count}} lot(s)",
+    "hidePrices": "Hide prices",
+    "showPrices": "Show prices",
+    "itemLabel": "lots",
+    "columns": {
+      "lotNumber": "System Lot No.",
+      "qtyReceived": "Qty Received",
+      "available": "Available",
+      "unitCost": "Unit Cost",
+      "totalCost": "Total Cost",
+      "availableCost": "Available Cost",
+      "receivingDate": "Receiving Date",
+      "warranty": "Warranty",
+      "status": "Status",
+      "expiry": "Expiry",
+      "label": "Label"
+    },
+    "supplierBatchTooltip": "Supplier Batch No. — the physical batch ID from the supplier's packaging label",
+    "warrantyYes": "Yes",
+    "printLabelTooltip": "Print / reprint label",
+    "printLabelHeader": "Print Label",
+    "status": {
+      "consumed": "Consumed",
+      "active": "Active"
+    },
+    "expired": "Expired",
+    "notAvailable": "N/A",
+    "emptyTitle": "No stock lots found",
+    "emptyTitleMobile": "No Stock Lots",
+    "emptyHintMobile": "No lots found for this part in this warehouse",
+    "selectPrompt": "Select a part and warehouse to view stock lots",
+    "card": {
+      "received": "Received",
+      "available": "Available",
+      "warranty": "Warranty",
+      "expiry": "Expiry"
+    },
+    "summary": {
+      "availableValue": "Total Inventory Value (Available):",
+      "totalValue": "Total Inventory Value (All):",
+      "averageCost": "Average Cost per Unit:"
+    },
+    "messages": {
+      "loadFailed": "Failed to load stock lots"
+    }
+  },
+  "priceHistory": {
+    "partPlaceholder": "Select part",
+    "loadHistory": "Load History",
+    "trackingSubtitle": "Price tracking across {{count}} purchase(s)",
+    "hidePrices": "Hide prices",
+    "showPrices": "Show prices",
+    "itemLabel": "lots",
+    "stats": {
+      "latest": "Latest Price",
+      "average": "Average Price",
+      "minimum": "Minimum Price",
+      "maximum": "Maximum Price"
+    },
+    "columns": {
+      "lotNumber": "System Lot No.",
+      "supplier": "Supplier",
+      "unitPrice": "Unit Price",
+      "qtyReceived": "Qty Received",
+      "qtyAvailable": "Qty Available",
+      "receivingDate": "Receiving Date",
+      "expiry": "Expiry",
+      "status": "Status"
+    },
+    "status": {
+      "consumed": "Consumed",
+      "available": "Available"
+    },
+    "expired": "Expired",
+    "notAvailable": "N/A",
+    "emptyTitle": "No price history found",
+    "emptyTitleMobile": "No Price History",
+    "emptyHintMobile": "No purchase lots found for this part",
+    "emptyForPart": "No price history found for this part",
+    "selectPrompt": "Select a part to view its price history",
+    "card": {
+      "unitPrice": "Unit Price",
+      "received": "Received",
+      "available": "Available",
+      "expiry": "Expiry"
+    },
+    "insights": {
+      "title": "Price Insights",
+      "increased": "Price increased by",
+      "decreased": "Price decreased by",
+      "constant": "Price remained constant",
+      "totalPurchases": "Total purchases: {{count}} lot(s)"
+    },
+    "messages": {
+      "loadFailed": "Failed to load price history"
+    }
+  },
+  "stockMovements": {
+    "searchPlaceholder": "Search by part, warehouse, reference...",
+    "typePlaceholder": "Type",
+    "statusPlaceholder": "Status",
+    "dateRangePlaceholder": "Date range",
+    "activeFilters": "Active filters:",
+    "chips": {
+      "search": "Search",
+      "type": "Type",
+      "status": "Status",
+      "from": "From",
+      "to": "To"
+    },
+    "itemLabel": "movements",
+    "columns": {
+      "dateTime": "Date & Time",
+      "part": "Part",
+      "warehouse": "Warehouse",
+      "quantity": "Quantity",
+      "type": "Type",
+      "status": "Status",
+      "notes": "Notes / Reference"
+    },
+    "empty": "No stock movements found",
+    "typeOptions": {
+      "all": "All Types"
+    },
+    "statusOptions": {
+      "all": "All Statuses"
+    },
+    "types": {
+      "IN": "Stock In",
+      "OUT": "Stock Out",
+      "RETURN": "Return",
+      "ADJUST": "Adjustment",
+      "ADJUSTMENT": "Adjustment",
+      "TRANSFER": "Transfer",
+      "DAMAGE": "Damage",
+      "SHRINKAGE": "Shrinkage",
+      "COUNT_CORRECTION": "Count Correction"
+    },
+    "statuses": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "unknownPart": "Unknown Part",
+    "unknownWarehouse": "Unknown Warehouse",
+    "descriptions": {
+      "returnedToSupplier": "Returned to supplier",
+      "quickSale": "Quick sale to customer",
+      "soldToCustomer": "Sold to customer",
+      "returnedByCustomer": "Returned by customer",
+      "receivedFromSupplier": "Received from supplier",
+      "stockAdjustment": "Stock adjustment",
+      "warehouseTransfer": "Warehouse transfer"
+    },
+    "messages": {
+      "loadReferenceFailed": "Failed to load reference data",
+      "loadFailed": "Failed to load stock movements"
+    }
+  },
+  "stockTransfer": {
+    "title": "Stock Transfer",
+    "part": "Part",
+    "fromWarehouse": "From Warehouse",
+    "currentStock": "Current Stock",
+    "available": "Available",
+    "units": "units",
+    "toWarehouseLabel": "To Warehouse *",
+    "toWarehousePlaceholder": "Select destination warehouse",
+    "toWarehouseRequired": "Destination warehouse is required",
+    "quantityLabel": "Quantity *",
+    "quantityPlaceholder": "Enter quantity to transfer",
+    "maxAvailable": "Max available: {{qty}} units",
+    "quantityInvalid": "Valid quantity is required (max: {{max}})",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Enter reason for transfer (e.g., Replenishment, Rebalancing)",
+    "previewFrom": "From:",
+    "previewTo": "To:",
+    "cancel": "Cancel",
+    "submit": "Transfer Stock",
+    "messages": {
+      "success": "Stock transferred successfully",
+      "failed": "Failed to transfer stock"
     }
   }
 }
