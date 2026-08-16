@@ -8,22 +8,22 @@
         <div class="breadcrumb">
           <a (click)="cancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Sales Orders
+            {{ 'salesOrders.title' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : mode() === 'edit' ? 'Edit' : 'View' }}</span>
+          <span class="breadcrumb-current">{{ (mode() === 'create' ? 'salesOrders.form.breadcrumbNew' : mode() === 'edit' ? 'salesOrders.form.breadcrumbEdit' : 'salesOrders.form.breadcrumbView') | translate }}</span>
         </div>
         <h1 class="form-title">
-          {{ mode() === 'create' ? 'Create Sales Order' : mode() === 'edit' ? 'Edit Sales Order' : 'View Sales Order' }}
+          {{ (mode() === 'create' ? 'salesOrders.form.createTitle' : mode() === 'edit' ? 'salesOrders.form.editTitle' : 'salesOrders.form.viewTitle') | translate }}
         </h1>
         <p class="form-subtitle">
-          {{ mode() === 'create' ? 'Create a new sales order for a customer' : 'View or edit sales order details' }}
+          {{ (mode() === 'create' ? 'salesOrders.form.createSubtitle' : 'salesOrders.form.viewSubtitle') | translate }}
         </p>
       </div>
       <div class="header-actions">
         <button pButton type="button" icon="pi pi-arrow-left"
           class="p-button-text p-button-sm"
-          pTooltip="Back" tooltipPosition="bottom" (click)="cancel()">
+          [pTooltip]="'common.actions.back' | translate" tooltipPosition="bottom" (click)="cancel()">
         </button>
 
         <!-- View mode: lifecycle actions based on current status -->
@@ -31,36 +31,36 @@
 
           <!-- PENDING → Confirm -->
           <button *ngIf="currentSO.status === 'PENDING' || currentSO.status === 'DRAFT'"
-            pButton type="button" label="Confirm Order" icon="pi pi-check"
+            pButton type="button" [label]="'salesOrders.form.confirmOrder' | translate" icon="pi pi-check"
             class="p-button-sm p-button-success"
-            pTooltip="Confirm & generate invoice" tooltipPosition="bottom"
+            [pTooltip]="'salesOrders.form.confirmOrderTooltip' | translate" tooltipPosition="bottom"
             (click)="confirmSalesOrder()">
           </button>
 
           <!-- CONFIRMED → two paths -->
           <ng-container *ngIf="currentSO.status === 'CONFIRMED'">
-            <button pButton type="button" label="Deliver Now" icon="pi pi-check-circle"
+            <button pButton type="button" [label]="'salesOrders.form.deliverNow' | translate" icon="pi pi-check-circle"
               class="p-button-sm p-button-success"
-              pTooltip="Direct handover — no challan" tooltipPosition="bottom"
+              [pTooltip]="'salesOrders.form.deliverNowTooltip' | translate" tooltipPosition="bottom"
               (click)="deliverDirect()">
             </button>
-            <button pButton type="button" label="Ready for Delivery" icon="pi pi-truck"
+            <button pButton type="button" [label]="'salesOrders.form.readyForDelivery' | translate" icon="pi pi-truck"
               class="p-button-sm p-button-warning"
-              pTooltip="Pack & prepare challan" tooltipPosition="bottom"
+              [pTooltip]="'salesOrders.form.readyForDeliveryTooltip' | translate" tooltipPosition="bottom"
               (click)="markReadyForDelivery()">
             </button>
           </ng-container>
 
           <!-- READY_FOR_DELIVERY → generate challan + deliver -->
           <ng-container *ngIf="currentSO.status === 'READY_FOR_DELIVERY'">
-            <button pButton type="button" label="Generate Challan" icon="pi pi-file-export"
+            <button pButton type="button" [label]="'salesOrders.form.generateChallan' | translate" icon="pi pi-file-export"
               class="p-button-sm"
-              pTooltip="Create delivery challan" tooltipPosition="bottom"
+              [pTooltip]="'salesOrders.form.generateChallanTooltip' | translate" tooltipPosition="bottom"
               (click)="openChallanDialog()">
             </button>
-            <button pButton type="button" label="Deliver Now" icon="pi pi-check-circle"
+            <button pButton type="button" [label]="'salesOrders.form.deliverNow' | translate" icon="pi pi-check-circle"
               class="p-button-sm p-button-success"
-              pTooltip="Skip challan and mark delivered" tooltipPosition="bottom"
+              [pTooltip]="'salesOrders.form.deliverSkipChallanTooltip' | translate" tooltipPosition="bottom"
               (click)="deliverDirect()">
             </button>
           </ng-container>
@@ -69,7 +69,7 @@
 
         <!-- Edit/create mode: save -->
         <button *ngIf="mode() !== 'view'" pButton type="button"
-          [label]="saving() ? 'Saving…' : (mode() === 'edit' ? 'Update' : 'Create')"
+          [label]="saving() ? ('salesOrders.form.savingShort' | translate) : (mode() === 'edit' ? ('salesOrders.form.update' | translate) : ('salesOrders.form.create' | translate))"
           icon="pi pi-check" class="p-button-sm"
           [loading]="saving()" [disabled]="saving() || salesOrderForm.invalid"
           (click)="onSubmit()">
@@ -81,7 +81,7 @@
   <!-- Loading State -->
   <div *ngIf="loading()" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-    <p>Loading sales order...</p>
+    <p>{{ 'salesOrders.form.loading' | translate }}</p>
   </div>
 
   <!-- Error Alert -->
@@ -98,16 +98,16 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-user section-icon"></i>
-          Customer Information
+          {{ 'salesOrders.form.customerSection' | translate }}
         </h3>
 
         <!-- Customer Search -->
         <div class="form-row">
           <div class="form-group full">
-            <label>Select Customer *</label>
+            <label>{{ 'salesOrders.form.selectCustomer' | translate }} *</label>
             <app-lazy-autocomplete [fetchFn]="searchCustomers" [(ngModel)]="selectedCustomer"
               [ngModelOptions]="{standalone: true}" optionLabel="fullName"
-              placeholder="Search by name, email, or customer code..." (onItemSelect)="onCustomerSelected($any($event))"
+              [placeholder]="'salesOrders.form.customerPlaceholder' | translate" (onItemSelect)="onCustomerSelected($any($event))"
               (onClearEvent)="onCustomerCleared()">
               <ng-template let-customer>
                 <div class="customer-item">
@@ -124,8 +124,8 @@
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              <span *ngIf="!selectedCustomerId">Type to search for a customer</span>
-              <span *ngIf="selectedCustomerId" class="success-text">Customer selected</span>
+              <span *ngIf="!selectedCustomerId">{{ 'salesOrders.form.typeToSearch' | translate }}</span>
+              <span *ngIf="selectedCustomerId" class="success-text">{{ 'salesOrders.form.customerSelected' | translate }}</span>
             </small>
           </div>
         </div>
@@ -133,42 +133,42 @@
         <!-- Customer Details (Read-only) -->
         <div class="form-row">
           <div class="form-group">
-            <label>Customer Name *</label>
-            <input pInputText formControlName="customerName" placeholder="Auto-filled" readonly
+            <label>{{ 'salesOrders.form.customerName' | translate }} *</label>
+            <input pInputText formControlName="customerName" [placeholder]="'salesOrders.form.autoFilled' | translate" readonly
               class="readonly-input" />
             <small *ngIf="salesOrderForm.get('customerName')?.invalid && salesOrderForm.get('customerName')?.touched"
               class="p-error">
-              Customer name is required
+              {{ 'salesOrders.form.customerNameRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Email *</label>
-            <input pInputText type="email" formControlName="customerEmail" placeholder="Auto-filled" readonly
+            <label>{{ 'common.labels.email' | translate }} *</label>
+            <input pInputText type="email" formControlName="customerEmail" [placeholder]="'salesOrders.form.autoFilled' | translate" readonly
               class="readonly-input" />
             <small *ngIf="salesOrderForm.get('customerEmail')?.invalid && salesOrderForm.get('customerEmail')?.touched"
               class="p-error">
-              Valid email is required
+              {{ 'salesOrders.form.emailRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Phone *</label>
-            <input pInputText type="tel" formControlName="customerPhone" placeholder="Auto-filled" readonly
+            <label>{{ 'common.labels.phone' | translate }} *</label>
+            <input pInputText type="tel" formControlName="customerPhone" [placeholder]="'salesOrders.form.autoFilled' | translate" readonly
               class="readonly-input" />
             <small *ngIf="salesOrderForm.get('customerPhone')?.invalid && salesOrderForm.get('customerPhone')?.touched"
               class="p-error">
-              Phone is required
+              {{ 'salesOrders.form.phoneRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>City *</label>
-            <input pInputText formControlName="customerCity" placeholder="Auto-filled" readonly
+            <label>{{ 'common.labels.city' | translate }} *</label>
+            <input pInputText formControlName="customerCity" [placeholder]="'salesOrders.form.autoFilled' | translate" readonly
               class="readonly-input" />
             <small *ngIf="salesOrderForm.get('customerCity')?.invalid && salesOrderForm.get('customerCity')?.touched"
               class="p-error">
-              City is required
+              {{ 'salesOrders.form.cityRequired' | translate }}
             </small>
           </div>
         </div>
@@ -178,14 +178,14 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-calendar section-icon"></i>
-          Order Details
+          {{ 'salesOrders.form.orderSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Warehouse *</label>
+            <label>{{ 'salesOrders.form.warehouse' | translate }} *</label>
             <p-select formControlName="warehouseId" [options]="warehouses()" optionLabel="name" optionValue="id"
-              placeholder="Select warehouse" [showClear]="true" [disabled]="mode() === 'view' || loadingWarehouses()"
+              [placeholder]="'salesOrders.form.warehousePlaceholder' | translate" [showClear]="true" [disabled]="mode() === 'view' || loadingWarehouses()"
               appendTo="body" [style]="{ width: '100%' }"
               [styleClass]="salesOrderForm.get('warehouseId')?.invalid && salesOrderForm.get('warehouseId')?.touched ? 'input-error' : ''">
               <ng-template let-warehouse pTemplate="item">
@@ -194,17 +194,17 @@
             </p-select>
             <small *ngIf="salesOrderForm.get('warehouseId')?.invalid && salesOrderForm.get('warehouseId')?.touched"
               class="p-error">
-              Warehouse is required
+              {{ 'salesOrders.form.warehouseRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Technician (Optional)</label>
+            <label>{{ 'salesOrders.form.technicianOptional' | translate }}</label>
             <app-lazy-autocomplete
               [fetchFn]="searchTechnecian"
               [(ngModel)]="selectedTechnecian"
               [ngModelOptions]="{standalone: true}"
               optionLabel="name"
-              placeholder="Search technician by name or code..."
+              [placeholder]="'salesOrders.form.technicianPlaceholder' | translate"
               [disabled]="mode() === 'view'"
               (onItemSelect)="onTechnicianSelected($any($event))"
               (onClearEvent)="onTechnicianCleared()">
@@ -222,14 +222,14 @@
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              Select if this order was recommended by a technician
+              {{ 'salesOrders.form.technicianHint' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Vehicle (Optional)</label>
+            <label>{{ 'salesOrders.form.vehicleOptional' | translate }}</label>
             <p-select formControlName="customerVehicleId" [options]="customerVehicles()" optionLabel="label"
               optionValue="id" [showClear]="true" [filter]="true" filterBy="label,registrationNo"
-              placeholder="Select a vehicle this purchase is for..."
+              [placeholder]="'salesOrders.form.vehiclePlaceholder' | translate"
               [disabled]="mode() === 'view' || !selectedCustomerId" [loading]="loadingVehicles()"
               (onChange)="onVehicleChange($any($event).value)" appendTo="body" [style]="{ width: '100%' }">
               <ng-template let-vehicle pTemplate="item">
@@ -247,14 +247,14 @@
             </p-select>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              <span *ngIf="!selectedCustomerId">Select a customer first to choose a vehicle</span>
-              <span *ngIf="selectedCustomerId">Track which vehicle this purchase was for</span>
+              <span *ngIf="!selectedCustomerId">{{ 'salesOrders.form.selectCustomerFirstHint' | translate }}</span>
+              <span *ngIf="selectedCustomerId">{{ 'salesOrders.form.vehicleHint' | translate }}</span>
             </small>
           </div>
           <div class="form-group">
-            <label>Expected Delivery Date *</label>
+            <label>{{ 'salesOrders.form.deliveryDate' | translate }} *</label>
             <p-datepicker formControlName="deliveryDate" [showIcon]="true" [showButtonBar]="true" dateFormat="yy-mm-dd"
-              placeholder="Select date..." [disabled]="mode() === 'view'"
+              [placeholder]="'salesOrders.form.deliveryDatePlaceholder' | translate" [disabled]="mode() === 'view'"
               [styleClass]="salesOrderForm.get('deliveryDate')?.invalid && salesOrderForm.get('deliveryDate')?.touched ? 'input-error' : ''"
               appendTo="body" [style]="{ width: '100%' }"
     
@@ -262,25 +262,25 @@
             </p-datepicker>
             <small *ngIf="salesOrderForm.get('deliveryDate')?.invalid && salesOrderForm.get('deliveryDate')?.touched"
               class="p-error">
-              Delivery date is required
+              {{ 'salesOrders.form.deliveryDateRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Currency *</label>
+            <label>{{ 'salesOrders.form.currency' | translate }} *</label>
             <app-currency-selector formControlName="currency" [disabled]="mode() === 'view'" [showLabel]="false"
-              placeholder="Select currency">
+              [placeholder]="'salesOrders.form.currencyPlaceholder' | translate">
             </app-currency-selector>
             <small *ngIf="salesOrderForm.get('currency')?.invalid && salesOrderForm.get('currency')?.touched"
               class="p-error">
-              Currency is required
+              {{ 'salesOrders.form.currencyRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Notes</label>
-            <textarea pInputTextarea formControlName="notes" placeholder="Additional notes..." rows="2"></textarea>
+            <label>{{ 'common.labels.notes' | translate }}</label>
+            <textarea pInputTextarea formControlName="notes" [placeholder]="'salesOrders.form.notesPlaceholder' | translate" rows="2"></textarea>
           </div>
         </div>
       </div>
@@ -290,9 +290,9 @@
         <div class="section-header">
           <h3 class="section-title">
             <i class="pi pi-list section-icon"></i>
-            Order Line Items
+            {{ 'salesOrders.form.lineItemsSection' | translate }}
           </h3>
-          <button pButton type="button" label="Add Line" icon="pi pi-plus" class="p-button-success p-button-sm"
+          <button pButton type="button" [label]="'salesOrders.form.addLine' | translate" icon="pi pi-plus" class="p-button-success p-button-sm"
             (click)="addLine()" [disabled]="mode() === 'view'">
           </button>
         </div>
@@ -300,13 +300,13 @@
         <!-- Quick Add Part -->
         <div class="form-row">
           <div class="form-group full">
-            <label>Quick Add Part</label>
+            <label>{{ 'salesOrders.form.quickAddPart' | translate }}</label>
             <app-lazy-autocomplete
               [fetchFn]="searchParts"
               [(ngModel)]="selectedPartQuickAdd"
               [ngModelOptions]="{standalone: true}"
               optionLabel="displayName"
-              placeholder="Search part by name, code, or SKU..."
+              [placeholder]="'salesOrders.form.quickAddPlaceholder' | translate"
               [disabled]="mode() === 'view'"
               (onItemSelect)="onQuickAddPartSelected($any($event))"
               (onClearEvent)="onQuickAddPartCleared()">
@@ -331,7 +331,7 @@
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              Select a part to add it to the list. Selecting an existing part will increase its quantity by 1.
+              {{ 'salesOrders.form.quickAddHint' | translate }}
             </small>
           </div>
         </div>
@@ -339,21 +339,21 @@
         <div formArrayName="lines" class="line-items-container">
           <div *ngFor="let line of lines.controls; let i = index" [formGroupName]="i" class="line-item-card">
             <div class="line-item-header">
-              <span class="line-number">Item #{{ i + 1 }}</span>
+              <span class="line-number">{{ 'salesOrders.form.itemNumber' | translate:{ number: i + 1 } }}</span>
               <button pButton type="button" icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm"
-                (click)="removeLine(i)" [disabled]="lines.length === 1 || mode() === 'view'" pTooltip="Remove line">
+                (click)="removeLine(i)" [disabled]="lines.length === 1 || mode() === 'view'" [pTooltip]="'salesOrders.form.removeLine' | translate">
               </button>
             </div>
 
             <div class="line-item-content">
               <!-- Part Selection -->
               <div class="form-group part-field">
-                <label>Part *</label>
+                <label>{{ 'salesOrders.form.part' | translate }} *</label>
                 <app-lazy-autocomplete
                   [fetchFn]="searchParts"
                   formControlName="part"
                   optionLabel="displayName"
-                  placeholder="Search part by name or code..."
+                  [placeholder]="'salesOrders.form.partPlaceholder' | translate"
                   [disabled]="mode() === 'view'"
                   (onItemSelect)="onPartSelected($any($event), i)"
                   (onClearEvent)="onPartCleared(i)">
@@ -378,24 +378,24 @@
                 </app-lazy-autocomplete>
                 <small *ngIf="line.get('part')?.value?.localName" class="part-row-local d-block">{{ line.get('part')?.value?.localName }}</small>
                 <small class="field-hint" *ngIf="line.get('part')?.value as selectedPart">
-                  <span *ngIf="selectedPart.partNumber">Code: {{ selectedPart.partNumber }}</span>
+                  <span *ngIf="selectedPart.partNumber">{{ 'salesOrders.form.codePrefix' | translate }} {{ selectedPart.partNumber }}</span>
                   <span *ngIf="selectedPart.sku" class="separator">&bull;</span>
-                  <span *ngIf="selectedPart.sku">SKU: {{ selectedPart.sku }}</span>
+                  <span *ngIf="selectedPart.sku">{{ 'salesOrders.form.skuPrefix' | translate }} {{ selectedPart.sku }}</span>
                   <span *ngIf="selectedPart.brandName" class="separator">&bull;</span>
                   <span *ngIf="selectedPart.brandName">{{ selectedPart.brandName }}</span>
                   <span *ngIf="selectedPart.unitName" class="separator">&bull;</span>
                   <span *ngIf="selectedPart.unitName">{{ selectedPart.unitName }}</span>
                 </small>
                 <small *ngIf="line.get('part')?.invalid && line.get('part')?.touched" class="p-error">
-                  Part is required
+                  {{ 'salesOrders.form.partRequired' | translate }}
                 </small>
               </div>
 
               <!-- Unit -->
               <div class="form-group unit-field">
-                <label>Unit</label>
+                <label>{{ 'salesOrders.form.unit' | translate }}</label>
                 <p-select formControlName="unitId" [options]="getCompatibleUnitsForPart(line.get('part')?.value?.id)"
-                  optionLabel="name" optionValue="id" placeholder="Unit" [showClear]="true"
+                  optionLabel="name" optionValue="id" [placeholder]="'salesOrders.form.unit' | translate" [showClear]="true"
                   [disabled]="mode() === 'view'" appendTo="body" [style]="{ width: '100%' }">
                   <ng-template let-unit pTemplate="item">
                     {{ unit.name }} ({{ unit.symbol }})
@@ -405,28 +405,28 @@
 
               <!-- Quantity -->
               <div class="form-group qty-field">
-                <label>Qty *</label>
+                <label>{{ 'salesOrders.form.qty' | translate }} *</label>
                 <input pInputText type="number" formControlName="quantity" min="1" placeholder="1"
                   [class.input-error]="line.get('quantity')?.invalid && line.get('quantity')?.touched" />
                 <small *ngIf="line.get('quantity')?.invalid && line.get('quantity')?.touched" class="p-error">
-                  Min 1
+                  {{ 'salesOrders.form.minOne' | translate }}
                 </small>
               </div>
 
               <!-- Unit Price -->
               <div class="form-group price-field">
-                <label>Price *</label>
+                <label>{{ 'salesOrders.form.price' | translate }} *</label>
                 <input pInputText type="number" formControlName="unitPrice" min="0" step="0.01" placeholder="0.00"
                   [class.input-error]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched"
                   (input)="clearLinePricingError(i); scheduleLinePricingInfoRefresh(i)" />
                 <small *ngIf="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched" class="p-error">
-                  Required
+                  {{ 'salesOrders.form.required' | translate }}
                 </small>
               </div>
 
               <!-- Discount -->
               <div class="form-group discount-field">
-                <label>Disc %</label>
+                <label>{{ 'salesOrders.form.discPercent' | translate }}</label>
                 <input pInputText type="number" formControlName="discount" min="0" max="100"
                   step="0.01"
                   placeholder="0" (input)="clearLinePricingError(i); scheduleLinePricingInfoRefresh(i)" />
@@ -434,17 +434,17 @@
 
               <!-- Line Total -->
               <div class="form-group total-field">
-                <label>Total</label>
+                <label>{{ 'common.labels.total' | translate }}</label>
                 <div class="line-total">{{ formatCurrency(getLineTotal(i)) }}</div>
               </div>
               <div class="form-group pricing-info" *ngIf="line.get('part')?.value as selectedPart">
                 <div class="pricing-info-row">
-                  <span>MRP: {{ formatCurrency(selectedPart.sellingPrice) }}</span>
-                  <span>Max Discounted: {{ formatCurrency(getMaxDiscountedPriceForPart(selectedPart)) }}</span>
+                  <span>{{ 'salesOrders.form.mrp' | translate:{ value: formatCurrency(selectedPart.sellingPrice) } }}</span>
+                  <span>{{ 'salesOrders.form.maxDiscounted' | translate:{ value: formatCurrency(getMaxDiscountedPriceForPart(selectedPart)) } }}</span>
                 </div>
                 <div class="pricing-info-row">
-                  <span>Effective Price: {{ formatCurrency(getEffectivePrice(i)) }}</span>
-                  <span *ngIf="getLinePricingInfo(i) as info" [class.invalid]="!info.isValid">{{ info.isValid ? 'Valid' : info.validationMessage }}</span>
+                  <span>{{ 'salesOrders.form.effectivePrice' | translate:{ value: formatCurrency(getEffectivePrice(i)) } }}</span>
+                  <span *ngIf="getLinePricingInfo(i) as info" [class.invalid]="!info.isValid">{{ info.isValid ? ('salesOrders.form.valid' | translate) : info.validationMessage }}</span>
                 </div>
               </div>
               <div class="form-group pricing-error" *ngIf="getLinePricingError(i)">
@@ -455,7 +455,7 @@
 
           <div *ngIf="lines.length === 0" class="empty-lines">
             <i class="pi pi-inbox"></i>
-            <p>No line items added. Click "Add Line" to add items.</p>
+            <p>{{ 'salesOrders.form.noLines' | translate }}</p>
           </div>
         </div>
       </div>
@@ -464,15 +464,15 @@
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-calculator section-icon"></i>
-          Order Summary
+          {{ 'salesOrders.form.summarySection' | translate }}
         </h3>
         <div class="order-summary">
           <div class="summary-row">
-            <span class="summary-label">Subtotal:</span>
+            <span class="summary-label">{{ 'salesOrders.form.subtotal' | translate }}</span>
             <span class="summary-value">{{ formatCurrency(subTotal()) }}</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Order Discount %:</span>
+            <span class="summary-label">{{ 'salesOrders.form.orderDiscountPercent' | translate }}</span>
             <span class="summary-value">
               <input pInputText type="number" formControlName="orderDiscount" min="0" max="100" step="0.01"
                 placeholder="0" [disabled]="mode() === 'view'"
@@ -481,25 +481,25 @@
           </div>
           <div class="summary-row" *ngIf="salesOrderForm.get('orderDiscount')?.invalid && salesOrderForm.get('orderDiscount')?.touched">
             <span class="summary-label"></span>
-            <span class="summary-value p-error">Discount must be between 0 and 100</span>
+            <span class="summary-value p-error">{{ 'salesOrders.form.discountRange' | translate }}</span>
           </div>
           <div class="summary-row" *ngIf="orderDiscount() > 0">
-            <span class="summary-label">Discount ({{ orderDiscount() }}%):</span>
+            <span class="summary-label">{{ 'salesOrders.form.discountWithPercent' | translate:{ percent: orderDiscount() } }}</span>
             <span class="summary-value">-{{ formatCurrency(orderDiscountAmount()) }}</span>
           </div>
           <div class="summary-row grand-total">
-            <span class="summary-label">Grand Total:</span>
+            <span class="summary-label">{{ 'salesOrders.form.grandTotal' | translate }}</span>
             <span class="summary-value">{{ formatCurrency(grandTotal()) }}</span>
           </div>
 
           <!-- Credit Applied Display -->
           <div class="summary-row credit-applied" *ngIf="totalCreditApplied > 0">
-            <span class="summary-label">Credit Applied:</span>
+            <span class="summary-label">{{ 'salesOrders.form.creditApplied' | translate }}</span>
             <span class="summary-value text-green-600">-{{ formatCurrency(totalCreditApplied) }}</span>
           </div>
 
           <div class="summary-row grand-total" *ngIf="totalCreditApplied > 0">
-            <span class="summary-label">Net Payable:</span>
+            <span class="summary-label">{{ 'salesOrders.form.netPayable' | translate }}</span>
             <span class="summary-value net-payable">{{ formatCurrency(grandTotal() - totalCreditApplied) }}</span>
           </div>
         </div>
@@ -507,14 +507,14 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
+        <button pButton type="button" [label]="(mode() === 'view' ? 'common.actions.back' : 'common.actions.cancel') | translate" icon="pi pi-times"
           class="p-button-outlined" (click)="cancel()"></button>
-        <button *ngIf="mode() !== 'view'" pButton type="button" label="Print Proforma" icon="pi pi-print"
+        <button *ngIf="mode() !== 'view'" pButton type="button" [label]="'salesOrders.form.printProforma' | translate" icon="pi pi-print"
           class="p-button-outlined p-button-help" (click)="printProformaInvoice()"
           [disabled]="salesOrderForm.invalid || lines.length === 0">
         </button>
         <button *ngIf="mode() !== 'view'" pButton type="submit"
-          [label]="saving() ? 'Saving...' : (mode() === 'edit' ? 'Update Order' : 'Create Order')" icon="pi pi-check"
+          [label]="saving() ? ('salesOrders.form.savingEllipsis' | translate) : (mode() === 'edit' ? ('salesOrders.form.updateOrder' | translate) : ('salesOrders.form.createOrder' | translate))" icon="pi pi-check"
           class="p-button-primary" [loading]="saving()" [disabled]="saving() || salesOrderForm.invalid">
         </button>
       </div>
@@ -539,7 +539,7 @@
 
 <!-- ══ Challan Generation Dialog ══════════════════════════════════════ -->
 <p-dialog
-  header="Generate Delivery Challan"
+  [header]="'pendingDeliveries.challanDialog.title' | translate"
   [(visible)]="showChallanDialog"
   [modal]="true"
   [style]="{width:'560px',maxWidth:'95vw'}"
@@ -548,55 +548,55 @@
   <div class="challan-dialog-body">
     <div class="cd-row">
       <div class="cd-field">
-        <label>Delivery Address</label>
-        <input pInputText [(ngModel)]="challanForm.deliveryAddress" placeholder="Delivery address" style="width:100%" />
+        <label>{{ 'pendingDeliveries.challanDialog.deliveryAddress' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.deliveryAddress" [placeholder]="'salesOrders.form.challanPlaceholders.deliveryAddress' | translate" style="width:100%" />
       </div>
     </div>
     <div class="cd-row">
       <div class="cd-field">
-        <label>Receiver Name</label>
-        <input pInputText [(ngModel)]="challanForm.receiverName" placeholder="Name of person receiving goods" style="width:100%" />
+        <label>{{ 'pendingDeliveries.challanDialog.receiverName' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.receiverName" [placeholder]="'salesOrders.form.challanPlaceholders.receiverName' | translate" style="width:100%" />
       </div>
       <div class="cd-field">
-        <label>Receiver Phone</label>
-        <input pInputText [(ngModel)]="challanForm.receiverPhone" placeholder="+880 ..." style="width:100%" />
+        <label>{{ 'pendingDeliveries.challanDialog.receiverPhone' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.receiverPhone" [placeholder]="'salesOrders.form.challanPlaceholders.phone' | translate" style="width:100%" />
       </div>
     </div>
 
     <p-divider align="left">
-      <span style="font-size:12px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em">Transport / Carrier</span>
+      <span style="font-size:12px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em">{{ 'pendingDeliveries.challanDialog.transportSection' | translate }}</span>
     </p-divider>
 
     <div class="cd-row">
       <div class="cd-field">
-        <label>Transport Company</label>
-        <input pInputText [(ngModel)]="challanForm.transportCompany" placeholder="e.g. Sundarban Courier" style="width:100%" />
+        <label>{{ 'pendingDeliveries.challanDialog.transportCompany' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.transportCompany" [placeholder]="'pendingDeliveries.challanDialog.transportCompanyPlaceholder' | translate" style="width:100%" />
       </div>
       <div class="cd-field">
-        <label>Vehicle / Truck Number</label>
-        <input pInputText [(ngModel)]="challanForm.vehicleNumber" placeholder="e.g. DHAKA-KA-11-1234" style="width:100%" />
-      </div>
-    </div>
-    <div class="cd-row">
-      <div class="cd-field">
-        <label>Driver Name</label>
-        <input pInputText [(ngModel)]="challanForm.driverName" placeholder="Driver's name" style="width:100%" />
-      </div>
-      <div class="cd-field">
-        <label>Driver Phone</label>
-        <input pInputText [(ngModel)]="challanForm.driverPhone" placeholder="+880 ..." style="width:100%" />
+        <label>{{ 'pendingDeliveries.challanDialog.vehicleNumber' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.vehicleNumber" [placeholder]="'pendingDeliveries.challanDialog.vehicleNumberPlaceholder' | translate" style="width:100%" />
       </div>
     </div>
     <div class="cd-row">
       <div class="cd-field">
-        <label>Notes (optional)</label>
-        <textarea pInputTextarea [(ngModel)]="challanForm.notes" rows="2" placeholder="Any special instructions…" style="width:100%"></textarea>
+        <label>{{ 'pendingDeliveries.challanDialog.driverName' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.driverName" [placeholder]="'salesOrders.form.challanPlaceholders.driverName' | translate" style="width:100%" />
+      </div>
+      <div class="cd-field">
+        <label>{{ 'pendingDeliveries.challanDialog.driverPhone' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.driverPhone" [placeholder]="'salesOrders.form.challanPlaceholders.phone' | translate" style="width:100%" />
+      </div>
+    </div>
+    <div class="cd-row">
+      <div class="cd-field">
+        <label>{{ 'pendingDeliveries.challanDialog.notes' | translate }}</label>
+        <textarea pInputTextarea [(ngModel)]="challanForm.notes" rows="2" [placeholder]="'salesOrders.form.challanPlaceholders.notes' | translate" style="width:100%"></textarea>
       </div>
     </div>
   </div>
 
   <ng-template pTemplate="footer">
-    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-sm" (click)="showChallanDialog = false"></button>
-    <button pButton type="button" label="Generate &amp; Print" icon="pi pi-file-export" class="p-button-sm p-button-success" (click)="generateChallan()"></button>
+    <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-outlined p-button-sm" (click)="showChallanDialog = false"></button>
+    <button pButton type="button" [label]="'pendingDeliveries.challanDialog.submit' | translate" icon="pi pi-file-export" class="p-button-sm p-button-success" (click)="generateChallan()"></button>
   </ng-template>
 </p-dialog>

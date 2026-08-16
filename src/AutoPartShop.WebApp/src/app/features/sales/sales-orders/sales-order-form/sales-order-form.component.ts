@@ -36,6 +36,8 @@ import { ApplyCustomerCreditNotesComponent } from '../../credits/apply-customer-
 import { CustomerCreditNoteService } from '../../services/customer-credit-note.service';
 import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 import { StatusDisplayService } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-sales-order-form',
@@ -59,7 +61,8 @@ import { StatusDisplayService } from '@/shared/services/status-display.service';
         TooltipModule,
         DatePickerModule,
         LazyAutocompleteComponent,
-        ApplyCustomerCreditNotesComponent
+        ApplyCustomerCreditNotesComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './sales-order-form.component.html',
@@ -86,6 +89,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private readonly stockLotService = inject(StockLotService);
     private readonly branding = inject(AppBrandingService);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
 
     // Credit note state
     totalCreditApplied = 0;
@@ -640,7 +644,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     this.loading.set(false);
                 },
                 error: (err: Error) => {
-                    this.error.set('Failed to load sales order');
+                    this.error.set(this.i18n.t('salesOrders.form.messages.loadFailed'));
                     this.loading.set(false);
                     console.error('Error loading sales order:', err);
                 }
@@ -650,20 +654,20 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     onSubmit(): void {
         // Validate customer selection
         if (!this.selectedCustomerId) {
-            this.error.set('Please select a customer from the dropdown');
+            this.error.set(this.i18n.t('salesOrders.form.messages.selectCustomerFirst'));
             return;
         }
 
         // Validate order-level discount
         if (this.orderDiscount() > 100) {
-            this.error.set('Order discount cannot exceed 100%');
+            this.error.set(this.i18n.t('salesOrders.form.messages.discountTooHigh'));
             return;
         }
 
         // Validate warehouse selection
         const warehouseId = this.salesOrderForm.get('warehouseId')?.value;
         if (!warehouseId) {
-            this.error.set('Please select a warehouse');
+            this.error.set(this.i18n.t('salesOrders.form.messages.selectWarehouse'));
             return;
         }
 
@@ -683,7 +687,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     }
                 });
             });
-            this.error.set('Please fill in all required fields');
+            this.error.set(this.i18n.t('salesOrders.form.messages.fillRequired'));
             return;
         }
 
@@ -704,13 +708,13 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         this.validatePricingBeforeSubmit().pipe(takeUntil(this.destroy$)).subscribe({
             next: (isValid) => {
                 if (!isValid) {
-                    this.error.set('One or more line items violate pricing rules.');
+                    this.error.set(this.i18n.t('salesOrders.form.messages.pricingViolation'));
                     return;
                 }
                 this.submitSalesOrder();
             },
             error: () => {
-                this.error.set('Failed to validate pricing rules.');
+                this.error.set(this.i18n.t('salesOrders.form.messages.pricingValidationFailed'));
             }
         });
     }
@@ -761,13 +765,13 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Sales order ${this.mode() === 'edit' ? 'updated' : 'created'} successfully!`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t(this.mode() === 'edit' ? 'salesOrders.form.messages.updateSuccess' : 'salesOrders.form.messages.createSuccess')
                 });
                 this.router.navigate(['/sales/sales-orders']);
             },
             error: (err) => {
-                let errorMessage = `Failed to ${this.mode() === 'edit' ? 'update' : 'create'} sales order`;
+                let errorMessage = this.i18n.t(this.mode() === 'edit' ? 'salesOrders.form.messages.updateFailed' : 'salesOrders.form.messages.createFailed');
 
                 if (err.error?.message) {
                     errorMessage = err.error.message;
@@ -864,8 +868,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     console.error('Error converting unit price:', err);
                     this.messageService.add({
                         severity: 'warn',
-                        summary: 'Unit Conversion Missing',
-                        detail: 'No conversion configured between the selected units.'
+                        summary: this.i18n.t('salesOrders.form.messages.unitConversionMissing'),
+                        detail: this.i18n.t('salesOrders.form.messages.unitConversionMissingDetail')
                     });
                 }
             });
@@ -953,8 +957,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         if (this.salesOrderForm.invalid || !this.selectedCustomerId) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Incomplete Form',
-                detail: 'Please complete all required fields before printing'
+                summary: this.i18n.t('salesOrders.form.messages.incompleteForm'),
+                detail: this.i18n.t('salesOrders.form.messages.incompleteFormDetail')
             });
             return;
         }
@@ -968,8 +972,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         if (!printWindow) {
             this.messageService.add({
                 severity: 'error',
-                summary: 'Print Failed',
-                detail: 'Please allow pop-ups to print the proforma invoice'
+                summary: this.i18n.t('salesOrders.form.messages.printFailed'),
+                detail: this.i18n.t('salesOrders.form.messages.printFailedDetail')
             });
             return;
         }
@@ -1207,8 +1211,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Print Ready',
-            detail: 'Proforma invoice opened in new window'
+            summary: this.i18n.t('salesOrders.form.messages.printReady'),
+            detail: this.i18n.t('salesOrders.form.messages.printReadyDetail')
         });
     }
 
@@ -1235,8 +1239,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         if (!this.salesOrderId() || !this.currentSO) return;
 
         this.confirmationService.confirm({
-            message: `Are you sure you want to confirm Sales Order ${this.currentSO.soNumber}? This action will make the order official and binding.`,
-            header: 'Confirm Sales Order',
+            message: this.i18n.t('salesOrders.form.messages.confirmMessage', { number: this.currentSO.soNumber }),
+            header: this.i18n.t('salesOrders.form.messages.confirmHeader'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-success',
             accept: () => {
@@ -1247,16 +1251,16 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                         next: () => {
                             this.messageService.add({
                                 severity: 'success',
-                                summary: 'Success',
-                                detail: `Sales Order ${this.currentSO!.soNumber} confirmed successfully`
+                                summary: this.i18n.t('common.messages.success'),
+                                detail: this.i18n.t('salesOrders.form.messages.confirmSuccess', { number: this.currentSO!.soNumber })
                             });
                             this.loadSalesOrder(this.salesOrderId()!);
                         },
                         error: (error) => {
                             this.messageService.add({
                                 severity: 'error',
-                                summary: 'Error',
-                                detail: error?.error?.message || 'Failed to confirm sales order'
+                                summary: this.i18n.t('common.messages.error'),
+                                detail: error?.error?.message || this.i18n.t('salesOrders.form.messages.confirmFailed')
                             });
                             console.error('Error confirming sales order:', error);
                         }
@@ -1269,8 +1273,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     markReadyForDelivery(): void {
         if (!this.salesOrderId() || !this.currentSO) return;
         this.confirmationService.confirm({
-            message: `Mark ${this.currentSO.soNumber} as Ready for Delivery? A challan can then be generated before dispatch.`,
-            header: 'Ready for Delivery',
+            message: this.i18n.t('salesOrders.form.messages.readyMessage', { number: this.currentSO.soNumber }),
+            header: this.i18n.t('salesOrders.form.messages.readyHeader'),
             icon: 'pi pi-truck',
             acceptButtonStyleClass: 'p-button-warning',
             accept: () => {
@@ -1278,10 +1282,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     .pipe(takeUntil(this.destroy$))
                     .subscribe({
                         next: () => {
-                            this.messageService.add({ severity: 'success', summary: 'Updated', detail: `${this.currentSO!.soNumber} is now Ready for Delivery` });
+                            this.messageService.add({ severity: 'success', summary: this.i18n.t('salesOrders.form.messages.updated'), detail: this.i18n.t('salesOrders.form.messages.readySuccess', { number: this.currentSO!.soNumber }) });
                             this.loadSalesOrder(this.salesOrderId()!);
                         },
-                        error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to update status' })
+                        error: err => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.detail || this.i18n.t('salesOrders.form.messages.statusFailed') })
                     });
             }
         });
@@ -1291,8 +1295,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     deliverDirect(): void {
         if (!this.salesOrderId() || !this.currentSO) return;
         this.confirmationService.confirm({
-            message: `Mark ${this.currentSO.soNumber} as Delivered now? The invoice will be issued automatically.`,
-            header: 'Direct Delivery',
+            message: this.i18n.t('salesOrders.form.messages.deliverMessage', { number: this.currentSO.soNumber }),
+            header: this.i18n.t('salesOrders.form.messages.deliverHeader'),
             icon: 'pi pi-check-circle',
             acceptButtonStyleClass: 'p-button-success',
             accept: () => {
@@ -1300,10 +1304,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     .pipe(takeUntil(this.destroy$))
                     .subscribe({
                         next: () => {
-                            this.messageService.add({ severity: 'success', summary: 'Delivered', detail: `${this.currentSO!.soNumber} marked as Delivered` });
+                            this.messageService.add({ severity: 'success', summary: this.i18n.t('salesOrders.form.messages.delivered'), detail: this.i18n.t('salesOrders.form.messages.deliverSuccess', { number: this.currentSO!.soNumber }) });
                             this.loadSalesOrder(this.salesOrderId()!);
                         },
-                        error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to deliver order' })
+                        error: err => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.detail || this.i18n.t('salesOrders.form.messages.deliverFailed') })
                     });
             }
         });
@@ -1346,11 +1350,11 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: challan => {
-                    this.messageService.add({ severity: 'success', summary: 'Challan Generated', detail: `Challan ${challan.challanNumber} created` });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('salesOrders.form.messages.challanGenerated'), detail: this.i18n.t('salesOrders.form.messages.challanGeneratedDetail', { number: challan.challanNumber }) });
                     this.loadSalesOrder(this.salesOrderId()!);
                     window.open(`/sales/challans/${challan.id}/print`, '_blank');
                 },
-                error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to generate challan' })
+                error: err => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.detail || this.i18n.t('salesOrders.form.messages.challanFailed') })
             });
     }
 
@@ -1368,8 +1372,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         this.totalCreditApplied += amount;
         this.messageService.add({
             severity: 'success',
-            summary: 'Credit Applied',
-            detail: `${this.formatCurrency(amount)} credit applied to this sales order`
+            summary: this.i18n.t('salesOrders.form.messages.creditAppliedSummary'),
+            detail: this.i18n.t('salesOrders.form.messages.creditAppliedDetail', { amount: this.formatCurrency(amount) })
         });
 
         // Reload SO to get updated data
