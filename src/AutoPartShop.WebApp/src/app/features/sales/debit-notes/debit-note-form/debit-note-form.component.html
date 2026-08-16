@@ -8,22 +8,22 @@
         <div class="breadcrumb">
           <a (click)="cancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Debit Notes
+            {{ 'debitNotes.shortTitle' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">New</span>
+          <span class="breadcrumb-current">{{ 'common.labels.new' | translate }}</span>
         </div>
-        <h1 class="form-title">Create Customer Debit Note</h1>
-        <p class="form-subtitle">Issue a flat balance-owed adjustment against a customer</p>
+        <h1 class="form-title">{{ 'debitNotes.form.title' | translate }}</h1>
+        <p class="form-subtitle">{{ 'debitNotes.form.subtitle' | translate }}</p>
       </div>
       <div class="header-actions">
         <button pButton type="button" icon="pi pi-arrow-left"
           class="p-button-text p-button-sm"
-          pTooltip="Back" tooltipPosition="bottom" (click)="cancel()">
+          [pTooltip]="'common.actions.back' | translate" tooltipPosition="bottom" (click)="cancel()">
         </button>
 
         <button pButton type="button"
-          [label]="saving() ? 'Saving…' : 'Create'"
+          [label]="(saving() ? 'debitNotes.form.saving' : 'debitNotes.form.create') | translate"
           icon="pi pi-check" class="p-button-sm"
           [loading]="saving()" [disabled]="saving() || debitNoteForm.invalid || !selectedCustomerId"
           (click)="onSubmit()">
@@ -46,15 +46,15 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-user section-icon"></i>
-          Customer
+          {{ 'debitNotes.form.customerSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Select Customer *</label>
+            <label>{{ 'debitNotes.form.selectCustomerLabel' | translate }}</label>
             <app-lazy-autocomplete [fetchFn]="searchCustomers" [(ngModel)]="selectedCustomer"
               [ngModelOptions]="{standalone: true}" optionLabel="fullName"
-              placeholder="Search by name, email, or customer code..." (onItemSelect)="onCustomerSelected($any($event))"
+              [placeholder]="'debitNotes.form.customerPlaceholder' | translate" (onItemSelect)="onCustomerSelected($any($event))"
               (onClearEvent)="onCustomerCleared()">
               <ng-template let-customer>
                 <div class="option-item">
@@ -70,18 +70,18 @@
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              <span *ngIf="!selectedCustomerId">Type to search for a customer</span>
-              <span *ngIf="selectedCustomerId" class="success-text">Customer selected</span>
+              <span *ngIf="!selectedCustomerId">{{ 'debitNotes.form.customerHintSearch' | translate }}</span>
+              <span *ngIf="selectedCustomerId" class="success-text">{{ 'debitNotes.form.customerHintSelected' | translate }}</span>
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Linked Invoice <span class="optional-tag">(optional)</span></label>
+            <label>{{ 'debitNotes.form.linkedInvoiceLabel' | translate }} <span class="optional-tag">{{ 'debitNotes.form.optionalTag' | translate }}</span></label>
             <app-lazy-autocomplete #invoicePicker [fetchFn]="searchInvoices" [(ngModel)]="selectedInvoice"
               [ngModelOptions]="{standalone: true}" optionLabel="invoiceNumber"
-              placeholder="Search by invoice number..." (onItemSelect)="onInvoiceSelected($any($event))"
+              [placeholder]="'debitNotes.form.invoicePlaceholder' | translate" (onItemSelect)="onInvoiceSelected($any($event))"
               (onClearEvent)="onInvoiceCleared()">
               <ng-template let-invoice>
                 <div class="option-item">
@@ -89,14 +89,14 @@
                     {{ invoice.invoiceNumber }}<span class="option-item-code">{{ invoice.customerName }}</span>
                   </div>
                   <div class="option-item-details">
-                    Grand Total: {{ invoice.grandTotal | number: '1.2-2' }}
+                    {{ 'debitNotes.form.invoiceGrandTotal' | translate }} {{ invoice.grandTotal | number: '1.2-2' }}
                   </div>
                 </div>
               </ng-template>
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              <span>The invoice this correction relates to, if any. Select a customer first to narrow the list.</span>
+              <span>{{ 'debitNotes.form.invoiceHint' | translate }}</span>
             </small>
           </div>
         </div>
@@ -106,43 +106,43 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-file-export section-icon"></i>
-          Adjustment Details
+          {{ 'debitNotes.form.adjustmentSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Amount *</label>
+            <label>{{ 'debitNotes.form.amountLabel' | translate }}</label>
             <p-inputNumber formControlName="amount" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2"
               [min]="0.01" placeholder="0.00" styleClass="w-full">
             </p-inputNumber>
             <small class="error-text" *ngIf="debitNoteForm.get('amount')?.invalid && debitNoteForm.get('amount')?.touched">
-              Amount must be greater than 0
+              {{ 'debitNotes.form.amountInvalid' | translate }}
             </small>
           </div>
 
           <div class="form-group">
-            <label>Currency *</label>
+            <label>{{ 'debitNotes.form.currencyLabel' | translate }}</label>
             <app-currency-selector formControlName="currency" [showLabel]="false"></app-currency-selector>
             <small class="error-text" *ngIf="debitNoteForm.get('currency')?.invalid && debitNoteForm.get('currency')?.touched">
-              Currency is required
+              {{ 'debitNotes.form.currencyRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Reason *</label>
-            <input type="text" pInputText formControlName="reason" placeholder="e.g. Undercharged on invoice, freight correction..." />
+            <label>{{ 'debitNotes.form.reasonLabel' | translate }}</label>
+            <input type="text" pInputText formControlName="reason" [placeholder]="'debitNotes.form.reasonPlaceholder' | translate" />
             <small class="error-text" *ngIf="debitNoteForm.get('reason')?.invalid && debitNoteForm.get('reason')?.touched">
-              Reason is required
+              {{ 'debitNotes.form.reasonRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Notes</label>
-            <textarea pTextarea formControlName="notes" placeholder="Additional notes..." rows="3"></textarea>
+            <label>{{ 'debitNotes.form.notesLabel' | translate }}</label>
+            <textarea pTextarea formControlName="notes" [placeholder]="'debitNotes.form.notesPlaceholder' | translate" rows="3"></textarea>
           </div>
         </div>
       </div>

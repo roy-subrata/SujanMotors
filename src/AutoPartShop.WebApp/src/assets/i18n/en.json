@@ -4241,5 +4241,147 @@
       "failed": "Failed",
       "challanCreatedTitle": "Challan Created"
     }
+  },
+  "customerPaymentSummary": {
+    "subtitle": "Payment Summary",
+    "totalInvoiceAmount": "Total Invoice Amount",
+    "invoicesCount": "{{count}} invoices",
+    "totalPaid": "Total Paid",
+    "completedPaymentsCount": "{{count}} completed payments",
+    "outstandingBalance": "Outstanding Balance",
+    "unpaidInvoicesCount": "{{count}} unpaid invoices",
+    "overdueCount": "{{count}} overdue",
+    "allPaidUp": "All paid up!",
+    "advanceBalance": "Advance Balance",
+    "storeCredit": "Store credit on file",
+    "noCredit": "No credit available",
+    "lastPayment": "Last payment: {{amount}} on {{date}}",
+    "pendingCount": "{{count}} pending",
+    "failedCount": "{{count}} failed",
+    "feesLabel": "Fees: {{amount}}",
+    "paymentHistory": "Payment History",
+    "viewAllPayments": "View All Payments",
+    "historyHint": "Navigate to the payments list for full payment history with search, filters, and actions.",
+    "messages": {
+      "noCustomerId": "Customer ID not provided",
+      "loadFailedInline": "Failed to load payment summary. Please try again.",
+      "loadFailed": "Failed to load customer payment summary"
+    }
+  },
+  "customerCredits": {
+    "title": "Available Credits from Customer",
+    "totalAvailable": "Total Available:",
+    "columns": {
+      "creditNote": "Credit Note #",
+      "returnNumber": "Return #",
+      "total": "Total",
+      "used": "Used",
+      "available": "Available",
+      "issueDate": "Issue Date",
+      "expiryDate": "Expiry Date",
+      "action": "Action"
+    },
+    "noExpiry": "No Expiry",
+    "apply": "Apply",
+    "downloadPdf": "Download PDF",
+    "empty": "No available credits from this customer",
+    "applyTitle": "Apply Credit from {{number}}",
+    "availableCredit": "Available Credit",
+    "outstandingSoAmount": "Outstanding SO Amount",
+    "amountToApply": "Amount to Apply",
+    "amountPlaceholder": "Enter amount",
+    "amountInvalid": "Enter an amount greater than 0",
+    "applyCredit": "Apply Credit",
+    "messages": {
+      "loadFailed": "Failed to load available credits",
+      "pdfFailed": "Failed to download the credit note PDF",
+      "validationTitle": "Validation Error",
+      "selectCreditAndAmount": "Please select a credit note and enter amount to apply",
+      "invoiceRequired": "Invoice is required to apply credit",
+      "exceedsOutstanding": "Amount exceeds outstanding amount ({{amount}})",
+      "exceedsAvailable": "Amount exceeds available credit ({{amount}})",
+      "applyConfirm": "Apply {{amount}} from credit note {{number}} to this sales order?",
+      "applyHeader": "Confirm Credit Application",
+      "applySuccess": "Credit note applied successfully",
+      "applyFailed": "Failed to apply credit note"
+    }
+  },
+  "debitNotes": {
+    "title": "Customer Debit Notes",
+    "shortTitle": "Debit Notes",
+    "subtitle": "Issue and track balance-owed adjustments against customers",
+    "countLabel": "debit notes",
+    "itemLabel": "debit notes",
+    "newDebitNote": "New Debit Note",
+    "statusOptions": {
+      "allStatuses": "All Statuses",
+      "issued": "Issued",
+      "settled": "Settled",
+      "cancelled": "Cancelled"
+    },
+    "columns": {
+      "debitNoteNumber": "Debit Note #",
+      "customer": "Customer",
+      "invoice": "Invoice",
+      "reason": "Reason",
+      "issueDate": "Issue Date",
+      "status": "Status",
+      "amount": "Amount",
+      "actions": "Actions"
+    },
+    "emptyTitle": "No Debit Notes Found",
+    "emptyHintFiltered": "Try adjusting your filters",
+    "emptyHintCreate": "Get started by creating your first debit note",
+    "createFirst": "Create Debit Note",
+    "emptyTitleMobile": "No Debit Notes",
+    "emptyHintMobileCreate": "Create your first debit note",
+    "refPrefix": "Ref:",
+    "cardAmount": "Amount",
+    "actions": {
+      "downloadPdf": "Download PDF",
+      "markSettled": "Mark as Settled",
+      "cancel": "Cancel"
+    },
+    "messages": {
+      "loadFailed": "Failed to load customer debit notes.",
+      "pdfFailed": "Failed to download the debit note PDF",
+      "settleSuccess": "Debit note {{number}} marked as Settled.",
+      "settleFailed": "Failed to settle debit note.",
+      "cancelPrompt": "Reason for cancelling debit note {{number}}:",
+      "cancelSuccess": "Debit note {{number}} cancelled.",
+      "cancelFailed": "Failed to cancel debit note."
+    },
+    "form": {
+      "title": "Create Customer Debit Note",
+      "subtitle": "Issue a flat balance-owed adjustment against a customer",
+      "saving": "Saving…",
+      "create": "Create",
+      "customerSection": "Customer",
+      "selectCustomerLabel": "Select Customer *",
+      "customerPlaceholder": "Search by name, email, or customer code...",
+      "customerHintSearch": "Type to search for a customer",
+      "customerHintSelected": "Customer selected",
+      "linkedInvoiceLabel": "Linked Invoice",
+      "optionalTag": "(optional)",
+      "invoicePlaceholder": "Search by invoice number...",
+      "invoiceGrandTotal": "Grand Total:",
+      "invoiceHint": "The invoice this correction relates to, if any. Select a customer first to narrow the list.",
+      "adjustmentSection": "Adjustment Details",
+      "amountLabel": "Amount *",
+      "amountInvalid": "Amount must be greater than 0",
+      "currencyLabel": "Currency *",
+      "currencyRequired": "Currency is required",
+      "reasonLabel": "Reason *",
+      "reasonPlaceholder": "e.g. Undercharged on invoice, freight correction...",
+      "reasonRequired": "Reason is required",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Additional notes...",
+      "messages": {
+        "selectCustomer": "Please select a customer from the dropdown",
+        "fillRequired": "Please fill in all required fields",
+        "createSuccess": "Debit note {{number}} created successfully!",
+        "createFailed": "Failed to create debit note"
+      }
+    }
   }
 }

@@ -14,16 +14,16 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Customer Debit Notes"
-    subtitle="Issue and track balance-owed adjustments against customers"
-    [count]="totalRecords" countLabel="debit notes" countIcon="pi pi-file-export">
+    [title]="'debitNotes.title' | translate"
+    [subtitle]="'debitNotes.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'debitNotes.countLabel' | translate" countIcon="pi pi-file-export">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createDebitNote()">
         <i class="pi pi-plus"></i>
-        <span>New Debit Note</span>
+        <span>{{ 'debitNotes.newDebitNote' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -40,18 +40,18 @@
 
     <div filterActions class="filter-group filter-actions">
       <button class="text-btn" (click)="moreFiltersVisible = true">
-        More filters
+        {{ 'common.labels.moreFilters' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}:</span>
       <span *ngIf="filterStatus" class="filter-chip">
-        Status: {{ filterStatus }}
+        {{ 'common.listPage.statusChip' | translate }}: {{ formatStatus(filterStatus) }}
         <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
       </span>
     </div>
@@ -83,14 +83,14 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-debit-note">Debit Note #</th>
-            <th class="col-customer">Customer</th>
-            <th class="col-invoice">Invoice</th>
-            <th class="col-reason">Reason</th>
-            <th class="col-date">Issue Date</th>
-            <th class="col-status">Status</th>
-            <th class="col-amount">Amount</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-debit-note">{{ 'debitNotes.columns.debitNoteNumber' | translate }}</th>
+            <th class="col-customer">{{ 'debitNotes.columns.customer' | translate }}</th>
+            <th class="col-invoice">{{ 'debitNotes.columns.invoice' | translate }}</th>
+            <th class="col-reason">{{ 'debitNotes.columns.reason' | translate }}</th>
+            <th class="col-date">{{ 'debitNotes.columns.issueDate' | translate }}</th>
+            <th class="col-status">{{ 'debitNotes.columns.status' | translate }}</th>
+            <th class="col-amount">{{ 'debitNotes.columns.amount' | translate }}</th>
+            <th class="col-actions">{{ 'debitNotes.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -126,7 +126,7 @@
 
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, debitNote)">
+                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, debitNote)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -139,16 +139,16 @@
             <td colspan="8">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-file-export"></i></div>
-                <h3>No Debit Notes Found</h3>
-                <p *ngIf="hasActiveFilters()">Try adjusting your filters</p>
-                <p *ngIf="!hasActiveFilters()">Get started by creating your first debit note</p>
+                <h3>{{ 'debitNotes.emptyTitle' | translate }}</h3>
+                <p *ngIf="hasActiveFilters()">{{ 'debitNotes.emptyHintFiltered' | translate }}</p>
+                <p *ngIf="!hasActiveFilters()">{{ 'debitNotes.emptyHintCreate' | translate }}</p>
                 <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createDebitNote()">
                   <i class="pi pi-plus"></i>
-                  Create Debit Note
+                  {{ 'debitNotes.createFirst' | translate }}
                 </button>
                 <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
                   <i class="pi pi-filter-slash"></i>
-                  Clear Filters
+                  {{ 'common.actions.clearFilters' | translate }}
                 </button>
               </div>
             </td>
@@ -195,11 +195,11 @@
     <!-- Empty State -->
     <div *ngIf="!loading && debitNotes.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-file-export"></i></div>
-      <h3>No Debit Notes</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first debit note' }}</p>
+      <h3>{{ 'debitNotes.emptyTitleMobile' | translate }}</h3>
+      <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'debitNotes.emptyHintMobileCreate') | translate }}</p>
       <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createDebitNote()">
         <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ hasActiveFilters() ? 'Clear Filters' : 'New Debit Note' }}
+        {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'debitNotes.newDebitNote') | translate }}
       </button>
     </div>
 
@@ -216,7 +216,7 @@
         <div class="card-body">
           <div class="card-customer">
             <span class="customer-name">{{ debitNote.customerName || '-' }}</span>
-            <span *ngIf="debitNote.invoiceNumber" class="invoice-ref">Ref: {{ debitNote.invoiceNumber }}</span>
+            <span *ngIf="debitNote.invoiceNumber" class="invoice-ref">{{ 'debitNotes.refPrefix' | translate }} {{ debitNote.invoiceNumber }}</span>
           </div>
           <div class="card-dates">
             <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(debitNote.issueDate) }}</span>
@@ -225,7 +225,7 @@
 
         <div class="card-footer">
           <div class="card-amount">
-            <span class="amount-label">Amount</span>
+            <span class="amount-label">{{ 'debitNotes.cardAmount' | translate }}</span>
             <span class="amount-value">{{ formatCurrency(debitNote.totalAmount, debitNote.currency) }}</span>
           </div>
           <button class="btn-card-action" (click)="showActionMenu($event, debitNote); $event.stopPropagation()">
@@ -241,7 +241,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
-    itemLabel="debit notes"
+    [itemLabel]="'debitNotes.itemLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>

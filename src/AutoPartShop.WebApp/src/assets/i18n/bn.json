@@ -4241,5 +4241,147 @@
       "failed": "ব্যর্থ",
       "challanCreatedTitle": "চালান তৈরি হয়েছে"
     }
+  },
+  "customerPaymentSummary": {
+    "subtitle": "পেমেন্ট সারসংক্ষেপ",
+    "totalInvoiceAmount": "মোট চালানের পরিমাণ",
+    "invoicesCount": "{{count}}টি চালান",
+    "totalPaid": "মোট পরিশোধিত",
+    "completedPaymentsCount": "{{count}}টি সম্পন্ন পেমেন্ট",
+    "outstandingBalance": "বকেয়া ব্যালেন্স",
+    "unpaidInvoicesCount": "{{count}}টি অপরিশোধিত চালান",
+    "overdueCount": "{{count}}টি মেয়াদোত্তীর্ণ",
+    "allPaidUp": "সব পরিশোধিত!",
+    "advanceBalance": "অগ্রিম ব্যালেন্স",
+    "storeCredit": "স্টোর ক্রেডিট জমা আছে",
+    "noCredit": "কোনো ক্রেডিট নেই",
+    "lastPayment": "সর্বশেষ পেমেন্ট: {{date}} তারিখে {{amount}}",
+    "pendingCount": "{{count}}টি অপেক্ষমাণ",
+    "failedCount": "{{count}}টি ব্যর্থ",
+    "feesLabel": "ফি: {{amount}}",
+    "paymentHistory": "পেমেন্টের ইতিহাস",
+    "viewAllPayments": "সব পেমেন্ট দেখুন",
+    "historyHint": "অনুসন্ধান, ফিল্টার ও কার্যক্রমসহ সম্পূর্ণ পেমেন্ট ইতিহাসের জন্য পেমেন্ট তালিকায় যান।",
+    "messages": {
+      "noCustomerId": "গ্রাহক আইডি দেওয়া হয়নি",
+      "loadFailedInline": "পেমেন্ট সারসংক্ষেপ লোড করতে ব্যর্থ। অনুগ্রহ করে আবার চেষ্টা করুন।",
+      "loadFailed": "গ্রাহকের পেমেন্ট সারসংক্ষেপ লোড করতে ব্যর্থ"
+    }
+  },
+  "customerCredits": {
+    "title": "গ্রাহকের উপলব্ধ ক্রেডিট",
+    "totalAvailable": "মোট উপলব্ধ:",
+    "columns": {
+      "creditNote": "ক্রেডিট নোট নং",
+      "returnNumber": "ফেরত নং",
+      "total": "মোট",
+      "used": "ব্যবহৃত",
+      "available": "উপলব্ধ",
+      "issueDate": "ইস্যুর তারিখ",
+      "expiryDate": "মেয়াদের তারিখ",
+      "action": "কার্যক্রম"
+    },
+    "noExpiry": "মেয়াদ নেই",
+    "apply": "প্রয়োগ করুন",
+    "downloadPdf": "PDF ডাউনলোড",
+    "empty": "এই গ্রাহকের কোনো উপলব্ধ ক্রেডিট নেই",
+    "applyTitle": "{{number}} থেকে ক্রেডিট প্রয়োগ করুন",
+    "availableCredit": "উপলব্ধ ক্রেডিট",
+    "outstandingSoAmount": "বকেয়া SO পরিমাণ",
+    "amountToApply": "প্রয়োগের পরিমাণ",
+    "amountPlaceholder": "পরিমাণ লিখুন",
+    "amountInvalid": "০ এর চেয়ে বড় একটি পরিমাণ লিখুন",
+    "applyCredit": "ক্রেডিট প্রয়োগ করুন",
+    "messages": {
+      "loadFailed": "উপলব্ধ ক্রেডিট লোড করতে ব্যর্থ",
+      "pdfFailed": "ক্রেডিট নোট PDF ডাউনলোড করতে ব্যর্থ",
+      "validationTitle": "যাচাইকরণ ত্রুটি",
+      "selectCreditAndAmount": "অনুগ্রহ করে একটি ক্রেডিট নোট নির্বাচন করুন ও প্রয়োগের পরিমাণ লিখুন",
+      "invoiceRequired": "ক্রেডিট প্রয়োগ করতে চালান আবশ্যক",
+      "exceedsOutstanding": "পরিমাণ বকেয়ার ({{amount}}) চেয়ে বেশি",
+      "exceedsAvailable": "পরিমাণ উপলব্ধ ক্রেডিটের ({{amount}}) চেয়ে বেশি",
+      "applyConfirm": "ক্রেডিট নোট {{number}} থেকে {{amount}} এই বিক্রয় আদেশে প্রয়োগ করবেন?",
+      "applyHeader": "ক্রেডিট প্রয়োগ নিশ্চিত করুন",
+      "applySuccess": "ক্রেডিট নোট সফলভাবে প্রয়োগ হয়েছে",
+      "applyFailed": "ক্রেডিট নোট প্রয়োগ করতে ব্যর্থ"
+    }
+  },
+  "debitNotes": {
+    "title": "গ্রাহক ডেবিট নোট",
+    "shortTitle": "ডেবিট নোট",
+    "subtitle": "গ্রাহকের বিপরীতে বকেয়া সমন্বয় ইস্যু ও ট্র্যাক করুন",
+    "countLabel": "ডেবিট নোট",
+    "itemLabel": "ডেবিট নোট",
+    "newDebitNote": "নতুন ডেবিট নোট",
+    "statusOptions": {
+      "allStatuses": "সব অবস্থা",
+      "issued": "ইস্যুকৃত",
+      "settled": "নিষ্পত্তিকৃত",
+      "cancelled": "বাতিল"
+    },
+    "columns": {
+      "debitNoteNumber": "ডেবিট নোট নং",
+      "customer": "গ্রাহক",
+      "invoice": "চালান",
+      "reason": "কারণ",
+      "issueDate": "ইস্যুর তারিখ",
+      "status": "অবস্থা",
+      "amount": "পরিমাণ",
+      "actions": "কার্যক্রম"
+    },
+    "emptyTitle": "কোনো ডেবিট নোট পাওয়া যায়নি",
+    "emptyHintFiltered": "আপনার ফিল্টার সামঞ্জস্য করার চেষ্টা করুন",
+    "emptyHintCreate": "আপনার প্রথম ডেবিট নোট তৈরি করে শুরু করুন",
+    "createFirst": "ডেবিট নোট তৈরি করুন",
+    "emptyTitleMobile": "কোনো ডেবিট নোট নেই",
+    "emptyHintMobileCreate": "আপনার প্রথম ডেবিট নোট তৈরি করুন",
+    "refPrefix": "রেফ:",
+    "cardAmount": "পরিমাণ",
+    "actions": {
+      "downloadPdf": "PDF ডাউনলোড",
+      "markSettled": "নিষ্পত্তি হিসেবে চিহ্নিত করুন",
+      "cancel": "বাতিল"
+    },
+    "messages": {
+      "loadFailed": "গ্রাহক ডেবিট নোট লোড করতে ব্যর্থ।",
+      "pdfFailed": "ডেবিট নোট PDF ডাউনলোড করতে ব্যর্থ",
+      "settleSuccess": "ডেবিট নোট {{number}} নিষ্পত্তি হিসেবে চিহ্নিত হয়েছে।",
+      "settleFailed": "ডেবিট নোট নিষ্পত্তি করতে ব্যর্থ।",
+      "cancelPrompt": "ডেবিট নোট {{number}} বাতিলের কারণ:",
+      "cancelSuccess": "ডেবিট নোট {{number}} বাতিল হয়েছে।",
+      "cancelFailed": "ডেবিট নোট বাতিল করতে ব্যর্থ।"
+    },
+    "form": {
+      "title": "গ্রাহক ডেবিট নোট তৈরি করুন",
+      "subtitle": "গ্রাহকের বিপরীতে একটি নির্দিষ্ট বকেয়া সমন্বয় ইস্যু করুন",
+      "saving": "সংরক্ষণ হচ্ছে…",
+      "create": "তৈরি করুন",
+      "customerSection": "গ্রাহক",
+      "selectCustomerLabel": "গ্রাহক নির্বাচন করুন *",
+      "customerPlaceholder": "নাম, ইমেইল বা গ্রাহক কোড দিয়ে খুঁজুন...",
+      "customerHintSearch": "গ্রাহক খুঁজতে টাইপ করুন",
+      "customerHintSelected": "গ্রাহক নির্বাচিত হয়েছে",
+      "linkedInvoiceLabel": "সংযুক্ত চালান",
+      "optionalTag": "(ঐচ্ছিক)",
+      "invoicePlaceholder": "চালান নম্বর দিয়ে খুঁজুন...",
+      "invoiceGrandTotal": "সর্বমোট:",
+      "invoiceHint": "এই সংশোধনটি যে চালানের সাথে সম্পর্কিত, যদি থাকে। তালিকা সংকুচিত করতে আগে একজন গ্রাহক নির্বাচন করুন।",
+      "adjustmentSection": "সমন্বয়ের বিবরণ",
+      "amountLabel": "পরিমাণ *",
+      "amountInvalid": "পরিমাণ ০ এর চেয়ে বেশি হতে হবে",
+      "currencyLabel": "মুদ্রা *",
+      "currencyRequired": "মুদ্রা আবশ্যক",
+      "reasonLabel": "কারণ *",
+      "reasonPlaceholder": "যেমন, চালানে কম চার্জ, মালবহন সংশোধন...",
+      "reasonRequired": "কারণ আবশ্যক",
+      "notesLabel": "নোট",
+      "notesPlaceholder": "অতিরিক্ত নোট...",
+      "messages": {
+        "selectCustomer": "অনুগ্রহ করে ড্রপডাউন থেকে একজন গ্রাহক নির্বাচন করুন",
+        "fillRequired": "অনুগ্রহ করে সব আবশ্যক ঘর পূরণ করুন",
+        "createSuccess": "ডেবিট নোট {{number}} সফলভাবে তৈরি হয়েছে!",
+        "createFailed": "ডেবিট নোট তৈরি করতে ব্যর্থ"
+      }
+    }
   }
 }
