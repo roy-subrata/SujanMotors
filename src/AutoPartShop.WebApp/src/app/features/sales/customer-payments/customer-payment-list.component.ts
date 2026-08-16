@@ -30,6 +30,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 import { I18nService } from '@/shared/services/i18n.service';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-customer-payment-list',
@@ -54,7 +55,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         FilterBarComponent,
         DataPaginationComponent,
         StatusPillFilterComponent,
-        MoreFiltersDialogComponent
+        MoreFiltersDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customer-payment-list.component.html',
@@ -630,6 +632,15 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+
+    /** Payment status is a server enum rendered directly in tags; map it to its label. */
+    formatStatus(status: string): string {
+        if (!status) return '';
+        const key = 'customerPayments.statusOptions.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        return label === key ? status : label;
     }
 
     getStatusSeverity(status: string): StatusSeverity {

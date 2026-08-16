@@ -315,6 +315,13 @@
       "minutesAgo": "{{count}}m ago",
       "hoursAgo": "{{count}}h ago",
       "daysAgo": "{{count}}d ago"
+    },
+    "listPage": {
+      "searchChip": "Search",
+      "statusChip": "Status",
+      "dateRangeChip": "Date Range",
+      "adjustFiltersHint": "Try adjusting your filters or search criteria",
+      "more": "More"
     }
   },
   "categories": {
@@ -644,7 +651,33 @@
       "suspendConfirm": "Are you sure you want to suspend customer \"{{name}}\"?",
       "suspendSuccess": "Customer suspended successfully",
       "suspendFailed": "Failed to suspend customer"
-    }
+    },
+    "listTitle": "Manage Customers",
+    "subtitle": "Manage and track all customer accounts",
+    "countLabel": "customers",
+    "itemLabel": "customers",
+    "newCustomer": "New Customer",
+    "searchPlaceholder": "Search by name, code, email, phone...",
+    "allTypes": "All Types",
+    "typeChip": "Type",
+    "columns": {
+      "code": "Code",
+      "name": "Customer Name",
+      "contact": "Contact",
+      "type": "Type",
+      "status": "Status",
+      "balance": "Balance",
+      "actions": "Actions"
+    },
+    "duePrefix": "Due",
+    "advancePrefix": "Adv",
+    "clearBalance": "Clear",
+    "emptyTitle": "No Customers Found",
+    "emptyHintCreate": "Get started by adding your first customer",
+    "emptyTitleMobile": "No Customers",
+    "emptyHintMobileCreate": "Add your first customer",
+    "cardType": "Type",
+    "cardBalance": "Balance"
   },
   "purchaseOrders": {
     "title": "Purchase Orders",
@@ -740,7 +773,38 @@
       "invalidAmount": "Please enter a valid amount to collect.",
       "collectSuccess": "COD payment of {{amount}} collected.",
       "collectFailed": "Failed to collect COD payment."
-    }
+    },
+    "subtitle": "Manage and track all customer sales orders",
+    "countLabel": "orders",
+    "itemLabel": "orders",
+    "newOrder": "New Order",
+    "searchPlaceholder": "Search by SO number, customer name...",
+    "dateRangePlaceholder": "Select order date range",
+    "stats": {
+      "total": "Total Orders",
+      "pending": "Pending",
+      "readyForDelivery": "Ready for Delivery",
+      "delivered": "Delivered"
+    },
+    "columns": {
+      "soNumber": "SO Number",
+      "customer": "Customer",
+      "orderDate": "Order Date",
+      "deliveryDate": "Delivery Date",
+      "status": "Status",
+      "grandTotal": "Grand Total",
+      "outstanding": "Outstanding",
+      "actions": "Actions"
+    },
+    "overdue": "Overdue",
+    "walkInCustomer": "Walk-in Customer",
+    "emptyTitle": "No Sales Orders Found",
+    "emptyHintCreate": "Get started by creating your first sales order",
+    "createFirst": "Create Sales Order",
+    "emptyTitleMobile": "No Sales Orders",
+    "emptyHintMobileCreate": "Create your first order",
+    "cardTotal": "Total",
+    "cardOutstanding": "Outstanding"
   },
   "supplierPayments": {
     "title": "Supplier Payments",
@@ -1153,7 +1217,26 @@
       "exportNoData": "No technicians available to export",
       "exportCSVSuccess": "Technicians exported as CSV",
       "exportJSONSuccess": "Technicians exported as JSON"
-    }
+    },
+    "subtitle": "Manage technicians and service providers",
+    "countLabel": "technicians",
+    "itemLabel": "technicians",
+    "exportCSV": "Export CSV",
+    "exportJSON": "Export JSON",
+    "searchPlaceholder": "Search by name, code, phone, shop...",
+    "columns": {
+      "code": "Code",
+      "name": "Name",
+      "phone": "Phone",
+      "shopName": "Shop Name",
+      "city": "City",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "emptyTitle": "No Technicians Found",
+    "emptyHintCreate": "Start by adding a new technician",
+    "emptyTitleMobile": "No Technicians",
+    "emptyHintMobileCreate": "Add your first technician"
   },
   "invoices": {
     "title": "Invoices",
@@ -1178,6 +1261,55 @@
       "exportCSVSuccess": "Invoices exported as CSV",
       "exportJSONSuccess": "Invoices exported as JSON",
       "recordPaymentFailed": "Failed to record payment"
+    },
+    "listTitle": "Sales Invoices",
+    "subtitle": "Manage and track all customer invoices and payments",
+    "countLabel": "invoices",
+    "itemLabel": "invoices",
+    "exportCSV": "Export CSV",
+    "exportJSON": "Export JSON",
+    "newInvoice": "New Invoice",
+    "searchPlaceholder": "Search by invoice number, customer...",
+    "dateRangePlaceholder": "Invoice Date range",
+    "columns": {
+      "invoiceNumber": "Invoice #",
+      "salesOrder": "Sales Order",
+      "customer": "Customer",
+      "invoiceDate": "Invoice Date",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "total": "Total",
+      "outstanding": "Outstanding",
+      "actions": "Actions"
+    },
+    "overdue": "Overdue",
+    "emptyTitle": "No Invoices Found",
+    "emptyHintCreate": "Start by creating a new invoice",
+    "emptyTitleMobile": "No Invoices",
+    "emptyHintMobileCreate": "Create your first invoice",
+    "cardTotal": "Total",
+    "cardOutstanding": "Outstanding",
+    "cashLabel": "Cash",
+    "paymentDialog": {
+      "title": "Record Payment",
+      "invoiceLabel": "Invoice:",
+      "customerLabel": "Customer:",
+      "grandTotalLabel": "Grand Total:",
+      "alreadyPaidLabel": "Already Paid:",
+      "outstandingLabel": "Outstanding:",
+      "amountLabel": "Payment Amount",
+      "amountHint": "You can enter more than the outstanding amount to create a credit balance",
+      "dateLabel": "Payment Date",
+      "methodLabel": "Payment Method",
+      "cashNoticeTitle": "Cash Payment:",
+      "cashNoticeBody": "Will be automatically completed and customer balance updated immediately.",
+      "otherNoticeTitle": "{{method}} Payment:",
+      "otherNoticeBody": "Will be created as PENDING. You must manually confirm it from the",
+      "otherNoticeLink": "Customer Payments page",
+      "otherNoticeSuffix": "to update the customer balance.",
+      "referenceLabel": "Reference Number",
+      "referencePlaceholder": "Transaction ID / Reference",
+      "submit": "Record Payment"
     }
   },
   "salesReturns": {
@@ -1210,7 +1342,28 @@
       "exportNoData": "No sales returns available to export",
       "exportCSVSuccess": "Sales returns exported as CSV",
       "exportJSONSuccess": "Sales returns exported as JSON"
-    }
+    },
+    "subtitle": "Manage customer product returns and refunds",
+    "countLabel": "returns",
+    "itemLabel": "returns",
+    "createReturn": "Create Return",
+    "newReturn": "New Return",
+    "searchPlaceholder": "Search by return number or sales order...",
+    "dateRangePlaceholder": "Select date range",
+    "columns": {
+      "returnNumber": "Return #",
+      "salesOrder": "Sales Order",
+      "date": "Date",
+      "reason": "Reason",
+      "refundAmount": "Refund Amount",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "emptyTitle": "No Sales Returns Found",
+    "emptyHintCreate": "Get started by creating your first sales return",
+    "emptyTitleMobile": "No Sales Returns",
+    "emptyHintMobileCreate": "Create your first return",
+    "cardRefund": "Refund"
   },
   "purchaseReturns": {
     "title": "Purchase Returns",
@@ -1740,7 +1893,43 @@
       "exportNoData": "No payments available to export",
       "exportCSVSuccess": "Payments exported as CSV",
       "exportJSONSuccess": "Payments exported as JSON"
-    }
+    },
+    "subtitle": "Track and manage customer payments, refunds, and reconciliations",
+    "countLabel": "payments",
+    "itemLabel": "payments",
+    "exportCSV": "Export CSV",
+    "exportJSON": "Export JSON",
+    "newPayment": "New Payment",
+    "filterBannerPrefix": "Showing payments for:",
+    "loadingName": "Loading...",
+    "showAll": "Show All Payments",
+    "searchPlaceholder": "Search by customer, invoice, transaction...",
+    "dateRangePlaceholder": "Payment Date range",
+    "reconciledAll": "All",
+    "columns": {
+      "customer": "Customer",
+      "amount": "Amount",
+      "date": "Date",
+      "method": "Method",
+      "status": "Status",
+      "provider": "Provider",
+      "invoice": "Invoice",
+      "reconciled": "Reconciled",
+      "actions": "Actions"
+    },
+    "tooltips": {
+      "confirm": "Confirm Payment",
+      "reconcile": "Reconcile Payment",
+      "refund": "Refund Payment",
+      "cancel": "Cancel Payment",
+      "printReceipt": "Print Receipt",
+      "moreActions": "More Actions"
+    },
+    "emptyTitle": "No Payments Found",
+    "emptyHintCreate": "Start by recording a new payment",
+    "emptyTitleMobile": "No Payments",
+    "emptyHintMobileCreate": "Record your first payment",
+    "cardAmount": "Amount"
   },
   "paymentProviders": {
     "title": "Payment Providers",
@@ -3619,5 +3808,35 @@
       "success": "Stock transferred successfully",
       "failed": "Failed to transfer stock"
     }
+  },
+  "quotations": {
+    "title": "Quotations",
+    "subtitle": "Create and track price quotes for prospective customers",
+    "countLabel": "quotations",
+    "itemLabel": "quotations",
+    "newQuotation": "New Quotation",
+    "searchPlaceholder": "Search by quotation number, customer name...",
+    "statusOptions": {
+      "sent": "Sent",
+      "converted": "Converted",
+      "expired": "Expired"
+    },
+    "columns": {
+      "quotationNumber": "Quotation #",
+      "customer": "Customer",
+      "quoteDate": "Quote Date",
+      "validUntil": "Valid Until",
+      "status": "Status",
+      "grandTotal": "Grand Total",
+      "actions": "Actions"
+    },
+    "expired": "Expired",
+    "walkInCustomer": "Walk-in Customer",
+    "emptyTitle": "No Quotations Found",
+    "emptyHintCreate": "Get started by creating your first quotation",
+    "createFirst": "Create Quotation",
+    "emptyTitleMobile": "No Quotations",
+    "emptyHintMobileCreate": "Create your first quotation",
+    "cardTotal": "Total"
   }
 }

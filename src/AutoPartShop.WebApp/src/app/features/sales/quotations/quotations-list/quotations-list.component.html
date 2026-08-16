@@ -11,16 +11,16 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Quotations"
-    subtitle="Create and track price quotes for prospective customers"
-    [count]="totalRecords" countLabel="quotations" countIcon="pi pi-file-edit">
+    [title]="'quotations.title' | translate"
+    [subtitle]="'quotations.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'quotations.countLabel' | translate" countIcon="pi pi-file-edit">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createQuotation()">
         <i class="pi pi-plus"></i>
-        <span>New Quotation</span>
+        <span>{{ 'quotations.newQuotation' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -33,7 +33,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by quotation number, customer name..."
+          [placeholder]="'quotations.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
@@ -53,25 +53,25 @@
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Search
+        {{ 'common.actions.search' | translate }}
       </button>
       <button class="text-btn" (click)="moreFiltersVisible = true">
-        More filters
+        {{ 'common.labels.moreFilters' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}:</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.listPage.searchChip' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
       </span>
       <span *ngIf="filterStatus" class="filter-chip">
-        Status: {{ filterStatus }}
+        {{ 'common.listPage.statusChip' | translate }}: {{ formatStatus(filterStatus) }}
         <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
       </span>
     </div>
@@ -103,13 +103,13 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-quotation">Quotation #</th>
-            <th class="col-customer">Customer</th>
-            <th class="col-date">Quote Date</th>
-            <th class="col-date">Valid Until</th>
-            <th class="col-status">Status</th>
-            <th class="col-amount">Grand Total</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-quotation">{{ 'quotations.columns.quotationNumber' | translate }}</th>
+            <th class="col-customer">{{ 'quotations.columns.customer' | translate }}</th>
+            <th class="col-date">{{ 'quotations.columns.quoteDate' | translate }}</th>
+            <th class="col-date">{{ 'quotations.columns.validUntil' | translate }}</th>
+            <th class="col-status">{{ 'quotations.columns.status' | translate }}</th>
+            <th class="col-amount">{{ 'quotations.columns.grandTotal' | translate }}</th>
+            <th class="col-actions">{{ 'quotations.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -118,14 +118,14 @@
             <td class="col-quotation">
               <div class="so-cell">
                 <a class="so-link" (click)="viewQuotation(quotation)">{{ quotation.quotationNumber }}</a>
-                <span *ngIf="quotation.isExpired" class="overdue-badge">Expired</span>
+                <span *ngIf="quotation.isExpired" class="overdue-badge">{{ 'quotations.expired' | translate }}</span>
               </div>
             </td>
 
             <td class="col-customer">
               <div class="cell-media">
                 <div class="customer-info">
-                  <span class="customer-name">{{ quotation.customerName || 'Walk-in Customer' }}</span>
+                  <span class="customer-name">{{ quotation.customerName || ('quotations.walkInCustomer' | translate) }}</span>
                   <span *ngIf="quotation.customerPhone" class="customer-phone">{{ quotation.customerPhone }}</span>
                 </div>
               </div>
@@ -147,7 +147,7 @@
 
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, quotation)">
+                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, quotation)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -160,16 +160,16 @@
             <td colspan="7">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-file-edit"></i></div>
-                <h3>No Quotations Found</h3>
-                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
-                <p *ngIf="!hasActiveFilters()">Get started by creating your first quotation</p>
+                <h3>{{ 'quotations.emptyTitle' | translate }}</h3>
+                <p *ngIf="hasActiveFilters()">{{ 'common.listPage.adjustFiltersHint' | translate }}</p>
+                <p *ngIf="!hasActiveFilters()">{{ 'quotations.emptyHintCreate' | translate }}</p>
                 <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createQuotation()">
                   <i class="pi pi-plus"></i>
-                  Create Quotation
+                  {{ 'quotations.createFirst' | translate }}
                 </button>
                 <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
                   <i class="pi pi-filter-slash"></i>
-                  Clear Filters
+                  {{ 'common.actions.clearFilters' | translate }}
                 </button>
               </div>
             </td>
@@ -220,11 +220,11 @@
     <!-- Empty State -->
     <div *ngIf="!loading && quotations.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-file-edit"></i></div>
-      <h3>No Quotations</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first quotation' }}</p>
+      <h3>{{ 'quotations.emptyTitleMobile' | translate }}</h3>
+      <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'quotations.emptyHintMobileCreate') | translate }}</p>
       <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createQuotation()">
         <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ hasActiveFilters() ? 'Clear Filters' : 'New Quotation' }}
+        {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'quotations.newQuotation') | translate }}
       </button>
     </div>
 
@@ -240,20 +240,20 @@
 
         <div class="card-body">
           <div class="card-customer">
-            <span class="customer-name">{{ quotation.customerName || 'Walk-in Customer' }}</span>
+            <span class="customer-name">{{ quotation.customerName || ('quotations.walkInCustomer' | translate) }}</span>
           </div>
           <div class="card-dates">
             <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(quotation.quoteDate) }}</span>
             <span *ngIf="quotation.isExpired" class="overdue-text">
               <i class="pi pi-exclamation-circle"></i>
-              Expired
+              {{ 'quotations.expired' | translate }}
             </span>
           </div>
         </div>
 
         <div class="card-footer">
           <div class="card-amount">
-            <span class="amount-label">Total</span>
+            <span class="amount-label">{{ 'quotations.cardTotal' | translate }}</span>
             <span class="amount-value">{{ formatCurrency(quotation.grandTotal, quotation.currency) }}</span>
           </div>
           <button class="btn-card-action" (click)="showActionMenu($event, quotation); $event.stopPropagation()">
@@ -269,7 +269,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
-    itemLabel="quotations"
+    [itemLabel]="'quotations.itemLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>

@@ -315,6 +315,13 @@
       "minutesAgo": "{{count}} মিনিট আগে",
       "hoursAgo": "{{count}} ঘণ্টা আগে",
       "daysAgo": "{{count}} দিন আগে"
+    },
+    "listPage": {
+      "searchChip": "অনুসন্ধান",
+      "statusChip": "অবস্থা",
+      "dateRangeChip": "তারিখের পরিসর",
+      "adjustFiltersHint": "আপনার ফিল্টার বা অনুসন্ধানের মানদণ্ড সামঞ্জস্য করার চেষ্টা করুন",
+      "more": "আরও"
     }
   },
   "categories": {
@@ -644,7 +651,33 @@
       "suspendConfirm": "আপনি কি নিশ্চিত যে গ্রাহক \"{{name}}\" স্থগিত করতে চান?",
       "suspendSuccess": "গ্রাহক সফলভাবে স্থগিত হয়েছে",
       "suspendFailed": "গ্রাহক স্থগিত করতে ব্যর্থ হয়েছে"
-    }
+    },
+    "listTitle": "গ্রাহক ব্যবস্থাপনা",
+    "subtitle": "সব গ্রাহক হিসাব পরিচালনা ও ট্র্যাক করুন",
+    "countLabel": "গ্রাহক",
+    "itemLabel": "গ্রাহক",
+    "newCustomer": "নতুন গ্রাহক",
+    "searchPlaceholder": "নাম, কোড, ইমেইল, ফোন দিয়ে খুঁজুন...",
+    "allTypes": "সব ধরন",
+    "typeChip": "ধরন",
+    "columns": {
+      "code": "কোড",
+      "name": "গ্রাহকের নাম",
+      "contact": "যোগাযোগ",
+      "type": "ধরন",
+      "status": "অবস্থা",
+      "balance": "ব্যালেন্স",
+      "actions": "কার্যক্রম"
+    },
+    "duePrefix": "বকেয়া",
+    "advancePrefix": "অগ্রিম",
+    "clearBalance": "পরিষ্কার",
+    "emptyTitle": "কোনো গ্রাহক পাওয়া যায়নি",
+    "emptyHintCreate": "আপনার প্রথম গ্রাহক যোগ করে শুরু করুন",
+    "emptyTitleMobile": "কোনো গ্রাহক নেই",
+    "emptyHintMobileCreate": "আপনার প্রথম গ্রাহক যোগ করুন",
+    "cardType": "ধরন",
+    "cardBalance": "ব্যালেন্স"
   },
   "purchaseOrders": {
     "title": "ক্রয় অর্ডার",
@@ -740,7 +773,38 @@
       "invalidAmount": "অনুগ্রহ করে আদায়ের জন্য সঠিক পরিমাণ লিখুন।",
       "collectSuccess": "{{amount}} কোড পেমেন্ট আদায় করা হয়েছে।",
       "collectFailed": "কোড পেমেন্ট আদায় করতে ব্যর্থ হয়েছে।"
-    }
+    },
+    "subtitle": "সব গ্রাহক বিক্রয় আদেশ পরিচালনা ও ট্র্যাক করুন",
+    "countLabel": "আদেশ",
+    "itemLabel": "আদেশ",
+    "newOrder": "নতুন আদেশ",
+    "searchPlaceholder": "SO নম্বর, গ্রাহকের নাম দিয়ে খুঁজুন...",
+    "dateRangePlaceholder": "আদেশের তারিখের পরিসর নির্বাচন করুন",
+    "stats": {
+      "total": "মোট আদেশ",
+      "pending": "অপেক্ষমাণ",
+      "readyForDelivery": "ডেলিভারির জন্য প্রস্তুত",
+      "delivered": "ডেলিভারি হয়েছে"
+    },
+    "columns": {
+      "soNumber": "SO নম্বর",
+      "customer": "গ্রাহক",
+      "orderDate": "আদেশের তারিখ",
+      "deliveryDate": "ডেলিভারির তারিখ",
+      "status": "অবস্থা",
+      "grandTotal": "সর্বমোট",
+      "outstanding": "বকেয়া",
+      "actions": "কার্যক্রম"
+    },
+    "overdue": "মেয়াদোত্তীর্ণ",
+    "walkInCustomer": "ওয়াক-ইন গ্রাহক",
+    "emptyTitle": "কোনো বিক্রয় আদেশ পাওয়া যায়নি",
+    "emptyHintCreate": "আপনার প্রথম বিক্রয় আদেশ তৈরি করে শুরু করুন",
+    "createFirst": "বিক্রয় আদেশ তৈরি করুন",
+    "emptyTitleMobile": "কোনো বিক্রয় আদেশ নেই",
+    "emptyHintMobileCreate": "আপনার প্রথম আদেশ তৈরি করুন",
+    "cardTotal": "মোট",
+    "cardOutstanding": "বকেয়া"
   },
   "supplierPayments": {
     "title": "সরবরাহকারী পেমেন্ট",
@@ -1153,7 +1217,26 @@
       "exportNoData": "রপ্তানির জন্য কোনো টেকনিশিয়ান নেই",
       "exportCSVSuccess": "টেকনিশিয়ান CSV-এ রপ্তানি হয়েছে",
       "exportJSONSuccess": "টেকনিশিয়ান JSON-এ রপ্তানি হয়েছে"
-    }
+    },
+    "subtitle": "টেকনিশিয়ান ও সেবা প্রদানকারী পরিচালনা করুন",
+    "countLabel": "টেকনিশিয়ান",
+    "itemLabel": "টেকনিশিয়ান",
+    "exportCSV": "CSV রপ্তানি",
+    "exportJSON": "JSON রপ্তানি",
+    "searchPlaceholder": "নাম, কোড, ফোন, দোকান দিয়ে খুঁজুন...",
+    "columns": {
+      "code": "কোড",
+      "name": "নাম",
+      "phone": "ফোন",
+      "shopName": "দোকানের নাম",
+      "city": "শহর",
+      "status": "অবস্থা",
+      "actions": "কার্যক্রম"
+    },
+    "emptyTitle": "কোনো টেকনিশিয়ান পাওয়া যায়নি",
+    "emptyHintCreate": "একজন নতুন টেকনিশিয়ান যোগ করে শুরু করুন",
+    "emptyTitleMobile": "কোনো টেকনিশিয়ান নেই",
+    "emptyHintMobileCreate": "আপনার প্রথম টেকনিশিয়ান যোগ করুন"
   },
   "invoices": {
     "title": "চালান",
@@ -1178,6 +1261,55 @@
       "exportCSVSuccess": "চালান CSV-এ রপ্তানি হয়েছে",
       "exportJSONSuccess": "চালান JSON-এ রপ্তানি হয়েছে",
       "recordPaymentFailed": "পেমেন্ট রেকর্ড করতে ব্যর্থ হয়েছে"
+    },
+    "listTitle": "বিক্রয় চালান",
+    "subtitle": "সব গ্রাহক চালান ও পেমেন্ট পরিচালনা ও ট্র্যাক করুন",
+    "countLabel": "চালান",
+    "itemLabel": "চালান",
+    "exportCSV": "CSV রপ্তানি",
+    "exportJSON": "JSON রপ্তানি",
+    "newInvoice": "নতুন চালান",
+    "searchPlaceholder": "চালান নম্বর, গ্রাহক দিয়ে খুঁজুন...",
+    "dateRangePlaceholder": "চালানের তারিখের পরিসর",
+    "columns": {
+      "invoiceNumber": "চালান নং",
+      "salesOrder": "বিক্রয় আদেশ",
+      "customer": "গ্রাহক",
+      "invoiceDate": "চালানের তারিখ",
+      "dueDate": "শেষ তারিখ",
+      "status": "অবস্থা",
+      "total": "মোট",
+      "outstanding": "বকেয়া",
+      "actions": "কার্যক্রম"
+    },
+    "overdue": "মেয়াদোত্তীর্ণ",
+    "emptyTitle": "কোনো চালান পাওয়া যায়নি",
+    "emptyHintCreate": "একটি নতুন চালান তৈরি করে শুরু করুন",
+    "emptyTitleMobile": "কোনো চালান নেই",
+    "emptyHintMobileCreate": "আপনার প্রথম চালান তৈরি করুন",
+    "cardTotal": "মোট",
+    "cardOutstanding": "বকেয়া",
+    "cashLabel": "নগদ",
+    "paymentDialog": {
+      "title": "পেমেন্ট রেকর্ড করুন",
+      "invoiceLabel": "চালান:",
+      "customerLabel": "গ্রাহক:",
+      "grandTotalLabel": "সর্বমোট:",
+      "alreadyPaidLabel": "ইতিমধ্যে পরিশোধিত:",
+      "outstandingLabel": "বকেয়া:",
+      "amountLabel": "পেমেন্টের পরিমাণ",
+      "amountHint": "ক্রেডিট ব্যালেন্স তৈরি করতে বকেয়ার চেয়ে বেশি পরিমাণ দিতে পারেন",
+      "dateLabel": "পেমেন্টের তারিখ",
+      "methodLabel": "পেমেন্ট পদ্ধতি",
+      "cashNoticeTitle": "নগদ পেমেন্ট:",
+      "cashNoticeBody": "স্বয়ংক্রিয়ভাবে সম্পন্ন হবে এবং গ্রাহকের ব্যালেন্স তৎক্ষণাৎ হালনাগাদ হবে।",
+      "otherNoticeTitle": "{{method}} পেমেন্ট:",
+      "otherNoticeBody": "অপেক্ষমাণ হিসেবে তৈরি হবে। গ্রাহকের ব্যালেন্স হালনাগাদ করতে আপনাকে",
+      "otherNoticeLink": "গ্রাহক পেমেন্ট পাতা",
+      "otherNoticeSuffix": "থেকে এটি নিজে নিশ্চিত করতে হবে।",
+      "referenceLabel": "রেফারেন্স নম্বর",
+      "referencePlaceholder": "লেনদেন আইডি / রেফারেন্স",
+      "submit": "পেমেন্ট রেকর্ড করুন"
     }
   },
   "salesReturns": {
@@ -1210,7 +1342,28 @@
       "exportNoData": "রপ্তানির জন্য কোনো বিক্রয় ফেরত নেই",
       "exportCSVSuccess": "বিক্রয় ফেরত CSV হিসেবে রপ্তানি হয়েছে",
       "exportJSONSuccess": "বিক্রয় ফেরত JSON হিসেবে রপ্তানি হয়েছে"
-    }
+    },
+    "subtitle": "গ্রাহকের পণ্য ফেরত ও রিফান্ড পরিচালনা করুন",
+    "countLabel": "ফেরত",
+    "itemLabel": "ফেরত",
+    "createReturn": "ফেরত তৈরি করুন",
+    "newReturn": "নতুন ফেরত",
+    "searchPlaceholder": "ফেরত নম্বর বা বিক্রয় আদেশ দিয়ে খুঁজুন...",
+    "dateRangePlaceholder": "তারিখের পরিসর নির্বাচন করুন",
+    "columns": {
+      "returnNumber": "ফেরত নং",
+      "salesOrder": "বিক্রয় আদেশ",
+      "date": "তারিখ",
+      "reason": "কারণ",
+      "refundAmount": "রিফান্ডের পরিমাণ",
+      "status": "অবস্থা",
+      "actions": "কার্যক্রম"
+    },
+    "emptyTitle": "কোনো বিক্রয় ফেরত পাওয়া যায়নি",
+    "emptyHintCreate": "আপনার প্রথম বিক্রয় ফেরত তৈরি করে শুরু করুন",
+    "emptyTitleMobile": "কোনো বিক্রয় ফেরত নেই",
+    "emptyHintMobileCreate": "আপনার প্রথম ফেরত তৈরি করুন",
+    "cardRefund": "রিফান্ড"
   },
   "purchaseReturns": {
     "title": "ক্রয় ফেরত",
@@ -1740,7 +1893,43 @@
       "exportNoData": "রপ্তানির জন্য কোনো পেমেন্ট নেই",
       "exportCSVSuccess": "পেমেন্ট CSV হিসেবে রপ্তানি হয়েছে",
       "exportJSONSuccess": "পেমেন্ট JSON হিসেবে রপ্তানি হয়েছে"
-    }
+    },
+    "subtitle": "গ্রাহক পেমেন্ট, রিফান্ড ও মিলকরণ ট্র্যাক ও পরিচালনা করুন",
+    "countLabel": "পেমেন্ট",
+    "itemLabel": "পেমেন্ট",
+    "exportCSV": "CSV রপ্তানি",
+    "exportJSON": "JSON রপ্তানি",
+    "newPayment": "নতুন পেমেন্ট",
+    "filterBannerPrefix": "যার পেমেন্ট দেখানো হচ্ছে:",
+    "loadingName": "লোড হচ্ছে...",
+    "showAll": "সব পেমেন্ট দেখান",
+    "searchPlaceholder": "গ্রাহক, চালান, লেনদেন দিয়ে খুঁজুন...",
+    "dateRangePlaceholder": "পেমেন্টের তারিখের পরিসর",
+    "reconciledAll": "সব",
+    "columns": {
+      "customer": "গ্রাহক",
+      "amount": "পরিমাণ",
+      "date": "তারিখ",
+      "method": "পদ্ধতি",
+      "status": "অবস্থা",
+      "provider": "প্রদানকারী",
+      "invoice": "চালান",
+      "reconciled": "মিলকৃত",
+      "actions": "কার্যক্রম"
+    },
+    "tooltips": {
+      "confirm": "পেমেন্ট নিশ্চিত করুন",
+      "reconcile": "পেমেন্ট মিলকরণ",
+      "refund": "পেমেন্ট রিফান্ড",
+      "cancel": "পেমেন্ট বাতিল",
+      "printReceipt": "রসিদ প্রিন্ট",
+      "moreActions": "আরও কার্যক্রম"
+    },
+    "emptyTitle": "কোনো পেমেন্ট পাওয়া যায়নি",
+    "emptyHintCreate": "একটি নতুন পেমেন্ট রেকর্ড করে শুরু করুন",
+    "emptyTitleMobile": "কোনো পেমেন্ট নেই",
+    "emptyHintMobileCreate": "আপনার প্রথম পেমেন্ট রেকর্ড করুন",
+    "cardAmount": "পরিমাণ"
   },
   "paymentProviders": {
     "title": "পেমেন্ট প্রদানকারী",
@@ -3619,5 +3808,35 @@
       "success": "স্টক সফলভাবে স্থানান্তরিত হয়েছে",
       "failed": "স্টক স্থানান্তর করতে ব্যর্থ"
     }
+  },
+  "quotations": {
+    "title": "কোটেশন",
+    "subtitle": "সম্ভাব্য গ্রাহকদের জন্য মূল্য কোট তৈরি ও ট্র্যাক করুন",
+    "countLabel": "কোটেশন",
+    "itemLabel": "কোটেশন",
+    "newQuotation": "নতুন কোটেশন",
+    "searchPlaceholder": "কোটেশন নম্বর, গ্রাহকের নাম দিয়ে খুঁজুন...",
+    "statusOptions": {
+      "sent": "পাঠানো হয়েছে",
+      "converted": "রূপান্তরিত",
+      "expired": "মেয়াদোত্তীর্ণ"
+    },
+    "columns": {
+      "quotationNumber": "কোটেশন নং",
+      "customer": "গ্রাহক",
+      "quoteDate": "কোটের তারিখ",
+      "validUntil": "মেয়াদ শেষ",
+      "status": "অবস্থা",
+      "grandTotal": "সর্বমোট",
+      "actions": "কার্যক্রম"
+    },
+    "expired": "মেয়াদোত্তীর্ণ",
+    "walkInCustomer": "ওয়াক-ইন গ্রাহক",
+    "emptyTitle": "কোনো কোটেশন পাওয়া যায়নি",
+    "emptyHintCreate": "আপনার প্রথম কোটেশন তৈরি করে শুরু করুন",
+    "createFirst": "কোটেশন তৈরি করুন",
+    "emptyTitleMobile": "কোনো কোটেশন নেই",
+    "emptyHintMobileCreate": "আপনার প্রথম কোটেশন তৈরি করুন",
+    "cardTotal": "মোট"
   }
 }

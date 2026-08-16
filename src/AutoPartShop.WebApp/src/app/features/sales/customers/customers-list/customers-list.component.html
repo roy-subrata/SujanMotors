@@ -8,16 +8,16 @@
 
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Manage Customers"
-    subtitle="Manage and track all customer accounts"
-    [count]="totalRecords" countLabel="customers">
+    [title]="'customers.listTitle' | translate"
+    [subtitle]="'customers.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'customers.countLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createCustomer()">
         <i class="pi pi-plus"></i>
-        <span>New Customer</span>
+        <span>{{ 'customers.newCustomer' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -31,7 +31,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by name, code, email, phone..."
+          [placeholder]="'customers.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
@@ -45,7 +45,7 @@
       <p-select
         [options]="customerTypes"
         [(ngModel)]="filterType"
-        placeholder="All Types"
+        [placeholder]="'customers.allTypes' | translate"
         [showClear]="true"
         optionLabel="label"
         optionValue="value"
@@ -59,23 +59,23 @@
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Search
+        {{ 'common.actions.search' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <!-- Active Filters Display -->
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}:</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.listPage.searchChip' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
       </span>
       <span *ngIf="filterType" class="filter-chip">
-        Type: {{ filterType }}
+        {{ 'customers.typeChip' | translate }}: {{ filterType }}
         <i class="pi pi-times" (click)="filterType = ''; onFilterChange()"></i>
       </span>
     </div>
@@ -100,13 +100,13 @@
         <!-- Table Header -->
         <ng-template #header>
           <tr>
-            <th class="col-code">Code</th>
-            <th class="col-customer">Customer Name</th>
-            <th class="col-contact">Contact</th>
-            <th class="col-type">Type</th>
-            <th class="col-status">Status</th>
-            <th class="col-balance">Balance</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-code">{{ 'customers.columns.code' | translate }}</th>
+            <th class="col-customer">{{ 'customers.columns.name' | translate }}</th>
+            <th class="col-contact">{{ 'customers.columns.contact' | translate }}</th>
+            <th class="col-type">{{ 'customers.columns.type' | translate }}</th>
+            <th class="col-status">{{ 'customers.columns.status' | translate }}</th>
+            <th class="col-balance">{{ 'customers.columns.balance' | translate }}</th>
+            <th class="col-actions">{{ 'customers.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -160,13 +160,13 @@
             <td class="col-balance">
               <div class="balance-cell">
                 <span class="amount-value" *ngIf="customer.dueAmount > 0" class="text-danger">
-                  Due: {{ formatCurrency(customer.dueAmount) }}
+                  {{ 'customers.duePrefix' | translate }}: {{ formatCurrency(customer.dueAmount) }}
                 </span>
                 <span class="amount-value" *ngIf="customer.advanceAmount > 0" class="text-success">
-                  Adv: {{ formatCurrency(customer.advanceAmount) }}
+                  {{ 'customers.advancePrefix' | translate }}: {{ formatCurrency(customer.advanceAmount) }}
                 </span>
                 <span *ngIf="customer.dueAmount <= 0 && customer.advanceAmount <= 0" class="text-clear">
-                  Clear
+                  {{ 'customers.clearBalance' | translate }}
                 </span>
               </div>
             </td>
@@ -174,7 +174,7 @@
             <!-- Actions -->
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, customer)">
+                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, customer)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -190,16 +190,16 @@
                 <div class="empty-icon">
                   <i class="pi pi-users"></i>
                 </div>
-                <h3>No Customers Found</h3>
-                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
-                <p *ngIf="!hasActiveFilters()">Get started by adding your first customer</p>
+                <h3>{{ 'customers.emptyTitle' | translate }}</h3>
+                <p *ngIf="hasActiveFilters()">{{ 'common.listPage.adjustFiltersHint' | translate }}</p>
+                <p *ngIf="!hasActiveFilters()">{{ 'customers.emptyHintCreate' | translate }}</p>
                 <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createCustomer()">
                   <i class="pi pi-plus"></i>
-                  Add Customer
+                  {{ 'customers.addCustomer' | translate }}
                 </button>
                 <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
                   <i class="pi pi-filter-slash"></i>
-                  Clear Filters
+                  {{ 'common.actions.clearFilters' | translate }}
                 </button>
               </div>
             </td>
@@ -233,7 +233,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
-    itemLabel="customers"
+    [itemLabel]="'customers.itemLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>
@@ -263,11 +263,11 @@
       <div class="empty-icon">
         <i class="pi pi-users"></i>
       </div>
-      <h3>No Customers</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Add your first customer' }}</p>
+      <h3>{{ 'customers.emptyTitleMobile' | translate }}</h3>
+      <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'customers.emptyHintMobileCreate') | translate }}</p>
       <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createCustomer()">
         <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ hasActiveFilters() ? 'Clear Filters' : 'New Customer' }}
+        {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'customers.newCustomer') | translate }}
       </button>
     </div>
 
@@ -305,13 +305,13 @@
         <!-- Card Footer -->
         <div class="card-footer">
           <div class="card-type">
-            <span class="type-label">Type</span>
+            <span class="type-label">{{ 'customers.cardType' | translate }}</span>
             <span class="type-value">{{ customer.customerType || '-' }}</span>
           </div>
           <div class="card-balance">
-            <span class="balance-label">Balance</span>
+            <span class="balance-label">{{ 'customers.cardBalance' | translate }}</span>
             <span class="balance-value" [class.text-danger]="customer.dueAmount > 0" [class.text-success]="customer.advanceAmount > 0 && customer.dueAmount <= 0">
-              {{ customer.dueAmount > 0 ? formatCurrency(customer.dueAmount) + ' Due' : customer.advanceAmount > 0 ? formatCurrency(customer.advanceAmount) + ' Adv' : 'Clear' }}
+              {{ formatBalance(customer) }}
             </span>
           </div>
           <button class="btn-card-action" (click)="showActionMenu($event, customer); $event.stopPropagation()">

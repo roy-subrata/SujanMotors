@@ -20,12 +20,14 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
 import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-technicians-list',
     standalone: true,
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent, StatusPillFilterComponent, MoreFiltersDialogComponent],
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent, StatusPillFilterComponent, MoreFiltersDialogComponent,
+        TranslatePipe],
     providers: [MessageService, ConfirmationService],
     templateUrl: './technicians-list.component.html',
     styleUrls: ['./technicians-list.component.css']
@@ -229,6 +231,18 @@ export class TechniciansListComponent implements OnInit {
                 });
             }
         });
+    }
+
+    /** Technician status is a server enum rendered directly; map it to its translated label. */
+    formatStatus(status: string): string {
+        if (!status) return '-';
+        const key = 'common.status.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        if (label !== key) return label;
+        return status.split('_')
+            .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+            .join(' ');
     }
 
     getStatusSeverity(status: string): StatusSeverity {

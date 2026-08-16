@@ -5,19 +5,19 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Technicians"
-    subtitle="Manage technicians and service providers"
-    [count]="totalRecords" countLabel="technicians" countIcon="pi pi-users">
+    [title]="'technicians.title' | translate"
+    [subtitle]="'technicians.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'technicians.countLabel' | translate" countIcon="pi pi-users">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportTechnicians('csv')">
+      <button class="btn-icon" [pTooltip]="'technicians.exportCSV' | translate" tooltipPosition="bottom" (click)="exportTechnicians('csv')">
         <i class="pi pi-file"></i>
       </button>
-      <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportTechnicians('json')">
+      <button class="btn-icon" [pTooltip]="'technicians.exportJSON' | translate" tooltipPosition="bottom" (click)="exportTechnicians('json')">
         <i class="pi pi-file-export"></i>
       </button>
       <button class="btn-primary" (click)="createTechnician()">
         <i class="pi pi-plus"></i>
-        <span>Add Technician</span>
+        <span>{{ 'technicians.addTechnician' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -27,7 +27,7 @@
     <div search class="filter-group search-group">
       <div class="search-input-wrapper">
         <i class="pi pi-search"></i>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by name, code, phone, shop..."
+        <input type="text" [(ngModel)]="searchTerm" [placeholder]="'technicians.searchPlaceholder' | translate"
           class="search-input" (keyup.enter)="onSearch()">
         <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
       </div>
@@ -42,10 +42,10 @@
     </div>
 
     <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
-      <button class="text-btn" (click)="moreFiltersVisible = true">More filters</button>
+      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> {{ 'common.actions.search' | translate }}</button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
       <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i> Clear
+        <i class="pi pi-filter-slash"></i> {{ 'common.actions.clear' | translate }}
       </button>
     </div>
   </app-filter-bar>
@@ -67,13 +67,13 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-code">Code</th>
-            <th class="col-name">Name</th>
-            <th class="col-phone">Phone</th>
-            <th class="col-shop">Shop Name</th>
-            <th class="col-city">City</th>
-            <th class="col-status">Status</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-code">{{ 'technicians.columns.code' | translate }}</th>
+            <th class="col-name">{{ 'technicians.columns.name' | translate }}</th>
+            <th class="col-phone">{{ 'technicians.columns.phone' | translate }}</th>
+            <th class="col-shop">{{ 'technicians.columns.shopName' | translate }}</th>
+            <th class="col-city">{{ 'technicians.columns.city' | translate }}</th>
+            <th class="col-status">{{ 'technicians.columns.status' | translate }}</th>
+            <th class="col-actions">{{ 'technicians.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -85,13 +85,13 @@
             <td class="col-shop"><span class="text-muted">{{ technician.shopName || '-' }}</span></td>
             <td class="col-city"><span class="text-muted">{{ technician.city || '-' }}</span></td>
             <td class="col-status">
-              <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ technician.status }}</span>
+              <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ formatStatus(technician.status) }}</span>
             </td>
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="View" (click)="viewTechnician(technician)"><i class="pi pi-eye"></i></button>
-                <button class="btn-action" pTooltip="Edit" (click)="editTechnician(technician)"><i class="pi pi-pencil"></i></button>
-                <button class="btn-action" [pTooltip]="technician.status === 'ACTIVE' ? 'Deactivate' : 'Activate'" (click)="toggleStatus(technician)">
+                <button class="btn-action" [pTooltip]="'common.actions.view' | translate" (click)="viewTechnician(technician)"><i class="pi pi-eye"></i></button>
+                <button class="btn-action" [pTooltip]="'common.actions.edit' | translate" (click)="editTechnician(technician)"><i class="pi pi-pencil"></i></button>
+                <button class="btn-action" [pTooltip]="(technician.status === 'ACTIVE' ? 'common.actions.deactivate' : 'common.actions.activate') | translate" (click)="toggleStatus(technician)">
                   <i class="pi" [ngClass]="technician.status === 'ACTIVE' ? 'pi-ban' : 'pi-check'"></i>
                 </button>
               </div>
@@ -104,8 +104,8 @@
             <td colspan="7">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-users"></i></div>
-                <h3>No Technicians Found</h3>
-                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by adding a new technician' }}</p>
+                <h3>{{ 'technicians.emptyTitle' | translate }}</h3>
+                <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'technicians.emptyHintCreate') | translate }}</p>
               </div>
             </td>
           </tr>
@@ -118,15 +118,15 @@
   <section class="cards-section mobile-only">
     <div *ngIf="!loading && technicians.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-users"></i></div>
-      <h3>No Technicians</h3>
-      <p>{{ searchTerm ? 'Try different filters' : 'Add your first technician' }}</p>
+      <h3>{{ 'technicians.emptyTitleMobile' | translate }}</h3>
+      <p>{{ (searchTerm ? 'common.labels.tryDifferentFilters' : 'technicians.emptyHintMobileCreate') | translate }}</p>
     </div>
 
     <div *ngIf="technicians.length > 0" class="cards-grid">
       <div *ngFor="let technician of technicians" class="order-card" (click)="viewTechnician(technician)">
         <div class="card-header">
           <span class="card-so-number">{{ technician.technicianCode }}</span>
-          <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ technician.status }}</span>
+          <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ formatStatus(technician.status) }}</span>
         </div>
         <div class="card-body">
           <div class="card-customer">
@@ -151,7 +151,7 @@
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
     [pageSizeOptions]="pageSizeOptions"
-    itemLabel="technicians"
+    [itemLabel]="'technicians.itemLabel' | translate"
     (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
     (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
   </app-data-pagination>

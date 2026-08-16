@@ -27,6 +27,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-customers-list',
@@ -47,7 +48,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customers-list.component.html',
@@ -346,10 +348,26 @@ export class CustomersListComponent implements OnInit {
 
     formatStatus(status: string): string {
         if (!status) return '-';
+        const key = 'common.status.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        if (label !== key) return label;
+        // Unmapped server enum member: fall back to prettifying the raw value.
         return status
             .split('_')
             .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
             .join(' ');
+    }
+
+    /** Mobile card balance line: due / advance / clear, all translated. */
+    formatBalance(customer: CustomerResponse): string {
+        if (customer.dueAmount > 0) {
+            return `${this.formatCurrency(customer.dueAmount)} ${this.i18n.t('customers.duePrefix')}`;
+        }
+        if (customer.advanceAmount > 0) {
+            return `${this.formatCurrency(customer.advanceAmount)} ${this.i18n.t('customers.advancePrefix')}`;
+        }
+        return this.i18n.t('customers.clearBalance');
     }
 
     getBalanceStatus(customer: CustomerResponse): { severity: 'success' | 'warn' | 'danger'; text: string } {

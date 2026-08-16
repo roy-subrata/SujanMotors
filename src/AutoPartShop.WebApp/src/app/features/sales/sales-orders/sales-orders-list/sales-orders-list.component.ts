@@ -37,6 +37,7 @@ import { GenerateProformaDialogComponent } from '../../proforma-invoices/generat
 import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 import { SalesOrderStatus } from '@/shared/models/status.types';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-sales-orders-list',
@@ -66,7 +67,8 @@ import { SalesOrderStatus } from '@/shared/models/status.types';
         StatStripComponent,
         StatusPillFilterComponent,
         MoreFiltersDialogComponent,
-        GenerateProformaDialogComponent
+        GenerateProformaDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './sales-orders-list.component.html',
@@ -145,10 +147,10 @@ export class SalesOrdersListComponent implements OnInit {
         }).subscribe({
             next: ({ total, pending, readyForDelivery, delivered }) => {
                 this.stats = [
-                    { label: 'Total Orders', value: String(total.pagination.totalCount) },
-                    { label: 'Pending', value: String(pending.pagination.totalCount) },
-                    { label: 'Ready for Delivery', value: String(readyForDelivery.pagination.totalCount) },
-                    { label: 'Delivered', value: String(delivered.pagination.totalCount) }
+                    { label: this.i18n.t('salesOrders.stats.total'), value: String(total.pagination.totalCount) },
+                    { label: this.i18n.t('salesOrders.stats.pending'), value: String(pending.pagination.totalCount) },
+                    { label: this.i18n.t('salesOrders.stats.readyForDelivery'), value: String(readyForDelivery.pagination.totalCount) },
+                    { label: this.i18n.t('salesOrders.stats.delivered'), value: String(delivered.pagination.totalCount) }
                 ];
             },
             error: () => { /* strip just stays empty — not worth a toast */ }
