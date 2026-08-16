@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -22,6 +22,8 @@ import {
   UserActivityCount
 } from '../../../shared/services/audit-trail.service';
 import { EntityTimelineDialogComponent } from '../entity-timeline-dialog/entity-timeline-dialog.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-audit-dashboard',
@@ -50,6 +52,8 @@ export class AuditDashboardComponent implements OnInit {
   private readonly auditService = inject(AuditTrailService);
   private readonly messageService = inject(MessageService);
   private readonly dialogService = inject(DialogService);
+  readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   dashboard: AuditDashboardResponse | null = null;
   loading = true;
@@ -58,6 +62,7 @@ export class AuditDashboardComponent implements OnInit {
   dateRange: Date[] = [];
   selectedEntity: string | null = null;
   entities: { label: string; value: string }[] = [];
+  private rawEntities: string[] = [];
 
   // Chart data
   trendChartData: any;
@@ -71,17 +76,26 @@ export class AuditDashboardComponent implements OnInit {
     this.initChartOptions();
     this.loadEntities();
     this.loadDashboard();
+    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.buildEntityOptions();
+      if (this.dashboard) this.updateCharts();
+    });
   }
 
   loadEntities(): void {
     this.auditService.getAuditedEntities().subscribe({
       next: (entities) => {
-        this.entities = [
-          { label: 'All Entities', value: '' },
-          ...entities.map(e => ({ label: e, value: e }))
-        ];
+        this.rawEntities = entities;
+        this.buildEntityOptions();
       }
     });
+  }
+
+  private buildEntityOptions(): void {
+    this.entities = [
+      { label: this.i18n.t('audit.dashboard.allEntities'), value: '' },
+      ...this.rawEntities.map(e => ({ label: e, value: e }))
+    ];
   }
 
   loadDashboard(): void {
@@ -99,8 +113,8 @@ export class AuditDashboardComponent implements OnInit {
         console.error('Error loading dashboard:', err);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load audit dashboard'
+          summary: this.i18n.t('audit.dashboard.messages.errorSummary'),
+          detail: this.i18n.t('audit.dashboard.messages.loadFailed')
         });
         this.loading = false;
       }
@@ -174,7 +188,7 @@ export class AuditDashboardComponent implements OnInit {
       labels,
       datasets: [
         {
-          label: 'Inserts',
+          label: this.i18n.t('audit.dashboard.chartLabels.inserts'),
           data: this.dashboard.dailyTrends.map(t => t.insertCount),
           fill: false,
           borderColor: '#22c55e',
@@ -182,7 +196,7 @@ export class AuditDashboardComponent implements OnInit {
           tension: 0.4
         },
         {
-          label: 'Updates',
+          label: this.i18n.t('audit.dashboard.chartLabels.updates'),
           data: this.dashboard.dailyTrends.map(t => t.updateCount),
           fill: false,
           borderColor: '#3b82f6',
@@ -190,7 +204,7 @@ export class AuditDashboardComponent implements OnInit {
           tension: 0.4
         },
         {
-          label: 'Deletes',
+          label: this.i18n.t('audit.dashboard.chartLabels.deletes'),
           data: this.dashboard.dailyTrends.map(t => t.deleteCount),
           fill: false,
           borderColor: '#ef4444',
@@ -217,7 +231,7 @@ export class AuditDashboardComponent implements OnInit {
       labels: this.dashboard.hourlyDistribution.map(h => `${h.hour}:00`),
       datasets: [
         {
-          label: 'Activity',
+          label: this.i18n.t('audit.dashboard.chartLabels.activity'),
           data: this.dashboard.hourlyDistribution.map(h => h.activityCount),
           backgroundColor: '#6366f1',
           borderRadius: 4
@@ -243,16 +257,16 @@ export class AuditDashboardComponent implements OnInit {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return this.i18n.t('common.time.justNow');
+    if (diffMins < 60) return this.i18n.t('common.time.minutesAgo', { count: String(diffMins) });
+    if (diffHours < 24) return this.i18n.t('common.time.hoursAgo', { count: String(diffHours) });
+    if (diffDays < 7) return this.i18n.t('common.time.daysAgo', { count: String(diffDays) });
     return date.toLocaleDateString();
   }
 
   viewEntityTimeline(log: AuditLogResponse): void {
     this.dialogService.open(EntityTimelineDialogComponent, {
-      header: `Timeline: ${log.entityName} #${log.entityId}`,
+      header: `${this.i18n.t('audit.dashboard.timelinePrefix')} ${log.entityName} #${log.entityId}`,
       width: '70vw',
       modal: true,
       data: {
@@ -273,15 +287,15 @@ export class AuditDashboardComponent implements OnInit {
         window.URL.revokeObjectURL(url);
         this.messageService.add({
           severity: 'success',
-          summary: 'Export Complete',
-          detail: 'Audit logs exported successfully'
+          summary: this.i18n.t('audit.dashboard.messages.exportCompleteSummary'),
+          detail: this.i18n.t('audit.dashboard.messages.exportSuccess')
         });
       },
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to export audit logs'
+          summary: this.i18n.t('audit.dashboard.messages.errorSummary'),
+          detail: this.i18n.t('audit.dashboard.messages.exportFailed')
         });
       }
     });

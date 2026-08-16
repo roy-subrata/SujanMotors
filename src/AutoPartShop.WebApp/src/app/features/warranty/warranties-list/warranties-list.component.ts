@@ -70,7 +70,7 @@ export class WarrantiesListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     readonly currencyService = inject(CurrencyService);
     private readonly authService = inject(AuthService);
-    private readonly i18n = inject(I18nService);
+    readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly statusDisplay = inject(StatusDisplayService);
 
@@ -115,11 +115,7 @@ export class WarrantiesListComponent implements OnInit {
     isLoadingOrder = false;
     selectedOrder: SalesOrderResponse | null = null;
     selectedLineId = '';
-    warrantyTypes = [
-        { label: 'Manufacturer Coverage', value: 'MANUFACTURER' },
-        { label: 'Seller Coverage', value: 'SELLER' },
-        { label: 'Extended Coverage', value: 'EXTENDED' }
-    ];
+    warrantyTypes: { label: string; value: string }[] = [];
     newWarranty = {
         warrantyStartDate: new Date(),
         warrantyPeriodMonths: 12,
@@ -138,8 +134,11 @@ export class WarrantiesListComponent implements OnInit {
 
     ngOnInit(): void {
         this.buildStatuses();
+        this.buildWarrantyTypes();
         this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.buildStatuses();
+            this.buildWarrantyTypes();
+            this.buildStats();
         });
         this.loadWarranties();
     }
@@ -152,6 +151,23 @@ export class WarrantiesListComponent implements OnInit {
             { label: this.i18n.t('warranties.statuses.claimed'),     value: 'CLAIMED' },
             { label: this.i18n.t('warranties.statuses.void'),        value: 'VOID' }
         ];
+    }
+
+    private buildWarrantyTypes(): void {
+        this.warrantyTypes = [
+            { label: this.i18n.t('warranties.warrantyTypes.manufacturer'), value: 'MANUFACTURER' },
+            { label: this.i18n.t('warranties.warrantyTypes.seller'),       value: 'SELLER' },
+            { label: this.i18n.t('warranties.warrantyTypes.extended'),     value: 'EXTENDED' }
+        ];
+    }
+
+    getWarrantyTypeLabel(type: string | null | undefined): string {
+        const map: Record<string, string> = {
+            'MANUFACTURER': this.i18n.t('warranties.warrantyTypes.manufacturer'),
+            'SELLER': this.i18n.t('warranties.warrantyTypes.seller'),
+            'EXTENDED': this.i18n.t('warranties.warrantyTypes.extended')
+        };
+        return map[(type || '').toUpperCase()] || type || '';
     }
 
     loadWarranties(): void {
@@ -179,11 +195,16 @@ export class WarrantiesListComponent implements OnInit {
         this.totalExpiringSoon = this.warranties.filter(w => w.status === 'ACTIVE' && w.daysUntilExpiry >= 0 && w.daysUntilExpiry <= 30).length;
         this.totalClaimed = this.warranties.filter(w => w.status === 'CLAIMED').length;
         this.totalVoid = this.warranties.filter(w => w.status === 'VOID').length;
+        this.buildStats();
+    }
+
+    /** Re-labels the stat strip from cached counts — called on load and on language switch. */
+    private buildStats(): void {
         this.stats = [
-            { label: 'Active', value: String(this.totalActive) },
-            { label: 'Expiring Soon', value: String(this.totalExpiringSoon) },
-            { label: 'Claimed', value: String(this.totalClaimed) },
-            { label: 'Voided', value: String(this.totalVoid) }
+            { label: this.i18n.t('warranties.statuses.active'), value: String(this.totalActive) },
+            { label: this.i18n.t('warranties.stats.expiringSoon'), value: String(this.totalExpiringSoon) },
+            { label: this.i18n.t('warranties.statuses.claimed'), value: String(this.totalClaimed) },
+            { label: this.i18n.t('warranties.stats.voided'), value: String(this.totalVoid) }
         ];
     }
 

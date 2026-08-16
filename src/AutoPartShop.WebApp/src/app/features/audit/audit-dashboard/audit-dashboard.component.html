@@ -7,16 +7,16 @@
       <div class="header-title-section">
         <h1 class="header-title">
           <i class="pi pi-history mr-3"></i>
-          Audit Trail Dashboard
+          {{ i18n.t('audit.dashboard.title') }}
         </h1>
-        <p class="header-subtitle">Monitor system activity and track changes across all entities</p>
+        <p class="header-subtitle">{{ i18n.t('audit.dashboard.subtitle') }}</p>
       </div>
       <div class="header-actions">
         <p-datepicker
           [(ngModel)]="dateRange"
           selectionMode="range"
           [showIcon]="true"
-          placeholder="Filter by date range"
+          [placeholder]="i18n.t('audit.dashboard.dateRangePlaceholder')"
           dateFormat="M dd, yy"
           [showButtonBar]="true"
           (onSelect)="onFilterChange()"
@@ -26,13 +26,13 @@
         <p-select
           [options]="entities"
           [(ngModel)]="selectedEntity"
-          placeholder="Filter by entity"
+          [placeholder]="i18n.t('audit.dashboard.entityPlaceholder')"
           [showClear]="true"
           (onChange)="onFilterChange()"
           class="entity-dropdown">
         </p-select>
-        <button pButton type="button" label="Export" icon="pi pi-download" class="p-button-outlined" (click)="exportDashboard()"></button>
-        <button pButton type="button" label="Refresh" icon="pi pi-refresh" class="p-button-outlined" (click)="loadDashboard()"></button>
+        <button pButton type="button" [label]="i18n.t('audit.dashboard.export')" icon="pi pi-download" class="p-button-outlined" (click)="exportDashboard()"></button>
+        <button pButton type="button" [label]="i18n.t('audit.dashboard.refresh')" icon="pi pi-refresh" class="p-button-outlined" (click)="loadDashboard()"></button>
       </div>
     </div>
   </div>
@@ -61,7 +61,7 @@
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ dashboard.overview.totalChangesToday | number }}</span>
-              <span class="stat-label">Changes Today</span>
+              <span class="stat-label">{{ i18n.t('audit.dashboard.changesToday') }}</span>
             </div>
           </div>
         </p-card>
@@ -76,7 +76,7 @@
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ dashboard.overview.totalChangesThisWeek | number }}</span>
-              <span class="stat-label">This Week</span>
+              <span class="stat-label">{{ i18n.t('audit.dashboard.thisWeek') }}</span>
             </div>
           </div>
         </p-card>
@@ -91,7 +91,7 @@
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ dashboard.overview.uniqueUsersToday | number }}</span>
-              <span class="stat-label">Active Users Today</span>
+              <span class="stat-label">{{ i18n.t('audit.dashboard.activeUsersToday') }}</span>
             </div>
           </div>
         </p-card>
@@ -106,7 +106,7 @@
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ dashboard.overview.totalChangesAllTime | number }}</span>
-              <span class="stat-label">Total Records</span>
+              <span class="stat-label">{{ i18n.t('audit.dashboard.totalRecords') }}</span>
             </div>
           </div>
         </p-card>
@@ -117,7 +117,7 @@
     <div class="grid grid-cols-12 gap-4 mb-4">
       <!-- Activity Trend Chart -->
       <div class="col-span-12 lg:col-span-8">
-        <p-card header="Activity Trend (Last 30 Days)" styleClass="chart-card">
+        <p-card [header]="i18n.t('audit.dashboard.activityTrendChartTitle')" styleClass="chart-card">
           <div class="chart-container">
             <p-chart type="line" [data]="trendChartData" [options]="trendChartOptions" height="300px"></p-chart>
           </div>
@@ -126,7 +126,7 @@
 
       <!-- Action Distribution -->
       <div class="col-span-12 lg:col-span-4">
-        <p-card header="Action Distribution" styleClass="chart-card">
+        <p-card [header]="i18n.t('audit.dashboard.actionDistributionTitle')" styleClass="chart-card">
           <div class="chart-container pie-chart">
             <p-chart type="doughnut" [data]="actionPieData" [options]="actionPieOptions" height="250px"></p-chart>
           </div>
@@ -138,7 +138,7 @@
     <div class="grid grid-cols-12 gap-4 mb-4">
       <!-- Hourly Distribution -->
       <div class="col-span-12 lg:col-span-6">
-        <p-card header="Hourly Activity Distribution" styleClass="chart-card">
+        <p-card [header]="i18n.t('audit.dashboard.hourlyActivityTitle')" styleClass="chart-card">
           <div class="chart-container">
             <p-chart type="bar" [data]="hourlyChartData" [options]="hourlyChartOptions" height="250px"></p-chart>
           </div>
@@ -147,18 +147,18 @@
 
       <!-- Top Entities -->
       <div class="col-span-12 lg:col-span-3">
-        <p-card header="Top Entities" styleClass="list-card">
+        <p-card [header]="i18n.t('audit.dashboard.topEntitiesTitle')" styleClass="list-card">
           <div class="top-list">
             <div class="top-item" *ngFor="let entity of dashboard.topEntities; let i = index">
               <div class="top-rank">{{ i + 1 }}</div>
               <div class="top-info">
                 <span class="top-name">{{ entity.entityName }}</span>
-                <span class="top-count">{{ entity.changeCount | number }} changes</span>
+                <span class="top-count">{{ entity.changeCount | number }} {{ i18n.t('audit.dashboard.changesSuffix') }}</span>
               </div>
             </div>
             <div class="empty-state" *ngIf="dashboard.topEntities.length === 0">
               <i class="pi pi-inbox"></i>
-              <span>No data available</span>
+              <span>{{ i18n.t('audit.dashboard.noDataAvailable') }}</span>
             </div>
           </div>
         </p-card>
@@ -166,18 +166,18 @@
 
       <!-- Top Users -->
       <div class="col-span-12 lg:col-span-3">
-        <p-card header="Top Users" styleClass="list-card">
+        <p-card [header]="i18n.t('audit.dashboard.topUsersTitle')" styleClass="list-card">
           <div class="top-list">
             <div class="top-item" *ngFor="let user of dashboard.topUsers; let i = index">
               <div class="top-rank">{{ i + 1 }}</div>
               <div class="top-info">
                 <span class="top-name">{{ user.userName }}</span>
-                <span class="top-count">{{ user.activityCount | number }} actions</span>
+                <span class="top-count">{{ user.activityCount | number }} {{ i18n.t('audit.dashboard.actionsSuffix') }}</span>
               </div>
             </div>
             <div class="empty-state" *ngIf="dashboard.topUsers.length === 0">
               <i class="pi pi-inbox"></i>
-              <span>No data available</span>
+              <span>{{ i18n.t('audit.dashboard.noDataAvailable') }}</span>
             </div>
           </div>
         </p-card>
@@ -190,9 +190,9 @@
         <p-card styleClass="recent-activity-card">
           <ng-template pTemplate="header">
             <div class="card-header">
-              <h3>Recent Activity</h3>
+              <h3>{{ i18n.t('audit.dashboard.recentActivityTitle') }}</h3>
               <a routerLink="/audit/logs" class="view-all-link">
-                View All Logs <i class="pi pi-arrow-right"></i>
+                {{ i18n.t('audit.dashboard.viewAllLogs') }} <i class="pi pi-arrow-right"></i>
               </a>
             </div>
           </ng-template>
@@ -200,12 +200,12 @@
           <p-table [value]="dashboard.recentActivity" [rows]="10" styleClass="p-datatable-sm p-datatable-striped">
             <ng-template pTemplate="header">
               <tr>
-                <th class="col-time">Time</th>
-                <th class="col-entity">Entity</th>
-                <th class="col-action">Action</th>
-                <th class="col-property">Property</th>
-                <th class="col-user">User</th>
-                <th class="col-actions">Actions</th>
+                <th class="col-time">{{ i18n.t('audit.dashboard.columns.time') }}</th>
+                <th class="col-entity">{{ i18n.t('audit.dashboard.columns.entity') }}</th>
+                <th class="col-action">{{ i18n.t('audit.dashboard.columns.action') }}</th>
+                <th class="col-property">{{ i18n.t('audit.dashboard.columns.property') }}</th>
+                <th class="col-user">{{ i18n.t('audit.dashboard.columns.user') }}</th>
+                <th class="col-actions">{{ i18n.t('audit.dashboard.columns.actions') }}</th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-log>
@@ -231,7 +231,7 @@
                 </td>
                 <td class="col-actions">
                   <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm"
-                    pTooltip="View Timeline" (click)="viewEntityTimeline(log)"></button>
+                    [pTooltip]="i18n.t('audit.dashboard.viewTimelineTooltip')" (click)="viewEntityTimeline(log)"></button>
                 </td>
               </tr>
             </ng-template>
@@ -240,7 +240,7 @@
                 <td colspan="6" class="text-center p-4">
                   <div class="empty-state">
                     <i class="pi pi-inbox"></i>
-                    <p>No recent activity</p>
+                    <p>{{ i18n.t('audit.dashboard.noRecentActivity') }}</p>
                   </div>
                 </td>
               </tr>
