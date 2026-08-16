@@ -104,7 +104,7 @@
             <td class="col-customer"><span class="customer-name" (click)="viewDetails(payment)">{{ payment.customerName }}</span></td>
             <td class="col-amount"><span class="amount-value">{{ payment.amount | appCurrency }}</span></td>
             <td class="col-date"><span class="date-text">{{ payment.paymentDate | date:'MMM dd, yyyy' }}</span></td>
-            <td class="col-method"><p-tag [value]="payment.paymentMethod" [severity]="getMethodSeverity(payment.paymentMethod)"></p-tag></td>
+            <td class="col-method"><p-tag [value]="methodLabel(payment.paymentMethod)" [severity]="getMethodSeverity(payment.paymentMethod)"></p-tag></td>
             <td class="col-status"><p-tag [value]="formatStatus(payment.status)" [severity]="getStatusSeverity(payment.status)"></p-tag></td>
             <td class="col-provider"><span class="text-muted">{{ payment.providerName || '-' }}</span></td>
             <td class="col-invoice">
@@ -168,7 +168,7 @@
         <div class="card-body">
           <div class="card-meta">
             <span class="card-meta-item"><i class="pi pi-calendar"></i> {{ payment.paymentDate | date:'MMM dd, yyyy' }}</span>
-            <span class="card-meta-item"><i class="pi pi-credit-card"></i> {{ payment.paymentMethod }}</span>
+            <span class="card-meta-item"><i class="pi pi-credit-card"></i> {{ methodLabel(payment.paymentMethod) }}</span>
             <span *ngIf="payment.invoiceNumber" class="card-meta-item"><i class="pi pi-file"></i> {{ payment.invoiceNumber }}</span>
           </div>
         </div>

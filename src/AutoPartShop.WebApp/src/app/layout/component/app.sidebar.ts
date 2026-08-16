@@ -17,6 +17,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { MenuModule } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
 import { AppMenuComponent } from './app-menu/app.menu.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 interface NavSearchResult {
     label: string;
@@ -27,7 +28,7 @@ interface NavSearchResult {
 @Component({
     selector: 'app-sidebar',
     standalone: true,
-    imports: [CommonModule, FormsModule, AppMenuComponent, AvatarModule, TooltipModule, MenuModule],
+    imports: [CommonModule, FormsModule, AppMenuComponent, AvatarModule, TooltipModule, MenuModule, TranslatePipe],
     template: `
         <div class="layout-sidebar" [class.collapsed]="isCollapsed()">
             <!-- Logo and Toggle -->
@@ -44,7 +45,7 @@ interface NavSearchResult {
                     }
                     <div class="logo-text-group">
                         <span class="logo-text">{{ branding.appName() }}</span>
-                        <span class="logo-subtitle">{{ branding.tagline() || 'Auto Parts POS' }}</span>
+                        <span class="logo-subtitle">{{ branding.tagline() || ('common.labels.defaultTagline' | translate) }}</span>
                     </div>
                 </div>
                 <button

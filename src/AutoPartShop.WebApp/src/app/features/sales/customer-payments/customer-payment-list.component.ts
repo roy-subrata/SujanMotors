@@ -647,6 +647,14 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
         return this.statusDisplay.getSeverity(status, 'customer-payment');
     }
 
+    /** Payment-method enum -> localized label, falling back to the raw value. */
+    methodLabel(method: string | undefined): string {
+        if (!method) return '';
+        const key = 'paymentMethods.pos.' + method;
+        const label = this.i18n.t(key);
+        return label === key ? method : label;
+    }
+
     getMethodSeverity(method: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
         switch (method?.toUpperCase()) {
             case 'CASH': return 'success';

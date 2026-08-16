@@ -32,6 +32,14 @@ export class InvoicePrintComponent implements OnInit {
     return this.i18n.t(this.isChallan ? 'invoicePrint.deliveryChallan' : 'invoicePrint.taxInvoice');
   }
 
+  /** Payment-method enum -> localized label, falling back to the raw value. */
+  methodLabel(method: string | undefined): string {
+    if (!method) return '';
+    const key = 'paymentMethods.pos.' + method;
+    const label = this.i18n.t(key);
+    return label === key ? method : label;
+  }
+
   /** Server enum -> localized label, falling back to the raw value when untranslated. */
   statusLabel(status: string | undefined): string {
     if (!status) return '';

@@ -8,7 +8,7 @@
   <div *ngIf="loading() || checkingTillSession()" class="loading-overlay">
     <div class="loading-content">
       <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: var(--pos-primary);"></i>
-      <h3>{{ checkingTillSession() ? 'Checking till session...' : 'Loading Quick Sale...' }}</h3>
+      <h3>{{ (checkingTillSession() ? 'pos.checkingTillSession' : 'pos.loadingQuickSale') | translate }}</h3>
     </div>
   </div>
 
@@ -486,7 +486,7 @@
           <div class="pay-btn-inner">
             <div class="pay-btn-label">
               <i class="pi pi-check-circle"></i>
-              <span>{{ saving() ? 'Processing…' : hasDuePayments() ? 'Complete (Due Sale)' : 'Complete Sale' }}</span>
+              <span>{{ (saving() ? 'pos.processing' : hasDuePayments() ? 'pos.completeDueSale' : 'pos.completeSale') | translate }}</span>
             </div>
             @if (cartItems().length > 0) {
               <div class="pay-btn-amount">{{ formatCurrency(grandTotal()) }}</div>

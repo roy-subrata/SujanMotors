@@ -311,7 +311,8 @@
       "addressInformation": "ঠিকানার তথ্য",
       "additionalInformation": "অতিরিক্ত তথ্য",
       "edit": "সম্পাদনা",
-      "view": "দেখুন"
+      "view": "দেখুন",
+      "defaultTagline": "অটো পার্টস পিওএস"
     },
     "time": {
       "justNow": "এইমাত্র",
@@ -4240,7 +4241,13 @@
       "MOBILE_BANKING": "মোবাইল ব্যাংকিং",
       "CARD": "কার্ড পেমেন্ট",
       "DUE": "বাকি/ধার",
-      "PART_PAY": "আংশিক পেমেন্ট"
+      "PART_PAY": "আংশিক পেমেন্ট",
+      "CREDIT_CARD": "ক্রেডিট কার্ড",
+      "DEBIT_CARD": "ডেবিট কার্ড",
+      "BANK_TRANSFER": "ব্যাংক ট্রান্সফার",
+      "CHEQUE": "চেক",
+      "UPI": "ইউপিআই",
+      "NEFT": "এনইএফটি"
     }
   },
   "tillSessions": {
@@ -5224,6 +5231,11 @@
     "semantic": "সিমান্টিক",
     "semanticPlaceholder": "পার্টটি বর্ণনা করুন (যেমন টয়োটার সামনের ব্রেক প্যাড)…",
     "stockSearchPlaceholder": "নাম, এসকেইউ, পার্ট নং বা ওইএম দিয়ে খুঁজুন…",
-    "search": "অনুসন্ধান"
+    "search": "অনুসন্ধান",
+    "checkingTillSession": "টিল সেশন যাচাই করা হচ্ছে...",
+    "loadingQuickSale": "কুইক সেল লোড হচ্ছে...",
+    "processing": "প্রক্রিয়া করা হচ্ছে…",
+    "completeDueSale": "সম্পন্ন করুন (বাকিতে বিক্রয়)",
+    "completeSale": "বিক্রয় সম্পন্ন করুন"
   }
 }

@@ -153,7 +153,7 @@
         <tbody>
           <tr *ngFor="let p of (invoice()!.payments ?? [])">
             <td>{{ formatDate(p.paymentDate) }}</td>
-            <td>{{ p.paymentMethod }}</td>
+            <td>{{ methodLabel(p.paymentMethod) }}</td>
             <td style="color:var(--color-text-muted)">{{ p.referenceNumber || '—' }}</td>
             <td class="amount-cell">{{ formatCurrency(p.amount) }}</td>
           </tr>

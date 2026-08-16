@@ -311,7 +311,8 @@
       "addressInformation": "Address Information",
       "additionalInformation": "Additional Information",
       "edit": "Edit",
-      "view": "View"
+      "view": "View",
+      "defaultTagline": "Auto Parts POS"
     },
     "time": {
       "justNow": "just now",
@@ -4240,7 +4241,13 @@
       "MOBILE_BANKING": "Mobile Banking",
       "CARD": "Card Payment",
       "DUE": "Credit/Due",
-      "PART_PAY": "Partial Payment"
+      "PART_PAY": "Partial Payment",
+      "CREDIT_CARD": "Credit Card",
+      "DEBIT_CARD": "Debit Card",
+      "BANK_TRANSFER": "Bank Transfer",
+      "CHEQUE": "Cheque",
+      "UPI": "UPI",
+      "NEFT": "NEFT"
     }
   },
   "tillSessions": {
@@ -5224,6 +5231,11 @@
     "semantic": "Semantic",
     "semanticPlaceholder": "Describe the part (e.g. front brake pad for toyota)…",
     "stockSearchPlaceholder": "Search by name, SKU, part no, or OEM…",
-    "search": "Search"
+    "search": "Search",
+    "checkingTillSession": "Checking till session...",
+    "loadingQuickSale": "Loading Quick Sale...",
+    "processing": "Processing…",
+    "completeDueSale": "Complete (Due Sale)",
+    "completeSale": "Complete Sale"
   }
 }
