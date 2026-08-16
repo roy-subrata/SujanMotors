@@ -5,6 +5,12 @@
  * new component. Bespoke pages (e.g. Profit & Loss statement) get their own component.
  *
  * Keep column lists in sync with the API's ReportColumnMaps (export column definitions).
+ *
+ * i18n: every user-facing string in these configs (title, subtitle, itemLabel, filter labels and
+ * placeholders, select option labels, column headers, totals labels, chart series labels) holds an
+ * i18n **key**, not literal text. Keys are resolved through I18nService.t() at render time by the
+ * consuming component/template so they react to language switches — never call t() while building
+ * these arrays (that would freeze the strings at module load).
  */
 
 export type ReportGroup = 'sales' | 'inventory' | 'purchase' | 'financial';
@@ -12,6 +18,7 @@ export type ReportGroup = 'sales' | 'inventory' | 'purchase' | 'financial';
 export interface ReportColumnDef {
     /** camelCase field name on the row object returned by the API. */
     field: string;
+    /** i18n key for the column header. */
     header: string;
     type?: 'text' | 'number' | 'money' | 'percent' | 'date';
     /** Used as the card title in the mobile card view. */
@@ -19,6 +26,7 @@ export interface ReportColumnDef {
 }
 
 export interface ReportSelectOption {
+    /** i18n key when the option comes from a config; already-resolved text for API-fed lookups. */
     label: string;
     /** Number for numeric ReportQuery fields (e.g. daysAhead) so it serializes as a JSON number, not a string. */
     value: string | number;
@@ -28,12 +36,14 @@ export interface ReportFilterDef {
     kind: 'dateRange' | 'search' | 'select' | 'lookup' | 'checkbox';
     /** ReportQuery property the value is posted as (ignored for dateRange/search). */
     key: string;
+    /** i18n key for the filter label. */
     label: string;
     /** For kind 'lookup': which reference list fills the dropdown. */
     lookup?: 'warehouse' | 'category' | 'brand';
     /** For kind 'select': static options. */
     options?: ReportSelectOption[];
     default?: unknown;
+    /** i18n key for the input placeholder. */
     placeholder?: string;
 }
 
@@ -41,12 +51,14 @@ export interface ReportChartDef {
     type: 'line' | 'bar' | 'pie' | 'doughnut';
     labelField: string;
     labelType?: 'date' | 'text';
+    /** `label` is an i18n key for the series legend. */
     series: { field: string; label: string }[];
 }
 
 /** One entry of the grand-totals strip shown above the table (reports with hasTotals). */
 export interface ReportTotalDef {
     field: string;
+    /** i18n key for the totals-card label. */
     label: string;
     type?: 'money' | 'number';
 }
@@ -55,7 +67,9 @@ export interface ReportPageConfig {
     /** Route segment: /reports/<key>. */
     key: string;
     group: ReportGroup;
+    /** i18n key for the report title. */
     title: string;
+    /** i18n key for the report subtitle. */
     subtitle: string;
     /** PrimeIcons class shown on the hub card. */
     icon: string;
@@ -73,6 +87,6 @@ export interface ReportPageConfig {
     columns: ReportColumnDef[];
     chart?: ReportChartDef;
     totals?: ReportTotalDef[];
-    /** Pagination noun, e.g. 'products'. */
+    /** i18n key for the pagination noun, e.g. 'reports.items.products'. */
     itemLabel?: string;
 }

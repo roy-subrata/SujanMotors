@@ -4,22 +4,22 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    [title]="config.title"
-    [subtitle]="config.subtitle"
-    [count]="totalRecords" [countLabel]="config.itemLabel || 'rows'"
+    [title]="i18n.t(config.title)"
+    [subtitle]="i18n.t(config.subtitle)"
+    [count]="totalRecords" [countLabel]="itemLabel"
     [backLink]="['/reports']">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadData()">
+      <button class="btn-icon" [pTooltip]="i18n.t('common.actions.refresh')" tooltipPosition="bottom" (click)="loadData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <ng-container *appHasPermission="'reports.export'">
         <button class="btn-secondary" (click)="export('xlsx')" [disabled]="exporting !== null || loading">
           <i [class]="exporting === 'xlsx' ? 'pi pi-spin pi-spinner' : 'pi pi-file-excel'"></i>
-          <span>Excel</span>
+          <span>{{ i18n.t('reports.actions.excel') }}</span>
         </button>
         <button class="btn-secondary" (click)="export('pdf')" [disabled]="exporting !== null || loading">
           <i [class]="exporting === 'pdf' ? 'pi pi-spin pi-spinner' : 'pi pi-file-pdf'"></i>
-          <span>PDF</span>
+          <span>{{ i18n.t('reports.actions.pdf') }}</span>
         </button>
       </ng-container>
     </ng-container>
@@ -46,11 +46,11 @@
 
     @if (hasDateRange) {
       <div filters class="filter-group">
-        <label class="filter-label">Date Range</label>
+        <label class="filter-label">{{ i18n.t('reports.filters.dateRange') }}</label>
         <p-datepicker
           [(ngModel)]="dateRange"
           selectionMode="range"
-          placeholder="Select date range"
+          [placeholder]="i18n.t('reports.filters.selectDateRange')"
           dateFormat="dd M yy"
           [showIcon]="true"
           [showButtonBar]="true"
@@ -63,11 +63,11 @@
 
     @for (filter of selectFilters; track filter.key) {
       <div filters class="filter-group">
-        <label class="filter-label">{{ filter.label }}</label>
+        <label class="filter-label">{{ i18n.t(filter.label) }}</label>
         <p-select
           [options]="optionsFor(filter)"
           [(ngModel)]="filterValues[filter.key]"
-          [placeholder]="filter.placeholder || 'All'"
+          [placeholder]="i18n.t(filter.placeholder || 'common.status.all')"
           [showClear]="filter.default === undefined"
           [filter]="optionsFor(filter).length > 10"
           (onChange)="onFilterChange()"
@@ -85,18 +85,18 @@
           [inputId]="filter.key"
           (onChange)="onFilterChange()">
         </p-checkbox>
-        <label class="filter-label" [for]="filter.key">{{ filter.label }}</label>
+        <label class="filter-label" [for]="filter.key">{{ i18n.t(filter.label) }}</label>
       </div>
     }
 
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Run
+        {{ i18n.t('reports.actions.run') }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ i18n.t('common.actions.clear') }}
       </button>
     </div>
   </app-filter-bar>
@@ -106,7 +106,7 @@
     <section class="totals-strip">
       @for (total of config.totals ?? []; track total.field) {
         <div class="totals-card">
-          <span class="totals-label">{{ total.label }}</span>
+          <span class="totals-label">{{ i18n.t(total.label) }}</span>
           <span class="totals-value">
             @if (total.type === 'money') {
               {{ (totals[total.field] | number:'1.2-2') || '0.00' }}
@@ -142,7 +142,7 @@
           <tr>
             @for (col of config.columns; track col.field) {
               <th [class.col-amount]="col.type === 'money' || col.type === 'number' || col.type === 'percent'">
-                {{ col.header }}
+                {{ i18n.t(col.header) }}
               </th>
             }
           </tr>
@@ -179,7 +179,7 @@
             <td [attr.colspan]="config.columns.length">
               <div class="empty-state">
                 <i class="pi pi-chart-bar"></i>
-                <p>No data for the selected filters</p>
+                <p>{{ i18n.t('reports.empty.noFilterData') }}</p>
               </div>
             </td>
           </tr>
@@ -199,7 +199,7 @@
     } @else if (rows.length === 0) {
       <div class="empty-state">
         <i class="pi pi-chart-bar"></i>
-        <p>No data for the selected filters</p>
+        <p>{{ i18n.t('reports.empty.noFilterData') }}</p>
       </div>
     } @else {
       @for (row of rows; track $index) {
@@ -217,7 +217,7 @@
             @for (col of config.columns; track col.field) {
               @if (col.field !== mobilePrimaryField) {
                 <div class="order-card-row">
-                  <span class="row-label">{{ col.header }}</span>
+                  <span class="row-label">{{ i18n.t(col.header) }}</span>
                   <span class="row-value">
                     @switch (col.type) {
                       @case ('money') {
@@ -251,7 +251,7 @@
     <app-data-pagination
       [first]="first" [pageSize]="pageSize" [totalRecords]="totalRecords"
       [pageSizeOptions]="[10, 20, 50, 100]"
-      [itemLabel]="config.itemLabel || 'rows'"
+      [itemLabel]="itemLabel"
       (pageChange)="goToPage($event)" (pageSizeChange)="onPageSizeChange($event)">
     </app-data-pagination>
   }

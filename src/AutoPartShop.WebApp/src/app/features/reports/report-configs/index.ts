@@ -20,16 +20,17 @@ export const REPORT_REGISTRY: ReadonlyMap<string, ReportPageConfig> =
 
 export interface ReportGroupInfo {
     group: ReportGroup;
+    /** i18n key for the group heading, resolved at render time by the hub. */
     title: string;
     icon: string;
     reports: ReportPageConfig[];
 }
 
 const GROUP_META: { group: ReportGroup; title: string; icon: string }[] = [
-    { group: 'sales', title: 'Sales Reports', icon: 'pi pi-shopping-cart' },
-    { group: 'inventory', title: 'Inventory Reports', icon: 'pi pi-warehouse' },
-    { group: 'purchase', title: 'Purchase Reports', icon: 'pi pi-truck' },
-    { group: 'financial', title: 'Financial Reports', icon: 'pi pi-wallet' }
+    { group: 'sales', title: 'reports.groups.sales', icon: 'pi pi-shopping-cart' },
+    { group: 'inventory', title: 'reports.groups.inventory', icon: 'pi pi-warehouse' },
+    { group: 'purchase', title: 'reports.groups.purchase', icon: 'pi pi-truck' },
+    { group: 'financial', title: 'reports.groups.financial', icon: 'pi pi-wallet' }
 ];
 
 /** Groups that currently have reports, for the hub page. */

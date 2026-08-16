@@ -9,6 +9,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { REPORT_GROUPS, ReportGroupInfo } from '../report-configs';
 import { DashboardService, FinancialSummaryResponse, TopProductDto } from '../../dashboard/services/dashboard.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 /**
  * Reports hub: category cards linking to every configured report page,
@@ -26,14 +27,18 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 export class ReportsHubComponent implements OnInit {
     private readonly dashboardService = inject(DashboardService);
     private readonly currencyService = inject(CurrencyService);
+    readonly i18n = inject(I18nService);
 
     readonly groups: ReportGroupInfo[] = REPORT_GROUPS;
 
-    /** Existing report-grade pages elsewhere in the app, surfaced here for discoverability. */
+    /**
+     * Existing report-grade pages elsewhere in the app, surfaced here for discoverability.
+     * `title` holds an i18n key resolved in the template so it follows language switches.
+     */
     readonly relatedReports = [
-        { title: 'Daily Cash Book', icon: 'pi pi-book', link: '/finance/cash-book' },
-        { title: 'Customer Statements', icon: 'pi pi-user', link: '/sales/customer-account-summary' },
-        { title: 'Supplier Statements', icon: 'pi pi-truck', link: '/procurement/supplier-account-summary' }
+        { title: 'reports.hub.dailyCashBook', icon: 'pi pi-book', link: '/finance/cash-book' },
+        { title: 'reports.hub.customerStatements', icon: 'pi pi-user', link: '/sales/customer-account-summary' },
+        { title: 'reports.hub.supplierStatements', icon: 'pi pi-truck', link: '/procurement/supplier-account-summary' }
     ];
 
     // KPI strip + top movers (this month, same default period as the Dashboard)
@@ -85,12 +90,12 @@ export class ReportsHubComponent implements OnInit {
                     labels: trend.map(t => new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
                     datasets: [
                         {
-                            label: 'Sales',
+                            label: this.i18n.t('reports.hub.sales'),
                             data: trend.map(t => t.sales),
                             backgroundColor: '#3b82f6'
                         },
                         {
-                            label: 'Purchases',
+                            label: this.i18n.t('reports.hub.purchases'),
                             data: trend.map(t => t.purchases),
                             backgroundColor: '#f59e0b'
                         }

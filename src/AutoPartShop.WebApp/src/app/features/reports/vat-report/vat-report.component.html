@@ -3,17 +3,17 @@
 <app-page-container>
 
   <app-page-header
-    title="VAT Report"
-    subtitle="Output VAT (sales) vs. input VAT (purchases) reconciliation for the period"
+    [title]="i18n.t('reports.vat.title')"
+    [subtitle]="i18n.t('reports.vat.subtitle')"
     [backLink]="['/reports']">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
+      <button class="btn-icon" [pTooltip]="i18n.t('common.actions.refresh')" tooltipPosition="bottom" (click)="load()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <ng-container *appHasPermission="'reports.export'">
         <button class="btn-secondary" (click)="downloadPdf()" [disabled]="downloading || loading || !report">
           <i [class]="downloading ? 'pi pi-spin pi-spinner' : 'pi pi-file-pdf'"></i>
-          <span>Download PDF</span>
+          <span>{{ i18n.t('reports.actions.downloadPdf') }}</span>
         </button>
       </ng-container>
     </ng-container>
@@ -21,11 +21,11 @@
 
   <div class="report-filter">
     <div class="filter-item">
-      <label class="filter-label">Period</label>
+      <label class="filter-label">{{ i18n.t('reports.filters.period') }}</label>
       <p-datepicker
         [(ngModel)]="dateRange"
         selectionMode="range"
-        placeholder="Select date range"
+        [placeholder]="i18n.t('reports.filters.selectDateRange')"
         dateFormat="dd M yy"
         [showIcon]="true"
         [showButtonBar]="true"
@@ -35,7 +35,7 @@
       </p-datepicker>
     </div>
     <div class="filter-item">
-      <label class="filter-label">VAT Rate %</label>
+      <label class="filter-label">{{ i18n.t('reports.vat.vatRatePercent') }}</label>
       <p-inputNumber
         [(ngModel)]="vatRatePercent"
         suffix="%"
@@ -58,35 +58,35 @@
   } @else if (report) {
     <div class="report-statement">
       <section class="report-section">
-        <h3>Output VAT — Sales</h3>
-        <div class="report-row"><span>Taxable Value</span><span class="amount-value">{{ report.salesTaxableValue | number:'1.2-2' }}</span></div>
-        <div class="report-row"><span>Invoice Count</span><span class="amount-value">{{ report.salesInvoiceCount }}</span></div>
-        <div class="report-row report-row-total"><span>Sales VAT Amount</span><span class="amount-value">{{ report.salesVatAmount | number:'1.2-2' }}</span></div>
+        <h3>{{ i18n.t('reports.vat.outputVatSales') }}</h3>
+        <div class="report-row"><span>{{ i18n.t('reports.vat.taxableValue') }}</span><span class="amount-value">{{ report.salesTaxableValue | number:'1.2-2' }}</span></div>
+        <div class="report-row"><span>{{ i18n.t('reports.vat.invoiceCount') }}</span><span class="amount-value">{{ report.salesInvoiceCount }}</span></div>
+        <div class="report-row report-row-total"><span>{{ i18n.t('reports.vat.salesVatAmount') }}</span><span class="amount-value">{{ report.salesVatAmount | number:'1.2-2' }}</span></div>
       </section>
 
       <section class="report-section">
-        <h3>Less: Credit Note VAT</h3>
-        <div class="report-row"><span>Taxable Value</span><span class="amount-value">{{ report.creditTaxableValue | number:'1.2-2' }}</span></div>
-        <div class="report-row report-row-total"><span>Credit VAT Amount</span><span class="amount-value">{{ report.creditVatAmount | number:'1.2-2' }}</span></div>
+        <h3>{{ i18n.t('reports.vat.lessCreditNoteVat') }}</h3>
+        <div class="report-row"><span>{{ i18n.t('reports.vat.taxableValue') }}</span><span class="amount-value">{{ report.creditTaxableValue | number:'1.2-2' }}</span></div>
+        <div class="report-row report-row-total"><span>{{ i18n.t('reports.vat.creditVatAmount') }}</span><span class="amount-value">{{ report.creditVatAmount | number:'1.2-2' }}</span></div>
       </section>
 
       <section class="report-section">
-        <h3>Less: Input VAT — Purchases</h3>
-        <div class="report-row"><span>Taxable Value</span><span class="amount-value">{{ report.purchaseTaxableValue | number:'1.2-2' }}</span></div>
-        <div class="report-row"><span>Purchase Order Count</span><span class="amount-value">{{ report.purchaseOrderCount }}</span></div>
-        <div class="report-row report-row-total"><span>Purchase VAT Amount</span><span class="amount-value">{{ report.purchaseVatAmount | number:'1.2-2' }}</span></div>
+        <h3>{{ i18n.t('reports.vat.lessInputVatPurchases') }}</h3>
+        <div class="report-row"><span>{{ i18n.t('reports.vat.taxableValue') }}</span><span class="amount-value">{{ report.purchaseTaxableValue | number:'1.2-2' }}</span></div>
+        <div class="report-row"><span>{{ i18n.t('reports.vat.purchaseOrderCount') }}</span><span class="amount-value">{{ report.purchaseOrderCount }}</span></div>
+        <div class="report-row report-row-total"><span>{{ i18n.t('reports.vat.purchaseVatAmount') }}</span><span class="amount-value">{{ report.purchaseVatAmount | number:'1.2-2' }}</span></div>
       </section>
 
       <section class="report-section report-section-highlight">
-        <h3>Reconciliation</h3>
-        <p class="report-note">Net VAT Payable = Sales VAT − Credit Note VAT − Purchase VAT</p>
-        <div class="report-row report-row-total"><span>Net VAT Payable</span><span class="amount-value">{{ report.netVatPayable | number:'1.2-2' }}</span></div>
+        <h3>{{ i18n.t('reports.vat.reconciliation') }}</h3>
+        <p class="report-note">{{ i18n.t('reports.vat.reconciliationNote') }}</p>
+        <div class="report-row report-row-total"><span>{{ i18n.t('reports.vat.netVatPayable') }}</span><span class="amount-value">{{ report.netVatPayable | number:'1.2-2' }}</span></div>
       </section>
     </div>
   } @else {
     <div class="empty-state">
       <i class="pi pi-percentage"></i>
-      <p>No data for the selected period</p>
+      <p>{{ i18n.t('reports.empty.noPeriodData') }}</p>
     </div>
   }
 
