@@ -33,6 +33,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-customer-account-summary',
@@ -50,7 +52,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         LazyAutocompleteComponent,
         PageHeaderComponent,
         PageContainerComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './customer-account-summary.component.html',
@@ -65,6 +68,7 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
     private readonly destroy$ = new Subject<void>();
 
     // Filter state
@@ -144,8 +148,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
         if (!this.selectedCustomer) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Warning',
-                detail: 'Please select a customer',
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('customerAccountSummary.messages.selectCustomer'),
                 life: 3000
             });
             return;
@@ -184,12 +188,12 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                 },
                 error: (err) => {
                     console.error('Error loading account summary:', err);
-                    this.error.set('Failed to load account summary. Please try again.');
+                    this.error.set(this.i18n.t('customerAccountSummary.messages.loadSummaryFailed'));
                     this.loading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load customer account summary',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customerAccountSummary.messages.loadFailed'),
                         life: 5000
                     });
                 }
@@ -302,8 +306,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Success',
-                        detail: 'PDF downloaded successfully',
+                        summary: this.i18n.t('common.messages.success'),
+                        detail: this.i18n.t('customerAccountSummary.messages.pdfSuccess'),
                         life: 3000
                     });
                 },
@@ -311,8 +315,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to generate PDF. Please try again.',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customerAccountSummary.messages.pdfFailed'),
                         life: 5000
                     });
                 }
@@ -345,8 +349,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                     if (!printWindow) {
                         this.messageService.add({
                             severity: 'warn',
-                            summary: 'Pop-up blocked',
-                            detail: 'Please allow pop-ups for this site and try again.',
+                            summary: this.i18n.t('customerAccountSummary.messages.popupBlocked'),
+                            detail: this.i18n.t('customerAccountSummary.messages.popupBlockedDetail'),
                             life: 6000
                         });
                     }
@@ -355,8 +359,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to generate PDF for printing. Please try again.',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customerAccountSummary.messages.printFailed'),
                         life: 5000
                     });
                 }

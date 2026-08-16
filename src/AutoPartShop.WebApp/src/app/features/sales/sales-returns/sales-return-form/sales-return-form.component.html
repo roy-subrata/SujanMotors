@@ -9,16 +9,16 @@
         <div class="breadcrumb">
           <a (click)="cancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Sales Returns
+            {{ 'salesReturns.title' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : 'View' }}</span>
+          <span class="breadcrumb-current">{{ (mode() === 'create' ? 'salesReturnForm.breadcrumbNew' : 'salesReturnForm.breadcrumbView') | translate }}</span>
         </div>
         <h1 class="form-title">
-          {{ mode() === 'create' ? 'Create Sales Return' : 'View Sales Return' }}
+          {{ (mode() === 'create' ? 'salesReturnForm.createTitle' : 'salesReturnForm.viewTitle') | translate }}
         </h1>
         <p class="form-subtitle">
-          {{ mode() === 'create' ? 'Process a customer return for a sales order' : 'Sales return details' }}
+          {{ (mode() === 'create' ? 'salesReturnForm.createSubtitle' : 'salesReturnForm.viewSubtitle') | translate }}
         </p>
       </div>
     </div>
@@ -27,7 +27,7 @@
   <!-- Loading State -->
   <div *ngIf="loading()" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-    <p>Loading sales return...</p>
+    <p>{{ 'salesReturnForm.loading' | translate }}</p>
   </div>
 
   <!-- Error Alert -->
@@ -44,12 +44,12 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-file section-icon"></i>
-          Sales Order & Warehouse
+          {{ 'salesReturnForm.orderSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group full" *ngIf="mode() === 'create'">
-            <label>Sales Order *</label>
+            <label>{{ 'salesReturnForm.salesOrder' | translate }} *</label>
             <app-lazy-autocomplete
               [(ngModel)]="selectedSalesOrder"
               [ngModelOptions]="{standalone: true}"
@@ -57,7 +57,7 @@
               field="soNumber"
               optionLabel="soNumber"
               [showClear]="true"
-              placeholder="Search by order number or customer..."
+              [placeholder]="'salesReturnForm.salesOrderPlaceholder' | translate"
               [minLength]="0"
               (onItemSelect)="selectSalesOrder($event)">
               <ng-template let-order>
@@ -67,7 +67,7 @@
                     <span class="customer-item-code">{{ order.customerName }}</span>
                   </div>
                   <div class="customer-item-details">
-                    Date: {{ order.orderDate | date: 'short' }}
+                    {{ 'salesReturnForm.datePrefix' | translate }} {{ order.orderDate | date: 'short' }}
                     <span class="separator">&bull;</span>
                     {{ formatCurrency(order.grandTotal) }}
                   </div>
@@ -76,18 +76,18 @@
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              <span *ngIf="!selectedSalesOrder()">Select a sales order to create a return</span>
-              <span *ngIf="selectedSalesOrder()" class="success-text">Sales order selected</span>
+              <span *ngIf="!selectedSalesOrder()">{{ 'salesReturnForm.selectOrderHint' | translate }}</span>
+              <span *ngIf="selectedSalesOrder()" class="success-text">{{ 'salesReturnForm.orderSelected' | translate }}</span>
             </small>
             <small *ngIf="salesReturnForm.get('salesOrderId')?.invalid && salesReturnForm.get('salesOrderId')?.touched" class="p-error">
-              Sales Order is required
+              {{ 'salesReturnForm.salesOrderRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full" *ngIf="mode() === 'create'">
-            <label>Warehouse *</label>
+            <label>{{ 'salesReturnForm.warehouse' | translate }} *</label>
             <app-lazy-autocomplete
               [(ngModel)]="selectedWarehouse"
               [ngModelOptions]="{standalone: true}"
@@ -95,7 +95,7 @@
               field="name"
               optionLabel="name"
               [showClear]="true"
-              placeholder="Select warehouse..."
+              [placeholder]="'salesReturnForm.warehousePlaceholder' | translate"
               [minLength]="0"
               (onItemSelect)="selectWarehouse($event)">
               <ng-template let-warehouse>
@@ -112,11 +112,11 @@
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              <span *ngIf="!selectedWarehouse()">Select a warehouse for the return</span>
-              <span *ngIf="selectedWarehouse()" class="success-text">Warehouse: {{ selectedWarehouse()?.name }}</span>
+              <span *ngIf="!selectedWarehouse()">{{ 'salesReturnForm.selectWarehouseHint' | translate }}</span>
+              <span *ngIf="selectedWarehouse()" class="success-text">{{ 'salesReturnForm.warehouseSelected' | translate:{ name: selectedWarehouse()?.name || '' } }}</span>
             </small>
             <small *ngIf="salesReturnForm.get('warehouseId')?.invalid && salesReturnForm.get('warehouseId')?.touched" class="p-error">
-              Warehouse is required
+              {{ 'salesReturnForm.warehouseRequired' | translate }}
             </small>
           </div>
         </div>
@@ -126,50 +126,50 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-info-circle section-icon"></i>
-          Return Information
+          {{ 'salesReturnForm.infoSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Reason for Return *</label>
+            <label>{{ 'salesReturnForm.reasonLabel' | translate }} *</label>
             <select
               formControlName="reason"
               [class.input-error]="salesReturnForm.get('reason')?.invalid && salesReturnForm.get('reason')?.touched">
-              <option value="">Select reason...</option>
-              <option value="DAMAGED">Damaged</option>
-              <option value="DEFECTIVE">Defective</option>
-              <option value="WRONG_ITEM">Wrong Item</option>
-              <option value="EXCESS_STOCK">Excess Stock</option>
-              <option value="OTHER">Other</option>
+              <option value="">{{ 'salesReturnForm.reasonPlaceholder' | translate }}</option>
+              <option value="DAMAGED">{{ 'salesReturnForm.reasons.DAMAGED' | translate }}</option>
+              <option value="DEFECTIVE">{{ 'salesReturnForm.reasons.DEFECTIVE' | translate }}</option>
+              <option value="WRONG_ITEM">{{ 'salesReturnForm.reasons.WRONG_ITEM' | translate }}</option>
+              <option value="EXCESS_STOCK">{{ 'salesReturnForm.reasons.EXCESS_STOCK' | translate }}</option>
+              <option value="OTHER">{{ 'salesReturnForm.reasons.OTHER' | translate }}</option>
             </select>
             <small *ngIf="salesReturnForm.get('reason')?.invalid && salesReturnForm.get('reason')?.touched" class="p-error">
-              Reason is required
+              {{ 'salesReturnForm.reasonRequired' | translate }}
             </small>
           </div>
 
           <div class="form-group">
-            <label>Refund Type *</label>
+            <label>{{ 'salesReturnForm.refundTypeLabel' | translate }} *</label>
             <select
               formControlName="refundType"
               [class.input-error]="salesReturnForm.get('refundType')?.invalid && salesReturnForm.get('refundType')?.touched">
-              <option value="CASH_REFUND">Cash Refund</option>
-              <option value="STORE_CREDIT">Store Credit</option>
+              <option value="CASH_REFUND">{{ 'salesReturnForm.refundTypes.CASH_REFUND' | translate }}</option>
+              <option value="STORE_CREDIT">{{ 'salesReturnForm.refundTypes.STORE_CREDIT' | translate }}</option>
             </select>
             <small class="field-hint">
               <i class="pi" [class.pi-money-bill]="salesReturnForm.get('refundType')?.value === 'CASH_REFUND'" [class.pi-gift]="salesReturnForm.get('refundType')?.value === 'STORE_CREDIT'"></i>
-              <span *ngIf="salesReturnForm.get('refundType')?.value === 'CASH_REFUND'">Customer will receive cash back</span>
-              <span *ngIf="salesReturnForm.get('refundType')?.value === 'STORE_CREDIT'">Customer will receive store credit</span>
+              <span *ngIf="salesReturnForm.get('refundType')?.value === 'CASH_REFUND'">{{ 'salesReturnForm.cashRefundHint' | translate }}</span>
+              <span *ngIf="salesReturnForm.get('refundType')?.value === 'STORE_CREDIT'">{{ 'salesReturnForm.storeCreditHint' | translate }}</span>
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Notes</label>
+            <label>{{ 'common.labels.notes' | translate }}</label>
             <textarea
               formControlName="notes"
               rows="3"
-              placeholder="Additional notes about this return..."></textarea>
+              [placeholder]="'salesReturnForm.notesPlaceholder' | translate"></textarea>
           </div>
         </div>
       </div>
@@ -178,28 +178,28 @@
       <div class="form-section" *ngIf="lines.length > 0">
         <h3 class="section-title">
           <i class="pi pi-list section-icon"></i>
-          Return Items
+          {{ 'salesReturnForm.itemsSection' | translate }}
         </h3>
 
         <div class="return-items-table-wrapper">
           <table class="return-items-table" formArrayName="lines">
             <thead>
               <tr>
-                <th>Part</th>
-                <th>Ordered Qty</th>
-                <th>Return Qty</th>
-                <th>Unit Price</th>
-                <th>Condition</th>
-                <th>Refund</th>
-                <th>Notes</th>
+                <th>{{ 'salesReturnForm.columns.part' | translate }}</th>
+                <th>{{ 'salesReturnForm.columns.orderedQty' | translate }}</th>
+                <th>{{ 'salesReturnForm.columns.returnQty' | translate }}</th>
+                <th>{{ 'common.labels.unitPrice' | translate }}</th>
+                <th>{{ 'salesReturnForm.columns.condition' | translate }}</th>
+                <th>{{ 'salesReturnForm.columns.refund' | translate }}</th>
+                <th>{{ 'common.labels.notes' | translate }}</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let line of lines.controls; let i = index" [formGroupName]="i">
                 <td>
-                  <div class="item-name">{{ line.get('displayName')?.value || line.get('partName')?.value || 'Unknown Part' }}</div>
+                  <div class="item-name">{{ line.get('displayName')?.value || line.get('partName')?.value || ('salesReturnForm.unknownPart' | translate) }}</div>
                   <small *ngIf="line.get('partLocalName')?.value" class="part-row-local d-block">{{ line.get('partLocalName')?.value }}</small>
-                  <div class="item-sub">SKU: {{ line.get('partSku')?.value || 'N/A' }}</div>
+                  <div class="item-sub">{{ 'salesReturnForm.skuPrefix' | translate }} {{ line.get('partSku')?.value || ('common.labels.notAvailable' | translate) }}</div>
                 </td>
                 <td>{{ line.get('maxQuantity')?.value }}</td>
                 <td>
@@ -215,22 +215,22 @@
                 <td>{{ formatCurrency(line.get('unitPrice')?.value) }}</td>
                 <td>
                   <select formControlName="condition">
-                    <option value="UNOPENED">Unopened</option>
-                    <option value="OPENED">Opened</option>
-                    <option value="DAMAGED">Damaged</option>
+                    <option value="UNOPENED">{{ 'salesReturnForm.conditions.UNOPENED' | translate }}</option>
+                    <option value="OPENED">{{ 'salesReturnForm.conditions.OPENED' | translate }}</option>
+                    <option value="DAMAGED">{{ 'salesReturnForm.conditions.DAMAGED' | translate }}</option>
                   </select>
                 </td>
                 <td class="text-right">
                   {{ formatCurrency((line.get('quantity')?.value || 0) * (line.get('unitPrice')?.value || 0)) }}
                 </td>
                 <td>
-                  <input type="text" formControlName="notes" placeholder="Notes..." />
+                  <input type="text" formControlName="notes" [placeholder]="'salesReturnForm.notesShortPlaceholder' | translate" />
                 </td>
               </tr>
             </tbody>
             <tfoot>
               <tr>
-                <td colspan="5" class="text-right">Total Refund:</td>
+                <td colspan="5" class="text-right">{{ 'salesReturnForm.totalRefund' | translate }}</td>
                 <td colspan="2" class="total-value">{{ formatCurrency(totalRefund) }}</td>
               </tr>
             </tfoot>
@@ -242,11 +242,11 @@
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-calculator section-icon"></i>
-          Summary
+          {{ 'salesReturnForm.summarySection' | translate }}
         </h3>
         <div class="order-summary">
           <div class="summary-row grand-total">
-            <span class="summary-label">Total Refund:</span>
+            <span class="summary-label">{{ 'salesReturnForm.totalRefund' | translate }}</span>
             <span class="summary-value">{{ formatCurrency(totalRefund) }}</span>
           </div>
         </div>
@@ -256,35 +256,35 @@
       <div *ngIf="showRejectForm" class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-times-circle section-icon"></i>
-          Reject Return
+          {{ 'salesReturnForm.rejectSection' | translate }}
         </h3>
         <div class="form-row">
           <div class="form-group full">
-            <label>Reason for Rejection *</label>
+            <label>{{ 'salesReturnForm.rejectReasonLabel' | translate }} *</label>
             <input pInputText type="text" [(ngModel)]="rejectReasonInput" [ngModelOptions]="{standalone: true}"
-              placeholder="Enter rejection reason..." style="width: 100%" />
+              [placeholder]="'salesReturnForm.rejectReasonPlaceholder' | translate" style="width: 100%" />
           </div>
         </div>
         <div class="form-actions" style="padding-top: 0">
-          <button pButton type="button" label="Cancel" icon="pi pi-arrow-left" class="p-button-outlined" (click)="cancelReject()"></button>
-          <button pButton type="button" label="Confirm Rejection" icon="pi pi-times" class="p-button-danger" (click)="submitReject()"></button>
+          <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-arrow-left" class="p-button-outlined" (click)="cancelReject()"></button>
+          <button pButton type="button" [label]="'salesReturnForm.confirmRejection' | translate" icon="pi pi-times" class="p-button-danger" (click)="submitReject()"></button>
         </div>
       </div>
 
       <!-- Form Actions -->
       <div class="form-actions" *ngIf="!showRejectForm">
-        <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
+        <button pButton type="button" [label]="(mode() === 'view' ? 'common.actions.back' : 'common.actions.cancel') | translate" icon="pi pi-times"
           class="p-button-outlined" (click)="cancel()"></button>
         <button *ngIf="mode() === 'create'" pButton type="submit"
-          [label]="saving() ? 'Creating...' : 'Create Return'" icon="pi pi-check"
+          [label]="saving() ? ('salesReturnForm.creating' | translate) : ('salesReturnForm.createReturn' | translate)" icon="pi pi-check"
           class="p-button-primary" [loading]="saving()" [disabled]="saving()">
         </button>
 
         <ng-container *ngIf="mode() === 'view' && currentSalesReturn()">
-          <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" label="Approve" icon="pi pi-check" class="p-button-info" (click)="approve()"></button>
-          <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" label="Reject" icon="pi pi-times" class="p-button-danger" (click)="reject()"></button>
-          <button *ngIf="currentSalesReturn()?.status === 'APPROVED'" pButton type="button" label="Receive" icon="pi pi-inbox" class="p-button-success" (click)="receive()"></button>
-          <button *ngIf="currentSalesReturn()?.status === 'RECEIVED'" pButton type="button" label="Process" icon="pi pi-cog" class="p-button-primary" (click)="process()"></button>
+          <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" [label]="'common.actions.approve' | translate" icon="pi pi-check" class="p-button-info" (click)="approve()"></button>
+          <button *ngIf="currentSalesReturn()?.status === 'PENDING'" pButton type="button" [label]="'common.actions.reject' | translate" icon="pi pi-times" class="p-button-danger" (click)="reject()"></button>
+          <button *ngIf="currentSalesReturn()?.status === 'APPROVED'" pButton type="button" [label]="'common.actions.receive' | translate" icon="pi pi-inbox" class="p-button-success" (click)="receive()"></button>
+          <button *ngIf="currentSalesReturn()?.status === 'RECEIVED'" pButton type="button" [label]="'common.actions.process' | translate" icon="pi pi-cog" class="p-button-primary" (click)="process()"></button>
         </ng-container>
       </div>
     </form>

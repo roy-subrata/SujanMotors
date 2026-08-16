@@ -15,11 +15,13 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../../shared/components/lazy-autocomplete';
 import { Subject } from 'rxjs';
 import { map, of, switchMap, takeUntil } from 'rxjs';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-sales-return-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, CardModule, ToastModule, ConfirmDialogModule, ButtonModule, InputTextModule, LazyAutocompleteComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, CardModule, ToastModule, ConfirmDialogModule, ButtonModule, InputTextModule, LazyAutocompleteComponent, TranslatePipe],
   providers: [MessageService, ConfirmationService],
   templateUrl: './sales-return-form.component.html',
   styleUrls: ['./sales-return-form.component.css']
@@ -35,6 +37,7 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly i18n = inject(I18nService);
 
   salesReturnForm!: FormGroup;
   loading = signal(false);
@@ -195,7 +198,7 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set('Failed to load sales return');
+        this.error.set(this.i18n.t('salesReturnForm.messages.loadFailed'));
         this.loading.set(false);
         console.error('Error loading sales return:', err);
       }
@@ -207,18 +210,18 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
     if (!current) return;
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to approve return ${current.returnNumber}?`,
-      header: 'Confirm',
+      message: this.i18n.t('salesReturnForm.messages.approveConfirm', { number: current.returnNumber }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.salesReturnService.approveSalesReturn(current.id).pipe(takeUntil(this.destroy$)).subscribe({
           next: (updated) => {
             this.currentSalesReturn.set(updated);
-            this.messageService.add({ severity: 'success', summary: 'Success', detail: `Sales return ${current.returnNumber} approved successfully` });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('salesReturnForm.messages.approveSuccess', { number: current.returnNumber }) });
             this.loadSalesReturn(updated.id);
           },
           error: (err) => {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to approve sales return') });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('salesReturnForm.messages.approveFailed')) });
           }
         });
       }
@@ -233,7 +236,7 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
     const current = this.currentSalesReturn();
     if (!current) return;
     if (!this.rejectReasonInput.trim()) {
-      this.messageService.add({ severity: 'warn', summary: 'Required', detail: 'Please enter a rejection reason' });
+      this.messageService.add({ severity: 'warn', summary: this.i18n.t('salesReturnForm.messages.required'), detail: this.i18n.t('salesReturnForm.messages.enterRejectReason') });
       return;
     }
     const reason = this.rejectReasonInput.trim();
@@ -243,11 +246,11 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
     this.salesReturnService.rejectSalesReturn(current.id, reason).pipe(takeUntil(this.destroy$)).subscribe({
       next: (updated) => {
         this.currentSalesReturn.set(updated);
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: `Sales return ${current.returnNumber} rejected` });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('salesReturnForm.messages.rejectSuccess', { number: current.returnNumber }) });
         this.loadSalesReturn(updated.id);
       },
       error: (err) => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to reject sales return') });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('salesReturnForm.messages.rejectFailed')) });
       }
     });
   }
@@ -262,18 +265,18 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
     if (!current) return;
 
     this.confirmationService.confirm({
-      message: `Mark return ${current.returnNumber} as received?`,
-      header: 'Confirm',
+      message: this.i18n.t('salesReturnForm.messages.receiveConfirm', { number: current.returnNumber }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.salesReturnService.receiveSalesReturn(current.id).pipe(takeUntil(this.destroy$)).subscribe({
           next: (updated) => {
             this.currentSalesReturn.set(updated);
-            this.messageService.add({ severity: 'success', summary: 'Success', detail: `Sales return ${current.returnNumber} marked as received` });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('salesReturnForm.messages.receiveSuccess', { number: current.returnNumber }) });
             this.loadSalesReturn(updated.id);
           },
           error: (err) => {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to mark as received') });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('salesReturnForm.messages.receiveFailed')) });
           }
         });
       }
@@ -285,18 +288,18 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
     if (!current) return;
 
     this.confirmationService.confirm({
-      message: `Process return ${current.returnNumber}? This will finalize the return.`,
-      header: 'Confirm',
+      message: this.i18n.t('salesReturnForm.messages.processConfirm', { number: current.returnNumber }),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.salesReturnService.processSalesReturn(current.id).pipe(takeUntil(this.destroy$)).subscribe({
           next: (updated) => {
             this.currentSalesReturn.set(updated);
-            this.messageService.add({ severity: 'success', summary: 'Success', detail: `Sales return ${current.returnNumber} processed successfully` });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('salesReturnForm.messages.processSuccess', { number: current.returnNumber }) });
             this.loadSalesReturn(updated.id);
           },
           error: (err) => {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to process sales return') });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('salesReturnForm.messages.processFailed')) });
           }
         });
       }
@@ -380,21 +383,21 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
           control.markAsTouched();
         }
       });
-      this.error.set('Please fill in all required fields');
+      this.error.set(this.i18n.t('salesReturnForm.messages.fillRequired'));
       return;
     }
 
     // Validate that warehouseId is not empty
     const warehouseId = this.salesReturnForm.get('warehouseId')?.value;
     if (!warehouseId) {
-      this.error.set('The selected sales order does not have a warehouse assigned. Please select a different sales order.');
+      this.error.set(this.i18n.t('salesReturnForm.messages.noWarehouseOnOrder'));
       return;
     }
 
     // Validate that at least one line has quantity > 0
     const validLines = this.lines.controls.filter(line => (line.get('quantity')?.value || 0) > 0);
     if (validLines.length === 0) {
-      this.error.set('Please select at least one item to return with quantity > 0');
+      this.error.set(this.i18n.t('salesReturnForm.messages.selectAtLeastOne'));
       return;
     }
 
@@ -424,12 +427,12 @@ export class SalesReturnFormComponent implements OnInit, OnDestroy {
     this.salesReturnService.createSalesReturn(request).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.saving.set(false);
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Sales return created successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('salesReturnForm.messages.createSuccess') });
         this.router.navigate(['/sales/sales-returns']);
       },
       error: (err) => {
         const errorMessage = typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to create sales return');
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: errorMessage });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: errorMessage });
         this.error.set(errorMessage);
         this.saving.set(false);
         console.error('Error creating sales return:', err);
