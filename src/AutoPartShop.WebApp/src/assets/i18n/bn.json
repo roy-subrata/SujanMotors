@@ -4383,5 +4383,85 @@
         "createFailed": "ডেবিট নোট তৈরি করতে ব্যর্থ"
       }
     }
+  },
+  "proformaInvoices": {
+    "title": "প্রোফরমা চালান",
+    "subtitle": "নিশ্চিত বিক্রয় আদেশ থেকে তৈরি প্রাক-পরিশোধ বিল",
+    "countLabel": "প্রোফরমা চালান",
+    "itemLabel": "প্রোফরমা চালান",
+    "generate": "প্রোফরমা তৈরি করুন",
+    "columns": {
+      "proformaNumber": "প্রোফরমা নং",
+      "salesOrder": "বিক্রয় আদেশ",
+      "customer": "গ্রাহক",
+      "issueDate": "ইস্যুর তারিখ",
+      "validUntil": "মেয়াদ শেষ",
+      "status": "অবস্থা",
+      "grandTotal": "সর্বমোট",
+      "actions": "কার্যক্রম"
+    },
+    "statusOptions": {
+      "draft": "খসড়া",
+      "issued": "ইস্যুকৃত",
+      "expired": "মেয়াদোত্তীর্ণ",
+      "converted": "রূপান্তরিত",
+      "cancelled": "বাতিল"
+    },
+    "expired": "মেয়াদোত্তীর্ণ",
+    "walkInCustomer": "ওয়াক-ইন গ্রাহক",
+    "emptyTitle": "কোনো প্রোফরমা চালান পাওয়া যায়নি",
+    "emptyHint": "শুরু করতে একটি নিশ্চিত বিক্রয় আদেশ থেকে প্রোফরমা চালান তৈরি করুন।",
+    "emptyTitleMobile": "কোনো প্রোফরমা চালান নেই",
+    "emptyHintMobile": "একটি নিশ্চিত বিক্রয় আদেশ থেকে প্রোফরমা চালান তৈরি করুন।",
+    "cardTotal": "মোট",
+    "actions": {
+      "downloadPdf": "PDF ডাউনলোড",
+      "viewSalesOrder": "বিক্রয় আদেশ দেখুন"
+    },
+    "messages": {
+      "loadFailed": "প্রোফরমা চালান লোড করতে ব্যর্থ।",
+      "pdfFailed": "প্রোফরমা চালান PDF ডাউনলোড করতে ব্যর্থ"
+    },
+    "dialog": {
+      "title": "প্রোফরমা চালান তৈরি করুন",
+      "salesOrderLabel": "বিক্রয় আদেশ *",
+      "salesOrderPlaceholder": "SO নম্বর বা গ্রাহক দিয়ে খুঁজুন...",
+      "salesOrderHint": "নির্বাচিত বিক্রয় আদেশ থেকে লাইন আইটেম ও মোট সরাসরি পড়া হয়।",
+      "validUntilLabel": "মেয়াদ শেষ",
+      "validUntilPlaceholder": "ইস্যুর তারিখ থেকে ১৫ দিন (ডিফল্ট)",
+      "notesLabel": "নোট",
+      "notesPlaceholder": "এই প্রোফরমা চালানের জন্য ঐচ্ছিক নোট",
+      "submit": "তৈরি করুন",
+      "messages": {
+        "selectOrder": "অনুগ্রহ করে একটি বিক্রয় আদেশ নির্বাচন করুন।",
+        "generateFailed": "প্রোফরমা চালান তৈরি করতে ব্যর্থ।",
+        "generated": "প্রোফর্মা {{number}} তৈরি হয়েছে।"
+      }
+    }
+  },
+  "applyAdvanceCredit": {
+    "title": "উপলব্ধ অগ্রিম পেমেন্ট",
+    "columns": {
+      "transaction": "লেনদেন নং",
+      "date": "তারিখ",
+      "originalAmount": "মূল পরিমাণ",
+      "used": "ব্যবহৃত",
+      "available": "উপলব্ধ"
+    },
+    "empty": "এই গ্রাহকের কোনো অগ্রিম পেমেন্ট নেই",
+    "amountLabel": "প্রয়োগের পরিমাণ",
+    "amountPlaceholder": "পরিমাণ লিখুন",
+    "maxHint": "সর্বোচ্চ: {{amount}}",
+    "exceedsMax": "পরিমাণ উপলব্ধ অগ্রিম ব্যালেন্সের চেয়ে বেশি হতে পারে না",
+    "descriptionLabel": "বিবরণ (ঐচ্ছিক)",
+    "descriptionPlaceholder": "এই ক্রেডিট প্রয়োগ সম্পর্কে নোট যোগ করুন",
+    "invoiceOutstanding": "চালানের বকেয়া পরিমাণ:",
+    "amountToApply": "প্রয়োগের পরিমাণ:",
+    "remainingAfter": "প্রয়োগের পর অবশিষ্ট ব্যালেন্স:",
+    "applyCredit": "ক্রেডিট প্রয়োগ করুন",
+    "messages": {
+      "loadFailed": "উপলব্ধ অগ্রিম পেমেন্ট লোড করতে ব্যর্থ",
+      "applyFailed": "অগ্রিম ক্রেডিট প্রয়োগ করতে ব্যর্থ"
+    }
   }
 }

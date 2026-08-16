@@ -7,7 +7,7 @@
   [draggable]="false"
   [resizable]="false"
   [style]="{ width: '520px', maxWidth: '95vw' }"
-  header="Generate Proforma Invoice"
+  [header]="'proformaInvoices.dialog.title' | translate"
   [dismissableMask]="true">
 
   <div class="proforma-dialog">
@@ -18,25 +18,25 @@
 
     <!-- Sales order: locked read-only view when opened from a Sales Order row -->
     <div class="dialog-field">
-      <label>Sales Order *</label>
+      <label>{{ 'proformaInvoices.dialog.salesOrderLabel' | translate }}</label>
 
       <div *ngIf="lockedOrder && selectedOrder" class="locked-order">
         <div class="locked-order-main">
           <span class="locked-order-number">{{ selectedOrder.soNumber }}</span>
-          <span class="locked-order-customer">{{ selectedOrder.customerName || 'Walk-in Customer' }}</span>
+          <span class="locked-order-customer">{{ selectedOrder.customerName || ('proformaInvoices.walkInCustomer' | translate) }}</span>
         </div>
         <span class="locked-order-amount">{{ formatCurrency(selectedOrder.grandTotal, selectedOrder.currency) }}</span>
       </div>
 
       <app-lazy-autocomplete *ngIf="!lockedOrder" [fetchFn]="searchSalesOrders" [(ngModel)]="selectedOrder"
         [ngModelOptions]="{standalone: true}" optionLabel="soNumber"
-        placeholder="Search by SO number or customer..." (onItemSelect)="onOrderSelected($any($event))"
+        [placeholder]="'proformaInvoices.dialog.salesOrderPlaceholder' | translate" (onItemSelect)="onOrderSelected($any($event))"
         (onClearEvent)="onOrderCleared()">
         <ng-template let-order>
           <div class="so-option">
             <div class="so-option-main">
               <span class="so-option-number">{{ order.soNumber }}</span>
-              <span class="so-option-customer">{{ order.customerName || 'Walk-in Customer' }}</span>
+              <span class="so-option-customer">{{ order.customerName || ('proformaInvoices.walkInCustomer' | translate) }}</span>
             </div>
             <span class="so-option-amount">{{ formatCurrency(order.grandTotal, order.currency) }}</span>
           </div>
@@ -44,29 +44,29 @@
       </app-lazy-autocomplete>
       <small class="field-hint" *ngIf="!lockedOrder">
         <i class="pi pi-info-circle"></i>
-        <span>Line items and totals are read live from the selected sales order.</span>
+        <span>{{ 'proformaInvoices.dialog.salesOrderHint' | translate }}</span>
       </small>
     </div>
 
     <div class="dialog-field">
-      <label>Valid Until</label>
+      <label>{{ 'proformaInvoices.dialog.validUntilLabel' | translate }}</label>
       <p-datepicker [(ngModel)]="validUntil" [showIcon]="true" dateFormat="dd M yy" [ngModelOptions]="{standalone: true}"
-        placeholder="Defaults to 15 days from issue" appendTo="body" styleClass="w-full">
+        [placeholder]="'proformaInvoices.dialog.validUntilPlaceholder' | translate" appendTo="body" styleClass="w-full">
       </p-datepicker>
     </div>
 
     <div class="dialog-field">
-      <label>Notes</label>
+      <label>{{ 'proformaInvoices.dialog.notesLabel' | translate }}</label>
       <textarea pTextarea [(ngModel)]="notes" [ngModelOptions]="{standalone: true}" rows="3"
-        placeholder="Optional notes for this proforma invoice"></textarea>
+        [placeholder]="'proformaInvoices.dialog.notesPlaceholder' | translate"></textarea>
     </div>
   </div>
 
   <ng-template #footer>
-    <button class="btn-secondary" (click)="close()" [disabled]="saving">Cancel</button>
+    <button class="btn-secondary" (click)="close()" [disabled]="saving">{{ 'common.actions.cancel' | translate }}</button>
     <button class="btn-primary" (click)="submit()" [disabled]="saving || !selectedOrder">
       <i class="pi" [ngClass]="saving ? 'pi-spin pi-spinner' : 'pi-check'"></i>
-      <span>Generate</span>
+      <span>{{ 'proformaInvoices.dialog.submit' | translate }}</span>
     </button>
   </ng-template>
 

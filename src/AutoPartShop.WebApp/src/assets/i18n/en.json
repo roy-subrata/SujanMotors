@@ -4383,5 +4383,85 @@
         "createFailed": "Failed to create debit note"
       }
     }
+  },
+  "proformaInvoices": {
+    "title": "Proforma Invoices",
+    "subtitle": "Pre-payment bills generated from confirmed sales orders",
+    "countLabel": "proforma invoices",
+    "itemLabel": "proforma invoices",
+    "generate": "Generate Proforma",
+    "columns": {
+      "proformaNumber": "Proforma #",
+      "salesOrder": "Sales Order",
+      "customer": "Customer",
+      "issueDate": "Issue Date",
+      "validUntil": "Valid Until",
+      "status": "Status",
+      "grandTotal": "Grand Total",
+      "actions": "Actions"
+    },
+    "statusOptions": {
+      "draft": "Draft",
+      "issued": "Issued",
+      "expired": "Expired",
+      "converted": "Converted",
+      "cancelled": "Cancelled"
+    },
+    "expired": "Expired",
+    "walkInCustomer": "Walk-in Customer",
+    "emptyTitle": "No Proforma Invoices Found",
+    "emptyHint": "Generate a proforma invoice from a confirmed sales order to get started.",
+    "emptyTitleMobile": "No Proforma Invoices",
+    "emptyHintMobile": "Generate a proforma invoice from a confirmed sales order.",
+    "cardTotal": "Total",
+    "actions": {
+      "downloadPdf": "Download PDF",
+      "viewSalesOrder": "View Sales Order"
+    },
+    "messages": {
+      "loadFailed": "Failed to load proforma invoices.",
+      "pdfFailed": "Failed to download the proforma invoice PDF"
+    },
+    "dialog": {
+      "title": "Generate Proforma Invoice",
+      "salesOrderLabel": "Sales Order *",
+      "salesOrderPlaceholder": "Search by SO number or customer...",
+      "salesOrderHint": "Line items and totals are read live from the selected sales order.",
+      "validUntilLabel": "Valid Until",
+      "validUntilPlaceholder": "Defaults to 15 days from issue",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Optional notes for this proforma invoice",
+      "submit": "Generate",
+      "messages": {
+        "selectOrder": "Please select a sales order.",
+        "generateFailed": "Failed to generate the proforma invoice.",
+        "generated": "Proforma {{number}} generated."
+      }
+    }
+  },
+  "applyAdvanceCredit": {
+    "title": "Available Advance Payments",
+    "columns": {
+      "transaction": "Transaction #",
+      "date": "Date",
+      "originalAmount": "Original Amount",
+      "used": "Used",
+      "available": "Available"
+    },
+    "empty": "No advance payments available for this customer",
+    "amountLabel": "Amount to Apply",
+    "amountPlaceholder": "Enter amount",
+    "maxHint": "Max: {{amount}}",
+    "exceedsMax": "Amount cannot exceed available advance balance",
+    "descriptionLabel": "Description (Optional)",
+    "descriptionPlaceholder": "Add notes about this credit application",
+    "invoiceOutstanding": "Invoice Outstanding Amount:",
+    "amountToApply": "Amount to Apply:",
+    "remainingAfter": "Remaining Balance After:",
+    "applyCredit": "Apply Credit",
+    "messages": {
+      "loadFailed": "Failed to load available advance payments",
+      "applyFailed": "Failed to apply advance credit"
+    }
   }
 }
