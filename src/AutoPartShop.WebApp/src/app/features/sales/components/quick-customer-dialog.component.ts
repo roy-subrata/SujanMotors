@@ -6,11 +6,13 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { CustomerService, CreateCustomerRequest } from '../services/customer.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-quick-customer-dialog',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, DialogModule, ButtonModule, InputTextModule, SelectModule],
+    imports: [CommonModule, ReactiveFormsModule, DialogModule, ButtonModule, InputTextModule, SelectModule, TranslatePipe],
     template: `
         <p-dialog [(visible)]="visible" [modal]="true" [style]="{ width: '550px', maxWidth: '95vw' }" [draggable]="false" [resizable]="false" [closable]="true" styleClass="quick-customer-dialog">
             <ng-template pTemplate="header">
@@ -19,8 +21,8 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
                         <i class="pi pi-user-plus"></i>
                     </div>
                     <div class="header-text">
-                        <h3>Quick Add Customer</h3>
-                        <p>Add a new customer for this sale</p>
+                        <h3>{{ 'quickCustomerDialog.title' | translate }}</h3>
+                        <p>{{ 'quickCustomerDialog.subtitle' | translate }}</p>
                     </div>
                 </div>
             </ng-template>
@@ -29,14 +31,14 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
                 <!-- Name Row -->
                 <div class="form-row two-col">
                     <div class="form-field">
-                        <label for="firstName"> First Name <span class="required">*</span> </label>
-                        <input pInputText id="firstName" formControlName="firstName" placeholder="Enter first name" [class.invalid]="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched" />
-                        <small class="error-text" *ngIf="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched"> First name is required (min 2 characters) </small>
+                        <label for="firstName"> {{ 'customers.form.firstNameLabel' | translate }} <span class="required">*</span> </label>
+                        <input pInputText id="firstName" formControlName="firstName" [placeholder]="'quickCustomerDialog.firstNamePlaceholder' | translate" [class.invalid]="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched" />
+                        <small class="error-text" *ngIf="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched"> {{ 'customers.form.firstNameRequired' | translate }} </small>
                     </div>
 
                     <div class="form-field">
-                        <label for="lastName"> Last Name </label>
-                        <input pInputText id="lastName" formControlName="lastName" placeholder="Enter last name" [class.invalid]="customerForm.get('lastName')?.invalid && customerForm.get('lastName')?.touched" />
+                        <label for="lastName"> {{ 'customers.form.lastNameLabel' | translate }} </label>
+                        <input pInputText id="lastName" formControlName="lastName" [placeholder]="'quickCustomerDialog.lastNamePlaceholder' | translate" [class.invalid]="customerForm.get('lastName')?.invalid && customerForm.get('lastName')?.touched" />
                     </div>
                 </div>
 
@@ -45,19 +47,19 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
                     <div class="form-field">
                         <label for="phone">
                             <i class="pi pi-phone"></i>
-                            Phone <span class="required">*</span>
+                            {{ 'common.labels.phone' | translate }} <span class="required">*</span>
                         </label>
-                        <input pInputText id="phone" formControlName="phone" placeholder="e.g. 9801234567" [class.invalid]="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched" />
-                        <small class="error-text" *ngIf="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched"> Phone number is required </small>
+                        <input pInputText id="phone" formControlName="phone" [placeholder]="'quickCustomerDialog.phonePlaceholder' | translate" [class.invalid]="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched" />
+                        <small class="error-text" *ngIf="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched"> {{ 'customers.form.phoneRequired' | translate }} </small>
                     </div>
 
                     <div class="form-field">
                         <label for="email">
                             <i class="pi pi-envelope"></i>
-                            Email
+                            {{ 'common.labels.email' | translate }}
                         </label>
-                        <input pInputText id="email" type="email" formControlName="email" placeholder="email@example.com" [class.invalid]="customerForm.get('email')?.invalid && customerForm.get('email')?.touched" />
-                        <small class="error-text" *ngIf="customerForm.get('email')?.invalid && customerForm.get('email')?.touched"> Invalid email format </small>
+                        <input pInputText id="email" type="email" formControlName="email" [placeholder]="'quickCustomerDialog.emailPlaceholder' | translate" [class.invalid]="customerForm.get('email')?.invalid && customerForm.get('email')?.touched" />
+                        <small class="error-text" *ngIf="customerForm.get('email')?.invalid && customerForm.get('email')?.touched"> {{ 'quickCustomerDialog.emailInvalid' | translate }} </small>
                     </div>
                 </div>
 
@@ -66,17 +68,17 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
                     <div class="form-field">
                         <label for="customerType">
                             <i class="pi pi-tag"></i>
-                            Customer Type
+                            {{ 'customers.form.typeLabel' | translate }}
                         </label>
-                        <p-select id="customerType" formControlName="customerType" [options]="customerTypes" optionLabel="label" optionValue="value" placeholder="Select type" styleClass="w-full"></p-select>
+                        <p-select id="customerType" formControlName="customerType" [options]="customerTypes" optionLabel="label" optionValue="value" [placeholder]="'customers.form.typePlaceholder' | translate" styleClass="w-full"></p-select>
                     </div>
 
                     <div class="form-field">
                         <label for="city">
                             <i class="pi pi-map-marker"></i>
-                            City
+                            {{ 'common.labels.city' | translate }}
                         </label>
-                        <input pInputText id="city" formControlName="city" placeholder="Enter city" />
+                        <input pInputText id="city" formControlName="city" [placeholder]="'quickCustomerDialog.cityPlaceholder' | translate" />
                     </div>
                 </div>
 
@@ -85,9 +87,9 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
                     <div class="form-field">
                         <label for="address">
                             <i class="pi pi-home"></i>
-                            Address
+                            {{ 'common.labels.address' | translate }}
                         </label>
-                        <input pInputText id="address" formControlName="address" placeholder="Enter billing address (optional)" />
+                        <input pInputText id="address" formControlName="address" [placeholder]="'quickCustomerDialog.addressPlaceholder' | translate" />
                     </div>
                 </div>
 
@@ -100,8 +102,8 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
 
             <ng-template pTemplate="footer">
                 <div class="dialog-footer">
-                    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary" (click)="onCancel()"></button>
-                    <button pButton type="button" label="Add Customer" icon="pi pi-check" class="p-button-success" [loading]="saving()" [disabled]="customerForm.invalid" (click)="onSubmit()"></button>
+                    <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text p-button-secondary" (click)="onCancel()"></button>
+                    <button pButton type="button" [label]="'quickCustomerDialog.submit' | translate" icon="pi pi-check" class="p-button-success" [loading]="saving()" [disabled]="customerForm.invalid" (click)="onSubmit()"></button>
                 </div>
             </ng-template>
         </p-dialog>
@@ -275,6 +277,7 @@ import { CustomerService, CreateCustomerRequest } from '../services/customer.ser
 export class QuickCustomerDialogComponent {
     private readonly fb = inject(FormBuilder);
     private readonly customerService = inject(CustomerService);
+    private readonly i18n = inject(I18nService);
 
     visible = signal(false);
     saving = signal(false);
@@ -282,12 +285,15 @@ export class QuickCustomerDialogComponent {
 
     customerForm!: FormGroup;
 
-    customerTypes = [
-        { label: 'Individual', value: 'INDIVIDUAL' },
-        { label: 'Business', value: 'BUSINESS' },
-        { label: 'Dealer', value: 'DEALER' },
-        { label: 'Wholesale', value: 'WHOLESALE' }
-    ];
+    /** Getter, not a field: a field would freeze the labels in the language active at construction. */
+    get customerTypes() {
+        return [
+            { label: this.i18n.t('quickCustomerDialog.types.individual'), value: 'INDIVIDUAL' },
+            { label: this.i18n.t('quickCustomerDialog.types.business'), value: 'BUSINESS' },
+            { label: this.i18n.t('quickCustomerDialog.types.dealer'), value: 'DEALER' },
+            { label: this.i18n.t('quickCustomerDialog.types.wholesale'), value: 'WHOLESALE' }
+        ];
+    }
 
     // Output event when customer is created
     customerCreated = output<any>();
@@ -360,7 +366,7 @@ export class QuickCustomerDialogComponent {
                 this.close();
             },
             error: (err) => {
-                this.error.set(err.error?.message || 'Failed to create customer');
+                this.error.set(err.error?.message || this.i18n.t('quickCustomerDialog.createFailed'));
                 this.saving.set(false);
                 console.error('Error creating customer:', err);
             }

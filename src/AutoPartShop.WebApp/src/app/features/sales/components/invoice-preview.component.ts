@@ -7,6 +7,8 @@ import { DividerModule } from 'primeng/divider';
 import { MessageService } from 'primeng/api';
 import { InvoicePdfService, InvoicePdfData } from '../services/invoice-pdf.service';
 import { ThermalReceiptService } from '../services/thermal-receipt.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-invoice-preview',
@@ -16,12 +18,13 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
     DialogModule,
     ButtonModule,
     TooltipModule,
-    DividerModule
+    DividerModule,
+    TranslatePipe
   ],
   template: `
     <p-dialog
       [(visible)]="visible"
-      [header]="'Invoice Preview - ' + invoiceData?.invoiceNumber"
+      [header]="('invoicePreview.dialogTitle' | translate) + ' - ' + invoiceData?.invoiceNumber"
       [modal]="true"
       [style]="{ width: '900px', maxWidth: '95vw' }"
       [maximizable]="true"
@@ -34,7 +37,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
         <div class="dialog-header">
           <div class="header-title">
             <i class="pi pi-file-pdf"></i>
-            <span>Invoice Preview - {{ invoiceData?.invoiceNumber }}</span>
+            <span>{{ 'invoicePreview.dialogTitle' | translate }} - {{ invoiceData?.invoiceNumber }}</span>
           </div>
         </div>
       </ng-template>
@@ -54,13 +57,13 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
               <div class="company-tax" *ngIf="invoiceData.companyTaxId">{{ invoiceData.companyTaxId }}</div>
             </div>
             <div class="title-section">
-              <h1>Invoice</h1>
+              <h1>{{ 'invoicePreview.heading' | translate }}</h1>
               <div class="status-badge" [ngClass]="paymentStatusClass">{{ paymentStatusLabel }}</div>
               <table class="meta-table">
-                <tr><td>Invoice no.</td><td>{{ invoiceData.invoiceNumber }}</td></tr>
-                <tr><td>Date</td><td>{{ formatDate(invoiceData.invoiceDate) }}</td></tr>
-                <tr *ngIf="invoiceData.dueDate"><td>Due date</td><td>{{ formatDate(invoiceData.dueDate) }}</td></tr>
-                <tr *ngIf="invoiceData.salesOrderNumber"><td>SO #</td><td>{{ invoiceData.salesOrderNumber }}</td></tr>
+                <tr><td>{{ 'invoicePreview.invoiceNo' | translate }}</td><td>{{ invoiceData.invoiceNumber }}</td></tr>
+                <tr><td>{{ 'common.labels.date' | translate }}</td><td>{{ formatDate(invoiceData.invoiceDate) }}</td></tr>
+                <tr *ngIf="invoiceData.dueDate"><td>{{ 'invoicePreview.dueDate' | translate }}</td><td>{{ formatDate(invoiceData.dueDate) }}</td></tr>
+                <tr *ngIf="invoiceData.salesOrderNumber"><td>{{ 'invoicePreview.soNumber' | translate }}</td><td>{{ invoiceData.salesOrderNumber }}</td></tr>
               </table>
             </div>
           </div>
@@ -68,7 +71,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
           <!-- Address Section -->
           <div class="address-section">
             <div class="address-block">
-              <div class="address-label">From</div>
+              <div class="address-label">{{ 'invoicePreview.from' | translate }}</div>
               <div class="address-name">{{ invoiceData.companyName }}</div>
               <div class="address-detail">
                 {{ invoiceData.companyAddress }}<br>
@@ -77,7 +80,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
               </div>
             </div>
             <div class="address-block right">
-              <div class="address-label">Bill to</div>
+              <div class="address-label">{{ 'invoicePreview.billTo' | translate }}</div>
               <div class="address-name">{{ invoiceData.customerName }}</div>
               <div class="address-detail">
                 <span *ngIf="invoiceData.customerAddress">{{ invoiceData.customerAddress }}<br></span>
@@ -85,7 +88,7 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
                 <span *ngIf="invoiceData.customerPhone">{{ invoiceData.customerPhone }}</span>
               </div>
               <div class="tech-block" *ngIf="invoiceData.technicianName">
-                <div class="address-label">Technician</div>
+                <div class="address-label">{{ 'invoicePreview.technician' | translate }}</div>
                 <div class="address-detail">
                   {{ invoiceData.technicianName }}<span *ngIf="invoiceData.technicianPhone"> | {{ invoiceData.technicianPhone }}</span>
                 </div>
@@ -97,11 +100,11 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
           <table class="items-table">
             <thead>
               <tr>
-                <th>Description</th>
-                <th class="num-col">Unit Price</th>
-                <th class="num-col">Qty</th>
-                <th class="num-col">Disc</th>
-                <th class="num-col">Amount</th>
+                <th>{{ 'invoicePreview.description' | translate }}</th>
+                <th class="num-col">{{ 'common.labels.unitPrice' | translate }}</th>
+                <th class="num-col">{{ 'common.document.qty' | translate }}</th>
+                <th class="num-col">{{ 'invoicePreview.disc' | translate }}</th>
+                <th class="num-col">{{ 'common.labels.amount' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -129,41 +132,41 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
           <div class="summary-section">
             <div class="payment-info">
               <div *ngIf="invoiceData.notes">
-                <h4>Notes</h4>
+                <h4>{{ 'common.labels.notes' | translate }}</h4>
                 <p>{{ invoiceData.notes }}</p>
               </div>
               <div class="amount-words" *ngIf="amountInWords">
-                <h4>Amount in Words</h4>
+                <h4>{{ 'invoicePreview.amountInWords' | translate }}</h4>
                 <p>{{ amountInWords }}</p>
               </div>
               <div *ngIf="invoiceData.paymentTerms">
-                <h4>Payment Terms</h4>
+                <h4>{{ 'invoicePreview.paymentTerms' | translate }}</h4>
                 <p>{{ invoiceData.paymentTerms }}</p>
               </div>
             </div>
             <div class="totals-box">
               <div class="totals-row">
-                <span class="totals-label">Subtotal:</span>
+                <span class="totals-label">{{ 'common.labels.subtotal' | translate }}:</span>
                 <span class="totals-value">{{ formatCurrency(invoiceData.subtotal) }}</span>
               </div>
               <div class="totals-row" *ngIf="invoiceData.discountAmount > 0">
-                <span class="totals-label">Discount:</span>
+                <span class="totals-label">{{ 'common.labels.discount' | translate }}:</span>
                 <span class="totals-value">-{{ formatCurrency(invoiceData.discountAmount) }}</span>
               </div>
               <div class="totals-row">
-                <span class="totals-label">VAT ({{ invoiceData.vatPercentage }}%):</span>
+                <span class="totals-label">{{ 'invoicePreview.vat' | translate:{ percent: invoiceData.vatPercentage } }}:</span>
                 <span class="totals-value">{{ formatCurrency(invoiceData.vatAmount) }}</span>
               </div>
               <div class="totals-row total">
-                <span class="totals-label">Total:</span>
+                <span class="totals-label">{{ 'common.labels.total' | translate }}:</span>
                 <span class="totals-value">{{ formatCurrency(invoiceData.grandTotal) }}</span>
               </div>
               <div class="totals-row" *ngIf="invoiceData.paidAmount > 0">
-                <span class="totals-label">Paid:</span>
+                <span class="totals-label">{{ 'invoicePreview.paid' | translate }}:</span>
                 <span class="totals-value">{{ formatCurrency(invoiceData.paidAmount) }}</span>
               </div>
               <div class="totals-row" *ngIf="invoiceData.dueAmount > 0">
-                <span class="totals-label">Balance Due:</span>
+                <span class="totals-label">{{ 'invoicePreview.balanceDue' | translate }}:</span>
                 <span class="totals-value due">{{ formatCurrency(invoiceData.dueAmount) }}</span>
               </div>
             </div>
@@ -171,20 +174,20 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
 
           <!-- Payment Details -->
           <div class="payment-details" *ngIf="invoiceData.payments.length > 0">
-            <h4><i class="pi pi-credit-card"></i> Payment Details</h4>
+            <h4><i class="pi pi-credit-card"></i> {{ 'invoicePreview.paymentDetails' | translate }}</h4>
             <div class="payment-list">
               <div class="payment-item" *ngFor="let payment of invoiceData.payments">
                 <span class="payment-method">{{ getPaymentMethodLabel(payment.method) }}</span>
                 <span class="payment-amount">{{ formatCurrency(payment.amount) }}</span>
-                <span class="payment-ref" *ngIf="payment.reference">Ref: {{ payment.reference }}</span>
+                <span class="payment-ref" *ngIf="payment.reference">{{ 'invoicePreview.refPrefix' | translate }} {{ payment.reference }}</span>
               </div>
             </div>
           </div>
 
           <!-- Footer -->
           <div class="footer">
-            <p>Thank you for choosing {{ invoiceData.companyName }}</p>
-            <p class="generated-at">Generated on {{ currentDateTime }}</p>
+            <p>{{ 'invoicePreview.footerThanks' | translate:{ company: invoiceData.companyName } }}</p>
+            <p class="generated-at">{{ 'invoicePreview.generatedOn' | translate:{ datetime: currentDateTime } }}</p>
           </div>
         </div>
       </div>
@@ -195,34 +198,34 @@ import { ThermalReceiptService } from '../services/thermal-receipt.service';
           <div class="footer-left-actions">
             <button
               pButton
-              label="Thermal Print"
+              [label]="'invoicePreview.thermalPrint' | translate"
               icon="pi pi-print"
               class="p-button-outlined p-button-secondary"
-              pTooltip="Print on thermal printer (POS)"
+              [pTooltip]="'invoicePreview.thermalPrintTooltip' | translate"
               (click)="printThermal()"
             ></button>
           </div>
           <div class="footer-right-actions">
             <button
               pButton
-              label="Download PDF"
+              [label]="'invoicePreview.downloadPdf' | translate"
               icon="pi pi-download"
               class="p-button-info"
-              pTooltip="Download as PDF file"
+              [pTooltip]="'invoicePreview.downloadPdfTooltip' | translate"
               [loading]="downloading()"
               (click)="downloadPdf()"
             ></button>
             <button
               pButton
-              label="Print"
+              [label]="'common.actions.print' | translate"
               icon="pi pi-print"
               class="p-button-success"
-              pTooltip="Print invoice (Ctrl+P)"
+              [pTooltip]="'invoicePreview.printTooltip' | translate"
               (click)="printInvoice()"
             ></button>
             <button
               pButton
-              label="Close"
+              [label]="'common.actions.close' | translate"
               icon="pi pi-times"
               class="p-button-secondary p-button-outlined"
               (click)="close()"
@@ -654,6 +657,7 @@ export class InvoicePreviewComponent implements OnInit {
   private readonly pdfService = inject(InvoicePdfService);
   private readonly thermalReceipt = inject(ThermalReceiptService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   @Input() visible = false;
   @Input() invoiceData: InvoicePdfData | null = null;
@@ -666,8 +670,18 @@ export class InvoicePreviewComponent implements OnInit {
   downloading = signal(false);
   amountInWords = '';
   currentDateTime = '';
-  paymentStatusLabel = '';
   paymentStatusClass = 'paid';
+
+  /** Getter, not a field: a field set in a lifecycle hook would keep the label
+   *  in whichever language was active when the dialog was opened. */
+  get paymentStatusLabel(): string {
+    const due = this.invoiceData?.dueAmount || 0;
+    const paid = this.invoiceData?.paidAmount || 0;
+    if (due > 0.001) {
+      return this.i18n.t(paid > 0.001 ? 'invoicePreview.statusPartiallyPaid' : 'invoicePreview.statusUnpaid');
+    }
+    return this.i18n.t('invoicePreview.statusPaid');
+  }
 
   ngOnInit(): void {
     this.updateDerivedValues();
@@ -692,10 +706,8 @@ export class InvoicePreviewComponent implements OnInit {
       const paid = this.invoiceData.paidAmount || 0;
       if (due > 0.001) {
         this.paymentStatusClass = paid > 0.001 ? 'partial' : 'due';
-        this.paymentStatusLabel = paid > 0.001 ? 'Partially Paid' : 'Unpaid';
       } else {
         this.paymentStatusClass = 'paid';
-        this.paymentStatusLabel = 'Paid';
       }
     }
   }
@@ -739,8 +751,8 @@ export class InvoicePreviewComponent implements OnInit {
       // do nothing if that ever changes.
       this.messageService.add({
         severity: 'error',
-        summary: 'Download failed',
-        detail: 'This invoice has not been saved yet, so a PDF cannot be generated.'
+        summary: this.i18n.t('invoicePreview.downloadFailed'),
+        detail: this.i18n.t('invoicePreview.notSavedYet')
       });
       return;
     }

@@ -6,6 +6,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppSettingsService, ShopProfile } from '../../../shared/services/app-settings.service';
 import { PdfDownloadService } from '../../../shared/services/pdf-download.service';
+import { I18nService } from '../../../shared/services/i18n.service';
 import { environment } from '../../../../environments/environment';
 
 const DEFAULT_PROFILE: ShopProfile = {
@@ -86,6 +87,7 @@ export class InvoicePdfService {
   private readonly appSettings = inject(AppSettingsService);
   private readonly http = inject(HttpClient);
   private readonly pdfDownload = inject(PdfDownloadService);
+  private readonly i18n = inject(I18nService);
 
   /** Loaded once from DB; all print components read this signal. */
   readonly shopProfile = toSignal(
@@ -151,14 +153,10 @@ export class InvoicePdfService {
    * Get payment method display name
    */
   getPaymentMethodLabel(method: string): string {
-    const labels: Record<string, string> = {
-      'CASH': 'Cash',
-      'MOBILE_BANKING': 'Mobile Banking',
-      'CARD': 'Card Payment',
-      'DUE': 'Credit/Due',
-      'PART_PAY': 'Partial Payment'
-    };
-    return labels[method] || method;
+    if (!method) return method;
+    const key = `paymentMethods.pos.${method}`;
+    const label = this.i18n.t(key);
+    return label === key ? method : label;
   }
 
   /**

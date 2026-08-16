@@ -9,37 +9,37 @@
       <div class="inv-header-left">
         <div class="inv-breadcrumb">
           <a (click)="cancel()" class="inv-back-link">
-            <i class="pi pi-arrow-left"></i> Invoices
+            <i class="pi pi-arrow-left"></i> {{ 'invoices.title' | translate }}
           </a>
           <i class="pi pi-chevron-right inv-sep"></i>
-          <span>{{ mode() === 'create' ? 'New Invoice' : invoice()?.invoiceNumber ?? 'Invoice Details' }}</span>
+          <span>{{ mode() === 'create' ? ('invoiceForm.newInvoice' | translate) : invoice()?.invoiceNumber ?? ('invoiceForm.invoiceDetails' | translate) }}</span>
         </div>
         <h1 class="inv-title">
-          {{ mode() === 'create' ? 'Create Invoice' : invoice()?.invoiceNumber ?? 'Invoice Details' }}
+          {{ mode() === 'create' ? ('invoiceForm.createInvoice' | translate) : invoice()?.invoiceNumber ?? ('invoiceForm.invoiceDetails' | translate) }}
         </h1>
         <span class="inv-subtitle" *ngIf="mode() === 'view' && invoice()">
-          {{ invoice()!.customerName }} · SO {{ invoice()!.salesOrderNumber }}
+          {{ invoice()!.customerName }} · {{ 'common.document.soNo' | translate }} {{ invoice()!.salesOrderNumber }}
         </span>
       </div>
 
       <div class="inv-header-right" *ngIf="mode() === 'view' && invoice()">
-        <span class="inv-status-pill" [attr.data-status]="invoice()!.status">{{ invoice()!.status }}</span>
-        <span class="inv-overdue-badge" *ngIf="invoice()!.isOverdue">OVERDUE</span>
+        <span class="inv-status-pill" [attr.data-status]="invoice()!.status">{{ statusLabel(invoice()!.status) }}</span>
+        <span class="inv-overdue-badge" *ngIf="invoice()!.isOverdue">{{ 'invoiceForm.overdue' | translate }}</span>
         <button class="btn-header btn-header-outline" (click)="openPrint()">
-          <i class="pi pi-print"></i> Print
+          <i class="pi pi-print"></i> {{ 'common.actions.print' | translate }}
         </button>
         <button class="btn-header btn-header-outline" (click)="openChallan()">
-          <i class="pi pi-truck"></i> Challan
+          <i class="pi pi-truck"></i> {{ 'invoiceForm.challan' | translate }}
         </button>
         <button *ngIf="invoice()!.status === 'DRAFT'" class="btn-header btn-header-primary" (click)="issueInvoice()">
-          <i class="pi pi-send"></i> Issue
+          <i class="pi pi-send"></i> {{ 'invoiceForm.issue' | translate }}
         </button>
         <button *ngIf="invoice()!.status !== 'DRAFT' && invoice()!.status !== 'PAID' && invoice()!.status !== 'CANCELLED'"
           class="btn-header btn-header-success" (click)="openPaymentDialog()">
-          <i class="pi pi-dollar"></i> Record Payment
+          <i class="pi pi-dollar"></i> {{ 'common.actions.recordPayment' | translate }}
         </button>
         <button class="btn-header btn-header-outline" (click)="cancel()">
-          <i class="pi pi-arrow-left"></i> Back
+          <i class="pi pi-arrow-left"></i> {{ 'common.actions.back' | translate }}
         </button>
       </div>
 
@@ -49,7 +49,7 @@
   <!-- ══ LOADING ══════════════════════════════════════════════════════ -->
   <div *ngIf="loading()" class="inv-loading">
     <i class="pi pi-spin pi-spinner"></i>
-    <span>Loading invoice…</span>
+    <span>{{ 'invoiceForm.loading' | translate }}</span>
   </div>
 
   <!-- ══ VIEW MODE ════════════════════════════════════════════════════ -->
@@ -57,42 +57,42 @@
 
     <!-- Due / Paid banner -->
     <div class="due-banner" *ngIf="invoice()!.outstandingAmount > 0">
-      <span class="due-banner-label"><i class="pi pi-exclamation-circle"></i> Balance Due</span>
+      <span class="due-banner-label"><i class="pi pi-exclamation-circle"></i> {{ 'invoiceForm.balanceDue' | translate }}</span>
       <span class="due-banner-amount">{{ formatCurrency(invoice()!.outstandingAmount) }}</span>
     </div>
     <div class="paid-banner" *ngIf="invoice()!.outstandingAmount <= 0 && invoice()!.amountPaid > 0">
-      <i class="pi pi-check-circle"></i> Fully Paid
+      <i class="pi pi-check-circle"></i> {{ 'invoiceForm.fullyPaid' | translate }}
     </div>
 
     <!-- Invoice summary -->
     <div class="inv-card">
       <div class="inv-card-header">
-        <span class="inv-card-title"><i class="pi pi-file-invoice"></i> Invoice Summary</span>
+        <span class="inv-card-title"><i class="pi pi-file-invoice"></i> {{ 'invoiceForm.summaryTitle' | translate }}</span>
       </div>
       <div class="inv-card-body">
         <div class="summary-grid">
           <div class="summary-item">
-            <span class="summary-item-label">Invoice Date</span>
+            <span class="summary-item-label">{{ 'invoiceForm.invoiceDate' | translate }}</span>
             <span class="summary-item-value">{{ formatDate(invoice()!.invoiceDate) }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-item-label">Due Date</span>
+            <span class="summary-item-label">{{ 'invoiceForm.dueDate' | translate }}</span>
             <span class="summary-item-value" [class.due]="invoice()!.isOverdue">{{ formatDate(invoice()!.dueDate) }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-item-label">Customer</span>
+            <span class="summary-item-label">{{ 'invoices.columns.customer' | translate }}</span>
             <span class="summary-item-value">{{ invoice()!.customerName || '—' }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-item-label">Phone</span>
+            <span class="summary-item-label">{{ 'common.labels.phone' | translate }}</span>
             <span class="summary-item-value">{{ invoice()!.customerPhone || '—' }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-item-label">Sales Order</span>
+            <span class="summary-item-label">{{ 'invoiceForm.salesOrder' | translate }}</span>
             <span class="summary-item-value">{{ invoice()!.salesOrderNumber }}</span>
           </div>
           <div class="summary-item" *ngIf="invoice()!.notes">
-            <span class="summary-item-label">Notes</span>
+            <span class="summary-item-label">{{ 'common.labels.notes' | translate }}</span>
             <span class="summary-item-value inv-notes">{{ invoice()!.notes }}</span>
           </div>
         </div>
@@ -102,32 +102,32 @@
     <!-- Totals card -->
     <div class="inv-card">
       <div class="inv-card-header">
-        <span class="inv-card-title"><i class="pi pi-calculator"></i> Amounts</span>
+        <span class="inv-card-title"><i class="pi pi-calculator"></i> {{ 'invoiceForm.amountsTitle' | translate }}</span>
       </div>
       <div class="inv-card-body">
         <div class="summary-grid">
           <div class="summary-item">
-            <span class="summary-item-label">Subtotal</span>
+            <span class="summary-item-label">{{ 'common.labels.subtotal' | translate }}</span>
             <span class="summary-item-value">{{ formatCurrency(invoice()!.subTotal) }}</span>
           </div>
           <div class="summary-item" *ngIf="invoice()!.taxAmount > 0">
-            <span class="summary-item-label">Tax / VAT</span>
+            <span class="summary-item-label">{{ 'invoiceForm.taxVat' | translate }}</span>
             <span class="summary-item-value">{{ formatCurrency(invoice()!.taxAmount) }}</span>
           </div>
           <div class="summary-item" *ngIf="invoice()!.discountAmount > 0">
-            <span class="summary-item-label">Discount</span>
+            <span class="summary-item-label">{{ 'common.labels.discount' | translate }}</span>
             <span class="summary-item-value" style="color:var(--color-success)">− {{ formatCurrency(invoice()!.discountAmount) }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-item-label">Grand Total</span>
+            <span class="summary-item-label">{{ 'invoiceForm.grandTotal' | translate }}</span>
             <span class="summary-item-value large">{{ formatCurrency(invoice()!.grandTotal) }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-item-label">Amount Paid</span>
+            <span class="summary-item-label">{{ 'invoiceForm.amountPaid' | translate }}</span>
             <span class="summary-item-value paid">{{ formatCurrency(invoice()!.amountPaid) }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-item-label">Outstanding</span>
+            <span class="summary-item-label">{{ 'invoiceForm.outstanding' | translate }}</span>
             <span class="summary-item-value" [class.due]="invoice()!.outstandingAmount > 0" [class.zero]="invoice()!.outstandingAmount <= 0">
               {{ formatCurrency(invoice()!.outstandingAmount) }}
             </span>
@@ -139,15 +139,15 @@
     <!-- Payment history -->
     <div class="inv-card" *ngIf="(invoice()!.payments?.length ?? 0) > 0">
       <div class="inv-card-header">
-        <span class="inv-card-title"><i class="pi pi-history"></i> Payment History</span>
+        <span class="inv-card-title"><i class="pi pi-history"></i> {{ 'invoiceForm.paymentHistoryTitle' | translate }}</span>
       </div>
       <table class="payments-table">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Method</th>
-            <th>Reference</th>
-            <th style="text-align:right">Amount</th>
+            <th>{{ 'common.labels.date' | translate }}</th>
+            <th>{{ 'invoiceForm.method' | translate }}</th>
+            <th>{{ 'common.labels.reference' | translate }}</th>
+            <th style="text-align:right">{{ 'common.labels.amount' | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -163,14 +163,14 @@
 
     <!-- Mobile action buttons -->
     <div class="inv-form-actions" style="padding-top:0; border:none;">
-      <button pButton type="button" label="Back" icon="pi pi-arrow-left"
+      <button pButton type="button" [label]="'common.actions.back' | translate" icon="pi pi-arrow-left"
         class="p-button-outlined p-button-sm" (click)="cancel()"></button>
-      <button pButton type="button" label="Print Invoice" icon="pi pi-print"
+      <button pButton type="button" [label]="'invoiceForm.printInvoice' | translate" icon="pi pi-print"
         class="p-button-outlined p-button-sm" (click)="openPrint()"></button>
-      <button *ngIf="invoice()!.status === 'DRAFT'" pButton type="button" label="Issue Invoice" icon="pi pi-send"
+      <button *ngIf="invoice()!.status === 'DRAFT'" pButton type="button" [label]="'invoiceForm.issueInvoice' | translate" icon="pi pi-send"
         class="p-button-sm" (click)="issueInvoice()"></button>
       <button *ngIf="invoice()!.status !== 'DRAFT' && invoice()!.status !== 'PAID' && invoice()!.status !== 'CANCELLED'"
-        pButton type="button" label="Record Payment" icon="pi pi-dollar"
+        pButton type="button" [label]="'common.actions.recordPayment' | translate" icon="pi pi-dollar"
         class="p-button-success p-button-sm" (click)="openPaymentDialog()"></button>
     </div>
 
@@ -184,53 +184,53 @@
         <div class="inv-form-grid">
 
           <div class="inv-form-full">
-            <label class="inv-form-label"><span class="required">*</span> Sales Order</label>
+            <label class="inv-form-label"><span class="required">*</span> {{ 'invoiceForm.salesOrder' | translate }}</label>
             <p-select appendTo="body" formControlName="salesOrderId" [options]="salesOrderOptions()"
-              optionLabel="label" optionValue="value" placeholder="Select a sales order…"
+              optionLabel="label" optionValue="value" [placeholder]="'invoiceForm.salesOrderPlaceholder' | translate"
               [style]="{width:'100%'}" (onChange)="onSalesOrderChange($event.value)">
             </p-select>
             <small *ngIf="invoiceForm.get('salesOrderId')?.invalid && invoiceForm.get('salesOrderId')?.touched" class="p-error">
-              Sales Order is required
+              {{ 'invoiceForm.salesOrderRequired' | translate }}
             </small>
           </div>
 
           <div>
-            <label class="inv-form-label"><span class="required">*</span> Subtotal</label>
+            <label class="inv-form-label"><span class="required">*</span> {{ 'common.labels.subtotal' | translate }}</label>
             <p-inputNumber formControlName="subTotal" mode="currency" [currency]="currencyCode"
               [locale]="currencyLocale" [style]="{width:'100%'}"></p-inputNumber>
             <small *ngIf="invoiceForm.get('subTotal')?.invalid && invoiceForm.get('subTotal')?.touched" class="p-error">
-              Subtotal must be 0 or more
+              {{ 'invoiceForm.subtotalRequired' | translate }}
             </small>
           </div>
 
           <div>
-            <label class="inv-form-label">Tax Amount</label>
+            <label class="inv-form-label">{{ 'invoiceForm.taxAmount' | translate }}</label>
             <p-inputNumber formControlName="taxAmount" mode="currency" [currency]="currencyCode"
               [locale]="currencyLocale" [style]="{width:'100%'}"></p-inputNumber>
           </div>
 
           <div>
-            <label class="inv-form-label"><span class="required">*</span> Due Date</label>
+            <label class="inv-form-label"><span class="required">*</span> {{ 'invoiceForm.dueDate' | translate }}</label>
             <p-datepicker appendTo="body" formControlName="dueDate" [showIcon]="true"
               dateFormat="yy-mm-dd" [style]="{width:'100%'}"></p-datepicker>
             <small *ngIf="invoiceForm.get('dueDate')?.invalid && invoiceForm.get('dueDate')?.touched" class="p-error">
-              Due Date is required
+              {{ 'invoiceForm.dueDateRequired' | translate }}
             </small>
           </div>
 
           <div class="inv-form-full">
-            <label class="inv-form-label">Notes</label>
+            <label class="inv-form-label">{{ 'common.labels.notes' | translate }}</label>
             <textarea formControlName="notes" rows="3" pInputTextarea
-              placeholder="Additional notes…" style="width:100%"></textarea>
+              [placeholder]="'invoiceForm.notesPlaceholder' | translate" style="width:100%"></textarea>
           </div>
 
         </div>
 
         <div class="inv-form-actions">
-          <button pButton type="button" label="Cancel" icon="pi pi-times"
+          <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times"
             class="p-button-outlined p-button-sm" (click)="cancel()"></button>
           <button pButton type="submit"
-            [label]="saving() ? 'Creating…' : 'Create Invoice'"
+            [label]="saving() ? ('invoiceForm.creating' | translate) : ('invoiceForm.createInvoice' | translate)"
             icon="pi pi-check" class="p-button-sm"
             [disabled]="saving() || invoiceForm.invalid"></button>
         </div>
@@ -240,37 +240,37 @@
   </div>
 
   <!-- ══ PAYMENT DIALOG ════════════════════════════════════════════════ -->
-  <p-dialog header="Record Payment" [(visible)]="showPaymentDialog" [modal]="true"
+  <p-dialog [header]="'invoices.paymentDialog.title' | translate" [(visible)]="showPaymentDialog" [modal]="true"
     [style]="{width:'90vw',maxWidth:'480px'}" appendTo="body" *ngIf="invoice()">
     <form [formGroup]="paymentForm" (ngSubmit)="recordPayment()">
       <div class="pmt-dialog-info">
-        <div class="pmt-dialog-info-label">Outstanding Amount</div>
+        <div class="pmt-dialog-info-label">{{ 'invoiceForm.outstandingAmount' | translate }}</div>
         <div class="pmt-dialog-info-value">{{ formatCurrency(invoice()!.outstandingAmount) }}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div>
-          <label class="inv-form-label"><span class="required">*</span> Payment Amount</label>
+          <label class="inv-form-label"><span class="required">*</span> {{ 'invoices.paymentDialog.amountLabel' | translate }}</label>
           <p-inputNumber formControlName="amount" mode="currency" [currency]="currencyCode"
             [locale]="currencyLocale" [max]="invoice()!.outstandingAmount" [min]="0.01"
             [style]="{width:'100%'}"></p-inputNumber>
           <small *ngIf="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched" class="p-error">
-            Payment amount must be at least 0.01
+            {{ 'invoiceForm.amountMin' | translate }}
           </small>
         </div>
         <div>
-          <label class="inv-form-label"><span class="required">*</span> Payment Date</label>
+          <label class="inv-form-label"><span class="required">*</span> {{ 'invoices.paymentDialog.dateLabel' | translate }}</label>
           <p-datepicker formControlName="paymentDate" [showIcon]="true" dateFormat="yy-mm-dd"
             [style]="{width:'100%'}"></p-datepicker>
           <small *ngIf="paymentForm.get('paymentDate')?.invalid && paymentForm.get('paymentDate')?.touched" class="p-error">
-            Payment Date is required
+            {{ 'invoiceForm.paymentDateRequired' | translate }}
           </small>
         </div>
       </div>
     </form>
     <ng-template pTemplate="footer">
-      <button pButton type="button" label="Cancel" class="p-button-outlined p-button-sm"
+      <button pButton type="button" [label]="'common.actions.cancel' | translate" class="p-button-outlined p-button-sm"
         (click)="closePaymentDialog()"></button>
-      <button pButton type="button" label="Record Payment" icon="pi pi-check" class="p-button-sm"
+      <button pButton type="button" [label]="'invoices.paymentDialog.submit' | translate" icon="pi pi-check" class="p-button-sm"
         [disabled]="paymentForm.invalid" (click)="recordPayment()"></button>
     </ng-template>
   </p-dialog>

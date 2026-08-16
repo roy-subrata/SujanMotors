@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { I18nService } from '@/shared/services/i18n.service';
 
 export enum CustomerLedgerTransactionType {
     INVOICE = 'INVOICE',   // Invoice issued (debit - increases what the customer owes)
@@ -71,6 +72,7 @@ export interface ReceivablesAgingRow {
 })
 export class CustomerLedgerService {
     private readonly http = inject(HttpClient);
+    private readonly i18n = inject(I18nService);
     private readonly apiUrl = `${environment.apiUrl}/v1/customer-ledger`;
     private readonly reportsUrl = `${environment.apiUrl}/v1/reports/financial`;
 
@@ -101,18 +103,10 @@ export class CustomerLedgerService {
     }
 
     getTransactionTypeLabel(type: CustomerLedgerTransactionType): string {
-        switch (type) {
-            case CustomerLedgerTransactionType.INVOICE:
-                return 'Invoice';
-            case CustomerLedgerTransactionType.PAYMENT:
-                return 'Payment';
-            case CustomerLedgerTransactionType.ADVANCE:
-                return 'Advance Payment';
-            case CustomerLedgerTransactionType.REFUND:
-                return 'Refund';
-            default:
-                return type;
-        }
+        if (!type) return type;
+        const key = `customerLedger.transactionTypes.${type}`;
+        const label = this.i18n.t(key);
+        return label === key ? type : label;
     }
 
     getTransactionTypeStatus(type: CustomerLedgerTransactionType): string {
