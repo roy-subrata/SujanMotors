@@ -23,6 +23,8 @@ import {
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 /**
  * Standalone Till Session admin page — the cashier's own current-session dashboard. Purely a
@@ -50,7 +52,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         ConfirmDialogModule,
         TooltipModule,
         PageContainerComponent,
-        PageHeaderComponent
+        PageHeaderComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './till-session-current.component.html',
@@ -61,6 +64,7 @@ export class TillSessionCurrentComponent implements OnInit {
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly i18n = inject(I18nService);
 
     loading = signal(true);
     session = signal<TillSessionResponse | null>(null);
@@ -129,8 +133,8 @@ export class TillSessionCurrentComponent implements OnInit {
                 this.loading.set(false);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: err?.error?.message ?? 'Failed to load your till session.'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: err?.error?.message ?? this.i18n.t('tillSessions.current.messages.loadFailed')
                 });
             }
         });
@@ -169,11 +173,11 @@ export class TillSessionCurrentComponent implements OnInit {
     // ── Open Till ────────────────────────────────────────────────────────
     openTill(): void {
         if (!this.terminalLabel.trim()) {
-            this.openError.set('Terminal label is required.');
+            this.openError.set(this.i18n.t('tillSessions.current.messages.terminalRequired'));
             return;
         }
         if (this.openingFloat == null || this.openingFloat < 0) {
-            this.openError.set('Opening float must be zero or greater.');
+            this.openError.set(this.i18n.t('tillSessions.current.messages.openingFloatInvalid'));
             return;
         }
 
@@ -194,13 +198,13 @@ export class TillSessionCurrentComponent implements OnInit {
                 this.resetOpenForm();
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Till Opened',
-                    detail: `Till session opened on ${session.terminalLabel}.`
+                    summary: this.i18n.t('tillSessions.current.messages.openedTitle'),
+                    detail: this.i18n.t('tillSessions.current.messages.openedDetail', { terminal: session.terminalLabel })
                 });
             },
             error: (err) => {
                 this.opening.set(false);
-                this.openError.set(err?.error?.message ?? 'Failed to open the till session.');
+                this.openError.set(err?.error?.message ?? this.i18n.t('tillSessions.current.messages.openFailed'));
             }
         });
     }
@@ -239,7 +243,7 @@ export class TillSessionCurrentComponent implements OnInit {
         if (!current) return;
 
         if (!this.cashDropAmount || this.cashDropAmount <= 0) {
-            this.cashDropError.set('Amount must be greater than zero.');
+            this.cashDropError.set(this.i18n.t('tillSessions.current.messages.dropAmountInvalid'));
             return;
         }
 
@@ -258,13 +262,13 @@ export class TillSessionCurrentComponent implements OnInit {
                 this.showCashDropDialog = false;
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Cash Drop Recorded',
-                    detail: `${this.formatCurrency(request.amount)} recorded as a cash drop.`
+                    summary: this.i18n.t('tillSessions.current.messages.dropRecordedTitle'),
+                    detail: this.i18n.t('tillSessions.current.messages.dropRecordedDetail', { amount: this.formatCurrency(request.amount) })
                 });
             },
             error: (err) => {
                 this.recordingDrop.set(false);
-                this.cashDropError.set(err?.error?.message ?? 'Failed to record the cash drop.');
+                this.cashDropError.set(err?.error?.message ?? this.i18n.t('tillSessions.current.messages.dropFailed'));
             }
         });
     }
@@ -283,13 +287,13 @@ export class TillSessionCurrentComponent implements OnInit {
         if (!current) return;
 
         if (this.closeCountedAmount == null || this.closeCountedAmount < 0) {
-            this.closeError.set('Counted amount must be zero or greater.');
+            this.closeError.set(this.i18n.t('tillSessions.current.messages.countedInvalid'));
             return;
         }
 
         this.confirmationService.confirm({
-            message: 'Closing the till freezes its reconciliation and cannot be undone. Continue?',
-            header: 'Close Till Session',
+            message: this.i18n.t('tillSessions.current.messages.closeConfirm'),
+            header: this.i18n.t('tillSessions.current.closeDialog.title'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => this.doClose(current.id)
@@ -312,13 +316,13 @@ export class TillSessionCurrentComponent implements OnInit {
                 this.showCloseDialog = false;
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Till Closed',
-                    detail: `Till session on ${session.terminalLabel} closed.`
+                    summary: this.i18n.t('tillSessions.current.messages.closedTitle'),
+                    detail: this.i18n.t('tillSessions.current.messages.closedDetail', { terminal: session.terminalLabel })
                 });
             },
             error: (err) => {
                 this.closingSession.set(false);
-                this.closeError.set(err?.error?.message ?? 'Failed to close the till session.');
+                this.closeError.set(err?.error?.message ?? this.i18n.t('tillSessions.current.messages.closeFailed'));
             }
         });
     }
@@ -332,8 +336,8 @@ export class TillSessionCurrentComponent implements OnInit {
             error: () => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to download the shift report PDF.'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('tillSessions.current.messages.pdfFailed')
                 });
             }
         });
@@ -343,6 +347,15 @@ export class TillSessionCurrentComponent implements OnInit {
     formatCurrency(amount: number | null | undefined): string {
         if (amount == null || isNaN(amount)) return '—';
         return this.currencyService.formatCurrency(amount, this.currencyService.selectedCurrency());
+    }
+
+    /** Session status is a server enum rendered directly in the summary pill. */
+    formatStatus(status: string): string {
+        if (!status) return '';
+        const key = 'tillSessions.statusOptions.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        return label === key ? status : label;
     }
 
     formatDateTime(date: string | null | undefined): string {

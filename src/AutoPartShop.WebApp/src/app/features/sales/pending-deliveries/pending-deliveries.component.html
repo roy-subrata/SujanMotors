@@ -5,14 +5,14 @@
 
   <!-- ══ HEADER ══════════════════════════════════════════════════════ -->
   <app-page-header
-    title="Pending Deliveries"
-    subtitle="Orders confirmed and waiting to be delivered"
-    [count]="orders().length" countLabel="orders" countIcon="pi pi-box">
+    [title]="'pendingDeliveries.title' | translate"
+    [subtitle]="'pendingDeliveries.subtitle' | translate"
+    [count]="orders().length" [countLabel]="'pendingDeliveries.countLabel' | translate" countIcon="pi pi-box">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="load()">
         <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
       </button>
-      <a routerLink="/sales/sales-orders" class="btn-icon" pTooltip="All Orders" tooltipPosition="bottom">
+      <a routerLink="/sales/sales-orders" class="btn-icon" [pTooltip]="'pendingDeliveries.allOrders' | translate" tooltipPosition="bottom">
         <i class="pi pi-list"></i>
       </a>
     </ng-container>
@@ -20,14 +20,14 @@
 
   <!-- ══ LOADING ══════════════════════════════════════════════════════ -->
   <div *ngIf="loading()" class="pd-loading">
-    <i class="pi pi-spin pi-spinner"></i> Loading pending deliveries…
+    <i class="pi pi-spin pi-spinner"></i> {{ 'pendingDeliveries.loading' | translate }}
   </div>
 
   <!-- ══ EMPTY ════════════════════════════════════════════════════════ -->
   <div *ngIf="!loading() && orders().length === 0" class="pd-empty">
     <div class="pd-empty-icon"><i class="pi pi-check-circle"></i></div>
-    <h3>All Clear!</h3>
-    <p>No orders are waiting for delivery right now.</p>
+    <h3>{{ 'pendingDeliveries.emptyTitle' | translate }}</h3>
+    <p>{{ 'pendingDeliveries.emptyHint' | translate }}</p>
   </div>
 
   <!-- ══ ORDERS TABLE ════════════════════════════════════════════════ -->
@@ -37,13 +37,13 @@
       <table class="pd-table">
         <thead>
           <tr>
-            <th>Order</th>
-            <th>Customer</th>
-            <th>Confirmed</th>
-            <th>Items</th>
-            <th>Grand Total</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th>{{ 'pendingDeliveries.columns.order' | translate }}</th>
+            <th>{{ 'pendingDeliveries.columns.customer' | translate }}</th>
+            <th>{{ 'pendingDeliveries.columns.confirmed' | translate }}</th>
+            <th>{{ 'pendingDeliveries.columns.items' | translate }}</th>
+            <th>{{ 'pendingDeliveries.columns.grandTotal' | translate }}</th>
+            <th>{{ 'pendingDeliveries.columns.status' | translate }}</th>
+            <th>{{ 'pendingDeliveries.columns.actions' | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -52,7 +52,7 @@
             <td>
               <div class="so-cell">
                 <span class="so-number">{{ o.soNumber }}</span>
-                <span class="so-date" *ngIf="o.deliveryDate">Expected {{ formatDate(o.deliveryDate) }}</span>
+                <span class="so-date" *ngIf="o.deliveryDate">{{ 'pendingDeliveries.expectedPrefix' | translate }} {{ formatDate(o.deliveryDate) }}</span>
               </div>
             </td>
 
@@ -65,7 +65,7 @@
 
             <td><span class="date-text">{{ o.createdAt ? formatDate(o.createdAt) : '—' }}</span></td>
 
-            <td><span class="item-count">{{ o.lines.length }} item{{ o.lines.length !== 1 ? 's' : '' }}</span></td>
+            <td><span class="item-count">{{ 'pendingDeliveries.itemCount' | translate:{ count: o.lines.length } }}</span></td>
 
             <td><span class="amount-value">{{ formatCurrency(o.grandTotal) }}</span></td>
 
@@ -76,20 +76,20 @@
             <td>
               <div class="action-cell">
                 <!-- Generate challan (for any status — auto-transitions if CONFIRMED) -->
-                <button class="action-btn challan-btn" pTooltip="Generate Challan" tooltipPosition="top"
+                <button class="action-btn challan-btn" [pTooltip]="'pendingDeliveries.generateChallanTooltip' | translate" tooltipPosition="top"
                   (click)="openChallanDialog(o); $event.stopPropagation()">
                   <i class="pi pi-file-export"></i>
-                  <span>Challan</span>
+                  <span>{{ 'pendingDeliveries.challanShort' | translate }}</span>
                 </button>
 
                 <!-- Deliver direct -->
-                <button class="action-btn deliver-btn" pTooltip="Deliver Now (no challan)" tooltipPosition="top"
+                <button class="action-btn deliver-btn" [pTooltip]="'pendingDeliveries.deliverNowTooltip' | translate" tooltipPosition="top"
                   (click)="deliverDirect(o); $event.stopPropagation()">
                   <i class="pi pi-check-circle"></i>
-                  <span>Deliver</span>
+                  <span>{{ 'pendingDeliveries.deliverShort' | translate }}</span>
                 </button>
 
-                <button class="action-btn view-btn" pTooltip="View Order" tooltipPosition="top"
+                <button class="action-btn view-btn" [pTooltip]="'pendingDeliveries.viewOrderTooltip' | translate" tooltipPosition="top"
                   (click)="view(o.id); $event.stopPropagation()">
                   <i class="pi pi-eye"></i>
                 </button>
@@ -106,51 +106,51 @@
 </app-page-container>
 
 <!-- ══ Challan Dialog ══════════════════════════════════════════════ -->
-<p-dialog header="Generate Delivery Challan" [(visible)]="showChallanDialog"
+<p-dialog [header]="'pendingDeliveries.challanDialog.title' | translate" [(visible)]="showChallanDialog"
   [modal]="true" [style]="{width:'560px',maxWidth:'95vw'}" appendTo="body">
   <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0;">
     <div class="form-row">
       <div class="form-group full">
-        <label class="form-label">Delivery Address</label>
+        <label class="form-label">{{ 'pendingDeliveries.challanDialog.deliveryAddress' | translate }}</label>
         <input pInputText [(ngModel)]="challanForm.deliveryAddress" style="width:100%" />
       </div>
       <div class="form-group">
-        <label class="form-label">Receiver Name</label>
+        <label class="form-label">{{ 'pendingDeliveries.challanDialog.receiverName' | translate }}</label>
         <input pInputText [(ngModel)]="challanForm.receiverName" style="width:100%" />
       </div>
       <div class="form-group">
-        <label class="form-label">Receiver Phone</label>
+        <label class="form-label">{{ 'pendingDeliveries.challanDialog.receiverPhone' | translate }}</label>
         <input pInputText [(ngModel)]="challanForm.receiverPhone" style="width:100%" />
       </div>
     </div>
     <p-divider align="left">
-      <span style="font-size:12px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em">Transport / Carrier</span>
+      <span style="font-size:12px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em">{{ 'pendingDeliveries.challanDialog.transportSection' | translate }}</span>
     </p-divider>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Transport Company</label>
-        <input pInputText [(ngModel)]="challanForm.transportCompany" placeholder="e.g. Sundarban Courier" style="width:100%" />
+        <label class="form-label">{{ 'pendingDeliveries.challanDialog.transportCompany' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.transportCompany" [placeholder]="'pendingDeliveries.challanDialog.transportCompanyPlaceholder' | translate" style="width:100%" />
       </div>
       <div class="form-group">
-        <label class="form-label">Vehicle / Truck No.</label>
-        <input pInputText [(ngModel)]="challanForm.vehicleNumber" placeholder="DHAKA-KA-11-1234" style="width:100%" />
+        <label class="form-label">{{ 'pendingDeliveries.challanDialog.vehicleNumber' | translate }}</label>
+        <input pInputText [(ngModel)]="challanForm.vehicleNumber" [placeholder]="'pendingDeliveries.challanDialog.vehicleNumberPlaceholder' | translate" style="width:100%" />
       </div>
       <div class="form-group">
-        <label class="form-label">Driver Name</label>
+        <label class="form-label">{{ 'pendingDeliveries.challanDialog.driverName' | translate }}</label>
         <input pInputText [(ngModel)]="challanForm.driverName" style="width:100%" />
       </div>
       <div class="form-group">
-        <label class="form-label">Driver Phone</label>
+        <label class="form-label">{{ 'pendingDeliveries.challanDialog.driverPhone' | translate }}</label>
         <input pInputText [(ngModel)]="challanForm.driverPhone" style="width:100%" />
       </div>
       <div class="form-group full">
-        <label class="form-label">Notes (optional)</label>
+        <label class="form-label">{{ 'pendingDeliveries.challanDialog.notes' | translate }}</label>
         <textarea pInputTextarea [(ngModel)]="challanForm.notes" rows="2" style="width:100%"></textarea>
       </div>
     </div>
   </div>
   <ng-template pTemplate="footer">
-    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-sm" (click)="showChallanDialog=false"></button>
-    <button pButton type="button" label="Generate &amp; Print" icon="pi pi-file-export" class="p-button-sm p-button-success" (click)="generateChallan()"></button>
+    <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-outlined p-button-sm" (click)="showChallanDialog=false"></button>
+    <button pButton type="button" [label]="'pendingDeliveries.challanDialog.submit' | translate" icon="pi pi-file-export" class="p-button-sm p-button-success" (click)="generateChallan()"></button>
   </ng-template>
 </p-dialog>

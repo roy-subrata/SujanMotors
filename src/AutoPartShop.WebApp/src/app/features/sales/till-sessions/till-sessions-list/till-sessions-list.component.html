@@ -10,12 +10,12 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Till Session History"
-    subtitle="Audit trail of every cash drawer session across all cashiers"
-    [count]="totalRecords" countLabel="sessions" countIcon="pi pi-wallet"
+    [title]="'tillSessions.historyTitle' | translate"
+    [subtitle]="'tillSessions.historySubtitle' | translate"
+    [count]="totalRecords" [countLabel]="'tillSessions.countLabel' | translate" countIcon="pi pi-wallet"
     [backLink]="['/sales/till-sessions']">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
     </ng-container>
@@ -35,7 +35,7 @@
       <p-datepicker
         [(ngModel)]="dateRange"
         selectionMode="range"
-        placeholder="Select date range"
+        [placeholder]="'tillSessions.dateRangePlaceholder' | translate"
         dateFormat="dd M yy"
         [showIcon]="true"
         [showButtonBar]="true"
@@ -47,22 +47,22 @@
 
     <div filterActions class="filter-group filter-actions">
       <button class="text-btn" (click)="moreFiltersVisible = true">
-        More filters
+        {{ 'common.labels.moreFilters' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}:</span>
       <span *ngIf="filterStatus" class="filter-chip">
-        Status: {{ filterStatus }}
+        {{ 'common.listPage.statusChip' | translate }}: {{ formatStatus(filterStatus) }}
         <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
       </span>
       <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
-        Date Range
+        {{ 'common.listPage.dateRangeChip' | translate }}
         <i class="pi pi-times" (click)="dateRange = null; onFilterChange()"></i>
       </span>
     </div>
@@ -94,16 +94,16 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-terminal">Terminal</th>
-            <th class="col-shift">Shift</th>
-            <th class="col-cashier">Cashier</th>
-            <th class="col-date">Opened</th>
-            <th class="col-date">Closed</th>
-            <th class="col-amount">Opening Float</th>
-            <th class="col-amount">Expected</th>
-            <th class="col-amount">Over / Short</th>
-            <th class="col-status">Status</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-terminal">{{ 'tillSessions.columns.terminal' | translate }}</th>
+            <th class="col-shift">{{ 'tillSessions.columns.shift' | translate }}</th>
+            <th class="col-cashier">{{ 'tillSessions.columns.cashier' | translate }}</th>
+            <th class="col-date">{{ 'tillSessions.columns.opened' | translate }}</th>
+            <th class="col-date">{{ 'tillSessions.columns.closed' | translate }}</th>
+            <th class="col-amount">{{ 'tillSessions.columns.openingFloat' | translate }}</th>
+            <th class="col-amount">{{ 'tillSessions.columns.expected' | translate }}</th>
+            <th class="col-amount">{{ 'tillSessions.columns.overShort' | translate }}</th>
+            <th class="col-status">{{ 'tillSessions.columns.status' | translate }}</th>
+            <th class="col-actions">{{ 'tillSessions.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -130,7 +130,7 @@
               <div class="action-cell">
                 <button
                   class="btn-action"
-                  pTooltip="Download Shift Report PDF"
+                  [pTooltip]="'tillSessions.downloadPdf' | translate"
                   [disabled]="session.status !== 'CLOSED'"
                   (click)="downloadPdf(session)">
                   <i class="pi pi-file-pdf"></i>
@@ -145,12 +145,12 @@
             <td colspan="10">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-wallet"></i></div>
-                <h3>No Till Sessions Found</h3>
-                <p *ngIf="hasActiveFilters()">Try adjusting your filters</p>
-                <p *ngIf="!hasActiveFilters()">No till sessions have been opened yet</p>
+                <h3>{{ 'tillSessions.emptyTitle' | translate }}</h3>
+                <p *ngIf="hasActiveFilters()">{{ 'tillSessions.emptyHintFiltered' | translate }}</p>
+                <p *ngIf="!hasActiveFilters()">{{ 'tillSessions.emptyHintNone' | translate }}</p>
                 <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
                   <i class="pi pi-filter-slash"></i>
-                  Clear Filters
+                  {{ 'common.actions.clearFilters' | translate }}
                 </button>
               </div>
             </td>
@@ -199,11 +199,11 @@
     <!-- Empty State -->
     <div *ngIf="!loading && sessions.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-wallet"></i></div>
-      <h3>No Till Sessions</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'No till sessions have been opened yet' }}</p>
+      <h3>{{ 'tillSessions.emptyTitleMobile' | translate }}</h3>
+      <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'tillSessions.emptyHintNone') | translate }}</p>
       <button *ngIf="hasActiveFilters()" class="btn-primary" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear Filters
+        {{ 'common.actions.clearFilters' | translate }}
       </button>
     </div>
 
@@ -229,7 +229,7 @@
 
         <div class="card-footer">
           <div class="card-amount">
-            <span class="amount-label">{{ session.status === 'CLOSED' ? 'Over / Short' : 'Expected' }}</span>
+            <span class="amount-label">{{ (session.status === 'CLOSED' ? 'tillSessions.columns.overShort' : 'tillSessions.columns.expected') | translate }}</span>
             <span class="amount-value" [ngClass]="overShortClass(session)">
               {{ session.status === 'CLOSED' ? formatCurrency(session.overShortAmount) : formatCurrency(session.expectedAmount) }}
             </span>
@@ -247,7 +247,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
-    itemLabel="sessions"
+    [itemLabel]="'tillSessions.itemLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>

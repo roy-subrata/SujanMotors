@@ -19,6 +19,8 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
 import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 /**
  * Admin history view of ALL till sessions (every cashier, not just the current user's) — the
@@ -41,7 +43,8 @@ import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dia
         FilterBarComponent,
         DataPaginationComponent,
         StatusPillFilterComponent,
-        MoreFiltersDialogComponent
+        MoreFiltersDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './till-sessions-list.component.html',
@@ -51,6 +54,7 @@ export class TillSessionsListComponent implements OnInit {
     private readonly tillSessionService = inject(TillSessionService);
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
 
     sessions: TillSessionResponse[] = [];
     loading = false;
@@ -63,11 +67,15 @@ export class TillSessionsListComponent implements OnInit {
     filterStatus: TillSessionStatus | '' = '';
     dateRange: Date[] | null = null;
 
-    statusOptions: { label: string; value: string }[] = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Open', value: 'OPEN' },
-        { label: 'Closed', value: 'CLOSED' }
-    ];
+    /** Getter, not a field: t() resolved at construction would freeze these labels in
+     *  whichever language was active then, instead of following the language switcher. */
+    get statusOptions(): { label: string; value: string }[] {
+        return [
+            { label: this.i18n.t('tillSessions.statusOptions.allStatuses'), value: '' },
+            { label: this.i18n.t('tillSessions.statusOptions.open'), value: 'OPEN' },
+            { label: this.i18n.t('tillSessions.statusOptions.closed'), value: 'CLOSED' }
+        ];
+    }
 
     moreFiltersVisible = false;
 
@@ -117,8 +125,8 @@ export class TillSessionsListComponent implements OnInit {
                     console.error('Error loading till sessions:', err);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load till sessions.'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('tillSessions.messages.loadFailed')
                     });
                     this.loading = false;
                 }
@@ -176,8 +184,8 @@ export class TillSessionsListComponent implements OnInit {
             error: () => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to download the shift report PDF.'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('tillSessions.messages.pdfFailed')
                 });
             }
         });
@@ -215,7 +223,12 @@ export class TillSessionsListComponent implements OnInit {
     }
 
     formatStatus(status: string): string {
-        return (status ?? '-').split('_')
+        if (!status) return '-';
+        const key = 'tillSessions.statusOptions.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        if (label !== key) return label;
+        return status.split('_')
             .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
     }
 }
