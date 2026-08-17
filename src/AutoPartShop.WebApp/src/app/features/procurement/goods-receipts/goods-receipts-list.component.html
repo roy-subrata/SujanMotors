@@ -16,13 +16,13 @@
 
       <ng-template #header>
         <tr>
-          <th class="col-grn">GRN Number</th>
-          <th class="col-po">PO Number</th>
-          <th class="col-warehouse">Warehouse</th>
-          <th class="col-date">Received Date</th>
-          <th class="col-status">Status</th>
-          <th class="col-verified">Verified By</th>
-          <th class="col-actions">Actions</th>
+          <th class="col-grn">{{ 'goodsReceipts.columns.grnNumber' | translate }}</th>
+          <th class="col-po">{{ 'goodsReceipts.columns.poNumber' | translate }}</th>
+          <th class="col-warehouse">{{ 'goodsReceipts.columns.warehouse' | translate }}</th>
+          <th class="col-date">{{ 'goodsReceipts.columns.receivedDate' | translate }}</th>
+          <th class="col-status">{{ 'goodsReceipts.columns.status' | translate }}</th>
+          <th class="col-verified">{{ 'goodsReceipts.columns.verifiedBy' | translate }}</th>
+          <th class="col-actions">{{ 'goodsReceipts.columns.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -31,7 +31,7 @@
           <td class="col-grn">
             <div class="grn-cell">
               <a class="grn-link" (click)="viewGoodsReceipt(grn)">{{ grn.grnNumber }}</a>
-              <span *ngIf="grn.discrepancyCount > 0" class="discrepancy-badge">Discrepancy</span>
+              <span *ngIf="grn.discrepancyCount > 0" class="discrepancy-badge">{{ 'goodsReceipts.columns.discrepancy' | translate }}</span>
             </div>
           </td>
           <td class="col-po">
@@ -49,11 +49,11 @@
             </span>
           </td>
           <td class="col-verified">
-            <span class="verified-text">{{ grn.verifiedBy || 'Pending' }}</span>
+            <span class="verified-text">{{ grn.verifiedBy || ('goodsReceipts.pendingVerification' | translate) }}</span>
           </td>
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, grn)">
+              <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, grn)">
                 <i class="pi pi-ellipsis-v"></i>
               </button>
             </div>
@@ -68,9 +68,9 @@
               <div class="empty-icon">
                 <i class="pi pi-inbox"></i>
               </div>
-              <h3>No Goods Receipts Found</h3>
-              <p *ngIf="hasActiveFilters">Try adjusting your filters or search criteria</p>
-              <p *ngIf="!hasActiveFilters">Get started by creating your first goods receipt</p>
+              <h3>{{ 'goodsReceipts.emptyTitle' | translate }}</h3>
+              <p *ngIf="hasActiveFilters">{{ 'common.listPage.adjustFiltersHint' | translate }}</p>
+              <p *ngIf="!hasActiveFilters">{{ 'goodsReceipts.emptyHintCreate' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -96,7 +96,7 @@
   [first]="firstIndex"
   [pageSize]="rows"
   [totalRecords]="totalRecords"
-  itemLabel="receipts"
+  [itemLabel]="'goodsReceipts.itemLabel' | translate"
   (pageChange)="goToPage($event)"
   (pageSizeChange)="onPageSizeChange($event)">
 </app-data-pagination>
@@ -123,8 +123,8 @@
     <div class="empty-icon">
       <i class="pi pi-inbox"></i>
     </div>
-    <h3>No Goods Receipts</h3>
-    <p>{{ hasActiveFilters ? 'Try different filters' : 'Create your first receipt' }}</p>
+    <h3>{{ 'goodsReceipts.emptyTitleMobile' | translate }}</h3>
+    <p>{{ (hasActiveFilters ? 'common.labels.tryDifferentFilters' : 'goodsReceipts.createFirst') | translate }}</p>
   </div>
 
   <div *ngIf="!loading && goodsReceipts.length > 0" class="cards-grid">
@@ -142,19 +142,19 @@
           <span class="meta-value">{{ grn.poNumber || '-' }}</span>
         </div>
         <div class="card-meta">
-          <span class="meta-label">Warehouse</span>
+          <span class="meta-label">{{ 'goodsReceipts.columns.warehouse' | translate }}</span>
           <span class="meta-value">{{ grn.warehouseName || '-' }}</span>
         </div>
         <div class="card-meta">
-          <span class="meta-label">Received</span>
+          <span class="meta-label">{{ 'goodsReceipts.received' | translate }}</span>
           <span class="meta-value">{{ formatDate(grn.receivedDate) }}</span>
         </div>
       </div>
 
       <div class="card-footer">
         <div class="card-amount">
-          <span class="amount-label">Verified By</span>
-          <span class="amount-value">{{ grn.verifiedBy || 'Pending' }}</span>
+          <span class="amount-label">{{ 'goodsReceipts.columns.verifiedBy' | translate }}</span>
+          <span class="amount-value">{{ grn.verifiedBy || ('goodsReceipts.pendingVerification' | translate) }}</span>
         </div>
         <button class="btn-card-action" (click)="showActionMenu($event, grn); $event.stopPropagation()">
           <i class="pi pi-ellipsis-h"></i>

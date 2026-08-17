@@ -62,13 +62,16 @@ export class GoodsReceiptsComponent implements OnInit {
   dateRange: Date[] = [];
   moreFiltersVisible = false;
 
-  statusOptions = [
-    { label: 'All', value: '' },
-    { label: 'Pending', value: 'PENDING' },
-    { label: 'Verified', value: 'VERIFIED' },
-    { label: 'Accepted', value: 'ACCEPTED' },
-    { label: 'Rejected', value: 'REJECTED' }
-  ];
+  /** Getter, not a field: a field freezes the labels in the language active at construction. */
+  get statusOptions() {
+    return [
+    { label: this.i18n.t('goodsReceipts.statusOptions.all'), value: '' },
+    { label: this.i18n.t('goodsReceipts.statusOptions.pending'), value: 'PENDING' },
+    { label: this.i18n.t('goodsReceipts.statusOptions.verified'), value: 'VERIFIED' },
+    { label: this.i18n.t('goodsReceipts.statusOptions.accepted'), value: 'ACCEPTED' },
+    { label: this.i18n.t('goodsReceipts.statusOptions.rejected'), value: 'REJECTED' }
+    ];
+  }
 
   constructor() {}
 
@@ -99,8 +102,8 @@ export class GoodsReceiptsComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load goods receipts'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('goodsReceipts.listMessages.loadFailed')
         });
         console.error('Error loading goods receipts:', error);
         this.loading = false;
@@ -173,8 +176,8 @@ export class GoodsReceiptsComponent implements OnInit {
     if (this.goodsReceipts.length === 0) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'No Data',
-        detail: 'No goods receipts to export'
+        summary: this.i18n.t('goodsReceipts.listMessages.noData'),
+        detail: this.i18n.t('goodsReceipts.listMessages.noDataExport')
       });
       return;
     }
@@ -216,8 +219,8 @@ export class GoodsReceiptsComponent implements OnInit {
 
     this.messageService.add({
       severity: 'success',
-      summary: 'Success',
-      detail: 'Goods receipts exported to CSV'
+      summary: this.i18n.t('common.messages.success'),
+      detail: this.i18n.t('goodsReceipts.listMessages.exportCSVSuccess')
     });
   }
 
@@ -236,8 +239,8 @@ export class GoodsReceiptsComponent implements OnInit {
 
     this.messageService.add({
       severity: 'success',
-      summary: 'Success',
-      detail: 'Goods receipts exported to JSON'
+      summary: this.i18n.t('common.messages.success'),
+      detail: this.i18n.t('goodsReceipts.listMessages.exportJSONSuccess')
     });
   }
 
@@ -254,8 +257,8 @@ export class GoodsReceiptsComponent implements OnInit {
   onGoodsReceiptDeleted(): void {
     this.messageService.add({
       severity: 'success',
-      summary: 'Success',
-      detail: 'Goods Receipt deleted successfully'
+      summary: this.i18n.t('common.messages.success'),
+      detail: this.i18n.t('goodsReceipts.listMessages.deleteSuccess')
     });
     this.loadGoodsReceipts(this.currentPage, this.rows, this.searchTerm);
   }
