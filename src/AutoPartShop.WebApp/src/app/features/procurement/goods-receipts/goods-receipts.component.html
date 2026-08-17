@@ -66,27 +66,27 @@
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Search
+        {{ 'common.listPage.searchChip' | translate }}
       </button>
-      <button class="text-btn" (click)="moreFiltersVisible = true">More filters</button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.listPage.searchChip' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
       </span>
       <span *ngIf="filterStatus" class="filter-chip">
-        Status: {{ filterStatus }}
+        {{ 'common.listPage.statusChip' | translate }}: {{ filterStatus }}
         <i class="pi pi-times" (click)="onStatusFilterChange('')"></i>
       </span>
       <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
-        Date Range
+        {{ 'common.listPage.dateRangeChip' | translate }}
         <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
       </span>
     </div>

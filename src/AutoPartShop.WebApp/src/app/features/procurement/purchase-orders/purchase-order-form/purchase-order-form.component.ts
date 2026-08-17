@@ -500,7 +500,8 @@ export class PurchaseOrderFormComponent implements OnInit {
         }
 
         // Refresh available credit for supplier
-        const supplierId = this.form.get('supplierId')?.value;
+        const supplierValue = this.form.get('supplier')?.value;
+        const supplierId = typeof supplierValue === 'string' ? supplierValue : supplierValue?.id;
         if (supplierId) {
             this.loadAvailableCreditForSupplier(supplierId);
         }
@@ -586,7 +587,6 @@ export class PurchaseOrderFormComponent implements OnInit {
     }
 
     submitPurchaseOrder(): void {
-        debugger;
         if (!this.poId || !this.currentPO) return;
 
         this.confirmationService.confirm({
@@ -753,7 +753,6 @@ export class PurchaseOrderFormComponent implements OnInit {
     }
 
     onUnitChanged(lineIndex: number): void {
-        debugger;
         const line = this.linesArray.at(lineIndex) as FormGroup | null;
         if (!line) return;
 

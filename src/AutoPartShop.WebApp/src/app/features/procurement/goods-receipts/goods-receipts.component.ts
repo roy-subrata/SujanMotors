@@ -17,6 +17,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
 import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-goods-receipts',
@@ -36,13 +38,16 @@ import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dia
     PageHeaderComponent,
     FilterBarComponent,
     StatusPillFilterComponent,
-    MoreFiltersDialogComponent
-  ],
+    MoreFiltersDialogComponent,
+    TranslatePipe
+],
   providers: [MessageService, ConfirmationService],
   templateUrl: './goods-receipts.component.html',
   styleUrls: ['./goods-receipts.component.css']
 })
 export class GoodsReceiptsComponent implements OnInit {
+  private readonly i18n = inject(I18nService);
+
   private readonly grnService = inject(GoodsReceiptService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
