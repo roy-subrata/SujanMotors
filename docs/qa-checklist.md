@@ -101,18 +101,28 @@ validation or edge case · **S3** cosmetic / DX / docs.
 ### Triage 2026-08-18 — verified against current source
 
 Before fixing anything, every S1/S2 finding was re-checked against the working
-tree. Pass A ran on a month-stale image (A1) and parts of pass B disagree with
-source too, so a slice of this report is **stale**. Those rows are struck below
-and must not be "fixed" again:
+tree. Two different things make a finding "already handled", and they must not be
+confused:
+
+- **STALE** — the defect was already absent from *committed* code at the QA run.
+  Pass A ran on a month-stale image (A1), so several of its rows describe code
+  that no longer existed. Nothing to do.
+- **FIXED IN TREE** — the defect was real at branch baseline `5727338`, and was
+  fixed by uncommitted work in the working tree (some of it landed while this
+  triage was being written). Real bug, real fix — just already done.
+
+Verify with `git show 5727338:<file>`, not `git log <file>`: the log shows the
+last commit that touched a file, which says nothing about whether the current
+content is committed.
 
 | Finding | Verdict | Evidence in current source |
 | --- | --- | --- |
 | A4 | **STALE** | `AuthController.cs:264` binds to the authenticated principal; the body `username` is already ignored by design |
 | A5 | **STALE** | `AuthController.cs:239` logout revokes the refresh token; `Program.cs:145` `OnTokenValidated` re-checks `IsActive` (60 s cache), so a deactivated user loses access |
-| F4 | **STALE** | `ProductsController.cs:376-383` returns 409 on a duplicate `partNumber` |
-| F6 | **STALE** | `BrandsController.cs:109` returns 409 on a duplicate brand name |
-| F22 | **STALE** | `SalesOrderController.cs:2323` throws on `UnitPrice < 0` before pricing resolution |
-| F43 | **STALE** | `Payslip.Recalculate()` (`Payslip.cs:126`) throws when deductions exceed gross; the controller maps it to 400 |
+| F4 | **FIXED IN TREE** | `ProductsController.cs:376-383` now returns 409 on a duplicate `partNumber`. Absent at baseline `5727338` — a real bug, fixed uncommitted |
+| F6 | **FIXED IN TREE** | `BrandsController.cs:109` now returns 409 on a duplicate brand name. Absent at baseline |
+| F22 | **FIXED IN TREE** | `SalesOrderController.cs:2323` now throws on `UnitPrice < 0` before pricing resolution. Absent at baseline |
+| F43 | **FIXED IN TREE** | `Payslip.Recalculate()` now throws when deductions exceed gross and the controller maps it to 400. Absent at baseline |
 | F19 | **PARTLY STALE** | Stock *is* restored (`SalesOrderController.cs:1659`) — but `stockDeductedStatuses` omits `DELIVERED`/`COMPLETED`, which is the exact scenario tested. Narrow gap, still real. |
 | F20 | **REAL, misdiagnosed** | Not the F14 `ExecuteUpdateAsync` cause. `TillSessionRepository.UpdateAsync` calls `.Update()` on an already-tracked graph, so the new `TillCashDrop` (client-generated `Id`) is marked *Modified* instead of *Added* → UPDATE hits 0 rows → `DbUpdateConcurrencyException` |
 | F17 | **REAL, misdiagnosed** | Root cause is `CustomerCreditNoteController.cs:319` writing a `CreditNote` id into `CustomerPayment.SourceAdvancePaymentId`, a **self-FK to `CustomerPayments.Id`** (`CustomerPaymentConfiguration.cs:81-84`) — the identical bug F29 describes on the supplier side |
