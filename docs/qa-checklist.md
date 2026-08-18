@@ -729,6 +729,47 @@ are environment issues that a rebuilt image resolves.
 running API — the sweep that produced these findings must be re-run. Rebuild the
 image first (A1) and use `http://localhost:5000`.
 
+
+### S3 pass 2026-08-18
+
+The deferred S3 findings were picked up in a second pass. All of them are now
+closed or explicitly resolved as not-a-defect.
+
+| Finding | What changed |
+| --- | --- |
+| A11 | Rate lookup falls back to the reciprocal of the opposite pair, so the base currency can be converted out of and cross-rates work on X→base seed data alone |
+| A12 | Unknown currency codes are reported as unknown rather than as a missing rate; converting an amount of 0 is allowed |
+| A13 | `/login` returns one message for unknown user and wrong password, closing the enumeration oracle |
+| A14 | `ipAddress`/`userAgent` stamped on every audit row (X-Forwarded-For aware). The unchanged-value noise was already fixed with A6 |
+| A15 | BUSINESS/BRANDING setting rows seeded (blank values), so the categories exist and Company Profile has fields to fill |
+| A16 | `GET /Admin/users` paged; `POST users\|roles\|permissions` return 201; currency `createdAt`/`updatedAt` mapped; `DELETE /Admin/permissions/{id}` added with an in-use guard |
+| A17 | Lockout returns 429 + `Retry-After` instead of 401 |
+| F9 | StockLotMovement list endpoints no longer fire concurrent DbContext reads (four endpoints, not the two reported) |
+| F11 | Missing `Include`s restored on StockLevel and WarehouseLocation reads, so variant/unit/warehouse names populate |
+| F12 | `PUT /products/{id}` keeps omitted optional fields; an explicit `""` still clears |
+| F13 | `check-circular-reference` binds `parentCategoryId` as well as `newParentId` |
+| F28 | `BusinessRule` body status matches the response (400/409); customer code honoured when supplied; dead `creditLimit` field removed |
+| F38 | Supplier code honoured when supplied and free |
+| F39 | `isFromSameSupplier` is nullable — null when no supplier was given — so the returns UI stops labelling every lot "Other" |
+| F49 | Aging reports refuse a date range with a message naming `asOfDate`, instead of discarding it silently |
+| F52 | Declared holidays reach the monthly summary (deduplicated against marked ones) and the daily sheet (`isHoliday`/`holidayName`) |
+
+**Resolved as not-a-defect**
+
+- **F28 "paymentNumber null on every row"** — no such field exists anywhere in
+  the codebase. The response carries `transactionNumber`, which is populated.
+- **F28 "refunds stored as negative CustomerPayment rows"** — this is the model
+  the till reconciliation, cash book and customer ledger all read (F41/F42), so
+  changing the storage would undo those fixes for a presentational complaint.
+- **F13 "re-parenting silently ignored"** — re-parenting is unimplemented rather
+  than ignored: `UpdateCategory` has no parent field and `Category` no setter.
+  Supporting it means cascading DepthLevel and breadcrumb updates to every
+  descendant, which is a feature rather than a nit.
+- **F10, F26, F27, F37, F47, F48, F50, F51, F53** — closed earlier in the S1/S2
+  pass or by the concurrent work it absorbed.
+
+Still unverified against a running API, as with the S1/S2 pass.
+
 ---
 
 ## 1. Auth
