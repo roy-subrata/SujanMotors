@@ -111,6 +111,25 @@ public class StockController : ControllerBase
 
     private async Task<StockCheckResponse> CheckStockInternalAsync(Guid partId, Guid? variantId, int quantity, CancellationToken cancellationToken)
     {
+        // A part that doesn't exist and a part that's out of stock both produce zero levels, so
+        // without this probe the POS reports "insufficient stock" for a mistyped or soft-deleted
+        // barcode — which sends the cashier hunting for inventory instead of re-scanning.
+        var partExists = await _dbContext.Parts
+            .AnyAsync(p => p.Id == partId && !p.Isdeleted, cancellationToken);
+
+        if (!partExists)
+        {
+            return new StockCheckResponse
+            {
+                PartId = partId,
+                VariantId = variantId,
+                PartFound = false,
+                StockAvailable = 0,
+                Available = false,
+                Message = "Product not found"
+            };
+        }
+
         // When a variant is specified, check only that SKU's stock; otherwise sum the part's levels.
         var stockLevels = (variantId.HasValue
             ? await _stockLevelRepository.GetByPartAndVariantAsync(partId, variantId, cancellationToken)
@@ -127,6 +146,7 @@ public class StockController : ControllerBase
         {
             PartId = partId,
             VariantId = variantId,
+            PartFound = true,
             StockAvailable = totalAvailable,
             Available = available,
             Message = available

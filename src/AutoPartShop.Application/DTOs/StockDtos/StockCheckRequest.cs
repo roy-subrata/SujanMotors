@@ -12,6 +12,13 @@ public class StockCheckResponse
 {
     public Guid PartId { get; set; }
     public Guid? VariantId { get; set; }
+
+    /// <summary>
+    /// False when no such (non-deleted) part exists. Without this a POS barcode typo is
+    /// indistinguishable from a genuine stock-out — both report available:false, stockAvailable:0.
+    /// </summary>
+    public bool PartFound { get; set; } = true;
+
     public bool Available { get; set; }
     public int StockAvailable { get; set; }
     public string? WarehouseLocation { get; set; }

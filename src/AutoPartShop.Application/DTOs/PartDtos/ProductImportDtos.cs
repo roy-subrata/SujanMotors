@@ -137,6 +137,13 @@ public class ProductImportCommitRequest
 
     /// <summary>Must match the mode the rows were validated under. Defaults to create-only.</summary>
     public ProductImportMode Mode { get; set; } = ProductImportMode.CreateOnly;
+
+    /// <summary>
+    /// Opt in to creating brands, categories and units that the workbook names but the catalogue
+    /// does not have. Off by default: a spreadsheet typo must not become permanent master data.
+    /// Set this only after reviewing NewBrands/NewCategories/NewUnits from the validate step.
+    /// </summary>
+    public bool AllowNewReferenceData { get; set; } = false;
 }
 
 /// <summary>Result of the commit step.</summary>
