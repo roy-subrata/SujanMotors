@@ -1656,8 +1656,10 @@ public class SalesOrderController : ControllerBase
                         payment.ModifiedBy = _currentUserService.GetCurrentUsername();
                     }
 
-                    // Restore stock that was deducted when the sales order was confirmed.
-                    var stockDeductedStatuses = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.PAID, SalesOrderStatus.PACKED, SalesOrderStatus.SHIPPED };
+                    // Restore stock that was deducted when the sales order was confirmed. DELIVERED
+                    // and COMPLETED belong here too — a quick sale goes straight to DELIVERED, so
+                    // omitting them meant cancelling a POS invoice silently destroyed the stock.
+                    var stockDeductedStatuses = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.PAID, SalesOrderStatus.PACKED, SalesOrderStatus.SHIPPED, SalesOrderStatus.DELIVERED, SalesOrderStatus.COMPLETED };
                     if (salesOrder is not null && stockDeductedStatuses.Contains(salesOrder.Status))
                     {
                         var lineIds = salesOrder.LineItems.Select(l => (Guid?)l.Id).ToList();
@@ -1735,6 +1737,25 @@ public class SalesOrderController : ControllerBase
                     }
 
                     await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+
+                    // With its last live invoice gone and the stock back on the shelf, the order is
+                    // not a fulfilled sale any more. Leaving it DELIVERED kept its outstanding
+                    // amount on the books as a receivable the ledger had already dropped.
+                    if (salesOrder is not null && salesOrder.Status is not (SalesOrderStatus.CANCELLED or SalesOrderStatus.RETURNED))
+                    {
+                        var hasOtherLiveInvoice = await _dbContext.Invoices
+                            .AnyAsync(i => i.SalesOrderId == salesOrder.Id
+                                        && i.Id != invoice.Id
+                                        && i.Status != InvoiceStatus.CANCELLED
+                                        && !i.Isdeleted, cancellationToken);
+
+                        if (!hasOtherLiveInvoice)
+                        {
+                            salesOrder.CancelFromInvoiceCancellation();
+                            salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
+                        }
+                    }
 
                     await tx.CommitAsync(cancellationToken);
                 }
@@ -2000,7 +2021,11 @@ public class SalesOrderController : ControllerBase
             Channel = order.Channel,
             SubTotal = order.SubTotal,
             TaxAmount = order.TaxAmount,
-            Discount = order.DiscountPercentage,
+            // Report the discount in money so the header foots regardless of how it was entered:
+            // a percentage discount is already materialised into DiscountAmount by CalculateTotal.
+            Discount = order.DiscountAmount,
+            DiscountPercentage = order.DiscountPercentage,
+            DiscountAmount = order.DiscountAmount,
             GrandTotal = order.GrandTotal,
             Currency = order.Currency,
             AmountPaid = order.PaidAmount,
@@ -2084,7 +2109,10 @@ public class SalesOrderController : ControllerBase
 
         _pricingValidationService.ValidateLinePricing(part, baseUnitPrice, lineRequest.Discount);
 
-        var discountPerUnit = unitPrice * (lineRequest.Discount / 100);
+        // Round to the currency's smallest unit here rather than leaving sub-paisa precision on the
+        // line: TotalPrice multiplies it back up by quantity, so an unrounded 3.333 makes the order
+        // subtotal (89.99) disagree with the line the customer sees on the printed invoice (90.00).
+        var discountPerUnit = Math.Round(unitPrice * (lineRequest.Discount / 100), 2, MidpointRounding.AwayFromZero);
 
         return SalesOrderLine.Create(
             order.Id,
@@ -2201,8 +2229,11 @@ public class SalesOrderController : ControllerBase
             if (request.Items == null || !request.Items.Any())
                 return BadRequest(new { message = "At least one item is required" });
 
-            if (request.GrandTotal <= 0)
-                return BadRequest(new { message = "Grand total must be greater than 0" });
+            // Zero is legitimate — a goodwill gesture or a warranty replacement is rung up at a
+            // 100% discount and still has to move stock and produce a receipt. Only negative
+            // totals are nonsense.
+            if (request.GrandTotal < 0)
+                return BadRequest(new { message = "Grand total cannot be negative" });
 
             if (request.DiscountAmount < 0)
                 return BadRequest(new { message = "Discount amount cannot be negative" });
@@ -2336,7 +2367,7 @@ public class SalesOrderController : ControllerBase
 
                         _pricingValidationService.ValidateLinePricing(part, baseUnitPrice, item.Discount);
 
-                        var discountPerUnit = (itemUnitPrice * item.Discount) / 100;
+                        var discountPerUnit = Math.Round((itemUnitPrice * item.Discount) / 100, 2, MidpointRounding.AwayFromZero);
                         var salesOrderLine = SalesOrderLine.Create(
                             salesOrder.Id,
                             item.PartId,

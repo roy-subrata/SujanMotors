@@ -197,6 +197,22 @@ public class SalesOrder : AggregateRoot
         Status = SalesOrderStatus.CANCELLED;
     }
 
+    /// <summary>
+    /// Cancels an order because its only invoice was cancelled. Unlike <see cref="Cancel"/> this
+    /// permits DELIVERED and COMPLETED orders: the invoice-cancellation path returns the stock and
+    /// reverses the payments, so leaving the order DELIVERED would keep counting its balance as a
+    /// live receivable against goods that are back on the shelf.
+    /// </summary>
+    public void CancelFromInvoiceCancellation()
+    {
+        if (Status is SalesOrderStatus.CANCELLED or SalesOrderStatus.RETURNED)
+            throw new InvalidOperationException($"Cannot cancel a {Status} order");
+
+        Status = SalesOrderStatus.CANCELLED;
+        PaidAmount = 0;
+        PaymentStatus = SalesOrderPaymentStatus.PENDING;
+    }
+
     public void MarkAsReturned()
     {
         if (Status is not (SalesOrderStatus.DELIVERED or SalesOrderStatus.COMPLETED or SalesOrderStatus.SHIPPED or SalesOrderStatus.PARTIALLY_SHIPPED))

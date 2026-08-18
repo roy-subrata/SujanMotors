@@ -239,27 +239,7 @@ public class TillSessionController(
 
         try
         {
-            var windowEnd = DateTime.UtcNow;
-
-            var cashSales = await dbContext.CustomerPayments
-                .Where(p => p.CreatedBy == session.CashierUsername
-                         && p.PaymentMethod == "CASH"
-                         && p.Status == CustomerPaymentStatus.COMPLETED
-                         && p.PaymentDate >= session.OpenedAt
-                         && p.PaymentDate <= windowEnd
-                         && !p.Isdeleted)
-                .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
-
-            // Refunds are stored as negative CustomerPayment amounts with PaymentMethod="REFUND"
-            // (see SalesReturnController) — this sums the absolute cash paid back out.
-            var cashRefunds = await dbContext.CustomerPayments
-                .Where(p => p.CreatedBy == session.CashierUsername
-                         && p.PaymentMethod == "REFUND"
-                         && p.Status == CustomerPaymentStatus.COMPLETED
-                         && p.PaymentDate >= session.OpenedAt
-                         && p.PaymentDate <= windowEnd
-                         && !p.Isdeleted)
-                .SumAsync(p => (decimal?)-p.Amount, cancellationToken) ?? 0m;
+            var (cashSales, cashRefunds) = await GetCashMovementAsync(session, cancellationToken);
 
             session.Close(request.CountedAmount, cashSales, cashRefunds, request.Notes);
             session.ModifiedBy = currentUserService.GetCurrentUsername();
@@ -385,9 +365,60 @@ public class TillSessionController(
         _ => string.IsNullOrWhiteSpace(method) ? "Other" : method.Replace('_', ' ')
     };
 
+    /// <summary>
+    /// Cash taken and cash paid back out by this cashier since the session opened. Derived from
+    /// CustomerPayment rather than stored on the session — see TillSession's class remarks.
+    /// </summary>
+    private async Task<(decimal CashSales, decimal CashRefunds)> GetCashMovementAsync(
+        TillSession session, CancellationToken cancellationToken)
+    {
+        var windowEnd = session.ClosedAt ?? DateTime.UtcNow;
+
+        var cashSales = await dbContext.CustomerPayments
+            .Where(p => p.CreatedBy == session.CashierUsername
+                     && p.PaymentMethod == "CASH"
+                     && p.Status == CustomerPaymentStatus.COMPLETED
+                     && p.PaymentDate >= session.OpenedAt
+                     && p.PaymentDate <= windowEnd
+                     && !p.Isdeleted)
+            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
+
+        // Refunds are stored as negative CustomerPayment amounts with PaymentMethod="REFUND"
+        // (see SalesReturnController) — this sums the absolute cash paid back out.
+        var cashRefunds = await dbContext.CustomerPayments
+            .Where(p => p.CreatedBy == session.CashierUsername
+                     && p.PaymentMethod == "REFUND"
+                     && p.Status == CustomerPaymentStatus.COMPLETED
+                     && p.PaymentDate >= session.OpenedAt
+                     && p.PaymentDate <= windowEnd
+                     && !p.Isdeleted)
+            .SumAsync(p => (decimal?)-p.Amount, cancellationToken) ?? 0m;
+
+        return (cashSales, cashRefunds);
+    }
+
     private async Task<TillSessionResponse> MapToResponseAsync(TillSession s, CancellationToken cancellationToken)
     {
         var cashierName = await ResolveCashierDisplayAsync(s, cancellationToken);
+
+        // A CLOSED session has its reconciliation frozen on the entity. While OPEN those fields are
+        // still zero, so report the running figures instead — a cashier needs to see what the
+        // drawer should hold mid-shift, not only after closing it.
+        var isOpen = s.Status == TillSessionStatus.OPEN;
+        var cashSalesTotal = s.CashSalesTotal;
+        var cashRefundsTotal = s.CashRefundsTotal;
+        var cashDropsTotal = s.CashDropsTotal;
+        var expectedAmount = s.ExpectedAmount;
+
+        if (isOpen)
+        {
+            var (liveSales, liveRefunds) = await GetCashMovementAsync(s, cancellationToken);
+            cashSalesTotal = liveSales;
+            cashRefundsTotal = liveRefunds;
+            // CashDropsTotal is likewise only stamped by Close(); sum the drops recorded so far.
+            cashDropsTotal = s.CashDrops.Sum(d => d.Amount);
+            expectedAmount = s.OpeningFloat + liveSales - liveRefunds - cashDropsTotal;
+        }
 
         return new TillSessionResponse
         {
@@ -401,10 +432,10 @@ public class TillSessionController(
             OpeningFloat = s.OpeningFloat,
             ClosingCountedAmount = s.ClosingCountedAmount,
             Status = s.Status,
-            CashSalesTotal = s.CashSalesTotal,
-            CashRefundsTotal = s.CashRefundsTotal,
-            CashDropsTotal = s.CashDropsTotal,
-            ExpectedAmount = s.ExpectedAmount,
+            CashSalesTotal = cashSalesTotal,
+            CashRefundsTotal = cashRefundsTotal,
+            CashDropsTotal = cashDropsTotal,
+            ExpectedAmount = expectedAmount,
             OverShortAmount = s.OverShortAmount,
             Notes = s.Notes,
             CashDrops = s.CashDrops.OrderBy(d => d.DroppedAt).Select(d => new TillCashDropResponse

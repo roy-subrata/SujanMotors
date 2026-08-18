@@ -291,6 +291,12 @@ public class StockController : ControllerBase
             if (request.PartId == Guid.Empty || request.WarehouseId == Guid.Empty)
                 return BadRequest(new { message = "PartId and WarehouseId are required" });
 
+            // Quantity used to be accepted and silently ignored, so callers believed they had
+            // opened a level with stock in it when it was created at 0. Stock only ever enters
+            // through an audited movement, so say so instead of quietly dropping the value.
+            if (request.Quantity != 0)
+                return BadRequest(new { message = "Quantity cannot be set when creating a stock level. Create the level, then post an adjustment to /api/Stock/adjust so the movement is recorded." });
+
             var stockLevel = StockLevel.Create(
                 request.PartId,
                 request.WarehouseId,

@@ -79,7 +79,14 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
 
     public async Task UpdateAsync(TillSession entity, CancellationToken cancellationToken = default)
     {
-        dbContext.TillSessions.Update(entity);
+        // Update() re-stamps the whole graph: every reachable entity whose key is already set is
+        // marked Modified. TillCashDrop gets its Id from BaseEntity at construction, so a newly
+        // recorded drop was marked Modified instead of Added — the UPDATE matched no row, and EF
+        // reported that as a concurrency conflict (409 on every cash drop). When the instance is
+        // already tracked, change tracking has the right states; only attach a detached one.
+        if (dbContext.Entry(entity).State == EntityState.Detached)
+            dbContext.TillSessions.Update(entity);
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
