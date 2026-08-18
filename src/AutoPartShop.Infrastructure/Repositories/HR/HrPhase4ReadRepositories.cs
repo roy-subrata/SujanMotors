@@ -53,6 +53,9 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                     Notes = x.a.Notes,
                     Status = x.a.Status,
                     SettledAt = x.a.SettledAt,
+                    ApprovedBy = x.a.ApprovedBy,
+                    ApprovedAt = x.a.ApprovedAt,
+                    RejectionReason = x.a.RejectionReason,
                     SettledRunCode = _dbContext.PayrollRuns
                         .Where(r => r.Id == x.a.SettledPayrollRunId)
                         .Select(r => r.RunCode)
