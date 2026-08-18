@@ -8,7 +8,9 @@ using System.ComponentModel.DataAnnotations;
 public class ConversionRequest
 {
     [Required(ErrorMessage = "Amount is required")]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero")]
+    // Zero is a legitimate amount to convert (a zero-value line still has a currency), so only
+    // negatives are refused.
+    [Range(0, double.MaxValue, ErrorMessage = "Amount cannot be negative")]
     public decimal Amount { get; set; }
 
     [Required(ErrorMessage = "From currency code is required")]
