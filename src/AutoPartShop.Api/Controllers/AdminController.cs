@@ -39,11 +39,24 @@ public class AdminController : ControllerBase
     /// </summary>
     [HttpGet("users")]
     [HasPermission(Permissions.UsersView)]
-    public async Task<IActionResult> GetAllUsers()
+    /// <param name="pageNumber">1-based page. Values below 1 are clamped to 1.</param>
+    /// <param name="pageSize">Rows per page, clamped to 1..200.</param>
+    public async Task<IActionResult> GetAllUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
     {
         try
         {
+            // This endpoint used to return every user in one array. Roles are then resolved per
+            // user (an N+1), so paging bounds the query cost as well as the payload. Clamped the
+            // same way BaseQuery clamps the POST /list endpoints.
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize < 1 ? 50 : (pageSize > 200 ? 200 : pageSize);
+
+            var totalCount = await _userManager.Users.CountAsync();
+
             var users = await _userManager.Users
+                .OrderBy(u => u.UserName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(u => new
                 {
                     u.Id,
@@ -77,7 +90,7 @@ public class AdminController : ControllerBase
                 });
             }
 
-            return Ok(usersWithRoles);
+            return Ok(new { data = usersWithRoles, totalCount, pageNumber, pageSize });
         }
         catch (Exception ex)
         {
@@ -386,7 +399,7 @@ public class AdminController : ControllerBase
                 });
             }
 
-            return Ok(new
+            return CreatedAtAction(nameof(GetAllRoles), new { }, new
             {
                 message = "Role created successfully",
                 roleId = role.Id,
@@ -620,7 +633,7 @@ public class AdminController : ControllerBase
             await _dbContext.Permissions.AddAsync(permission);
             await _dbContext.SaveChangesAsync();
 
-            return Ok(new
+            return CreatedAtAction(nameof(GetAllPermissions), new { }, new
             {
                 message = "Permission created successfully",
                 permissionId = permission.Id
@@ -629,6 +642,42 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating permission");
+            return StatusCode(500, new { message = "An error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Deletes a permission. Refused while any role still grants it — dropping it silently would
+    /// revoke access from every holder with no trace of why.
+    /// </summary>
+    [HttpDelete("permissions/{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeletePermission(Guid id)
+    {
+        try
+        {
+            var permission = await _dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == id);
+            if (permission is null)
+                return NotFound(new { message = "Permission not found" });
+
+            var assignedRoles = await _dbContext.RolePermissions
+                .Where(rp => rp.PermissionId == id)
+                .CountAsync();
+
+            if (assignedRoles > 0)
+                return Conflict(new
+                {
+                    message = $"Cannot delete '{permission.Name}': it is still granted to {assignedRoles} role(s). Revoke it from those roles first."
+                });
+
+            _dbContext.Permissions.Remove(permission);
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting permission {PermissionId}", id);
             return StatusCode(500, new { message = "An error occurred" });
         }
     }

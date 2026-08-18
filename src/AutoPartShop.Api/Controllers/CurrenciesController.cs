@@ -201,7 +201,10 @@ public class CurrenciesController : ControllerBase
             DecimalPlaces = currency.DecimalPlaces,
             IsActive = currency.IsActive,
             IsBaseCurrency = currency.IsBaseCurrency,
-            DisplayOrder = currency.DisplayOrder
+            DisplayOrder = currency.DisplayOrder,
+            // Were never mapped, so every row reported 0001-01-01T00:00:00.
+            CreatedAt = currency.CreatedDate,
+            UpdatedAt = currency.ModifiedDate
         };
     }
 }
