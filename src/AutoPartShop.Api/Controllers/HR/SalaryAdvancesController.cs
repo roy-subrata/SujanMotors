@@ -69,7 +69,7 @@ public class SalaryAdvancesController : ControllerBase
     /// authorisation gate and no ceiling on the amount.
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Request(GiveAdvanceRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RequestAdvance(GiveAdvanceRequest request, CancellationToken cancellationToken)
     {
         try
         {

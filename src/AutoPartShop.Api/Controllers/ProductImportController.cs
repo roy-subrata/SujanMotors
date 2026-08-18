@@ -63,16 +63,16 @@ public class ProductImportController(
     /// </summary>
     /// <param name="file">The filled .xlsx workbook.</param>
     /// <param name="mode">Create-only (default) or create-and-update.</param>
+    /// <param name="allowNewReferenceData">
+    /// Opt in to creating brands/categories/units the workbook names but the catalogue lacks.
+    /// Off by default, so unknown names come back as row errors.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPost("validate")]
     [HasPermission(Permissions.InventoryCreate)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [RequestSizeLimit(MaxUploadBytes)]
-    /// <param name="allowNewReferenceData">
-    /// Opt in to creating brands/categories/units the workbook names but the catalogue lacks.
-    /// Off by default, so unknown names come back as row errors.
-    /// </param>
     public async Task<IActionResult> Validate(
         IFormFile? file,
         [FromQuery] ProductImportMode mode = ProductImportMode.CreateOnly,
