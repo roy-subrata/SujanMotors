@@ -53,6 +53,12 @@ export class PartsImportDialogComponent {
         return !!this.validation && this.validation.validCount > 0 && !this.committing;
     }
 
+    /**
+     * Opt in to creating brands/categories/units the workbook names but the catalogue lacks.
+     * Off by default so a typo becomes a row error the operator can see, not a new brand.
+     */
+    allowNewReferenceData = false;
+
     /** True when the batch would auto-create master data the user should eyeball first. */
     get hasNewReferenceData(): boolean {
         const v = this.validation;
@@ -138,7 +144,7 @@ export class PartsImportDialogComponent {
         }
         this.validating = true;
         this.errorMessage = null;
-        this.importService.validate(this.selectedFile, this.mode).subscribe({
+        this.importService.validate(this.selectedFile, this.mode, this.allowNewReferenceData).subscribe({
             next: (result) => {
                 this.validation = result;
                 this.step = 'review';
@@ -160,7 +166,7 @@ export class PartsImportDialogComponent {
 
         this.committing = true;
         this.errorMessage = null;
-        this.importService.commit(rows, this.mode).subscribe({
+        this.importService.commit(rows, this.mode, this.allowNewReferenceData).subscribe({
             next: (result) => {
                 this.commitResult = result;
                 this.step = 'done';

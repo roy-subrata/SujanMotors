@@ -126,9 +126,13 @@ export class QuotationService {
         return this.http.patch<QuotationResponse>(`${this.apiUrl}/${id}/reject`, { reason });
     }
 
-    /** ACCEPTED → CONVERTED, creates a new SalesOrder */
-    convertToSalesOrder(id: string): Observable<ConvertQuotationResponse> {
-        return this.http.post<ConvertQuotationResponse>(`${this.apiUrl}/${id}/convert`, {});
+    /**
+     * ACCEPTED → CONVERTED, creates a new SalesOrder.
+     * The warehouse is required: a quotation carries none, and the resulting order cannot be
+     * confirmed without one (it is what stock is deducted from).
+     */
+    convertToSalesOrder(id: string, warehouseId: string): Observable<ConvertQuotationResponse> {
+        return this.http.post<ConvertQuotationResponse>(`${this.apiUrl}/${id}/convert`, { warehouseId });
     }
 
     /** Download the server-rendered Quotation PDF and trigger the browser save dialog. */

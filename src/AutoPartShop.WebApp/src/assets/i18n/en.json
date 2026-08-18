@@ -3273,7 +3273,9 @@
         "chooseFileFirst": "Please choose an .xlsx file first.",
         "validateFailed": "The file could not be validated. Make sure it matches the template.",
         "commitFailed": "The import failed. Please try again."
-      }
+      },
+      "allowNewRefsTitle": "Create missing brands, categories and units",
+      "allowNewRefsHint": "Leave this off to have unknown names reported as row errors instead of being created. Turn it on only when the file is meant to introduce new reference data."
     },
     "variantManager": {
       "title": "Variants",
@@ -4470,7 +4472,16 @@
     "createFirst": "Create Quotation",
     "emptyTitleMobile": "No Quotations",
     "emptyHintMobileCreate": "Create your first quotation",
-    "cardTotal": "Total"
+    "cardTotal": "Total",
+    "convert": {
+      "title": "Convert to Sales Order",
+      "prompt": "Create a new sales order from quotation",
+      "warehouse": "Warehouse",
+      "warehousePlaceholder": "Select a warehouse",
+      "warehouseHint": "Stock for the new order is deducted from this warehouse.",
+      "noWarehouses": "No warehouses are set up yet. Create one before converting a quotation.",
+      "confirm": "Convert"
+    }
   },
   "paymentMethods": {
     "customer": {

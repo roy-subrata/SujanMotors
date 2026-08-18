@@ -19,6 +19,7 @@ import {
     CreateQuotationRequest,
     QuotationResponse
 } from '../../services/quotation.service';
+import { ConvertQuotationDialogComponent } from '../convert-quotation-dialog.component';
 import { CustomerService, CustomerResponse } from '../../services/customer.service';
 import { PublicPartService, PublicPartResponse } from '../../services/public-part.service';
 import { UnitService, UnitResponse } from '../../../inventory/services/unit.service';
@@ -34,6 +35,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
     selector: 'app-quotation-form',
     standalone: true,
     imports: [
+        ConvertQuotationDialogComponent,
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
@@ -561,26 +563,32 @@ export class QuotationFormComponent implements OnInit, OnDestroy {
         });
     }
 
+    /** Visibility of the warehouse picker shown before conversion. */
+    convertDialogVisible = signal(false);
+
+    /**
+     * Opens the warehouse picker instead of converting immediately: the new order needs a
+     * warehouse to deduct stock from, and one created without it can never be confirmed.
+     */
     convertQuotation(): void {
         if (!this.quotationId() || !this.currentQuotation) return;
-        this.confirmationService.confirm({
-            message: `Convert quotation ${this.currentQuotation.quotationNumber} into a new Sales Order?`,
-            header: this.i18n.t('quotationForm.messages.convertHeader'),
-            icon: 'pi pi-arrow-right-arrow-left',
-            acceptButtonStyleClass: 'p-button-success',
-            accept: () => {
-                this.processing.set(true);
-                this.quotationService.convertToSalesOrder(this.quotationId()!).pipe(takeUntil(this.destroy$)).subscribe({
-                    next: (result) => {
-                        this.processing.set(false);
-                        this.messageService.add({ severity: 'success', summary: this.i18n.t('quotationForm.messages.converted'), detail: this.i18n.t('quotationForm.messages.convertedDetail', { number: result.soNumber }) });
-                        this.router.navigate(['/sales/sales-orders/view'], { queryParams: { id: result.salesOrderId } });
-                    },
-                    error: (err) => {
-                        this.processing.set(false);
-                        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('quotationForm.messages.convertFailed') });
-                    }
-                });
+        this.convertDialogVisible.set(true);
+    }
+
+    onConvertConfirmed(warehouseId: string): void {
+        if (!this.quotationId()) return;
+
+        this.processing.set(true);
+        this.quotationService.convertToSalesOrder(this.quotationId()!, warehouseId).pipe(takeUntil(this.destroy$)).subscribe({
+            next: (result) => {
+                this.processing.set(false);
+                this.convertDialogVisible.set(false);
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('quotationForm.messages.converted'), detail: this.i18n.t('quotationForm.messages.convertedDetail', { number: result.soNumber }) });
+                this.router.navigate(['/sales/sales-orders/view'], { queryParams: { id: result.salesOrderId } });
+            },
+            error: (err) => {
+                this.processing.set(false);
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('quotationForm.messages.convertFailed') });
             }
         });
     }

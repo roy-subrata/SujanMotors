@@ -275,3 +275,13 @@
   </app-data-pagination>
 
 </app-page-container>
+
+@if (convertDialogVisible()) {
+    <app-convert-quotation-dialog
+        [visible]="convertDialogVisible()"
+        (visibleChange)="convertDialogVisible.set($event)"
+        [quotationNumber]="quotationToConvert()?.quotationNumber ?? ''"
+        [submitting]="converting()"
+        (confirmed)="onConvertConfirmed($event)">
+    </app-convert-quotation-dialog>
+}

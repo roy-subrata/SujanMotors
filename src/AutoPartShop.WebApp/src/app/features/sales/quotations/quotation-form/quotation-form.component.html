@@ -401,3 +401,13 @@
 
 <!-- Confirm Dialog -->
 <p-confirmDialog></p-confirmDialog>
+
+@if (convertDialogVisible()) {
+    <app-convert-quotation-dialog
+        [visible]="convertDialogVisible()"
+        (visibleChange)="convertDialogVisible.set($event)"
+        [quotationNumber]="currentQuotation?.quotationNumber ?? ''"
+        [submitting]="processing()"
+        (confirmed)="onConvertConfirmed($event)">
+    </app-convert-quotation-dialog>
+}

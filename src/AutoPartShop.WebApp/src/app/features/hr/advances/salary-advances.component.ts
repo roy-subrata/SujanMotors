@@ -51,10 +51,16 @@ export class SalaryAdvancesComponent implements OnInit {
     filterStatus: SalaryAdvanceStatus | '' = '';
     moreFiltersVisible = false;
 
+    rejectDialogVisible = false;
+    rejectReason = '';
+    rejectTarget: SalaryAdvanceResponse | null = null;
+
     statusOptions = [
         { label: 'All Statuses', value: '' },
+        { label: 'Requested', value: 'REQUESTED' },
         { label: 'Outstanding', value: 'OUTSTANDING' },
-        { label: 'Settled', value: 'SETTLED' }
+        { label: 'Settled', value: 'SETTLED' },
+        { label: 'Rejected', value: 'REJECTED' }
     ];
 
     paymentMethodOptions = [
@@ -174,7 +180,7 @@ export class SalaryAdvancesComponent implements OnInit {
         }
 
         this.saving = true;
-        this.advanceService.giveAdvance({
+        this.advanceService.requestAdvance({
             employeeId: this.form.employeeId,
             advanceDate: this.toDateOnly(this.form.advanceDate),
             amount: this.form.amount,
@@ -199,6 +205,59 @@ export class SalaryAdvancesComponent implements OnInit {
                     detail: err?.error?.message || 'Failed to record advance'
                 });
                 console.error('Error giving advance:', err);
+            }
+        });
+    }
+
+    /**
+     * Approving is what actually pays the money out — it posts the SALARY_ADVANCE cash-book
+     * expense — so it is confirmed rather than fired straight from the row action.
+     */
+    approveAdvance(advance: SalaryAdvanceResponse): void {
+        this.confirmationService.confirm({
+            message: `Approve an advance of ${advance.amount} for ${advance.employeeName}? This pays the money out and records a cash-book expense.`,
+            header: 'Approve Advance',
+            icon: 'pi pi-check-circle',
+            accept: () => {
+                this.advanceService.approveAdvance(advance.id).subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Advance approved' });
+                        this.loadAdvances();
+                    },
+                    error: (err) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: err?.error?.message || 'Failed to approve advance'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    rejectAdvance(advance: SalaryAdvanceResponse): void {
+        this.rejectTarget = advance;
+        this.rejectReason = '';
+        this.rejectDialogVisible = true;
+    }
+
+    confirmReject(): void {
+        if (!this.rejectTarget || !this.rejectReason.trim()) return;
+
+        this.advanceService.rejectAdvance(this.rejectTarget.id, this.rejectReason.trim()).subscribe({
+            next: () => {
+                this.rejectDialogVisible = false;
+                this.rejectTarget = null;
+                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Advance rejected' });
+                this.loadAdvances();
+            },
+            error: (err) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: err?.error?.message || 'Failed to reject advance'
+                });
             }
         });
     }

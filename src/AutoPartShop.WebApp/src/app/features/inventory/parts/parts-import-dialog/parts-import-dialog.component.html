@@ -38,6 +38,19 @@
       </label>
     </fieldset>
 
+    <!--
+      Off by default: unknown brand/category/unit names come back as row errors so a typo
+      ("Bosh") is caught before it becomes a permanent master-data row. Tick it only when the
+      workbook is genuinely introducing new reference data.
+    -->
+    <label class="mode-option">
+      <input type="checkbox" [(ngModel)]="allowNewReferenceData" (ngModelChange)="onModeChange()" name="allowNewReferenceData" />
+      <span class="mode-text">
+        <strong>{{ 'parts.importDialog.allowNewRefsTitle' | translate }}</strong>
+        <small>{{ 'parts.importDialog.allowNewRefsHint' | translate }}</small>
+      </span>
+    </label>
+
     <ol class="import-instructions">
       <li [innerHTML]="'parts.importDialog.instruction1' | translate"></li>
       <li [innerHTML]="'parts.importDialog.instruction2' | translate"></li>
