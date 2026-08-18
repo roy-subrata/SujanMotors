@@ -96,11 +96,13 @@ public class FinancialSummaryService : IFinancialSummaryService
         // Only COMPLETED payments represent cash actually received.
         // Advance-credit re-applications (SourceAdvancePaymentId != null, REGULAR type) are
         // excluded: the original advance deposit is the cash event; its later application to
-        // an invoice is an internal ledger transfer, not a new inflow.
+        // an invoice is an internal ledger transfer, not a new inflow. CREDIT_NOTE settlements
+        // are excluded for the same reason — the customer paid with store credit, not money.
         var customerPaymentsList = await _dbContext.CustomerPayments
             .Where(cp => cp.PaymentDate >= startDate && cp.PaymentDate < endDate
                          && !cp.Isdeleted
                          && cp.Status == CustomerPaymentStatus.COMPLETED
+                         && cp.PaymentMethod != "CREDIT_NOTE"
                          && (cp.PaymentType == CustomerPaymentType.ADVANCE || cp.SourceAdvancePaymentId == null))
             .ToListAsync(cancellationToken);
 

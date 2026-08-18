@@ -54,10 +54,15 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             return BadRequest(ApiError.Validation("Date range cannot exceed 366 days. Split into smaller periods.", instance: Request.Path));
 
         // â”€â”€ Opening balance (all COMPLETED transactions before dateFrom) â”€
+        // CREDIT_NOTE settlements are excluded on both sides of the book: the customer paid with
+        // store credit and the supplier settled against a note, so no cash crossed the drawer.
+        // The ledgers already exclude them, and counting them here made cash book and ledger
+        // disagree by the credited amount.
         var priorCustomerNet = await _db.CustomerPayments
             .Where(p => p.PaymentDate < dateFrom && p.Status == CustomerPaymentStatus.COMPLETED
                      && !p.Isdeleted
-                     && p.SourceAdvancePaymentId == null)
+                     && p.SourceAdvancePaymentId == null
+                     && p.PaymentMethod != "CREDIT_NOTE")
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
 
         var priorExpenseTotal = await _db.DailyExpenses
@@ -81,7 +86,8 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
                      && p.Status == CustomerPaymentStatus.COMPLETED
                      && !p.Isdeleted
-                     && p.SourceAdvancePaymentId == null)
+                     && p.SourceAdvancePaymentId == null
+                     && p.PaymentMethod != "CREDIT_NOTE")
             .Include(p => p.Customer)
             .Include(p => p.Invoice)
             .AsNoTracking()
