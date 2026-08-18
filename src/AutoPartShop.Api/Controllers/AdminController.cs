@@ -37,10 +37,10 @@ public class AdminController : ControllerBase
     /// <summary>
     /// Get all users with their roles
     /// </summary>
-    [HttpGet("users")]
-    [HasPermission(Permissions.UsersView)]
     /// <param name="pageNumber">1-based page. Values below 1 are clamped to 1.</param>
     /// <param name="pageSize">Rows per page, clamped to 1..200.</param>
+    [HttpGet("users")]
+    [HasPermission(Permissions.UsersView)]
     public async Task<IActionResult> GetAllUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
     {
         try

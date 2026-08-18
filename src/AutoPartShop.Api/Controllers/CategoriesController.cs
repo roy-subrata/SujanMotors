@@ -108,9 +108,6 @@ public class CategoriesController(
     /// Check whether moving a category to a new parent would create a circular reference.
     /// Pass newParentId=null to check moving to root.
     /// </summary>
-    [HttpGet("{id:guid}/check-circular-reference")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     /// <param name="id">Category being moved.</param>
     /// <param name="parentCategoryId">
     /// Proposed parent, named to match the field on the category itself — which is what callers
@@ -119,6 +116,9 @@ public class CategoriesController(
     /// </param>
     /// <param name="newParentId">Legacy name for the same value; still accepted.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    [HttpGet("{id:guid}/check-circular-reference")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CheckCircularReference(
         Guid id,
         [FromQuery] Guid? parentCategoryId,
