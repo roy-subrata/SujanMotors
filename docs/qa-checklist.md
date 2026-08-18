@@ -770,6 +770,80 @@ closed or explicitly resolved as not-a-defect.
 
 Still unverified against a running API, as with the S1/S2 pass.
 
+
+### Verification sweep 2026-08-18 (rebuilt image, `http://localhost:5000`)
+
+The image was rebuilt from this branch before running (`smapi:local` created
+2026-08-18), all pending migrations applied on startup, and the A15 settings
+seeded. This is the first run where the container matches the source.
+
+**Three regressions were found and fixed during the sweep** — two of them
+introduced by earlier fixes in this branch, which is exactly what the run was
+for:
+
+- **F20 was still broken.** The earlier fix blamed `DbSet.Update()`. With that
+  ruled out the change tracker still showed `TillCashDrop => Modified`: EF treats
+  a child discovered through a navigation collection as an existing row when its
+  key is already set, and `BaseEntity` assigns the Guid in the constructor. Fixed
+  by inserting the drop explicitly (`AddCashDropAsync`).
+- **The customer ledger double-counted returns.** Crediting the return against
+  the invoice (F16) made `totalInvoiced` net of returns while `totalRefunds`
+  subtracted the same return again — a 90 refund moved the balance by 190. The
+  balance is now `invoiced - payments + DN - CN` with refunds as negative
+  payments, and the entries list matches it.
+- **Sales reports deducted the gross return value.** They used
+  `SalesReturn.RefundAmount` (100) rather than what was credited (90), so a day
+  with two discounted returns read 160 against 180 retained. Now read from
+  `Invoice.ReturnedAmount`.
+- **F19 was half-fixed.** Adding DELIVERED/COMPLETED to the restore set was not
+  enough: the lookup only matched `ReferenceType="SalesOrderLine"`, and quick
+  sales tag movements `"QuickSale"` against the order id, so POS invoices still
+  destroyed stock on cancel.
+
+**Verified working against the live API**
+
+| Finding | Evidence |
+| --- | --- |
+| A3 | duplicate NPR->INR rate for the same date: 201 then **409** |
+| A6 | soft-deleted currency audits as `DELETE Isdeleted 'False'->'True'` |
+| A7 | unknown role -> 400 naming `NoSuchRoleQA` |
+| A9 | ownerType without ownerId -> 400, both directions; both/neither -> 200 |
+| A11 | 100 BDT->INR = **76.92**, cross-rate 100 INR->NPR = **158.54**, direct INR->BDT still 130.00 |
+| A12 | amount 0 -> 200; `XXX` -> 400 "Unknown currency 'XXX'." |
+| A13 | wrong password and unknown user both return `Invalid credentials` |
+| A14 | every audit row carries `ipAddress` and `userAgent` (15 of 15) |
+| A15 | 11 BUSINESS/BRANDING settings seeded on startup |
+| A16 | users paged (`pageSize=9999` clamps to 200); user/role/permission creates return **201**; currency `createdAt` populated; `DELETE /permissions/{id}` 204, and 409 while granted to a role |
+| A17 | lockout -> **429** with `Retry-After: 900` |
+| F3 | 3 lot SALE movements: lot 98->95 **and** level 98->95 |
+| F7 | unknown part -> `partFound:false`, "Product not found"; quantity 0 -> 400 |
+| F9 | `/lot/{id}` and `/type/SALE` both 200 with 6 and 13 rows, all lot numbers resolved |
+| F11 | `/levels/part/{id}` returns partName, variantName, variantSku, unitName, warehouseName |
+| F12 | omitted optional fields survive a PUT; explicit `""` still clears |
+| F13 | `parentCategoryId` binds; parent-under-child **true**, child-under-parent **false**, self **true**, root **false** |
+| F16 | 2x100 less 20, return 1 unit: refund **-90.00**, invoice grandTotal 90 / paid 90 / **PAID**, no phantom receivable |
+| F17 | apply 100 note: 200, note FULLY_USED, invoice **amountPaid 200 / outstanding 0 / PAID** |
+| F18 | debit note 250.55 moves the balance by exactly **+250.55** |
+| F19 | quick sale 90->87, cancel invoice -> **90 restored**, order CANCELLED |
+| F20 | two cash drops 200; `cashDropsTotal` 100 then 150; `expectedAmount` 1000->900->850; close 1000+660-180-150 = **1330**, overShort 0.00 |
+| F21 | 3 rejected quick sales then INV016 -> **INV017**, contiguous |
+| F23 | order detail `discount=20.0` and the header foots 200-20=180 |
+| F24 | summary net **180.00** (two 180 sales, one 90 refund each); by-customer revenue 180 / paid 180 / outstanding **0.00**; by-product quantitySold **2** (4 sold - 2 returned) |
+| F25 | running balances populated, latest matches the summary balance exactly (-248.35) |
+| F30 | supplier PUT keeps `NET15` / `150000` |
+| F38 | supplier code `QA0818SUP` honoured; duplicate -> 409 |
+| F51 | 99999 against a 20000 salary -> 400 with the limit; request is `REQUESTED` with no cash-book row; approve -> `OUTSTANDING` + 5000 expense posted |
+| F52 | declared holiday gives `holidayDays=1` and `isHoliday:true`/`holidayName` on the daily sheet; a normal date stays false |
+
+**Not exercised in this run:** F8 (import), F29/F31-F36 (procurement money paths),
+F44/F46 (warranty), F49 export variants, F39 (needs a purchase-return lot with a
+supplier). The by-product report still deducts the gross line value for money
+(quantities are exact) — see UseInvoiceReturnCreditInSalesReports.
+
+**Residue:** QA users `qa0818probe` / `qa0818valid` / `qa0818valid2` (no delete
+endpoint), supplier `QA0818SUP`, employee `EMP004`, and the QA sales orders
+SO022-SO026 with their invoices. The QA exchange rate and holiday were deleted.
+
 ---
 
 ## 1. Auth
