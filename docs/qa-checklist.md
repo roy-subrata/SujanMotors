@@ -835,14 +835,43 @@ for:
 | F51 | 99999 against a 20000 salary -> 400 with the limit; request is `REQUESTED` with no cash-book row; approve -> `OUTSTANDING` + 5000 expense posted |
 | F52 | declared holiday gives `holidayDays=1` and `isHoliday:true`/`holidayName` on the daily sheet; a normal date stays false |
 
-**Not exercised in this run:** F8 (import), F29/F31-F36 (procurement money paths),
-F44/F46 (warranty), F49 export variants, F39 (needs a purchase-return lot with a
-supplier). The by-product report still deducts the gross line value for money
-(quantities are exact) — see UseInvoiceReturnCreditInSalesReports.
+**Second batch — procurement, warranty and import**
+
+One more defect surfaced: **F29 was only half-fixed.** The 500 was gone and the
+note consumed correctly, but applying 100 to PO010 left outstanding at 300.00 —
+`PurchaseOrder.ApplyCredit` records `CreditAppliedAmount` while every read path
+computed outstanding as `TotalAmount - PaidAmount`, so the credit was stored and
+then ignored. Fixed by giving PurchaseOrder an `OutstandingAmount` that nets
+payments *and* credits, and using it in the read paths and both domain guards.
+
+| Finding | Evidence |
+| --- | --- |
+| F8 | unknown brand/category/unit -> three row errors naming each value, control row valid; with `allowNewReferenceData=true` both rows valid and the creations listed under newBrands/newCategories/newUnits; the dry run creates nothing |
+| F29 | apply 100 to PO010: 200, note FULLY_USED, outstanding **300 -> 200**; a 250 payment then refused; paying 200 settles it to exactly **0.00** (400 cash + 100 credit = 500) |
+| F31 | PUT renames and retypes a provider (`QA-0818 Renamed` / `MOBILE_BANKING`) |
+| F32 | overpay 5000 against 500 -> **400** with the balance named; valid 200 payment moves outstanding 500 -> 300 |
+| F33 | expense 1234.56: cash out 5180 -> 6414.56 -> **back to 5180** after delete |
+| F34 | issuing a 100 credit note leaves `totalCashOut` **unchanged at 5380.00**, zero CREDIT_NOTE rows in cashOut |
+| F35 | GRN 10 received / 1 damaged / 1 wrong: stock 87 -> **95** good, `damagedQuantity=1`, `quarantineQuantity=1` |
+| F36 | unused provider deletes; in-use provider -> **409** with a clear message |
+| F37 | rejected GRN create did not burn a number — next real one is **GRN008**; credit note **CN005** likewise contiguous |
+| F39 | no supplierId -> `isFromSameSupplier: null`; with it, **true** for that supplier's lots and **false** for an unrelated lot |
+| F44 | rejecting an APPROVED claim -> **400** "Cannot reject. Current status: APPROVED", approval left intact |
+| F46 | registration expiring 2022-01-01 self-corrects to **EXPIRED** on read; absent from `/active`, present in `/expired` |
+| F47 | claim dated 2027-01-01 -> 400 "Claim date cannot be in the future" |
+| F49 | aging report *and* export both 400 on a date range; export with `asOfDate` returns a 6.9 KB xlsx; expenses export still accepts a range |
+| F53 | claim on an expired warranty -> "Warranty expired on 2022-01-01. New claims are not allowed." (was "Status: ACTIVE") |
+
+**Known residual:** SalesByProduct still deducts the gross line value in its money
+column; quantities are exact. Apportioning an order-level discount across parts is
+a separate question — see UseInvoiceReturnCreditInSalesReports.
 
 **Residue:** QA users `qa0818probe` / `qa0818valid` / `qa0818valid2` (no delete
-endpoint), supplier `QA0818SUP`, employee `EMP004`, and the QA sales orders
-SO022-SO026 with their invoices. The QA exchange rate and holiday were deleted.
+endpoint), role `QA0818Role`, supplier `QA0818SUP`, employee `EMP004` with an
+approved 5000 advance, warranty registrations WR-2026-00004/5 and claim
+WC-2026-00003, PO010 with GRN008 / PR004 / CN005, and sales orders SO022-SO026
+with their invoices. The QA exchange rate, holiday, provider and daily expense
+were deleted. The test part QA-0817b-S-Part2 now has warranty enabled.
 
 ---
 
