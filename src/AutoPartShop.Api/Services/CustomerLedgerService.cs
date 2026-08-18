@@ -125,10 +125,13 @@ public class CustomerLedgerService : ICustomerLedgerService
     {
         var entries = new List<CustomerLedgerEntryDto>();
 
+        // Deliberately no standalone refund entries. A processed return is already reflected twice
+        // over in this list: the invoice row is net of returned goods (Invoice.ApplyReturnCredit),
+        // and the cash going back out is a negative PAYMENT row. Adding a REFUND row on top made
+        // the running balance disagree with the summary by the value of every return.
         entries.AddRange(await GetInvoiceEntriesAsync(customerId, fromDate, toDate, ct));
         entries.AddRange(await GetDebitNoteEntriesAsync(customerId, fromDate, toDate, ct));
         entries.AddRange(await GetPaymentEntriesAsync(customerId, fromDate, toDate, ct));
-        entries.AddRange(await GetRefundEntriesAsync(customerId, fromDate, toDate, ct));
         entries.AddRange(await GetCreditNoteEntriesAsync(customerId, fromDate, toDate, ct));
 
         CalculateRunningBalances(entries);
