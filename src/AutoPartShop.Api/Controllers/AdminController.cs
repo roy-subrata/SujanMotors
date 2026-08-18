@@ -206,7 +206,7 @@ public class AdminController : ControllerBase
                 await _userManager.AddToRolesAsync(user, request.Roles);
             }
 
-            return Ok(new
+            return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, new
             {
                 message = "User created successfully",
                 userId = user.Id,

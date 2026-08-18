@@ -79,14 +79,29 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
 
     public async Task UpdateAsync(TillSession entity, CancellationToken cancellationToken = default)
     {
-        // Update() re-stamps the whole graph: every reachable entity whose key is already set is
-        // marked Modified. TillCashDrop gets its Id from BaseEntity at construction, so a newly
-        // recorded drop was marked Modified instead of Added — the UPDATE matched no row, and EF
-        // reported that as a concurrency conflict (409 on every cash drop). When the instance is
-        // already tracked, change tracking has the right states; only attach a detached one.
+        // Only attach when the instance is not already tracked. Update() would re-stamp the whole
+        // graph as Modified, which is wrong for anything newly added to a navigation collection.
         if (dbContext.Entry(entity).State == EntityState.Detached)
             dbContext.TillSessions.Update(entity);
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Records a cash drop against an open session.
+    ///
+    /// The drop is added to the DbSet explicitly rather than left for EF to discover through
+    /// TillSession.CashDrops. BaseEntity assigns the Guid key in the constructor, and EF treats a
+    /// child that already has its key set as an existing row, marking it Modified — the resulting
+    /// UPDATE matched no row and surfaced as a concurrency conflict, which is why every cash drop
+    /// returned 409. Adding it directly states the intent instead of relying on that heuristic.
+    /// </summary>
+    public async Task AddCashDropAsync(TillSession session, TillCashDrop drop, CancellationToken cancellationToken = default)
+    {
+        if (session is null) throw new ArgumentNullException(nameof(session));
+        if (drop is null) throw new ArgumentNullException(nameof(drop));
+
+        await dbContext.Set<TillCashDrop>().AddAsync(drop, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

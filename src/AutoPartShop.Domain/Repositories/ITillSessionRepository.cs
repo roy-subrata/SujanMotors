@@ -25,6 +25,9 @@ public interface ITillSessionRepository
         TillSessionQuery query, CancellationToken cancellationToken = default);
     Task AddAsync(TillSession entity, CancellationToken cancellationToken = default);
     Task UpdateAsync(TillSession entity, CancellationToken cancellationToken = default);
+
+    /// <summary>Records a cash drop against an open session, inserting it explicitly.</summary>
+    Task AddCashDropAsync(TillSession session, TillCashDrop drop, CancellationToken cancellationToken = default);
 }
 
 public class TillSessionQuery

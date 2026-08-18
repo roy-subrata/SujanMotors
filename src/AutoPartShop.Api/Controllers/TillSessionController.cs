@@ -198,10 +198,12 @@ public class TillSessionController(
                     drop.CreatedBy = currentUserService.GetCurrentUsername();
                     drop.ModifiedBy = drop.CreatedBy;
 
+                    // Keeps the in-memory session consistent (and enforces that it is OPEN) so the
+                    // response below reflects the new drop; the insert itself is explicit.
                     session.RecordCashDrop(drop);
                     session.ModifiedBy = currentUserService.GetCurrentUsername();
 
-                    await tillSessionRepository.UpdateAsync(session, cancellationToken);
+                    await tillSessionRepository.AddCashDropAsync(session, drop, cancellationToken);
                     await tx.CommitAsync(cancellationToken);
 
                     response = await MapToResponseAsync(session, cancellationToken);
