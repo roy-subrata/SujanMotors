@@ -664,6 +664,71 @@ endpoint exists). Two permission rows remain — `qa0817.probe` (test artifact,
 unassigned) and `audit.view` (a legitimate catalog entry) — the API exposes no
 permission-delete endpoint.
 
+
+### Fix pass 2026-08-18 (branch feature/theme-sujan-motors)
+
+Scope agreed with the maintainer: **S1 + S2**, plus four design items (gapless
+document numbering, salary-advance approval, token revocation, sales-report
+reconciliation). Backend plus the frontend work those changes force. S3 findings
+are deferred. Every change below builds clean and the suite is green (19 tests,
+up from 2).
+
+**Fixed**
+
+| Finding | What changed |
+| --- | --- |
+| F1 | `StockLevel.RemoveStock` guards on base units when given them; new `POST /api/Stock/levels/{id}/reconcile-units` recovers levels that already drifted |
+| F2 | `UnitRepository.UpdateAsync` mutates the tracked entity instead of Remove+Add |
+| F3 | Lot movements now adjust the matching `StockLevel` |
+| F5 | Unit conversion rounds away from zero, not to nearest even |
+| F7 | `Stock/check` returns `partFound:false` for an unknown or deleted part |
+| F8 | Import creates brands/categories/units only when `allowNewReferenceData` is set; otherwise unknown names are row errors |
+| F14 | Sales-order confirm no longer mixes `ExecuteUpdateAsync` with `SaveChangesAsync` on a RowVersion entity |
+| F15 | Convert takes a warehouse (required, existence-checked); web UI gained a picker |
+| F16 | Cash refund is netted by the order discount **and** credited against the invoice via new `Invoice.ReturnedAmount` |
+| F17 | Credit-note apply no longer writes a `CreditNote` id into `CustomerPayment.SourceAdvancePaymentId` (self-FK); ledger counts the credit once |
+| F18 | Debit notes reach the customer ledger |
+| F19 | DELIVERED/COMPLETED added to the stock-restore set; the order is cancelled when its last live invoice is |
+| F20 | `TillSessionRepository.UpdateAsync` no longer `Update()`s a tracked graph (that was the 409); open sessions report live cash |
+| F21/F37 | Document numbers are allocated inside the transaction, or after validation where there is none |
+| F23 | Sales-order payload reports the discount in money, plus explicit percentage/amount fields |
+| F24 | Report procs exclude PENDING orders, deduct returns, and reconcile `outstanding` with the ledger |
+| F25 | Running balance populated on ledger entries |
+| F26 | Per-unit discount rounded once, so line and header foot |
+| F27 | Zero-value (100% discount) sales accepted |
+| F28 | `POST /api/Stock/levels` rejects a quantity instead of silently ignoring it |
+| F29 | Supplier credit-note apply is transactional and no longer double-credits |
+| F30 | Supplier PUT keeps payment terms and credit limit |
+| F31 | Payment provider PUT applies name and type |
+| F32 | Overpaying a PO returns 400, not 500 |
+| F33/F40 | Cash book filters soft-deleted expenses and payments |
+| F34 | Credit-note settlements excluded from the cash book and cash-basis revenue |
+| F35 | Damaged/quarantine quantities surface in stock responses |
+| F36 | Deleting an in-use payment provider returns 409 |
+| F41 | Cash book no longer double-counts applied advances |
+| F42 | Customer ledger stops subtracting refunds twice |
+| F44 | An APPROVED warranty claim can no longer be rejected |
+| F45 | Unknown *and* duplicate employee ids in an attendance payload return 400 |
+| F46 | Expired registrations flip on read |
+| F51 | Salary advances are REQUESTED → approved → recovered, capped at the monthly salary |
+| A3 | Duplicate exchange rate for a pair/date returns 409 |
+| A6 | Soft deletes audit as DELETE; unchanged-value audit rows are no longer written |
+| A7 | Unknown role names are reported instead of silently dropped |
+| A9 | `ownerType`/`ownerId` must be supplied together |
+| A10 | ~40 bare-string / `{error}` bodies normalised to `{message}` across 14 controllers |
+| A2 | Regression tests added for the F1/F16/F44/F51 money paths |
+
+**Needed no change** — A4, A5 (already in committed code), F4, F6, F22, F43
+(fixed in the working tree before this pass). See the triage table above.
+
+**Still open** — every S3 finding: F9–F13, F38, F39, F47–F50, F52, F53, A11–A17,
+and the duplicate legacy `/api/<name>` routes. A15 is a data-config task. A1/A8
+are environment issues that a rebuilt image resolves.
+
+**Re-verification required.** None of the above has been exercised against a
+running API — the sweep that produced these findings must be re-run. Rebuild the
+image first (A1) and use `http://localhost:5000`.
+
 ---
 
 ## 1. Auth
