@@ -47,6 +47,8 @@ public class SalesOrder : AggregateRoot
     public decimal? BaseGrandTotal { get; private set; }  // GrandTotal converted to base currency at sale time
     public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseGrandTotal was captured (1 = same as base)
     public string Channel { get; private set; } = "POS";  // POS | MOBILE | API
+    public Guid? CartDiscountRuleId { get; set; }  // FK to Discount entity applied at cart level (null = manual or none)
+    public string? AppliedPromoCode { get; set; }  // Promo code used for cart-level discount (for audit)
 
     // Navigation properties
     public Customer? Customer { get; set; }
@@ -54,6 +56,7 @@ public class SalesOrder : AggregateRoot
     public ApplicationUser? Cashier { get; set; }
     public CustomerVehicle? CustomerVehicle { get; set; }
     public Warehouse? Warehouse { get; set; }
+    public Discount? CartDiscountRule { get; set; }
     public ICollection<SalesOrderLine> LineItems { get; set; } = new List<SalesOrderLine>();
     public Invoice? Invoice { get; set; }
 

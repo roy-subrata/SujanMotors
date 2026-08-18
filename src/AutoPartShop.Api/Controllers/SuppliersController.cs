@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.SupplierDtos;
 using AutoPartShop.Application.Suppliers;
@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/suppliers")]
 [Route("api/v1/suppliers")]
 [ApiController]
 [HasPermission(Permissions.ProcurementView)]
@@ -284,7 +282,7 @@ public class SuppliersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Supplier is still referenced by procurement/stock records — surface a clean 409.
+            // Supplier is still referenced by procurement/stock records � surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)

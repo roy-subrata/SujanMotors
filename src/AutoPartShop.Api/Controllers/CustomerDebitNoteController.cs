@@ -12,8 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/customer-debit-notes")]
 [Route("api/v1/customer-debit-notes")]
 [ApiController]
 [Produces("application/json")]

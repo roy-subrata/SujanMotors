@@ -215,6 +215,20 @@
               </p-inputNumber>
             </span>
           </div>
+          <div class="total-row promo-code-row">
+            <span class="label">{{ 'pos.promoCode' | translate }}</span>
+            <span class="value">
+              <input
+                type="text"
+                pInputText
+                [ngModel]="promoCode()"
+                (ngModelChange)="promoCode.set($event)"
+                [ngModelOptions]="{standalone: true}"
+                [placeholder]="'pos.promoCodePlaceholder' | translate"
+                class="promo-code-input"
+                styleClass="promo-code-field" />
+            </span>
+          </div>
           @if (vatEnabled() && vatAmount() > 0) {
             <div class="total-row">
               <span class="label">{{ 'pos.vat' | translate:{ percent: vatPercentage() } }}</span>

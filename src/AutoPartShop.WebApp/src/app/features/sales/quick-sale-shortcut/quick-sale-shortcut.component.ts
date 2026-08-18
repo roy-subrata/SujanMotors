@@ -209,6 +209,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
   // Manual Discount
   manualDiscountAmount = signal<number>(0);
+  // Promo code entered by cashier — resolved server-side to a cart-level discount rule
+  promoCode = signal<string>('');
 
   // Computed
   subtotal = computed(() => {
@@ -755,6 +757,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.selectedTechnicianModel = null;
     this.selectedPartModel = null;
     this.manualDiscountAmount.set(0);
+    this.promoCode.set('');
     this.currentInvoiceId.set(null);
     this.saving.set(false);
     this.autoCreatePO = false;
@@ -782,6 +785,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       technicianName: this.selectedTechnician()?.name,
       customerVehicleId: this.selectedVehicleId(),
       manualDiscountAmount: this.manualDiscountAmount(),
+      promoCode: this.promoCode(),
       total: this.grandTotal(),
       notes: this.saleNotes
     };
@@ -823,6 +827,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     this.payments.set(sale.payments || []);
     this.saleNotes = sale.notes || '';
     this.manualDiscountAmount.set(sale.manualDiscountAmount || 0);
+    this.promoCode.set(sale.promoCode || '');
 
     // Rebuild per-line unit state so the unit dropdowns work after recall
     (sale.items || []).forEach((item, index) => {
@@ -925,6 +930,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       subtotal: this.subtotal(),
       // Cart-level discount only — line discounts are already netted into subtotal/items.
       discountAmount: this.manualDiscountAmount(),
+      promoCode: this.promoCode() || undefined,
       vatAmount: this.vatAmount(),
       vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),
@@ -1331,6 +1337,9 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
       subtotal: this.subtotal(),
       // Cart-level discount only — line discounts are already netted into subtotal/items.
       discountAmount: this.manualDiscountAmount(),
+      discountType: this.promoCode() ? 'PROMO_CODE' : (this.manualDiscountAmount() > 0 ? 'FIXED' : 'NONE'),
+      discountReason: this.promoCode() || (this.manualDiscountAmount() > 0 ? 'Manual discount' : undefined),
+      promoCode: this.promoCode() || undefined,
       vatAmount: this.vatAmount(),
       vatPercentage: this.vatPercentage(),
       grandTotal: this.grandTotal(),

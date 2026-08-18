@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
@@ -15,7 +15,6 @@ using System.Linq;
 namespace AutoPartShop.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
     [Route("api/v1/[controller]")]
     [Authorize]
     public class SalesReturnController : ControllerBase
@@ -335,7 +334,7 @@ namespace AutoPartShop.Api.Controllers
                             _dbContext.StockMovements.Add(stockMovement);
 
                             // Restore returned stock to the exact lot(s) it was sold from by reversing the
-                            // original SALE lot movements â€” keeps FIFO cost accurate and never creates a
+                            // original SALE lot movements — keeps FIFO cost accurate and never creates a
                             // supplier-less lot. Lot tracking is best-effort: a failure here must not abort
                             // the return (StockLevel above is the source of truth for on-hand counts).
                             try
@@ -430,7 +429,7 @@ namespace AutoPartShop.Api.Controllers
                             }
                             catch (Exception lotEx)
                             {
-                                // Lot tracking is best-effort â€” never block the return on it.
+                                // Lot tracking is best-effort — never block the return on it.
                                 _logger.LogWarning(lotEx, "Failed to restore lot tracking for part {PartId} in return {ReturnNumber}", line.PartId, salesReturn.ReturnNumber);
                             }
                         }
@@ -533,7 +532,7 @@ namespace AutoPartShop.Api.Controllers
 
                                     if (balancePart > 0)
                                     {
-                                        // Goods returned that were never paid for → the customer owes that much less.
+                                        // Goods returned that were never paid for ? the customer owes that much less.
                                         var balancePartFx = await _currencyConversionService.ConvertToBaseWithRateAsync(balancePart, salesOrder?.Currency ?? "BDT", DateTime.UtcNow, CancellationToken.None);
                                         customer.UpdateBalance(-balancePartFx.BaseAmount);
                                         customer.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -563,7 +562,7 @@ namespace AutoPartShop.Api.Controllers
                                     salesReturn.SetCustomerCreditNote(customerCreditNote.Id);
                                 }
 
-                                // Reverse TotalPurchaseAmount â€” applies regardless of refund type
+                                // Reverse TotalPurchaseAmount — applies regardless of refund type
                                 customer.ReverseRecordPurchase(salesReturn.RefundAmount);
                                 customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                             }

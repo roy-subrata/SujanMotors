@@ -5331,6 +5331,8 @@
     "itemDiscounts": "Item Discounts",
     "manualDiscount": "Manual Discount",
     "manualDiscountPlaceholder": "Manual discount...",
+    "promoCode": "Promo Code",
+    "promoCodePlaceholder": "Enter promo code...",
     "customer": "Customer",
     "customerPlaceholder": "Search customer...",
     "vehiclePlaceholder": "Vehicle (optional)",

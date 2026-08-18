@@ -12,8 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/till-sessions")]
 [Route("api/v1/till-sessions")]
 [ApiController]
 [Produces("application/json")]

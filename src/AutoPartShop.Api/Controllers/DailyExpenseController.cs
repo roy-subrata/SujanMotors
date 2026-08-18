@@ -1,12 +1,10 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.ExpenseDtos;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/daily-expense")]
 [Route("api/v1/daily-expense")]
 [ApiController]
 [HasPermission(Permissions.ReportsView)]

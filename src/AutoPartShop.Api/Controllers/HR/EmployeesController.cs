@@ -16,7 +16,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// Employee master records (HR). Salary data is sensitive, so the whole
 /// controller is restricted to Admin/Manager.
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]

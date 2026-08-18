@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.WarehouseDtos;
 using AutoPartShop.Application.Warehouse;
@@ -9,8 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -213,7 +211,7 @@ public class WarehousesController(
         }
         catch (InvalidOperationException ex)
         {
-            // Warehouse is still referenced by stock or transactions — surface a clean 409.
+            // Warehouse is still referenced by stock or transactions � surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)

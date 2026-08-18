@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.CustomerPayment;
@@ -14,8 +14,6 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/customer-payments")]
 [Route("api/v1/customer-payments")]
 [ApiController]
 [HasPermission(Permissions.SalesView)]
@@ -889,7 +887,7 @@ public class CustomerPaymentController : ControllerBase
                     salesOrder.RecordPayment(request.Amount);
                     salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    // Reflect the new payment in the in-memory collection before recalculating invoice status â€”
+                    // Reflect the new payment in the in-memory collection before recalculating invoice status —
                     // newPayment is not yet in the DB so UpdatePaymentStatus would miss it otherwise.
                     invoice.CustomerPayments.Add(newPayment);
                     invoice.UpdatePaymentStatus();

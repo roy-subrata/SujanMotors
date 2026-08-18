@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.DashboardDtos;
 using AutoPartShop.Api.Authorization;
@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [HasPermission(Permissions.ReportsView)]
 public class DashboardController(

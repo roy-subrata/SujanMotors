@@ -14,7 +14,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// Leave applications with an approve/reject flow. Approval writes LEAVE marks
 /// into the attendance records for the requested date range.
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]

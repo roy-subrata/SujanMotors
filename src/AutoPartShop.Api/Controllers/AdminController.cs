@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Authorization;
+using AutoPartShop.Api.Authorization;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 // Access is now permission-gated per action (users.* / roles.*) so user management can be
 // delegated via role-permission assignment; Admin still bypasses everything.
@@ -647,7 +646,7 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Deletes a permission. Refused while any role still grants it — dropping it silently would
+    /// Deletes a permission. Refused while any role still grants it � dropping it silently would
     /// revoke access from every holder with no trace of why.
     /// </summary>
     [HttpDelete("permissions/{id:guid}")]

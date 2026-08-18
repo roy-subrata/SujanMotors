@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize]

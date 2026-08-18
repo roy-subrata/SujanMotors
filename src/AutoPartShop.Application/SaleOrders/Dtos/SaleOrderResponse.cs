@@ -38,6 +38,12 @@ namespace AutoPartShop.Application.SaleOrders.Dtos
         /// <summary>Fixed-amount form of the order discount, as applied by quick sale.</summary>
         public decimal DiscountAmount { get; set; }
 
+        /// <summary>Promo code that was applied to this order (if any).</summary>
+        public string? AppliedPromoCode { get; set; }
+
+        /// <summary>FK to the Discount rule applied at cart level (if any).</summary>
+        public Guid? CartDiscountRuleId { get; set; }
+
         public decimal GrandTotal { get; set; }
         public string Currency { get; set; } = string.Empty;
         public decimal AmountPaid { get; set; }

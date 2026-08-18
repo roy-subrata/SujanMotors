@@ -5331,6 +5331,8 @@
     "itemDiscounts": "পণ্যের ছাড়",
     "manualDiscount": "ম্যানুয়াল ছাড়",
     "manualDiscountPlaceholder": "ম্যানুয়াল ছাড়...",
+    "promoCode": "প্রোমো কোড",
+    "promoCodePlaceholder": "প্রোমো কোড লিখুন...",
     "customer": "কাস্টমার",
     "customerPlaceholder": "কাস্টমার খুঁজুন...",
     "vehiclePlaceholder": "গাড়ি (ঐচ্ছিক)",

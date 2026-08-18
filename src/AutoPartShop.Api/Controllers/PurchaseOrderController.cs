@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
@@ -16,8 +16,6 @@ using QuestPDF.Fluent;
 
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -69,7 +67,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     /// <summary>
-    /// Configurable document-number prefix (Company Profile &gt; Document Numbering) —
+    /// Configurable document-number prefix (Company Profile &gt; Document Numbering) �
     /// falls back to the historical hardcoded prefix if no setting has been configured yet.
     /// </summary>
     private async Task<string> GetPrefixAsync(string settingKey, string fallback, CancellationToken cancellationToken)
@@ -162,8 +160,8 @@ public class PurchaseOrderController : ControllerBase
 
         // Deliver-To is our receiving warehouse; fall back to the shop identity when unset.
         var deliverToName = string.IsNullOrWhiteSpace(po.Warehouse?.Name)
-            ? $"{shop.Name} — Store"
-            : $"{shop.Name} — {po.Warehouse!.Name}";
+            ? $"{shop.Name} � Store"
+            : $"{shop.Name} � {po.Warehouse!.Name}";
         var deliverToAddress = string.IsNullOrWhiteSpace(po.Warehouse?.Location)
             ? shop.Address
             : po.Warehouse!.Location;
@@ -290,7 +288,7 @@ public class PurchaseOrderController : ControllerBase
 
             // Every line is resolved and validated BEFORE a PO number is allocated. This method has
             // no transaction, so allocating first meant a rejected create burned the number for
-            // good — three rejected attempts left the next real order at PO005.
+            // good � three rejected attempts left the next real order at PO005.
             var resolvedLines = new List<(Guid PartId, int Quantity, decimal UnitPrice, Guid? UnitId, int QuantityInBaseUnit, Guid? VariantId)>();
 
             if (request.LineItems?.Any() == true)
@@ -338,7 +336,7 @@ public class PurchaseOrderController : ControllerBase
                     // Enforce variant selection when product has active variants
                     var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                     if (hasVariants && !lineRequest.VariantId.HasValue)
-                        return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
+                        return BadRequest(new { message = $"Product '{part.Name}' has variants � please select a specific variant" });
 
                     resolvedLines.Add((lineRequest.PartId, lineRequest.Quantity, lineRequest.UnitPrice,
                         unitId, quantityInBaseUnit, lineRequest.VariantId));
@@ -455,7 +453,7 @@ public class PurchaseOrderController : ControllerBase
 
                 var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                 if (hasVariants && !lineRequest.VariantId.HasValue)
-                    return BadRequest(new { message = $"Product '{part.Name}' has variants â€” please select a specific variant" });
+                    return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
 
                 lineItemDataList.Add(new LineItemData(
                     lineRequest.Id,
@@ -573,7 +571,7 @@ public class PurchaseOrderController : ControllerBase
             var order = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Purchase order not found" });
 
-            // Block cancellation once goods have been accepted into stock â€” those movements must be
+            // Block cancellation once goods have been accepted into stock — those movements must be
             // reversed via a PurchaseReturn rather than simply cancelling the PO.
             var hasAcceptedGrns = await _dbContext.GoodsReceipts
                 .AnyAsync(g => g.PurchaseOrderId == id && g.Status == GoodsReceiptStatus.ACCEPTED && !g.Isdeleted, cancellationToken);
@@ -624,7 +622,7 @@ public class PurchaseOrderController : ControllerBase
                 return NotFound(new { message = "Purchase order not found" });
 
             // Deleting a committed PO would orphan stock lots, payments, and returns.
-            // Cancel it first â€” the cancellation guard above ensures no accepted GRNs remain.
+            // Cancel it first — the cancellation guard above ensures no accepted GRNs remain.
             if (orderToDelete.Status is PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL or PurchaseOrderStatus.DELIVERED)
                 return BadRequest(new { message = $"Cannot delete a {orderToDelete.Status} purchase order. Cancel it first to prevent orphaned stock and payment records." });
 
@@ -736,7 +734,7 @@ public class PurchaseOrderController : ControllerBase
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
                     // Only convert if part has a base unit AND received unit differs from base unit.
-                    // Fail fast if the conversion is required but not configured â€” stock is tracked
+                    // Fail fast if the conversion is required but not configured — stock is tracked
                     // in base units, so silently using display quantities would corrupt on-hand stock.
                     if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
                     {
@@ -970,7 +968,7 @@ public class PurchaseOrderController : ControllerBase
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
                     // Only convert if part has a base unit AND received unit differs from base unit.
-                    // Fail fast if the conversion is required but not configured â€” stock is tracked
+                    // Fail fast if the conversion is required but not configured — stock is tracked
                     // in base units, so silently using display quantities would corrupt on-hand stock.
                     if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
                     {
@@ -1064,7 +1062,7 @@ public class PurchaseOrderController : ControllerBase
             if (poForVerify is null || poForVerify.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
                 return BadRequest(new { message = $"Cannot verify a goods receipt for a {(poForVerify is null ? "missing" : poForVerify.Status.ToString())} purchase order." });
 
-            // Record the actual authenticated user as the verifier — never a client-supplied name,
+            // Record the actual authenticated user as the verifier � never a client-supplied name,
             // so the "who verified this receipt" audit trail can't be spoofed.
             var verifier = _currentUserService.GetCurrentUsername();
             grn.Verify(string.IsNullOrWhiteSpace(verifier) ? verifiedBy : verifier);
@@ -1098,7 +1096,7 @@ public class PurchaseOrderController : ControllerBase
 
             // Atomic accept: stock processing + status flip in ONE transaction (under the global retry
             // strategy). If two requests race, the loser's grn.Accept() fails the RowVersion check
-            // (â†’ 409) and its whole transaction â€” including the stock changes it just made â€” rolls back,
+            // (→ 409) and its whole transaction — including the stock changes it just made — rolls back,
             // so stock is never double-added. Reload grn inside so a retry applies exactly once.
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
@@ -1116,7 +1114,7 @@ public class PurchaseOrderController : ControllerBase
                     if (poForAccept.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
                         throw new InvalidOperationException($"Cannot accept a goods receipt for a {poForAccept.Status} purchase order.");
 
-                    // Cost is lot-driven and permanent once posted. Refuse to create zero-cost stock —
+                    // Cost is lot-driven and permanent once posted. Refuse to create zero-cost stock �
                     // require a unit cost on every line first (set it via Update Pricing before accepting).
                     var uncostedLine = grn.LineItems.FirstOrDefault(l => l.UnitCost <= 0);
                     if (uncostedLine is not null)

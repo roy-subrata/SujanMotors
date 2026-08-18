@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Application.DTOs.PurchaseReturnDtos;
 using AutoPartShop.Domain.Entities;
@@ -12,8 +12,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -505,7 +503,7 @@ public class PurchaseReturnController : ControllerBase
                                     .ToList();
 
                                 // Must have enough AVAILABLE stock from THIS supplier. We never draw a return
-                                // from another supplier's lots â€” that would destroy lot/supplier traceability.
+                                // from another supplier's lots — that would destroy lot/supplier traceability.
                                 // If the originating supplier's lots are short, the operator must pick specific
                                 // lots on the return lines instead.
                                 int totalAvailableFromSupplier = supplierLots.Sum(l => l.QuantityAvailable);
@@ -650,7 +648,7 @@ public class PurchaseReturnController : ControllerBase
             var currentUser = _currentUserService.GetCurrentUsername();
             CreditNote creditNote = null!;
 
-            // All writes in one transaction â€” if the SupplierPayment insert fails, the
+            // All writes in one transaction — if the SupplierPayment insert fails, the
             // credit note and return status update are rolled back together. Runs under the EF
             // execution strategy (EnableRetryOnFailure is on) or BeginTransaction would throw.
             var strategy = _dbContext.Database.CreateExecutionStrategy();

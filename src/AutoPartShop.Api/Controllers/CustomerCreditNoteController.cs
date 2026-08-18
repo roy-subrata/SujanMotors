@@ -1,4 +1,4 @@
-ï»¿using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerCreditNoteDtos;
 using AutoPartShop.Domain.Entities;
@@ -13,8 +13,6 @@ using QuestPDF.Fluent;
 using System.Data;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/customer-credit-notes")]
 [Route("api/v1/customer-credit-notes")]
 [ApiController]
 [HasPermission(Permissions.SalesView)]
@@ -218,11 +216,11 @@ public class CustomerCreditNoteController : ControllerBase
         }
         else
         {
-            // Warranty refunds and standalone credits have no return lines â€” show one summary line
+            // Warranty refunds and standalone credits have no return lines — show one summary line
             // so the total is still itemised rather than appearing from nowhere.
             lines =
             [
-                new CreditNoteLine(1, "â€”", "Credit adjustment", null, 1, "", creditNote.TotalAmount, creditNote.TotalAmount)
+                new CreditNoteLine(1, "—", "Credit adjustment", null, 1, "", creditNote.TotalAmount, creditNote.TotalAmount)
             ];
         }
 
@@ -245,10 +243,10 @@ public class CustomerCreditNoteController : ControllerBase
     private static string FormatReason(string? reason) => reason switch
     {
         null or "" => "",
-        "DAMAGED" => "Goods returned â€” damaged.",
-        "DEFECTIVE" => "Goods returned â€” manufacturing defect.",
-        "WRONG_ITEM" => "Goods returned â€” wrong item supplied.",
-        "EXCESS_STOCK" => "Goods returned â€” excess stock.",
+        "DAMAGED" => "Goods returned — damaged.",
+        "DEFECTIVE" => "Goods returned — manufacturing defect.",
+        "WRONG_ITEM" => "Goods returned — wrong item supplied.",
+        "EXCESS_STOCK" => "Goods returned — excess stock.",
         _ => reason.Replace('_', ' ')
     };
 

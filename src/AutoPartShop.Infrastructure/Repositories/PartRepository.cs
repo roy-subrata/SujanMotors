@@ -72,7 +72,7 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
             // In-use guards — a product still holding physical stock or cost layers can't be removed
             // without orphaning inventory/valuation. (Past sales keep pointing at the soft-deleted
             // product, which is fine for history.)
-            if (await _db.StockLevels.AnyAsync(sl => sl.PartId == id && !sl.Isdeleted && (sl.QuantityOnHandInBaseUnit > 0 || sl.QuantityReservedInBaseUnit > 0), cancellationToken))
+            if (await _db.StockLevels.AnyAsync(sl => sl.PartId == id && !sl.Isdeleted && (sl.QuantityOnHandInBaseUnit > 0 || sl.QuantityReservedInBaseUnit > 0 || sl.QuantityDamagedInBaseUnit > 0 || sl.QuantityQuarantineInBaseUnit > 0), cancellationToken))
                 throw new InvalidOperationException("Cannot delete a product that has stock records. Remove its stock first.");
 
             if (await _db.StockLots.AnyAsync(l => l.PartId == id && !l.Isdeleted && l.QuantityAvailable > 0, cancellationToken))

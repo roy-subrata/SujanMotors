@@ -15,7 +15,6 @@ namespace AutoPartShop.Api.Controllers.Reports;
 /// require reports.export. Data comes from dbo.usp_Report_* stored procedures.
 /// </summary>
 [ApiController]
-[Route("api/reports/sales")]
 [Route("api/v1/reports/sales")]
 [HasPermission(Permissions.ReportsView)]
 public class SalesReportsController(

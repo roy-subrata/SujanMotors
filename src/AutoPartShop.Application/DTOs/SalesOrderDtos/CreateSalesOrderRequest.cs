@@ -15,6 +15,8 @@ public class CreateSalesOrderRequest
     public string Notes { get; set; } = string.Empty;
     public string Currency { get; set; } = "BDT";
     public decimal Discount { get; set; } = 0;
+    /// <summary>Promo code entered by user — resolved to a cart-level discount rule</summary>
+    public string? PromoCode { get; set; }
     public string Channel { get; set; } = "POS";  // POS | MOBILE | API
     public List<CreateSalesOrderLineRequest> Lines { get; set; } = new();
 }

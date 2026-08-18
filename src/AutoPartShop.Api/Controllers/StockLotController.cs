@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Application.Stock;
@@ -11,8 +11,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [HasPermission(Permissions.InventoryView)]

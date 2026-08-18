@@ -127,5 +127,13 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.HasIndex(so => so.CashierId);
         builder.HasIndex(so => so.Status);
         builder.HasIndex(so => so.SODate);
+        builder.HasIndex(so => so.CartDiscountRuleId);
+
+        // Cart-level discount rule — nullable, tracks auto-applied cart discount for audit
+        builder.HasOne(so => so.CartDiscountRule)
+            .WithMany()
+            .HasForeignKey(so => so.CartDiscountRuleId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 }

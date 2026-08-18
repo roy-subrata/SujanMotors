@@ -35,7 +35,7 @@ public class WarehouseRepository(AutoPartDbContext dbContext) : IWarehouseReposi
 
         // In-use guards — refuse to delete a warehouse still referenced by stock or transactions.
         // (A hard delete would either fail the Restrict FKs with a raw 500 or orphan the data.)
-        if (await dbContext.StockLevels.AnyAsync(sl => sl.WarehouseId == id && !sl.Isdeleted && (sl.QuantityOnHandInBaseUnit > 0 || sl.QuantityReservedInBaseUnit > 0), cancellationToken))
+        if (await dbContext.StockLevels.AnyAsync(sl => sl.WarehouseId == id && !sl.Isdeleted && (sl.QuantityOnHandInBaseUnit > 0 || sl.QuantityReservedInBaseUnit > 0 || sl.QuantityDamagedInBaseUnit > 0 || sl.QuantityQuarantineInBaseUnit > 0), cancellationToken))
             throw new InvalidOperationException("Cannot delete a warehouse that has stock levels. Transfer or remove its stock first.");
 
         if (await dbContext.StockLots.AnyAsync(l => l.WarehouseId == id && !l.Isdeleted && l.QuantityAvailable > 0, cancellationToken))

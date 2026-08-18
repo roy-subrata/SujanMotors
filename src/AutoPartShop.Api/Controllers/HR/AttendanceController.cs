@@ -14,7 +14,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// <summary>
 /// Daily attendance marking and monthly summaries. Manual entry by Admin/Manager (v1).
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]

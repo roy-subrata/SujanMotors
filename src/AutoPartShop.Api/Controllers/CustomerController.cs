@@ -1,4 +1,4 @@
-ï»¿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Customers.Dtos;
@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/customers")]
 [Route("api/v1/customers")]
 [ApiController]
 [HasPermission(Permissions.SalesView)]
@@ -324,7 +322,7 @@ public class CustomerController : ControllerBase
             }
 
             // CreateCustomerRequest.CustomerCode was accepted and then discarded. Honour an
-            // explicit code when it is free, and fall back to the generated sequence otherwise â€”
+            // explicit code when it is free, and fall back to the generated sequence otherwise —
             // same contract as suppliers.
             string customerCode;
             if (!string.IsNullOrWhiteSpace(request.CustomerCode))
@@ -386,7 +384,7 @@ public class CustomerController : ControllerBase
             var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
-            // Phone must stay unique â€” reject if another customer already has it.
+            // Phone must stay unique — reject if another customer already has it.
             if (!string.IsNullOrWhiteSpace(request.Phone))
             {
                 var existingByPhone = await _customerRepository.GetByPhoneAsync(request.Phone.Trim(), cancellationToken);
@@ -534,7 +532,7 @@ public class CustomerController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Repository-level in-use guard (defense in depth) â€” surface a clean 409.
+            // Repository-level in-use guard (defense in depth) — surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)

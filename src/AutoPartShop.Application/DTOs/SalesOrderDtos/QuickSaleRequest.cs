@@ -21,6 +21,8 @@ public class QuickSaleRequest
     public string DiscountType { get; set; } = "NONE";
     /// <summary>Reason for applying the discount — required for audit trail</summary>
     public string? DiscountReason { get; set; }
+    /// <summary>Promo code entered by cashier — resolved to a cart-level discount rule</summary>
+    public string? PromoCode { get; set; }
     public decimal VatAmount { get; set; }
     public decimal VatPercentage { get; set; } = 15;
     public decimal GrandTotal { get; set; }
@@ -99,6 +101,10 @@ public class QuickSaleResponse
     public string Status { get; set; } = string.Empty;
     public bool IsQuotation { get; set; }
     public DateTime CreatedAt { get; set; }
+    /// <summary>Promo code applied to this sale (if any).</summary>
+    public string? AppliedPromoCode { get; set; }
+    /// <summary>FK to the Discount rule applied at cart level (if any).</summary>
+    public Guid? CartDiscountRuleId { get; set; }
     /// <summary>Populated by the by-invoice lookup so the POS return screen knows what was sold.</summary>
     public List<QuickSaleResponseLine> Lines { get; set; } = new();
 }

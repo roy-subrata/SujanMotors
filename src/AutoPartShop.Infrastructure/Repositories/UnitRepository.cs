@@ -45,8 +45,8 @@ public class UnitRepository(AutoPartDbContext dbContext) : IUnitRepository
             if (await dbContext.Parts.AnyAsync(p => (p.BaseUnitId == id || p.UnitId == id) && !p.Isdeleted, cancellationToken))
                 throw new InvalidOperationException("Cannot delete a unit that is assigned to products.");
 
-            if (await dbContext.StockLevels.AnyAsync(sl => sl.UnitId == id && !sl.Isdeleted, cancellationToken))
-                throw new InvalidOperationException("Cannot delete a unit that is used by stock levels.");
+            if (await dbContext.StockLevels.AnyAsync(sl => sl.UnitId == id && !sl.Isdeleted && (sl.QuantityOnHandInBaseUnit > 0 || sl.QuantityReservedInBaseUnit > 0 || sl.QuantityDamagedInBaseUnit > 0 || sl.QuantityQuarantineInBaseUnit > 0), cancellationToken))
+                throw new InvalidOperationException("Cannot delete a unit that is used by stock levels with existing quantities.");
 
             if (await dbContext.UnitConversions.AnyAsync(c => (c.FromUnitId == id || c.ToUnitId == id) && !c.Isdeleted, cancellationToken))
                 throw new InvalidOperationException("Cannot delete a unit that is used by unit conversions.");

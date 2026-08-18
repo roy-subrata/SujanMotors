@@ -887,6 +887,29 @@
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
+.promo-code-row .value {
+  flex: 1;
+}
+
+.promo-code-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--pos-radius);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: var(--pos-transition);
+}
+
+.promo-code-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
 .total-row.grand {
   padding-top: 12px;
   margin-top: 8px;

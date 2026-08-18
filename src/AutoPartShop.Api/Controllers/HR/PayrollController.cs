@@ -16,7 +16,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// Monthly payroll runs: generate DRAFT from the attendance summary, adjust payslips,
 /// approve, then pay — which posts a SALARIES DailyExpense in the same transaction.
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]

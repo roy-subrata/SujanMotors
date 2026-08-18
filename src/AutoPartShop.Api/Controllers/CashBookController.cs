@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Common;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Data;
@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/cash-book")]
 [Route("api/v1/cash-book")]
 [ApiController]
 [HasPermission(Permissions.ReportsView)]
@@ -21,7 +19,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         new(StringComparer.OrdinalIgnoreCase) { "DUE", "PART_PAY" };
 
     /// <summary>
-    /// Daily cash book â€” aggregates all money movement for a date range.
+    /// Daily cash book — aggregates all money movement for a date range.
     /// Cash In : COMPLETED customer payments (positive amounts only)
     /// Cash Out: daily expenses + COMPLETED supplier payments + refund payments (negative customer payments)
     /// Opening balance: cumulative net of all prior COMPLETED transactions before dateFrom
@@ -53,7 +51,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         if (daySpan > 366)
             return BadRequest(ApiError.Validation("Date range cannot exceed 366 days. Split into smaller periods.", instance: Request.Path));
 
-        // â”€â”€ Opening balance (all COMPLETED transactions before dateFrom) â”€
+        // ── Opening balance (all COMPLETED transactions before dateFrom) ─
         // CREDIT_NOTE settlements are excluded on both sides of the book: the customer paid with
         // store credit and the supplier settled against a note, so no cash crossed the drawer.
         // The ledgers already exclude them, and counting them here made cash book and ledger
@@ -81,7 +79,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
         var openingBalance = priorCustomerNet + priorDepositTotal - priorExpenseTotal - priorSupplierTotal;
 
-        // â”€â”€ Customer payments â€” COMPLETED only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Customer payments — COMPLETED only ─────────────────────────
         var customerPayments = await _db.CustomerPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
                      && p.Status == CustomerPaymentStatus.COMPLETED
@@ -94,7 +92,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .OrderBy(p => p.PaymentDate)
             .ToListAsync(ct);
 
-        // â”€â”€ Expenses (cash out) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Expenses (cash out) ────────────────────────────────────────
         var expenses = await _db.DailyExpenses
             .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate <= dateTo
                      && !e.Isdeleted)
@@ -102,7 +100,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .OrderBy(e => e.ExpenseDate)
             .ToListAsync(ct);
 
-        // â”€â”€ Supplier payments (cash out) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Supplier payments (cash out) ────────────────────────────────
         var supplierPayments = await _db.SupplierPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
                      && p.Status == SupplierPaymentStatus.COMPLETED
@@ -113,7 +111,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .OrderBy(p => p.PaymentDate)
             .ToListAsync(ct);
 
-        // â”€â”€ Manual deposits (cash in) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Manual deposits (cash in) ──────────────────────────────────
         var deposits = await _db.CashDeposits
             .Where(d => d.DepositDate >= dateFrom && d.DepositDate <= dateTo
                      && !d.Isdeleted)
@@ -121,7 +119,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             .OrderBy(d => d.DepositDate)
             .ToListAsync(ct);
 
-        // â”€â”€ Build cash-in / cash-out from customer payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Build cash-in / cash-out from customer payments ────────────
         // Negative-amount payments (refunds from warranty claims / sales returns)
         // are reclassified as cash-out with their absolute value.
         var cashIn = new List<CashBookEntry>();
@@ -132,7 +130,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             var customerName = p.Customer != null
                 ? $"{p.Customer.FirstName} {p.Customer.LastName}".Trim()
                 : "Customer";
-            var invoiceRef = p.Invoice != null ? $" Â· {p.Invoice.InvoiceNumber}" : string.Empty;
+            var invoiceRef = p.Invoice != null ? $" · {p.Invoice.InvoiceNumber}" : string.Empty;
             var isRefund = p.Amount < 0;
 
             var entry = new CashBookEntry
@@ -210,7 +208,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         var totalCreditIn = cashIn.Where(e => e.IsCreditSale).Sum(e => e.Amount);
         var totalActualCashIn = totalIn - totalCreditIn;
 
-        // â”€â”€ Running balance starting from opening balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Running balance starting from opening balance ───────────────
         var allEntries = cashIn.Select(e => new { entry = e, flow = "IN" })
             .Concat(cashOut.Select(e => new { entry = e, flow = "OUT" }))
             .OrderBy(x => x.entry.Time)
@@ -240,7 +238,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
             };
         }).ToList();
 
-        // â”€â”€ Payment method breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Payment method breakdown ───────────────────────────────────
         var allForBreakdown = cashIn.Select(e => (e.PaymentMethod, In: e.Amount, Out: 0m))
             .Concat(cashOut.Select(e => (e.PaymentMethod, In: 0m, Out: e.Amount)));
 
@@ -279,7 +277,7 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
     /// <summary>
     /// Records a manual cash-in entry (owner deposit, misc income). Cash-out
-    /// entries go through POST /daily-expense — this is only the IN side.
+    /// entries go through POST /daily-expense � this is only the IN side.
     /// </summary>
     [HttpPost("deposits")]
     [Authorize(Roles = "Admin,Manager")]
@@ -346,7 +344,7 @@ public sealed class CashBookEntry
     public string? Category { get; set; }
     public string? Vendor { get; set; }
     /// <summary>
-    /// True for DUE / PART_PAY entries â€” cash has not yet been physically received.
+    /// True for DUE / PART_PAY entries — cash has not yet been physically received.
     /// Excluded from totalActualCashIn; included in totalCreditIn.
     /// </summary>
     public bool IsCreditSale { get; set; }

@@ -10,8 +10,6 @@ using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [HasPermission(Permissions.SalesView)]  // was previously unauthenticated — closed as part of the permission audit

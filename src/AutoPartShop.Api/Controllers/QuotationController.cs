@@ -13,8 +13,6 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/quotations")]
 [Route("api/v1/quotations")]
 [ApiController]
 [Produces("application/json")]

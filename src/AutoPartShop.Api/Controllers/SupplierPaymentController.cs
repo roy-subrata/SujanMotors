@@ -1,4 +1,4 @@
-ï»¿using AutoPartShop.Api.Authorization;
+using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using QuestPDF.Fluent;
@@ -13,12 +13,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/supplier-payments")]
 [Route("api/v1/supplier-payments")]
 [ApiController]
 // procurement.create (not .view) on the whole controller keeps supplier payments
-// restricted to roles that can spend â€” preserving the previous Admin/Manager-only posture
+// restricted to roles that can spend — preserving the previous Admin/Manager-only posture
 [HasPermission(Permissions.ProcurementCreate)]
 public class SupplierPaymentController : ControllerBase
 {
@@ -505,7 +503,7 @@ public class SupplierPaymentController : ControllerBase
                 {
                     await _repository.UpdateAsync(payment, cancellationToken);
 
-                    // Only apply RecordPayment once â€” skip if mark-processed already did it
+                    // Only apply RecordPayment once — skip if mark-processed already did it
                     if (payment.PaymentType == PaymentType.REGULAR && !alreadyProcessed && payment.PurchaseOrderId.HasValue)
                     {
                         var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);

@@ -34,6 +34,15 @@ public class SalesOrderLineConfiguration : IEntityTypeConfiguration<SalesOrderLi
 
         builder.HasIndex(l => l.ProductVariantId);
 
+        // Discount rule FK — nullable, tracks auto-applied discount for audit
+        builder.HasOne(l => l.DiscountRule)
+            .WithMany()
+            .HasForeignKey(l => l.DiscountRuleId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        builder.HasIndex(l => l.DiscountRuleId);
+
         // Unit relationship
         builder.HasOne(l => l.Unit)
             .WithMany()

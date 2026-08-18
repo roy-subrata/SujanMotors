@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CreditNoteDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -10,8 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using CreditNoteListQuery = AutoPartShop.Application.DTOs.CreditNoteDtos.CreditNoteListQuery;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]

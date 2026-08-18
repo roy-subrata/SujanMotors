@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
@@ -12,8 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/challans")]
 [Route("api/v1/challans")]
 [ApiController]
 [HasPermission(Permissions.SalesView)]
@@ -27,7 +25,7 @@ public class ChallanController(
     AutoPartDbContext _db,
     ILogger<ChallanController> _logger) : ControllerBase
 {
-    // â”€â”€ Generate challan for an order â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Generate challan for an order ────────────────────────────────────────
 
     /// <summary>
     /// Generates a Challan (delivery note) for a Confirmed or ReadyForDelivery order.
@@ -62,7 +60,7 @@ public class ChallanController(
                     .FirstOrDefaultAsync(s => s.Id == salesOrderId && !s.Isdeleted, ct);
                 if (freshSo is null || freshSo.Status is not (SalesOrderStatus.CONFIRMED or SalesOrderStatus.READY_FOR_DELIVERY))
                     throw new InvalidOperationException(
-                        $"Challan can no longer be generated â€” order status is '{(freshSo is null ? "deleted" : freshSo.Status.ToString())}'.");
+                        $"Challan can no longer be generated — order status is '{(freshSo is null ? "deleted" : freshSo.Status.ToString())}'.");
 
                 var challanNumber = await _codeGen.GenerateAsync("CHN", ct);
                 var deliveryAddress = req?.DeliveryAddress ?? so.DeliveryAddress;
@@ -125,7 +123,7 @@ public class ChallanController(
             ApiResponse<object>.Ok(MapToResponse(challan!)));
     }
 
-    // â”€â”€ Get challans for an order â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get challans for an order ─────────────────────────────────────────────
 
     [HttpGet("sales-order/{salesOrderId:guid}")]
     public async Task<IActionResult> GetBySalesOrder(Guid salesOrderId, CancellationToken ct)
@@ -134,7 +132,7 @@ public class ChallanController(
         return Ok(ApiResponse<object>.Ok(challans.Select(MapToResponse)));
     }
 
-    // â”€â”€ Get single challan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get single challan ────────────────────────────────────────────────────
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
@@ -147,7 +145,7 @@ public class ChallanController(
     }
 
     /// <summary>
-    /// Download the Delivery Challan as a PDF. Quantities only — no prices, per the document spec.
+    /// Download the Delivery Challan as a PDF. Quantities only � no prices, per the document spec.
     /// </summary>
     [HttpGet("{id:guid}/pdf")]
     [Produces("application/pdf")]
@@ -216,10 +214,10 @@ public class ChallanController(
         return File(pdfBytes, "application/pdf", $"challan-{challan.ChallanNumber}.pdf");
     }
 
-    // â”€â”€ Pending challans (delivery queue) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Pending challans (delivery queue) ─────────────────────────────────────
 
     /// <summary>
-    /// Returns all DRAFT and ISSUED challans â€” the delivery staff's dispatch queue.
+    /// Returns all DRAFT and ISSUED challans — the delivery staff's dispatch queue.
     /// </summary>
     [HttpGet("pending")]
     public async Task<IActionResult> GetPending(CancellationToken ct)
@@ -230,9 +228,9 @@ public class ChallanController(
         return Ok(ApiResponse<object>.Ok(all.Select(MapToResponse)));
     }
 
-    // â”€â”€ Issue challan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Issue challan ─────────────────────────────────────────────────────────
 
-    /// <summary>Issues the challan â€” it can now travel with the goods.</summary>
+    /// <summary>Issues the challan — it can now travel with the goods.</summary>
     [HttpPatch("{id:guid}/issue")]
     [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> Issue(Guid id, CancellationToken ct)
@@ -248,7 +246,7 @@ public class ChallanController(
         return Ok(ApiResponse<object>.Ok(MapToResponse(challan)));
     }
 
-    // â”€â”€ Deliver (with challan) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Deliver (with challan) ────────────────────────────────────────────────
 
     /// <summary>
     /// Marks challan as delivered and transitions the linked Sales Order to DELIVERED.
@@ -275,7 +273,7 @@ public class ChallanController(
                 challan.ModifiedBy = _currentUser.GetCurrentUsername();
                 await _challanRepo.UpdateAsync(challan, ct);
 
-                // Transition SO â†’ DELIVERED
+                // Transition SO → DELIVERED
                 var so = await _soRepo.GetByIdAsync(challan.SalesOrderId, ct);
                 if (so != null && so.Status != SalesOrderStatus.DELIVERED)
                 {
@@ -293,11 +291,11 @@ public class ChallanController(
                         invoice.ModifiedBy = _currentUser.GetCurrentUsername();
 
                         // Customer balance must be updated in the same save as the invoice status
-                        // to guarantee consistency â€” never issue without recording the liability.
+                        // to guarantee consistency — never issue without recording the liability.
                         var customer = await _customerRepo.GetByIdAsync(so.CustomerId, ct);
                         if (customer is null)
                         {
-                            _logger.LogWarning("Customer {Id} not found while issuing invoice on challan delivery â€” balance not updated.", so.CustomerId);
+                            _logger.LogWarning("Customer {Id} not found while issuing invoice on challan delivery — balance not updated.", so.CustomerId);
                         }
                         else
                         {
@@ -319,7 +317,7 @@ public class ChallanController(
         return Ok(ApiResponse<object>.Ok(MapToResponse(challan)));
     }
 
-    // â”€â”€ Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Mapping ───────────────────────────────────────────────────────────────
 
     private static object MapToResponse(Challan c) => new
     {

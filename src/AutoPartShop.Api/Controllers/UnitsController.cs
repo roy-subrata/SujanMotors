@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.UnitDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Api.Authorization;
@@ -10,7 +10,6 @@ namespace AutoPartShop.Api.Controllers;
 /// <summary>
 /// Controller for managing units (measurement units like kg, liters, pieces, etc.)
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -356,7 +355,7 @@ public class UnitsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Unit is still referenced by products/stock/conversions — surface a clean 409.
+            // Unit is still referenced by products/stock/conversions � surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)

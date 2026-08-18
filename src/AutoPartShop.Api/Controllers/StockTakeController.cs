@@ -15,7 +15,6 @@ namespace AutoPartShop.Api.Controllers;
 /// variances, then approve — which applies every variance as a stock adjustment (level + lots)
 /// in one transaction referencing the stock take number.
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]

@@ -16,7 +16,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// transaction; the outstanding balance is auto-deducted (and settled) by the next
 /// payroll run.
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]

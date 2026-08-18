@@ -11,7 +11,6 @@ namespace AutoPartsShop.Api.Controllers;
 /// returned in the create response.  Use these only for UI display hints
 /// (e.g., showing "next SO number" in a form header before the user submits).
 /// </summary>
-[Route("api/code-generate")]
 [Route("api/v1/code-generate")]
 [ApiController]
 [Authorize]

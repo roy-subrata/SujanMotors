@@ -16,7 +16,6 @@ namespace AutoPartShop.Api.Controllers.Reports;
 /// AddReportProcsBatch3 migration header for why).
 /// </summary>
 [ApiController]
-[Route("api/reports/financial")]
 [Route("api/v1/reports/financial")]
 [HasPermission(Permissions.ReportsView)]
 public class FinancialReportsController(

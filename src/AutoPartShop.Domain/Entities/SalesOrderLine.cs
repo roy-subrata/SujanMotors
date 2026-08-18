@@ -18,12 +18,14 @@ public class SalesOrderLine : AuditableEntity
     public decimal TotalPrice => (Quantity * UnitPrice) - (Quantity * Discount);
     public string Description { get; private set; } = string.Empty;
     public int LineNumber { get; private set; }
+    public Guid? DiscountRuleId { get; set; }  // FK to Discount entity that was auto-applied (null = manual)
 
     // Navigation properties
     public SalesOrder? SalesOrder { get; set; }
     public Product? Part { get; set; }
     public ProductVariant? ProductVariant { get; set; }
     public Unit? Unit { get; set; }
+    public Discount? DiscountRule { get; set; }
 
     // Computed properties
     public bool IsFullyShipped => ShippedQuantity >= Quantity;

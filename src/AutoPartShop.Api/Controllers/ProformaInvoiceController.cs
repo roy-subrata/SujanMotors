@@ -9,8 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/proforma-invoices")]
 [Route("api/v1/proforma-invoices")]
 [ApiController]
 [Produces("application/json")]

@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [HasPermission(Permissions.InventoryView)]
@@ -281,7 +279,7 @@ public class StockLotMovementController : ControllerBase
     /// Maps a list without re-entering the DbContext per row.
     ///
     /// The previous form was Task.WhenAll(movements.Select(MapResponse)), which fired one lot
-    /// lookup per movement *concurrently* on the scoped DbContext — EF rejects that with
+    /// lookup per movement *concurrently* on the scoped DbContext � EF rejects that with
     /// "A second operation was started on this context instance", so both list endpoints 500'd on
     /// any non-empty result. Resolving the distinct lots once also removes the N+1.
     /// </summary>

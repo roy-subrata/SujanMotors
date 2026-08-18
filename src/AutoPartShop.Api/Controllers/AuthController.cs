@@ -25,7 +25,6 @@ namespace AutoPartShop.Api.Controllers;
 /// staff accounts is not throttled.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 public class AuthController : ControllerBase
 {

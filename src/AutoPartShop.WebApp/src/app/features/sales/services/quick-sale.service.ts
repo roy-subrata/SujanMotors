@@ -53,6 +53,7 @@ export interface QuickSaleRequest {
   discountAmount: number;
   discountType?: string;    // 'NONE' | 'PERCENTAGE' | 'FIXED'
   discountReason?: string;  // required for audit trail when discount > 0
+  promoCode?: string;       // promo code entered by cashier — resolved to a cart-level discount rule
   vatAmount: number;
   vatPercentage: number;
   grandTotal: number;
@@ -123,6 +124,7 @@ export interface QuickSaleDraft {
   technicianName?: string;
   customerVehicleId?: string | null;
   manualDiscountAmount?: number;
+  promoCode?: string;
   /** Grand total at the moment the sale was held/drafted — display only. */
   total?: number;
   notes?: string;

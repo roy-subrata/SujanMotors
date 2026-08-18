@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [Authorize]
 public class ApplicationSettingsController : ControllerBase

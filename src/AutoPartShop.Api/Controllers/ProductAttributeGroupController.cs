@@ -1,12 +1,10 @@
-﻿using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Entities;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/attribute-groups")]
 [Route("api/v1/attribute-groups")]
 [ApiController]
 [Produces("application/json")]
@@ -22,7 +20,7 @@ public class ProductAttributeGroupController : ControllerBase
         _logger = logger;
     }
 
-    // â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Groups ────────────────────────────────────────────────────────────────
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -138,7 +136,7 @@ public class ProductAttributeGroupController : ControllerBase
         return NoContent();
     }
 
-    // â”€â”€ Attributes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Attributes ────────────────────────────────────────────────────────────
 
     [HttpPost("{groupId:guid}/attributes")]
     [HasPermission(Permissions.InventoryEdit)]
@@ -200,7 +198,7 @@ public class ProductAttributeGroupController : ControllerBase
         return NoContent();
     }
 
-    // â”€â”€ Options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Options ───────────────────────────────────────────────────────────────
 
     [HttpPost("{groupId:guid}/attributes/{attrId:guid}/options")]
     [HasPermission(Permissions.InventoryEdit)]
@@ -258,7 +256,7 @@ public class ProductAttributeGroupController : ControllerBase
         return NoContent();
     }
 
-    // â”€â”€ Mappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Mappers ───────────────────────────────────────────────────────────────
 
     private static object MapGroup(ProductAttributeGroup g) => new
     {

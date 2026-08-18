@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Api.Authorization;
@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/payment-provider")]
 [Route("api/v1/payment-provider")]
 [ApiController]
 [Produces("application/json")]

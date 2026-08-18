@@ -6,41 +6,40 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 /// <summary>
-/// Controller for customer ledger operations.
-/// Provides a unified view of all customer transactions (invoices, payments, refunds).
-/// Mirrors SupplierLedgerController's shape from the customer side of the relationship.
+/// Controller for technician ledger operations.
+/// Provides a unified view of all sales activity and payments for a technician.
 /// </summary>
-[Route("api/v1/customer-ledger")]
+[Route("api/v1/technician-ledger")]
 [ApiController]
 [HasPermission(Permissions.ReportsView)]
 [Produces("application/json")]
-public class CustomerLedgerController : ControllerBase
+public class TechnicianLedgerController : ControllerBase
 {
-    private readonly ICustomerLedgerService _ledgerService;
-    private readonly ILogger<CustomerLedgerController> _logger;
+    private readonly ITechnicianLedgerService _ledgerService;
+    private readonly ILogger<TechnicianLedgerController> _logger;
 
-    public CustomerLedgerController(
-        ICustomerLedgerService ledgerService,
-        ILogger<CustomerLedgerController> logger)
+    public TechnicianLedgerController(
+        ITechnicianLedgerService ledgerService,
+        ILogger<TechnicianLedgerController> logger)
     {
         _ledgerService = ledgerService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get complete ledger summary for a customer including calculated balance and recent entries
+    /// Get complete ledger summary for a technician including calculated balance and recent entries
     /// </summary>
-    [HttpGet("{customerId:guid}/summary")]
-    [ProducesResponseType(typeof(CustomerLedgerSummaryDto), StatusCodes.Status200OK)]
+    [HttpGet("{technicianId:guid}/summary")]
+    [ProducesResponseType(typeof(TechnicianLedgerSummaryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetLedgerSummary(
-        Guid customerId,
+        Guid technicianId,
         [FromQuery] int entryLimit = 20,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var summary = await _ledgerService.GetLedgerSummaryAsync(customerId, entryLimit, cancellationToken);
+            var summary = await _ledgerService.GetLedgerSummaryAsync(technicianId, entryLimit, cancellationToken);
             return Ok(summary);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
@@ -49,7 +48,7 @@ public class CustomerLedgerController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting ledger summary for customer: {CustomerId}", customerId);
+            _logger.LogError(ex, "Error getting ledger summary for technician: {TechnicianId}", technicianId);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving the ledger summary" });
         }
@@ -58,58 +57,56 @@ public class CustomerLedgerController : ControllerBase
     /// <summary>
     /// Get paginated ledger entries with optional filtering
     /// </summary>
-    [HttpPost("{customerId:guid}/entries")]
-    [ProducesResponseType(typeof(PagedCustomerLedgerResult), StatusCodes.Status200OK)]
+    [HttpPost("{technicianId:guid}/entries")]
+    [ProducesResponseType(typeof(PagedTechnicianLedgerResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLedgerEntries(
-        Guid customerId,
-        [FromBody] CustomerLedgerQueryDto query,
+        Guid technicianId,
+        [FromBody] TechnicianLedgerQueryDto query,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            query.CustomerId = customerId;
+            query.TechnicianId = technicianId;
             var result = await _ledgerService.GetLedgerEntriesAsync(query, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting ledger entries for customer: {CustomerId}", customerId);
+            _logger.LogError(ex, "Error getting ledger entries for technician: {TechnicianId}", technicianId);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving ledger entries" });
         }
     }
 
     /// <summary>
-    /// Get current calculated balance for a customer
+    /// Get current calculated balance for a technician
     /// </summary>
-    [HttpGet("{customerId:guid}/balance")]
+    [HttpGet("{technicianId:guid}/balance")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCurrentBalance(
-        Guid customerId,
+        Guid technicianId,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var balance = await _ledgerService.CalculateCurrentBalanceAsync(customerId, cancellationToken);
-            var totalInvoiced = await _ledgerService.GetTotalInvoicedAsync(customerId, cancellationToken);
-            var totalPayments = await _ledgerService.GetTotalPaymentsAsync(customerId, cancellationToken);
-            var totalRefunds = await _ledgerService.GetTotalRefundsAsync(customerId, cancellationToken);
-            var advanceCredit = await _ledgerService.GetAvailableAdvanceCreditAsync(customerId, cancellationToken);
+            var balance = await _ledgerService.CalculateCurrentBalanceAsync(technicianId, cancellationToken);
+            var totalSales = await _ledgerService.GetTotalSalesAsync(technicianId, cancellationToken);
+            var totalPayments = await _ledgerService.GetTotalPaymentsAsync(technicianId, cancellationToken);
+            var totalReturns = await _ledgerService.GetTotalReturnsAsync(technicianId, cancellationToken);
 
             return Ok(new
             {
-                customerId,
+                technicianId,
                 currentBalance = balance,
-                totalInvoiced,
+                totalSales,
                 totalPayments,
-                totalRefunds,
-                availableAdvanceCredit = advanceCredit,
+                totalReturns,
                 calculatedAt = DateTime.UtcNow
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating balance for customer: {CustomerId}", customerId);
+            _logger.LogError(ex, "Error calculating balance for technician: {TechnicianId}", technicianId);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while calculating the balance" });
         }
@@ -118,22 +115,22 @@ public class CustomerLedgerController : ControllerBase
     /// <summary>
     /// Get ledger entries within a date range
     /// </summary>
-    [HttpGet("{customerId:guid}/entries")]
-    [ProducesResponseType(typeof(List<CustomerLedgerEntryDto>), StatusCodes.Status200OK)]
+    [HttpGet("{technicianId:guid}/entries")]
+    [ProducesResponseType(typeof(List<TechnicianLedgerEntryDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLedgerEntriesByDateRange(
-        Guid customerId,
+        Guid technicianId,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var entries = await _ledgerService.GetLedgerEntriesAsync(customerId, fromDate, toDate, cancellationToken);
+            var entries = await _ledgerService.GetLedgerEntriesAsync(technicianId, fromDate, toDate, cancellationToken);
             return Ok(entries);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting ledger entries for customer: {CustomerId}", customerId);
+            _logger.LogError(ex, "Error getting ledger entries for technician: {TechnicianId}", technicianId);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An error occurred while retrieving ledger entries" });
         }
