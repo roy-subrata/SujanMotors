@@ -67,15 +67,15 @@ public class SuppliersController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
             if (query.PageNumber < 0)
             {
-                return BadRequest($"Page number can not be {query.PageNumber}");
+                return BadRequest(new { message = $"Page number can not be {query.PageNumber}" });
             }
             if (query.PageSize < 0)
             {
-                return BadRequest($"Page size can not be {query.PageSize}");
+                return BadRequest(new { message = $"Page size can not be {query.PageSize}" });
             }
 
             var (response, total) = await _supplierReadRepository.FindAllAsynce(query, cancellationToken);

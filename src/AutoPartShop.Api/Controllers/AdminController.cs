@@ -167,22 +167,30 @@ public class AdminController : ControllerBase
                 });
             }
 
-            // Assign roles
+            // Assign roles. An unrecognised name used to be dropped in silence, so the admin was
+            // told the user was created while the account ended up with no roles and no access.
             if (request.Roles != null && request.Roles.Any())
             {
-                var validRoles = new List<string>();
+                var unknownRoles = new List<string>();
                 foreach (var role in request.Roles)
                 {
-                    if (await _roleManager.RoleExistsAsync(role))
-                    {
-                        validRoles.Add(role);
-                    }
+                    if (!await _roleManager.RoleExistsAsync(role))
+                        unknownRoles.Add(role);
                 }
 
-                if (validRoles.Any())
+                if (unknownRoles.Count > 0)
                 {
-                    await _userManager.AddToRolesAsync(user, validRoles);
+                    // The account itself was already created, so report what it is missing rather
+                    // than implying nothing happened.
+                    return BadRequest(new
+                    {
+                        message = $"User created, but these roles do not exist and were not assigned: {string.Join(", ", unknownRoles)}",
+                        userId = user.Id,
+                        unknownRoles
+                    });
                 }
+
+                await _userManager.AddToRolesAsync(user, request.Roles);
             }
 
             return Ok(new
@@ -505,19 +513,17 @@ public class AdminController : ControllerBase
 
             if (rolesToAdd.Any())
             {
-                var validRoles = new List<string>();
+                var unknownRoles = new List<string>();
                 foreach (var role in rolesToAdd)
                 {
-                    if (await _roleManager.RoleExistsAsync(role))
-                    {
-                        validRoles.Add(role);
-                    }
+                    if (!await _roleManager.RoleExistsAsync(role))
+                        unknownRoles.Add(role);
                 }
 
-                if (validRoles.Any())
-                {
-                    await _userManager.AddToRolesAsync(user, validRoles);
-                }
+                if (unknownRoles.Count > 0)
+                    return BadRequest(new { message = $"These roles do not exist: {string.Join(", ", unknownRoles)}" });
+
+                await _userManager.AddToRolesAsync(user, rolesToAdd);
             }
 
             return Ok(new { message = "Roles assigned successfully" });

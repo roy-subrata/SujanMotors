@@ -75,7 +75,7 @@ public class EmployeesController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
 
             var (employees, totalCount) = await _employeeReadRepository.FindAllQuery(query, cancellationToken);

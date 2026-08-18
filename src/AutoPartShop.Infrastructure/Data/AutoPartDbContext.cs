@@ -240,10 +240,20 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
 
             var entityName = entry.Entity.GetType().Name;
             var entityId = GetEntityId(entry);
+
+            // Almost nothing in this system hard-deletes; a delete flips Isdeleted, which EF sees
+            // as a plain Modified entry. Auditing that as UPDATE left Action=DELETE matching
+            // nothing, so "who deleted this?" was unanswerable for every soft-deleted entity.
+            var isSoftDelete = entry.State == EntityState.Modified
+                && entry.Entity is AuditableEntity
+                && entry.Properties.Any(pr => pr.IsModified
+                    && pr.Metadata.Name == nameof(AuditableEntity.Isdeleted)
+                    && Equals(pr.CurrentValue, true));
+
             var action = entry.State switch
             {
                 EntityState.Added => "INSERT",
-                EntityState.Modified => "UPDATE",
+                EntityState.Modified => isSoftDelete ? "DELETE" : "UPDATE",
                 EntityState.Deleted => "DELETE",
                 _ => "UNKNOWN"
             };
@@ -291,11 +301,16 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
             }
             else if (entry.State == EntityState.Modified)
             {
-                // For UPDATE, log only changed properties
+                // For UPDATE, log only changed properties. Repositories that call DbSet.Update()
+                // mark every property Modified regardless of whether the value moved, which buried
+                // the real change under rows reading CreatedBy 'admin' -> 'admin'.
                 foreach (var property in entry.Properties.Where(p => p.IsModified))
                 {
                     var oldValue = entry.OriginalValues[property.Metadata.Name];
                     var newValue = entry.CurrentValues[property.Metadata.Name];
+
+                    if (Equals(oldValue, newValue))
+                        continue;
 
                     auditLogs.Add(new AuditLog
                     {

@@ -127,7 +127,7 @@ public class ExchangeRatesController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { message = ex.Message });
         }
     }
 
@@ -144,11 +144,24 @@ public class ExchangeRatesController : ControllerBase
         // Validate currencies exist
         var fromCurrency = await _currencyRepository.GetByIdAsync(request.FromCurrencyId);
         if (fromCurrency == null)
-            return BadRequest($"From currency with ID {request.FromCurrencyId} not found");
+            return BadRequest(new { message = $"From currency with ID {request.FromCurrencyId} not found" });
 
         var toCurrency = await _currencyRepository.GetByIdAsync(request.ToCurrencyId);
         if (toCurrency == null)
-            return BadRequest($"To currency with ID {request.ToCurrencyId} not found");
+            return BadRequest(new { message = $"To currency with ID {request.ToCurrencyId} not found" });
+
+        // Two active rates for the same pair and date left conversion picking one arbitrarily,
+        // silently changing the amount every caller gets. The repository already knew how to
+        // answer this; nothing was asking it.
+        if (await _exchangeRateRepository.ExistsForDateAsync(
+                request.FromCurrencyId, request.ToCurrencyId, request.EffectiveDate))
+        {
+            return Conflict(new
+            {
+                message = $"A rate for {fromCurrency.Code} to {toCurrency.Code} effective " +
+                          $"{request.EffectiveDate:yyyy-MM-dd} already exists. Update it instead of adding a second one."
+            });
+        }
 
         var exchangeRate = ExchangeRate.Create(
             request.FromCurrencyId,

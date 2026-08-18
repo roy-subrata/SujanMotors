@@ -62,12 +62,12 @@ public class CustomerPaymentController : ControllerBase
     {
         if (query == null)
         {
-            return BadRequest("Query parameters are required.");
+            return BadRequest(new { message = "Query parameters are required." });
         }
 
         if (query.PageNumber <= 0 || query.PageSize <= 0)
         {
-            return BadRequest("Invalid pagination parameters.");
+            return BadRequest(new { message = "Invalid pagination parameters." });
         }
 
         var (payments, totalCount) = await _customerPaymentReadRepository.FindAllAsync(query, cancellation);

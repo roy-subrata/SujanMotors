@@ -55,7 +55,7 @@ public class CurrenciesController : ControllerBase
     {
         var currency = await _currencyRepository.GetBaseCurrencyAsync();
         if (currency == null)
-            return NotFound("No base currency configured");
+            return NotFound(new { message = "No base currency configured" });
 
         return Ok(MapToResponse(currency));
     }
@@ -68,7 +68,7 @@ public class CurrenciesController : ControllerBase
     {
         var currency = await _currencyRepository.GetByIdAsync(id);
         if (currency == null)
-            return NotFound($"Currency with ID {id} not found");
+            return NotFound(new { message = $"Currency with ID {id} not found" });
 
         return Ok(MapToResponse(currency));
     }
@@ -81,7 +81,7 @@ public class CurrenciesController : ControllerBase
     {
         var currency = await _currencyRepository.GetByCodeAsync(code);
         if (currency == null)
-            return NotFound($"Currency with code {code} not found");
+            return NotFound(new { message = $"Currency with code {code} not found" });
 
         return Ok(MapToResponse(currency));
     }
@@ -98,7 +98,7 @@ public class CurrenciesController : ControllerBase
 
         // Check if currency code already exists
         if (await _currencyRepository.ExistsByCodeAsync(request.Code))
-            return Conflict($"Currency with code {request.Code} already exists");
+            return Conflict(new { message = $"Currency with code {request.Code} already exists" });
 
         var currency = Currency.Create(
             request.Code,
@@ -126,7 +126,7 @@ public class CurrenciesController : ControllerBase
 
         var currency = await _currencyRepository.GetByIdAsync(id);
         if (currency == null)
-            return NotFound($"Currency with ID {id} not found");
+            return NotFound(new { message = $"Currency with ID {id} not found" });
 
         currency.Update(
             request.Name,
@@ -149,7 +149,7 @@ public class CurrenciesController : ControllerBase
     {
         var currency = await _currencyRepository.GetByIdAsync(id);
         if (currency == null)
-            return NotFound($"Currency with ID {id} not found");
+            return NotFound(new { message = $"Currency with ID {id} not found" });
 
         // Remove base currency status from current base
         var currentBase = await _currencyRepository.GetBaseCurrencyAsync();
@@ -176,7 +176,7 @@ public class CurrenciesController : ControllerBase
     {
         var currency = await _currencyRepository.GetByIdAsync(id);
         if (currency == null)
-            return NotFound($"Currency with ID {id} not found");
+            return NotFound(new { message = $"Currency with ID {id} not found" });
 
         try
         {
@@ -186,7 +186,7 @@ public class CurrenciesController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { message = ex.Message });
         }
     }
 

@@ -49,7 +49,7 @@ public class SalaryAdvancesController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
 
             var (advances, totalCount) = await _advanceReadRepository.FindAllQuery(query, cancellationToken);

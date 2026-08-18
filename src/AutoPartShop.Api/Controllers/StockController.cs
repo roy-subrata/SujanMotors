@@ -175,13 +175,13 @@ public class StockController : ControllerBase
     public async Task<IActionResult> GetStockLevelsList([FromBody] StockLevelQuery? query, CancellationToken cancellationToken = default)
     {
         if (query is null)
-            return BadRequest("Request body is required.");
+            return BadRequest(new { message = "Request body is required." });
 
         if (query.PageNumber < 1)
-            return BadRequest("PageNumber must be greater than 0.");
+            return BadRequest(new { message = "PageNumber must be greater than 0." });
 
         if (query.PageSize < 1)
-            return BadRequest("PageSize must be greater than 0.");
+            return BadRequest(new { message = "PageSize must be greater than 0." });
 
         try
         {
@@ -420,13 +420,13 @@ public class StockController : ControllerBase
     public async Task<IActionResult> GetMovementsList(StockMovementQuery query, CancellationToken cancellationToken = default)
     {
         if (query is null)
-            return BadRequest("Request body is required.");
+            return BadRequest(new { message = "Request body is required." });
 
         if (query.PageNumber < 1)
-            return BadRequest("PageNumber must be greater than 0.");
+            return BadRequest(new { message = "PageNumber must be greater than 0." });
 
         if (query.PageSize < 1)
-            return BadRequest("PageSize must be greater than 0.");
+            return BadRequest(new { message = "PageSize must be greater than 0." });
 
         try
         {
