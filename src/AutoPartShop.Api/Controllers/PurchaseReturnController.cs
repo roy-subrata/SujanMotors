@@ -870,10 +870,10 @@ public class PurchaseReturnController : ControllerBase
                     CostPrice = l.CostPrice,
                     ReceivingDate = l.ReceivingDate,
                     ExpiryDate = l.ExpiryDate,
-                    IsFromSameSupplier = supplierId.HasValue && l.SupplierId == supplierId.Value,
+                    IsFromSameSupplier = supplierId.HasValue ? l.SupplierId == supplierId.Value : null,
                     Status = NormalizeBucket(l.Status)
                 })
-                .OrderByDescending(l => l.IsFromSameSupplier)  // Same supplier lots first
+                .OrderByDescending(l => l.IsFromSameSupplier == true)  // Same supplier lots first
                 .ThenBy(l => l.ReceivingDate)  // Then FIFO
                 .ToList();
 

@@ -35,7 +35,8 @@ export interface AvailableLotForReturn {
   costPrice: number;
   receivingDate: string;
   expiryDate?: string;
-  isFromSameSupplier: boolean;
+  /** null when the request supplied no supplier to compare against. */
+  isFromSameSupplier: boolean | null;
   status: StockLotStatus; // which inventory bucket the lot belongs to
 }
 

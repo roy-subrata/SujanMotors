@@ -73,6 +73,12 @@ public class AvailableLotForReturnDto
     public decimal CostPrice { get; set; }
     public DateTime ReceivingDate { get; set; }
     public DateTime? ExpiryDate { get; set; }
-    public bool IsFromSameSupplier { get; set; }  // True if lot is from the return's supplier
+    /// <summary>
+    /// True when the lot came from the supplier being returned to, false when it came from a
+    /// different one, and null when the caller supplied no supplier to compare against.
+    /// It used to be a plain bool, so "you did not tell me" was indistinguishable from
+    /// "different supplier" and the returns UI flagged every lot as foreign.
+    /// </summary>
+    public bool? IsFromSameSupplier { get; set; }
     public string Status { get; set; } = string.Empty;  // AVAILABLE, DAMAGED, QUARANTINE - which inventory bucket the lot belongs to
 }

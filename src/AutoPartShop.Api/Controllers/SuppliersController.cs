@@ -153,7 +153,20 @@ public class SuppliersController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.Name))
                 return BadRequest(new { message = "Name is required" });
 
-            var supplierCode = await _codeGenerateService.GenerateAsync("SUP", cancellationToken);
+            // CreateSupplierRequest.Code was accepted and then thrown away, so a caller migrating
+            // records with their own codes silently got SUP001, SUP002... Honour an explicit code
+            // when it is free, and fall back to the generated sequence when none is given.
+            string supplierCode;
+            if (!string.IsNullOrWhiteSpace(request.Code))
+            {
+                supplierCode = request.Code.Trim().ToUpper();
+                if (await _supplierRepository.CodeExistsAsync(supplierCode, cancellationToken: cancellationToken))
+                    return Conflict(new { message = $"Supplier code '{supplierCode}' is already in use" });
+            }
+            else
+            {
+                supplierCode = await _codeGenerateService.GenerateAsync("SUP", cancellationToken);
+            }
 
             var supplier = Supplier.Create(request.Name, supplierCode, request.ContactPerson, request.Email, request.Phone,
                 request.Address, request.City, request.State, request.Country, request.PostalCode,
