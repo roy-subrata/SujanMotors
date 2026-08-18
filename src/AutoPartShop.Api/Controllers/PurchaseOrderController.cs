@@ -1268,7 +1268,8 @@ public class PurchaseOrderController : ControllerBase
             DiscountType = order.DiscountType,
             GrandTotal = order.TotalAmount,
             AmountPaid = order.PaidAmount,
-            OutstandingAmount = order.TotalAmount - order.PaidAmount,
+            OutstandingAmount = order.OutstandingAmount,
+            CreditAppliedAmount = order.CreditAppliedAmount,
             IsOverdue = DateTime.UtcNow > order.ExpectedDeliveryDate && order.Status != PurchaseOrderStatus.DELIVERED && order.Status != PurchaseOrderStatus.CANCELLED,
             Notes = order.Notes,
             Lines = order.LineItems.Select(l => new PurchaseOrderLineResponse

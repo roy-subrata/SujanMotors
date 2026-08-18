@@ -25,6 +25,14 @@ public class PurchaseOrder : AuditableEntity
     public PurchaseOrderPaymentStatus PaymentStatus { get; private set; } = PurchaseOrderPaymentStatus.PENDING;
     public decimal PaidAmount { get; private set; } = 0;
     public decimal CreditAppliedAmount { get; private set; } = 0;  // Total credit notes applied to this PO
+
+    /// <summary>
+    /// What is still payable: the order total less cash paid AND credit notes applied. A credit
+    /// note settles part of the order just as a payment does, so leaving it out reported the full
+    /// balance as still owing after a note had been consumed — the note was recorded and delivered
+    /// nothing.
+    /// </summary>
+    public decimal OutstandingAmount => TotalAmount - PaidAmount - CreditAppliedAmount;
     public string Notes { get; private set; } = string.Empty;
     public string ApprovedBy { get; private set; } = string.Empty;
     public DateTime? ApprovedDate { get; private set; }
@@ -155,11 +163,15 @@ public class PurchaseOrder : AuditableEntity
         if (amount <= 0)
             throw new ArgumentException("Payment amount must be greater than 0", nameof(amount));
 
-        if (amount > TotalAmount - PaidAmount)
+        // Credits already applied settle part of the order, so they reduce what is still payable.
+        // Ignoring them here let a PO be paid past its true balance once a credit note was applied.
+        if (amount > OutstandingAmount)
             throw new InvalidOperationException("Payment exceeds outstanding amount");
 
         PaidAmount += amount;
-        PaymentStatus = PaidAmount >= TotalAmount ? PurchaseOrderPaymentStatus.PAID : PurchaseOrderPaymentStatus.PARTIAL;
+        PaymentStatus = PaidAmount + CreditAppliedAmount >= TotalAmount
+            ? PurchaseOrderPaymentStatus.PAID
+            : PurchaseOrderPaymentStatus.PARTIAL;
     }
 
     /// <summary>
@@ -170,8 +182,7 @@ public class PurchaseOrder : AuditableEntity
         if (amount <= 0)
             throw new ArgumentException("Credit amount must be greater than 0", nameof(amount));
 
-        var outstandingAmount = TotalAmount - PaidAmount;
-        if (amount > outstandingAmount)
+        if (amount > OutstandingAmount)
             throw new InvalidOperationException("Credit amount exceeds outstanding amount");
 
         CreditAppliedAmount += amount;
