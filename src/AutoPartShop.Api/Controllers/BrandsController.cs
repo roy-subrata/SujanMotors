@@ -5,6 +5,7 @@ using AutoPartShop.Application.Brands.Dtos;
 using AutoPartShop.Application.DTOs.BrandDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
+using AutoPartShop.Infrastructure.Data;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,19 +24,22 @@ public class BrandsController : ControllerBase
     private readonly ILogger<BrandsController> _logger;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly AutoPartDbContext _dbContext;
 
     public BrandsController(
         IBrandRepository brandRepository,
         IBrandReadRepository brandReadRepository,
         ILogger<BrandsController> logger,
         ICodeGenerateService codeGenerateService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        AutoPartDbContext dbContext)
     {
         _brandRepository = brandRepository;
         _brandReadRepository = brandReadRepository;
         _logger = logger;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
+        _dbContext = dbContext;
     }
 
     // â”€â”€ List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -99,6 +103,11 @@ public class BrandsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest(ApiError.Validation("Name is required", instance: Request.Path));
 
+        var existingBrand = await _dbContext.Brands
+            .FirstOrDefaultAsync(b => b.Name.ToLower() == request.Name.Trim().ToLower() && !b.Isdeleted, cancellationToken);
+        if (existingBrand is not null)
+            return Conflict(ApiError.Conflict($"A brand named '{request.Name.Trim()}' already exists", instance: Request.Path));
+
         var brand = Brand.Create(
             request.Name.Trim(),
             request.Description ?? string.Empty,
@@ -135,6 +144,11 @@ public class BrandsController : ControllerBase
         var brand = await _brandRepository.GetByIdAsync(id, cancellationToken);
         if (brand is null)
             return NotFound(ApiError.NotFound($"Brand '{id}' not found", Request.Path));
+
+        var duplicateBrand = await _dbContext.Brands
+            .FirstOrDefaultAsync(b => b.Id != id && b.Name.ToLower() == request.Name.Trim().ToLower() && !b.Isdeleted, cancellationToken);
+        if (duplicateBrand is not null)
+            return Conflict(ApiError.Conflict($"A brand named '{request.Name.Trim()}' already exists", instance: Request.Path));
 
         brand.Update(
             request.Name.Trim(),

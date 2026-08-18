@@ -62,6 +62,9 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     public async Task<FinancialSummaryResponse> GetFinancialSummaryAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
+        if (request.StartDate > request.EndDate)
+            throw new ArgumentException("fromDate must not be after toDate");
+
         // Shop-local calendar range → UTC instant window. All queries use >= startDate && < endDate.
         var (startDate, endDate) = _shopClock.DayWindowUtc(request.StartDate, request.EndDate);
 

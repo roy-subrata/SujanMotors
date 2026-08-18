@@ -79,15 +79,44 @@ public class StockLevel : AuditableEntity
         if (quantity <= 0)
             throw new ArgumentException("Quantity must be greater than 0", nameof(quantity));
 
-        if (quantity > QuantityAvailable)
-            throw new InvalidOperationException("Insufficient stock available");
+        if (quantityInBaseUnit > 0)
+        {
+            // When a separate base-unit quantity is provided, check base-unit availability.
+            if (quantityInBaseUnit > QuantityAvailableInBaseUnit)
+                throw new InvalidOperationException("Insufficient stock available");
 
-        var baseUnitToRemove = quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity;
-        if (baseUnitToRemove > QuantityOnHandInBaseUnit)
-            throw new InvalidOperationException("Insufficient base unit stock available");
+            QuantityOnHand -= quantity;
+            QuantityOnHandInBaseUnit -= quantityInBaseUnit;
+        }
+        else
+        {
+            // No base-unit quantity supplied — caller operates in display units only.
+            if (quantity > QuantityAvailable)
+                throw new InvalidOperationException("Insufficient stock available");
 
-        QuantityOnHand -= quantity;
-        QuantityOnHandInBaseUnit -= baseUnitToRemove;
+            QuantityOnHand -= quantity;
+            // Do NOT touch QuantityOnHandInBaseUnit — the caller did not provide
+            // the conversion factor, so we cannot safely deduct base units.
+        }
+    }
+
+    /// <summary>
+    /// Re-derives the display-unit quantity from the authoritative base-unit quantity.
+    /// Every sellability decision (Stock/check, quick sale, FIFO consumption) reads the base-unit
+    /// columns, so once the two diverge the display column is the wrong one — but nothing in the
+    /// normal write paths can bring it back, because RemoveStock only ever subtracts. This is the
+    /// recovery hatch for levels that drifted before the divergence was fixed.
+    /// </summary>
+    /// <param name="conversionFactor">Base units per display unit (1 when no conversion applies).</param>
+    public void ReconcileDisplayQuantities(decimal conversionFactor)
+    {
+        if (conversionFactor <= 0)
+            throw new ArgumentException("Conversion factor must be greater than 0", nameof(conversionFactor));
+
+        QuantityOnHand = (int)Math.Round(QuantityOnHandInBaseUnit / conversionFactor, MidpointRounding.AwayFromZero);
+        QuantityReserved = (int)Math.Round(QuantityReservedInBaseUnit / conversionFactor, MidpointRounding.AwayFromZero);
+        QuantityDamaged = (int)Math.Round(QuantityDamagedInBaseUnit / conversionFactor, MidpointRounding.AwayFromZero);
+        QuantityQuarantine = (int)Math.Round(QuantityQuarantineInBaseUnit / conversionFactor, MidpointRounding.AwayFromZero);
     }
 
     // --- Damaged stock bucket (not sellable) ---

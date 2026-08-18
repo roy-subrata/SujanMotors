@@ -372,6 +372,17 @@ public class ProductsController : ControllerBase
         if (!await _categoryRepository.ExistsAsync(request.CategoryId, cancellationToken))
             return BadRequest(ApiError.Validation("Category does not exist", instance: Request.Path));
 
+        // Duplicate part-number check (excluding soft-deleted)
+        if (!string.IsNullOrWhiteSpace(request.PartNumber))
+        {
+            var existingByPn = await _dbContext.Parts
+                .FirstOrDefaultAsync(p => p.PartNumber != null
+                                       && p.PartNumber.Value == request.PartNumber.Trim()
+                                       && !p.Isdeleted, cancellationToken);
+            if (existingByPn is not null)
+                return Conflict(ApiError.Conflict($"A product with part number '{request.PartNumber}' already exists", instance: Request.Path));
+        }
+
         var sku = await _codeGenerateService.GenerateAsync("SKU", cancellationToken);
         // PartNumber is optional — some brands don't publish a catalog code. SKU identifies the part.
         var partNumber = string.IsNullOrWhiteSpace(request.PartNumber)

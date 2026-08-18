@@ -214,13 +214,23 @@ public class QuotationController(
     /// </summary>
     [HttpPost("{id:guid}/convert")]
     [HasPermission(Permissions.SalesCreate)]
-    public async Task<IActionResult> ConvertToSalesOrder(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> ConvertToSalesOrder(Guid id, [FromBody] ConvertQuotationRequest request, CancellationToken cancellationToken)
     {
         var quotation = await quotationRepository.GetByIdAsync(id, cancellationToken);
         if (quotation is null) return NotFound(new { message = "Quotation not found" });
 
         if (quotation.Status != QuotationStatus.ACCEPTED)
             return BadRequest(new { message = $"Only ACCEPTED quotations can be converted. Current: {quotation.Status}" });
+
+        // The converted order deducts stock at Confirm, so it needs a warehouse. Without this
+        // the conversion succeeds and the resulting order can never be confirmed.
+        if (request is null || request.WarehouseId == Guid.Empty)
+            return BadRequest(new { message = "WarehouseId is required" });
+
+        var warehouseExists = await dbContext.Warehouses
+            .AnyAsync(w => w.Id == request.WarehouseId && !w.Isdeleted, cancellationToken);
+        if (!warehouseExists)
+            return BadRequest(new { message = "Warehouse not found" });
 
         try
         {
@@ -238,6 +248,7 @@ public class QuotationController(
                         quotation.CustomerName,
                         quotation.CustomerEmail,
                         quotation.CustomerPhone,
+                        request.WarehouseId,
                         notes: $"Converted from quotation {quotation.QuotationNumber}.",
                         currency: quotation.Currency);
 

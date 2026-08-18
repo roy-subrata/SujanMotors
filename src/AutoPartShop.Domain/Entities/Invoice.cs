@@ -17,7 +17,15 @@ public class Invoice : AuditableEntity
     public decimal SubTotal { get; private set; }
     public decimal TaxAmount { get; private set; }
     public decimal DiscountAmount { get; private set; } = 0;
-    public decimal GrandTotal => SubTotal + TaxAmount - DiscountAmount;
+
+    /// <summary>
+    /// Value credited back to the customer by processed sales returns. Kept separate from
+    /// <see cref="DiscountAmount"/> so reports can still tell a sales discount apart from a
+    /// return, while the invoice total reflects what the customer actually owes.
+    /// </summary>
+    public decimal ReturnedAmount { get; private set; } = 0;
+
+    public decimal GrandTotal => SubTotal + TaxAmount - DiscountAmount - ReturnedAmount;
     public InvoiceStatus Status { get; private set; } = InvoiceStatus.DRAFT;
     public string Notes { get; private set; } = string.Empty;
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
@@ -125,6 +133,22 @@ public class Invoice : AuditableEntity
 
         Status = InvoiceStatus.CANCELLED;
         Notes = reason?.Trim() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Credits a processed sales return against this invoice so the payable drops by the
+    /// refunded value. Without this the invoice keeps its full total while the refund lowers
+    /// AmountPaid, making a fully-settled customer look like they owe the returned amount.
+    /// </summary>
+    public void ApplyReturnCredit(decimal amount)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("Return credit must be greater than 0", nameof(amount));
+
+        if (ReturnedAmount + amount > SubTotal + TaxAmount - DiscountAmount)
+            throw new InvalidOperationException("Return credit cannot exceed the invoice total");
+
+        ReturnedAmount += amount;
     }
 
     public void SetDiscount(decimal amount)

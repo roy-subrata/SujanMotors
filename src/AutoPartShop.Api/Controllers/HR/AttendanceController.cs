@@ -80,6 +80,22 @@ public class AttendanceController : ControllerBase
             if (request.Entries.Count == 0)
                 return BadRequest(new { message = "No attendance entries supplied" });
 
+            // Both guards below exist because the alternative is a raw DbUpdateException surfacing
+            // as a 500: an unknown id violates the Employee FK, a repeated id violates the
+            // (EmployeeId, Date) unique index.
+            var submittedIds = request.Entries.Where(e => e.Status is not null).Select(e => e.EmployeeId).ToList();
+
+            var duplicateIds = submittedIds.GroupBy(id => id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            if (duplicateIds.Count > 0)
+                return BadRequest(new { message = $"Duplicate employee IDs in the payload: {string.Join(", ", duplicateIds)}" });
+
+            var employeeIds = submittedIds.Distinct().ToList();
+            var allEmployees = await _employeeRepository.GetAllAsync(cancellationToken);
+            var validIds = new HashSet<Guid>(allEmployees.Select(e => e.Id));
+            var invalidIds = employeeIds.Where(id => !validIds.Contains(id)).ToList();
+            if (invalidIds.Count > 0)
+                return BadRequest(new { message = $"Unknown employee IDs: {string.Join(", ", invalidIds)}" });
+
             var records = request.Entries
                 .Where(e => e.Status is not null)
                 .Select(e => AttendanceRecord.Create(e.EmployeeId, request.Date, e.Status!.Value, e.CheckInTime, e.CheckOutTime, e.Notes))

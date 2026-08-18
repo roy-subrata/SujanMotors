@@ -17,15 +17,18 @@ public class StockLotMovementController : ControllerBase
     private readonly IStockLotMovementRepository _repository;
     private readonly IStockLotRepository _lotRepository;
     private readonly IProductRepository _productRepository;
+    private readonly IStockLevelRepository _stockLevelRepository;
     private readonly ILogger<StockLotMovementController> _logger;
     private readonly ICurrentUserService _currentUserService;
 
     public StockLotMovementController(IStockLotMovementRepository repository, IStockLotRepository lotRepository,
-        IProductRepository productRepository, ICurrentUserService currentUserService, ILogger<StockLotMovementController> logger)
+        IProductRepository productRepository, IStockLevelRepository stockLevelRepository,
+        ICurrentUserService currentUserService, ILogger<StockLotMovementController> logger)
     {
         _repository = repository;
         _lotRepository = lotRepository;
         _productRepository = productRepository;
+        _stockLevelRepository = stockLevelRepository;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -221,12 +224,39 @@ public class StockLotMovementController : ControllerBase
             movement.CreatedBy = currentUser;
             movement.ModifiedBy = currentUser;
 
-            // Update lot quantity if it's a removal (SALE, DAMAGE, RETURN)
-            if (new[] { "SALE", "DAMAGE", "RETURN" }.Contains(request.MovementType.ToUpper()))
+            var movementTypeUpper = request.MovementType.ToUpper();
+
+            if (new[] { "SALE", "DAMAGE", "RETURN" }.Contains(movementTypeUpper))
             {
                 lot.RemoveStock(request.Quantity, request.Quantity, request.Reason);
                 lot.ModifiedBy = currentUser;
                 await _lotRepository.UpdateAsync(lot, cancellationToken);
+
+                var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                    lot.PartId, lot.VariantId, lot.WarehouseId, cancellationToken);
+                if (stockLevel != null)
+                {
+                    stockLevel.RemoveStock(request.Quantity, request.Quantity,
+                        $"Lot movement {request.MovementType}: {request.Reason}");
+                    stockLevel.ModifiedBy = currentUser;
+                    await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+                }
+            }
+            else if (new[] { "PURCHASE", "RECEIVE", "ADJUSTMENT" }.Contains(movementTypeUpper))
+            {
+                lot.AddStock(request.Quantity, request.Quantity, request.Reason);
+                lot.ModifiedBy = currentUser;
+                await _lotRepository.UpdateAsync(lot, cancellationToken);
+
+                var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                    lot.PartId, lot.VariantId, lot.WarehouseId, cancellationToken);
+                if (stockLevel != null)
+                {
+                    stockLevel.AddStock(request.Quantity, request.Quantity,
+                        $"Lot movement {request.MovementType}: {request.Reason}");
+                    stockLevel.ModifiedBy = currentUser;
+                    await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+                }
             }
 
             await _repository.AddAsync(movement, cancellationToken);

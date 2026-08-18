@@ -462,11 +462,18 @@ namespace AutoPartShop.Api.Controllers
                                     // Cash can only be refunded up to what the customer actually paid. Any
                                     // remainder is value they never paid for (credit / partially-paid sale),
                                     // so it just reduces their outstanding balance instead of handing back cash.
-                                    var cashPart = Math.Min(salesReturn.RefundAmount, salesOrder.PaidAmount);
+                                    // Proportionally reduce the refund by the order-level discount so that a
+                                    // discounted sale doesn't over-refund. E.g. 2 x 100 with 20 discount
+                                    // means each unit cost the customer 90, not 100.
+                                    var discountRatio = salesOrder.SubTotal > 0 && salesOrder.DiscountAmount > 0
+                                        ? (salesOrder.GrandTotal / salesOrder.SubTotal)
+                                        : 1m;
+                                    var effectiveRefund = Math.Round(salesReturn.RefundAmount * discountRatio, 2);
+                                    var cashPart = Math.Min(effectiveRefund, salesOrder.PaidAmount);
                                     // The remainder can only reduce what the customer still owes on this order;
                                     // clamp it so an over-stated refund can't push the balance negative.
                                     var outstanding = Math.Max(0, salesOrder.GrandTotal - salesOrder.PaidAmount);
-                                    var balancePart = Math.Min(salesReturn.RefundAmount - cashPart, outstanding);
+                                    var balancePart = Math.Min(effectiveRefund - cashPart, outstanding);
 
                                     if (cashPart > 0)
                                     {
@@ -506,6 +513,17 @@ namespace AutoPartShop.Api.Controllers
 
                                     // Call ProcessRefund for the total refunded value (cash + balance write-off)
                                     var totalRefunded = cashPart + balancePart;
+
+                                    // Credit the return against the invoice as well. The refund lowers
+                                    // AmountPaid, so without this the invoice keeps its pre-return total
+                                    // and a fully-settled customer reads as owing the returned value.
+                                    if (invoice != null && totalRefunded > 0)
+                                    {
+                                        invoice.ApplyReturnCredit(Math.Min(totalRefunded, invoice.GrandTotal));
+                                        invoice.UpdatePaymentStatus();
+                                        invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                    }
+
                                     if (totalRefunded > 0)
                                     {
                                         salesOrder!.ProcessRefund(totalRefunded);

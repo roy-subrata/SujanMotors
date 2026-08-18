@@ -181,20 +181,39 @@ public class TillSessionController(
     [HasPermission(Permissions.SalesEdit)]
     public async Task<IActionResult> RecordCashDrop(Guid id, RecordCashDropRequest request, CancellationToken cancellationToken)
     {
-        var session = await tillSessionRepository.GetByIdAsync(id, cancellationToken);
-        if (session is null) return NotFound(new { message = "Till session not found" });
-
         try
         {
-            var drop = TillCashDrop.Create(session.Id, request.Amount, request.Notes);
-            drop.CreatedBy = currentUserService.GetCurrentUsername();
-            drop.ModifiedBy = drop.CreatedBy;
+            TillSessionResponse? response = null;
+            var strategy = dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    var session = await tillSessionRepository.GetByIdAsync(id, cancellationToken);
+                    if (session is null)
+                        throw new InvalidOperationException("Till session not found");
 
-            session.RecordCashDrop(drop);
-            session.ModifiedBy = currentUserService.GetCurrentUsername();
+                    var drop = TillCashDrop.Create(session.Id, request.Amount, request.Notes);
+                    drop.CreatedBy = currentUserService.GetCurrentUsername();
+                    drop.ModifiedBy = drop.CreatedBy;
 
-            await tillSessionRepository.UpdateAsync(session, cancellationToken);
-            return Ok(await MapToResponseAsync(session, cancellationToken));
+                    session.RecordCashDrop(drop);
+                    session.ModifiedBy = currentUserService.GetCurrentUsername();
+
+                    await tillSessionRepository.UpdateAsync(session, cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+
+                    response = await MapToResponseAsync(session, cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            return Ok(response!);
         }
         catch (ArgumentException ex)
         {

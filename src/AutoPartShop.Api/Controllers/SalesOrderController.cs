@@ -450,36 +450,21 @@ public class SalesOrderController : ControllerBase
 
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-                var updated = await _dbContext.Set<SalesOrder>()
-                    .Where(so => so.Id == order.Id && !so.Isdeleted)
-                    .ExecuteUpdateAsync(setters => setters
-                        .SetProperty(so => so.CustomerId, request.CustomerId)
-                        .SetProperty(so => so.CustomerName, request.CustomerName)
-                        .SetProperty(so => so.CustomerEmail, request.CustomerEmail)
-                        .SetProperty(so => so.CustomerPhone, request.CustomerPhone)
-                        .SetProperty(so => so.WarehouseId, request.WarehouseId)
-                        .SetProperty(so => so.DeliveryAddress, request.CustomerCity)
-                        .SetProperty(so => so.TechnicianId, request.TechnicianId)
-                        .SetProperty(so => so.TechnicianName, request.TechnicianName)
-                        .SetProperty(so => so.DeliveryDate, request.DeliveryDate)
-                        .SetProperty(so => so.Notes, request.Notes)
-                        .SetProperty(so => so.Currency, request.Currency)
-                        .SetProperty(so => so.SubTotal, subtotal)
-                        .SetProperty(so => so.DiscountPercentage, discountPercentage)
-                        .SetProperty(so => so.DiscountAmount, discountAmount)
-                        .SetProperty(so => so.TotalAmount, totalAmount)
-                        .SetProperty(so => so.TaxAmount, order.TaxAmount)
-                        .SetProperty(so => so.BaseGrandTotal, fx.BaseAmount)
-                        .SetProperty(so => so.FxRateToBase, fx.RateToBase)
-                        .SetProperty(so => so.ModifiedBy, _currentUserService.GetCurrentUsername())
-                        .SetProperty(so => so.ModifiedDate, DateTime.UtcNow),
-                        cancellationToken);
+                // Update the tracked entity using its domain methods instead of
+                // ExecuteUpdateAsync, which bypasses change tracking and causes RowVersion conflicts.
+                order.UpdateCustomer(request.CustomerId, request.CustomerName, request.CustomerEmail,
+                    request.CustomerPhone, request.CustomerCity);
+                order.UpdateWarehouse(request.WarehouseId);
+                order.SetTechnician(request.TechnicianId, request.TechnicianName);
+                order.UpdateDeliveryDate(request.DeliveryDate);
+                order.UpdateNotes(request.Notes);
+                order.UpdateCurrency(request.Currency);
+                order.UpdateFinancials(subtotal, discountPercentage, discountAmount, totalAmount, order.TaxAmount);
+                order.SetFxBaseAmount(fx.BaseAmount, fx.RateToBase);
+                order.ModifiedBy = _currentUserService.GetCurrentUsername();
+                order.ModifiedDate = DateTime.UtcNow;
 
-                if (updated == 0)
-                {
-                    await tx.RollbackAsync(cancellationToken);
-                    throw new DbUpdateConcurrencyException("Sales order update affected 0 rows.");
-                }
+                await _salesOrderRepository.UpdateAsync(order, cancellationToken);
 
                 await _dbContext.Set<SalesOrderLine>()
                     .Where(l => l.SalesOrderId == order.Id)
@@ -790,22 +775,7 @@ public class SalesOrderController : ControllerBase
                     order.Confirm();
                     order.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    // Atomic status transition â€” WHERE Status IN ('PENDING','DRAFT') prevents double-confirm.
-                    var rowsUpdated = await _dbContext.Set<SalesOrder>()
-                        .Where(so => so.Id == order.Id
-                                  && (so.Status == SalesOrderStatus.PENDING || so.Status == SalesOrderStatus.DRAFT)
-                                  && !so.Isdeleted)
-                        .ExecuteUpdateAsync(setters => setters
-                            .SetProperty(so => so.Status, order.Status)
-                            .SetProperty(so => so.ConfirmedDate, order.ConfirmedDate)
-                            .SetProperty(so => so.ModifiedBy, order.ModifiedBy)
-                            .SetProperty(so => so.ModifiedDate, DateTime.UtcNow),
-                            cancellationToken);
-
-                    if (rowsUpdated == 0)
-                        throw new InvalidOperationException("Sales order has already been confirmed or no longer exists.");
-
-                    // â”€â”€ Auto-create a DRAFT invoice (mandatory at Confirm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // â"€â"€ Auto-create a DRAFT invoice (mandatory at Confirm) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
                     // AnyAsync check is a first guard; the DB-level unique filtered index on
                     // (SalesOrderId) WHERE Isdeleted=0 is the hard safety net against races.
                     var existingInvoiceCheck = await _dbContext.Invoices
@@ -1686,6 +1656,69 @@ public class SalesOrderController : ControllerBase
                         payment.ModifiedBy = _currentUserService.GetCurrentUsername();
                     }
 
+                    // Restore stock that was deducted when the sales order was confirmed.
+                    var stockDeductedStatuses = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.PAID, SalesOrderStatus.PACKED, SalesOrderStatus.SHIPPED };
+                    if (salesOrder is not null && stockDeductedStatuses.Contains(salesOrder.Status))
+                    {
+                        var lineIds = salesOrder.LineItems.Select(l => (Guid?)l.Id).ToList();
+                        var lotMovements = await _dbContext.StockLotMovements
+                            .Include(m => m.StockLot)
+                            .Where(m => m.MovementType == "SALE"
+                                     && m.ReferenceType == "SalesOrderLine"
+                                     && m.ReferenceId != null
+                                     && lineIds.Contains(m.ReferenceId)
+                                     && !m.Isdeleted)
+                            .ToListAsync(cancellationToken);
+
+                        var levelRestores = new Dictionary<(Guid PartId, Guid? VariantId, Guid WarehouseId), int>();
+                        foreach (var lm in lotMovements)
+                        {
+                            if (lm.StockLot is null) continue;
+                            lm.StockLot.AddStock(lm.Quantity, lm.Quantity, $"Invoice cancellation {invoice.InvoiceNumber}");
+                            lm.StockLot.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                            var reversalLotMovement = StockLotMovement.Create(
+                                lm.StockLot.Id,
+                                lm.Quantity,
+                                "RETURN",
+                                lm.ReferenceId,
+                                lm.ReferenceType,
+                                DateTime.UtcNow,
+                                lm.CostAtMovement,
+                                $"Invoice cancellation {invoice.InvoiceNumber}",
+                                "",
+                                lm.StockLot.UnitId,
+                                lm.Quantity,
+                                lm.CostAtMovementInBaseUnit > 0 ? lm.CostAtMovementInBaseUnit : lm.CostAtMovement);
+                            reversalLotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                            reversalLotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _dbContext.StockLotMovements.AddAsync(reversalLotMovement, cancellationToken);
+
+                            var key = (lm.StockLot.PartId, lm.StockLot.VariantId, lm.StockLot.WarehouseId);
+                            levelRestores[key] = levelRestores.GetValueOrDefault(key) + lm.Quantity;
+                        }
+
+                        foreach (var (key, restoreQty) in levelRestores)
+                        {
+                            var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                                key.PartId, key.VariantId, key.WarehouseId, cancellationToken);
+                            if (stockLevel is null) continue;
+
+                            stockLevel.AddStock(restoreQty, restoreQty, $"Invoice cancellation {invoice.InvoiceNumber}");
+                            stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+
+                            var reversal = StockMovement.Create(
+                                stockLevel.Id, "IN", restoreQty,
+                                $"Invoice Cancellation {invoice.InvoiceNumber}", invoice.InvoiceNumber,
+                                unitId: stockLevel.UnitId, quantityInBaseUnit: restoreQty);
+                            reversal.Approve(_currentUserService.GetCurrentUsername());
+                            reversal.CreatedBy = _currentUserService.GetCurrentUsername();
+                            reversal.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _dbContext.StockMovements.AddAsync(reversal, cancellationToken);
+                        }
+                    }
+
                     invoice.Cancel(reason);
                     invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -2032,6 +2065,9 @@ public class SalesOrderController : ControllerBase
         }
 
         // Price resolution: manual entry â†’ variant price â†’ product base price â†’ error
+        if (lineRequest.UnitPrice < 0)
+            throw new ArgumentException($"Unit price cannot be negative (got {lineRequest.UnitPrice}).", nameof(lineRequest));
+
         var unitPrice = lineRequest.UnitPrice > 0
             ? lineRequest.UnitPrice
             : (variant?.SellingPrice > 0 ? variant.SellingPrice : part.SellingPrice);
@@ -2283,6 +2319,9 @@ public class SalesOrderController : ControllerBase
 
                         if (part == null)
                             throw new ArgumentException($"Part with ID {item.PartId} not found");
+
+                        if (item.UnitPrice < 0)
+                            throw new ArgumentException($"Unit price cannot be negative (got {item.UnitPrice}).");
 
                         var itemUnitPrice = item.UnitPrice > 0 ? item.UnitPrice : part.SellingPrice;
                         if (itemUnitPrice <= 0)

@@ -36,7 +36,9 @@ public class SupplierRepository(AutoPartDbContext _db) : ISupplierRepository
                 entity.State,
                 entity.Country,
                 entity.PostalCode,
-                entity.IsActive
+                entity.IsActive,
+                string.IsNullOrEmpty(entity.PaymentTerms) ? existing.PaymentTerms : entity.PaymentTerms,
+                entity.CreditLimit == 0 ? existing.CreditLimit : entity.CreditLimit
                 );
         }
         await _db.SaveChangesAsync(cancellationToken);

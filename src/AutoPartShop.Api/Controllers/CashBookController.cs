@@ -55,15 +55,19 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
         // â”€â”€ Opening balance (all COMPLETED transactions before dateFrom) â”€
         var priorCustomerNet = await _db.CustomerPayments
-            .Where(p => p.PaymentDate < dateFrom && p.Status == CustomerPaymentStatus.COMPLETED)
+            .Where(p => p.PaymentDate < dateFrom && p.Status == CustomerPaymentStatus.COMPLETED
+                     && !p.Isdeleted
+                     && p.SourceAdvancePaymentId == null)
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
 
         var priorExpenseTotal = await _db.DailyExpenses
-            .Where(e => e.ExpenseDate < dateFrom)
+            .Where(e => e.ExpenseDate < dateFrom && !e.Isdeleted)
             .SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
 
         var priorSupplierTotal = await _db.SupplierPayments
-            .Where(p => p.PaymentDate < dateFrom && p.Status == SupplierPaymentStatus.COMPLETED)
+            .Where(p => p.PaymentDate < dateFrom && p.Status == SupplierPaymentStatus.COMPLETED
+                     && !p.Isdeleted
+                     && p.PaymentMethod != "CREDIT_NOTE")
             .SumAsync(p => (decimal?)(p.NetAmount > 0 ? p.NetAmount : p.Amount), ct) ?? 0m;
 
         var priorDepositTotal = await _db.CashDeposits
@@ -75,7 +79,9 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         // â”€â”€ Customer payments â€” COMPLETED only â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var customerPayments = await _db.CustomerPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
-                     && p.Status == CustomerPaymentStatus.COMPLETED)
+                     && p.Status == CustomerPaymentStatus.COMPLETED
+                     && !p.Isdeleted
+                     && p.SourceAdvancePaymentId == null)
             .Include(p => p.Customer)
             .Include(p => p.Invoice)
             .AsNoTracking()
@@ -84,7 +90,8 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
 
         // â”€â”€ Expenses (cash out) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var expenses = await _db.DailyExpenses
-            .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate <= dateTo)
+            .Where(e => e.ExpenseDate >= dateFrom && e.ExpenseDate <= dateTo
+                     && !e.Isdeleted)
             .AsNoTracking()
             .OrderBy(e => e.ExpenseDate)
             .ToListAsync(ct);
@@ -92,7 +99,9 @@ public class CashBookController(AutoPartDbContext _db) : ControllerBase
         // â”€â”€ Supplier payments (cash out) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var supplierPayments = await _db.SupplierPayments
             .Where(p => p.PaymentDate >= dateFrom && p.PaymentDate <= dateTo
-                     && p.Status == SupplierPaymentStatus.COMPLETED)
+                     && p.Status == SupplierPaymentStatus.COMPLETED
+                     && !p.Isdeleted
+                     && p.PaymentMethod != "CREDIT_NOTE")
             .Include(p => p.Supplier)
             .AsNoTracking()
             .OrderBy(p => p.PaymentDate)

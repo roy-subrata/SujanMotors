@@ -311,6 +311,12 @@ public class SupplierPaymentController : ControllerBase
                 // For REGULAR payments: Update purchase order and supplier balance
                 if (request.PaymentType == PaymentType.REGULAR)
                 {
+                    // Validate overpay BEFORE entering the execution strategy so an
+                    // InvalidOperationException returns 400 instead of being wrapped as 500.
+                    var preLoadPo = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId!.Value, cancellationToken);
+                    if (preLoadPo != null && payment.Amount > preLoadPo.TotalAmount - preLoadPo.PaidAmount)
+                        throw new InvalidOperationException($"Payment amount ({payment.Amount:N2}) exceeds the outstanding balance of {preLoadPo.TotalAmount - preLoadPo.PaidAmount:N2} on purchase order {preLoadPo.PONumber}.");
+
                     // Wrap PO update + payment insert in a single transaction so a partial failure
                     // cannot leave one written without the other. The transaction must run under the
                     // EF execution strategy (EnableRetryOnFailure is on) or BeginTransaction throws.
@@ -356,6 +362,11 @@ public class SupplierPaymentController : ControllerBase
         }
         catch (ArgumentException ex)
         {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation creating supplier payment");
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)

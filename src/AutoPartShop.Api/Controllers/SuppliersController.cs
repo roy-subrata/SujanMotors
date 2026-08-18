@@ -189,7 +189,9 @@ public class SuppliersController : ControllerBase
 
             supplier.Update(request.Name, request.ContactPerson, request.Email, request.Phone,
                 request.Address, request.City, request.State, request.Country, request.PostalCode,
-                request.IsActive, request.PaymentTerms, request.CreditLimit);
+                request.IsActive,
+                string.IsNullOrEmpty(request.PaymentTerms) ? supplier.PaymentTerms : request.PaymentTerms,
+                request.CreditLimit == 0 ? supplier.CreditLimit : request.CreditLimit);
             supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _supplierRepository.UpdateAsync(supplier, cancellationToken);

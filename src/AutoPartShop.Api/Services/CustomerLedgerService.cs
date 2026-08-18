@@ -41,9 +41,11 @@ public class CustomerLedgerService : ICustomerLedgerService
         var totalInvoiced = await GetTotalInvoicedAsync(customerId, ct);
         var totalPayments = await GetTotalPaymentsAsync(customerId, ct);
         var totalRefunds = await GetTotalRefundsAsync(customerId, ct);
+        var totalDebitNotes = await GetTotalDebitNotesAsync(customerId, ct);
+        var totalCreditNotes = await GetTotalCreditNotesAppliedAsync(customerId, ct);
         var advanceCredit = await GetAvailableAdvanceCreditAsync(customerId, ct);
 
-        var currentBalance = totalInvoiced - totalPayments - totalRefunds;
+        var currentBalance = totalInvoiced - totalPayments - totalRefunds + totalDebitNotes - totalCreditNotes;
 
         var entries = await GetLedgerEntriesAsync(customerId, null, null, ct);
 
@@ -60,6 +62,8 @@ public class CustomerLedgerService : ICustomerLedgerService
             TotalInvoiced = totalInvoiced,
             TotalPayments = totalPayments,
             TotalRefunds = totalRefunds,
+            TotalDebitNotes = totalDebitNotes,
+            TotalCreditNotesApplied = totalCreditNotes,
             AvailableAdvanceCredit = advanceCredit,
             CurrentBalance = currentBalance,
             TransactionCount = entries.Count,
@@ -73,8 +77,10 @@ public class CustomerLedgerService : ICustomerLedgerService
         var totalInvoiced = await GetTotalInvoicedAsync(customerId, ct);
         var totalPayments = await GetTotalPaymentsAsync(customerId, ct);
         var totalRefunds = await GetTotalRefundsAsync(customerId, ct);
+        var totalDebitNotes = await GetTotalDebitNotesAsync(customerId, ct);
+        var totalCreditNotes = await GetTotalCreditNotesAppliedAsync(customerId, ct);
 
-        return totalInvoiced - totalPayments - totalRefunds;
+        return totalInvoiced - totalPayments - totalRefunds + totalDebitNotes - totalCreditNotes;
     }
 
     public async Task<PagedCustomerLedgerResult> GetLedgerEntriesAsync(
@@ -115,10 +121,13 @@ public class CustomerLedgerService : ICustomerLedgerService
         var entries = new List<CustomerLedgerEntryDto>();
 
         entries.AddRange(await GetInvoiceEntriesAsync(customerId, fromDate, toDate, ct));
+        entries.AddRange(await GetDebitNoteEntriesAsync(customerId, fromDate, toDate, ct));
         entries.AddRange(await GetPaymentEntriesAsync(customerId, fromDate, toDate, ct));
         entries.AddRange(await GetRefundEntriesAsync(customerId, fromDate, toDate, ct));
+        entries.AddRange(await GetCreditNoteEntriesAsync(customerId, fromDate, toDate, ct));
 
-        return entries.OrderByDescending(e => e.TransactionDate).ToList();
+        CalculateRunningBalances(entries);
+        return entries;
     }
 
     public async Task<decimal> GetTotalInvoicedAsync(Guid customerId, CancellationToken ct = default)
@@ -138,12 +147,18 @@ public class CustomerLedgerService : ICustomerLedgerService
     {
         // Excludes re-applications of an existing advance to avoid double-counting — same
         // logic CustomerAccountSummaryService and SupplierLedgerService.GetTotalPaymentsAsync use.
+        // Also excludes refund payments (negative amounts via REFUND method) because those are
+        // already accounted for via GetTotalRefundsAsync which reads from SalesReturns, and
+        // CREDIT_NOTE settlements because GetTotalCreditNotesAppliedAsync already books those
+        // from the note's UsedAmount — counting the payment row too would credit twice.
         return await _dbContext.CustomerPayments
             .AsNoTracking()
             .Where(p => !p.Isdeleted
                 && p.CustomerId == customerId
                 && p.Status == CustomerPaymentStatus.COMPLETED
-                && (p.PaymentType == CustomerPaymentType.ADVANCE || p.SourceAdvancePaymentId == null))
+                && (p.PaymentType == CustomerPaymentType.ADVANCE || p.SourceAdvancePaymentId == null)
+                && p.Amount > 0
+                && p.PaymentMethod != "CREDIT_NOTE")
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
     }
 
@@ -170,6 +185,26 @@ public class CustomerLedgerService : ICustomerLedgerService
                 && p.PaymentType == CustomerPaymentType.ADVANCE
                 && p.RemainingAmount > 0)
             .SumAsync(p => (decimal?)p.RemainingAmount, ct) ?? 0;
+    }
+
+    public async Task<decimal> GetTotalDebitNotesAsync(Guid customerId, CancellationToken ct = default)
+    {
+        return await _dbContext.CustomerDebitNotes
+            .AsNoTracking()
+            .Where(dn => !dn.Isdeleted
+                && dn.CustomerId == customerId
+                && dn.Status == CustomerDebitNoteStatus.ISSUED)
+            .SumAsync(dn => (decimal?)dn.TotalAmount, ct) ?? 0;
+    }
+
+    public async Task<decimal> GetTotalCreditNotesAppliedAsync(Guid customerId, CancellationToken ct = default)
+    {
+        return await _dbContext.CustomerCreditNotes
+            .AsNoTracking()
+            .Where(cn => !cn.Isdeleted
+                && cn.CustomerId == customerId
+                && cn.Status != CustomerCreditNoteStatus.CANCELLED)
+            .SumAsync(cn => (decimal?)cn.UsedAmount, ct) ?? 0;
     }
 
     #region Private Helper Methods
@@ -213,7 +248,9 @@ public class CustomerLedgerService : ICustomerLedgerService
             .Where(p => !p.Isdeleted
                 && p.CustomerId == customerId
                 && p.Status == CustomerPaymentStatus.COMPLETED
-                && (p.PaymentType == CustomerPaymentType.ADVANCE || p.SourceAdvancePaymentId == null));
+                && (p.PaymentType == CustomerPaymentType.ADVANCE || p.SourceAdvancePaymentId == null)
+                && p.Amount > 0
+                && p.PaymentMethod != "CREDIT_NOTE");
 
         if (fromDate.HasValue)
             query = query.Where(p => p.PaymentDate >= fromDate.Value);
@@ -266,6 +303,67 @@ public class CustomerLedgerService : ICustomerLedgerService
             CreditAmount = r.RefundAmount,
             Description = $"Sales Return - {r.Reason}",
             Status = r.Status.ToString()
+        }).ToList();
+    }
+
+    private async Task<List<CustomerLedgerEntryDto>> GetDebitNoteEntriesAsync(
+        Guid customerId, DateTime? fromDate, DateTime? toDate, CancellationToken ct)
+    {
+        var query = _dbContext.CustomerDebitNotes
+            .AsNoTracking()
+            .Where(dn => !dn.Isdeleted
+                && dn.CustomerId == customerId
+                && dn.Status == CustomerDebitNoteStatus.ISSUED);
+
+        if (fromDate.HasValue)
+            query = query.Where(dn => dn.IssueDate >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(dn => dn.IssueDate <= toDate.Value);
+
+        var debitNotes = await query.ToListAsync(ct);
+
+        return debitNotes.Select(dn => new CustomerLedgerEntryDto
+        {
+            Id = dn.Id,
+            TransactionDate = dn.IssueDate,
+            TransactionType = CustomerLedgerTransactionType.DEBIT_NOTE,
+            ReferenceNumber = dn.DebitNoteNumber,
+            ReferenceId = dn.Id,
+            DebitAmount = dn.TotalAmount,
+            CreditAmount = 0,
+            Description = $"Debit Note - {dn.Reason}",
+            Status = dn.Status.ToString()
+        }).ToList();
+    }
+
+    private async Task<List<CustomerLedgerEntryDto>> GetCreditNoteEntriesAsync(
+        Guid customerId, DateTime? fromDate, DateTime? toDate, CancellationToken ct)
+    {
+        var query = _dbContext.CustomerCreditNotes
+            .AsNoTracking()
+            .Where(cn => !cn.Isdeleted
+                && cn.CustomerId == customerId
+                && cn.Status != CustomerCreditNoteStatus.CANCELLED
+                && cn.UsedAmount > 0);
+
+        if (fromDate.HasValue)
+            query = query.Where(cn => cn.IssueDate >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(cn => cn.IssueDate <= toDate.Value);
+
+        var creditNotes = await query.ToListAsync(ct);
+
+        return creditNotes.Select(cn => new CustomerLedgerEntryDto
+        {
+            Id = cn.Id,
+            TransactionDate = cn.IssueDate,
+            TransactionType = CustomerLedgerTransactionType.CREDIT_NOTE,
+            ReferenceNumber = cn.CreditNoteNumber,
+            ReferenceId = cn.Id,
+            DebitAmount = 0,
+            CreditAmount = cn.UsedAmount,
+            Description = $"Credit Note Applied - {cn.Notes}",
+            Status = cn.Status.ToString()
         }).ToList();
     }
 

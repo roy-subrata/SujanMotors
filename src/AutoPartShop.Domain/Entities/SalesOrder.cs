@@ -296,6 +296,8 @@ public class SalesOrder : AggregateRoot
         DeliveryAddress = customerCity?.Trim() ?? string.Empty;
     }
 
+    public void UpdateWarehouse(Guid? warehouseId) => WarehouseId = warehouseId;
+
     public void UpdateDeliveryDate(DateTime? deliveryDate)
     {
         DeliveryDate = deliveryDate;
@@ -364,5 +366,16 @@ public class SalesOrder : AggregateRoot
     public void ClearLineItems()
     {
         LineItems.Clear();
+    }
+
+    /// <summary>Updates the financial totals and discounts on an existing SO (used by the Update endpoint).</summary>
+    public void UpdateFinancials(decimal subTotal, decimal discountPercentage, decimal discountAmount,
+        decimal totalAmount, decimal taxAmount)
+    {
+        SubTotal = subTotal;
+        DiscountPercentage = discountPercentage;
+        DiscountAmount = discountAmount;
+        TotalAmount = totalAmount;
+        TaxAmount = taxAmount;
     }
 }
