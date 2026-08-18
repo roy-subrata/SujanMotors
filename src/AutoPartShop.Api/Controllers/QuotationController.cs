@@ -56,8 +56,11 @@ public class QuotationController(
             var strategy = dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                var quotationNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("QUOTATION_NUMBER_PREFIX", "QT", cancellationToken), cancellationToken);
                 await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
+                var quotationNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("QUOTATION_NUMBER_PREFIX", "QT", cancellationToken), cancellationToken);
                 try
                 {
                     quotation = Quotation.Create(
@@ -238,8 +241,11 @@ public class QuotationController(
             var strategy = dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                var soNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
+                var soNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 try
                 {
                     order = SalesOrder.Create(

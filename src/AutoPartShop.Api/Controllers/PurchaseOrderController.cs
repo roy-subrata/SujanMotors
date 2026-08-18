@@ -288,24 +288,13 @@ public class PurchaseOrderController : ControllerBase
             if (request.SupplierId == Guid.Empty || request.DeliveryDate == default)
                 return BadRequest(new { message = "SupplierId and DeliveryDate are required" });
 
-            var purchaseOrderNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("PURCHASE_ORDER_NUMBER_PREFIX", "PO", cancellationToken), cancellationToken);
-            var order = PurchaseOrder.Create(
-                purchaseOrderNumber,
-                request.SupplierId,
-                null,  // warehouseId - optional
-                request.DeliveryDate,
-                request.Notes,
-                request.Currency
-            );
+            // Every line is resolved and validated BEFORE a PO number is allocated. This method has
+            // no transaction, so allocating first meant a rejected create burned the number for
+            // good — three rejected attempts left the next real order at PO005.
+            var resolvedLines = new List<(Guid PartId, int Quantity, decimal UnitPrice, Guid? UnitId, int QuantityInBaseUnit, Guid? VariantId)>();
 
-            // Set tax and discount
-            order.SetTaxPercentage(request.TaxPercentage);
-            order.SetDiscount(request.DiscountPercentage, request.DiscountAmount, request.DiscountType);
-
-            // Add line items if provided
             if (request.LineItems?.Any() == true)
             {
-                int lineNumber = 1;
                 foreach (var lineRequest in request.LineItems)
                 {
                     // Get part to determine base unit using repository
@@ -324,7 +313,7 @@ public class PurchaseOrderController : ControllerBase
                         // Part has no base unit, use provided unit and quantity as-is
                         quantityInBaseUnit = lineRequest.Quantity;
                     }
-                    // If unitId is provided and different from part's base unit, convert
+                    // If unitId is provided and different from part base unit, convert
                     else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
                     {
                         try
@@ -342,27 +331,49 @@ public class PurchaseOrderController : ControllerBase
                     }
                     else if (!unitId.HasValue)
                     {
-                        // If no unit specified, use part's base unit
+                        // If no unit specified, use part base unit
                         unitId = part.UnitId;
                     }
 
                     // Enforce variant selection when product has active variants
                     var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                     if (hasVariants && !lineRequest.VariantId.HasValue)
-                        return BadRequest(new { message = $"Product '{part.Name}' has variants â€” please select a specific variant" });
+                        return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
 
-                    var line = PurchaseOrderLine.Create(
-                        order.Id,
-                        lineRequest.PartId,
-                        lineRequest.Quantity,
-                        lineRequest.UnitPrice,
-                        lineNumber++,
-                        unitId,
-                        quantityInBaseUnit,
-                        variantId: lineRequest.VariantId
-                    );
-                    order.LineItems.Add(line);
+                    resolvedLines.Add((lineRequest.PartId, lineRequest.Quantity, lineRequest.UnitPrice,
+                        unitId, quantityInBaseUnit, lineRequest.VariantId));
                 }
+            }
+
+            var purchaseOrderNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("PURCHASE_ORDER_NUMBER_PREFIX", "PO", cancellationToken), cancellationToken);
+            var order = PurchaseOrder.Create(
+                purchaseOrderNumber,
+                request.SupplierId,
+                null,  // warehouseId - optional
+                request.DeliveryDate,
+                request.Notes,
+                request.Currency
+            );
+
+            // Set tax and discount
+            order.SetTaxPercentage(request.TaxPercentage);
+            order.SetDiscount(request.DiscountPercentage, request.DiscountAmount, request.DiscountType);
+
+            // Build the lines from the pre-resolved values above.
+            int lineNumber = 1;
+            foreach (var rl in resolvedLines)
+            {
+                var line = PurchaseOrderLine.Create(
+                    order.Id,
+                    rl.PartId,
+                    rl.Quantity,
+                    rl.UnitPrice,
+                    lineNumber++,
+                    rl.UnitId,
+                    rl.QuantityInBaseUnit,
+                    variantId: rl.VariantId
+                );
+                order.LineItems.Add(line);
             }
 
             // Calculate totals based on line items and tax/discount
@@ -647,9 +658,11 @@ public class PurchaseOrderController : ControllerBase
             if (purchaseOrder.Status != PurchaseOrderStatus.CONFIRMED && purchaseOrder.Status != PurchaseOrderStatus.PARTIAL)
                 return BadRequest(new { message = $"Goods receipts can only be created for CONFIRMED or PARTIAL purchase orders. Current status: {purchaseOrder.Status}" });
 
-            var grnNumber = await _codeGenerateService.GenerateAsync("GRN", cancellationToken);
+            // Built with a placeholder number; the real one is allocated further down, once every
+            // line has passed validation. Allocating here meant a rejected receipt burned a number
+            // permanently (the first real GRN in the QA run was GRN003).
             var grn = GoodsReceipt.Create(
-                grnNumber,
+                "GRN-PENDING",
                 request.PurchaseOrderId,
                 request.WarehouseId,
                 request.ReceivedDate
@@ -788,6 +801,8 @@ public class PurchaseOrderController : ControllerBase
                 // Update GRN counts
                 grn.UpdateCounts();
             }
+
+            grn.AssignGRNNumber(await _codeGenerateService.GenerateAsync("GRN", cancellationToken));
 
             await _goodsReceiptRepository.AddAsync(grn, cancellationToken);
             return CreatedAtAction(nameof(GetGRNById), new { id = grn.Id }, MapToGoodsReceiptResponse(grn));

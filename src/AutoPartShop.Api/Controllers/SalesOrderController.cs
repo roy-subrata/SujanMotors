@@ -333,8 +333,11 @@ public class SalesOrderController : ControllerBase
             var createStrategy = _dbContext.Database.CreateExecutionStrategy();
             await createStrategy.ExecuteAsync(async () =>
             {
-                var soNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
+                var soNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 try
                 {
                     order = SalesOrder.Create(
@@ -1500,9 +1503,11 @@ public class SalesOrderController : ControllerBase
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                // Fix #5: generate inside the lambda so retries get a fresh unique code
-                var transactionNumber = await _codeGenerateService.GenerateAsync("TXN", cancellationToken);
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
+                var transactionNumber = await _codeGenerateService.GenerateAsync("TXN", cancellationToken);
                 try
                 {
                     payment = CustomerPayment.Create(
@@ -2314,9 +2319,12 @@ public class SalesOrderController : ControllerBase
             var qsStrategy = _dbContext.Database.CreateExecutionStrategy();
             await qsStrategy.ExecuteAsync(async () =>
             {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
                 soNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 invoiceNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("INVOICE_NUMBER_PREFIX", "INV", cancellationToken), cancellationToken);
-                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
                     salesOrder = SalesOrder.Create(
