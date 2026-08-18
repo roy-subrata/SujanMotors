@@ -45,7 +45,12 @@ public class CustomerLedgerService : ICustomerLedgerService
         var totalCreditNotes = await GetTotalCreditNotesAppliedAsync(customerId, ct);
         var advanceCredit = await GetAvailableAdvanceCreditAsync(customerId, ct);
 
-        var currentBalance = totalInvoiced - totalPayments - totalRefunds + totalDebitNotes - totalCreditNotes;
+        // A processed return is recognised exactly once, on the invoice: SalesReturnController
+        // credits it via Invoice.ApplyReturnCredit, so GrandTotal (and therefore totalInvoiced)
+        // is already net of returned goods. The cash that went back out is a negative payment.
+        // Subtracting totalRefunds on top counted every return twice — it is reported below for
+        // information, not used in the balance.
+        var currentBalance = totalInvoiced - totalPayments + totalDebitNotes - totalCreditNotes;
 
         var entries = await GetLedgerEntriesAsync(customerId, null, null, ct);
 
@@ -76,11 +81,11 @@ public class CustomerLedgerService : ICustomerLedgerService
     {
         var totalInvoiced = await GetTotalInvoicedAsync(customerId, ct);
         var totalPayments = await GetTotalPaymentsAsync(customerId, ct);
-        var totalRefunds = await GetTotalRefundsAsync(customerId, ct);
         var totalDebitNotes = await GetTotalDebitNotesAsync(customerId, ct);
         var totalCreditNotes = await GetTotalCreditNotesAppliedAsync(customerId, ct);
 
-        return totalInvoiced - totalPayments - totalRefunds + totalDebitNotes - totalCreditNotes;
+        // See GetSummaryAsync: returns are netted on the invoice, refunds are negative payments.
+        return totalInvoiced - totalPayments + totalDebitNotes - totalCreditNotes;
     }
 
     public async Task<PagedCustomerLedgerResult> GetLedgerEntriesAsync(
@@ -147,17 +152,19 @@ public class CustomerLedgerService : ICustomerLedgerService
     {
         // Excludes re-applications of an existing advance to avoid double-counting — same
         // logic CustomerAccountSummaryService and SupplierLedgerService.GetTotalPaymentsAsync use.
-        // Also excludes refund payments (negative amounts via REFUND method) because those are
-        // already accounted for via GetTotalRefundsAsync which reads from SalesReturns, and
-        // CREDIT_NOTE settlements because GetTotalCreditNotesAppliedAsync already books those
-        // from the note's UsedAmount — counting the payment row too would credit twice.
+        // CREDIT_NOTE settlements are excluded because GetTotalCreditNotesAppliedAsync already
+        // books those from the note's UsedAmount.
+        //
+        // Negative REFUND rows ARE included: they are the exact cash that went back out, already
+        // adjusted for any order discount. The balance nets them here rather than through a
+        // separate refunds term — see GetCurrentBalanceAsync for why that has to be one or the
+        // other, never both.
         return await _dbContext.CustomerPayments
             .AsNoTracking()
             .Where(p => !p.Isdeleted
                 && p.CustomerId == customerId
                 && p.Status == CustomerPaymentStatus.COMPLETED
                 && (p.PaymentType == CustomerPaymentType.ADVANCE || p.SourceAdvancePaymentId == null)
-                && p.Amount > 0
                 && p.PaymentMethod != "CREDIT_NOTE")
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
     }
@@ -249,7 +256,6 @@ public class CustomerLedgerService : ICustomerLedgerService
                 && p.CustomerId == customerId
                 && p.Status == CustomerPaymentStatus.COMPLETED
                 && (p.PaymentType == CustomerPaymentType.ADVANCE || p.SourceAdvancePaymentId == null)
-                && p.Amount > 0
                 && p.PaymentMethod != "CREDIT_NOTE");
 
         if (fromDate.HasValue)
