@@ -184,7 +184,7 @@ public class BrandsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(ApiError.BusinessRule(ex.Message, Request.Path));
+            return Conflict(ApiError.BusinessRuleConflict(ex.Message, Request.Path));
         }
 
         return NoContent();

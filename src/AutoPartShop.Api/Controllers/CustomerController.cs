@@ -323,7 +323,20 @@ public class CustomerController : ControllerBase
                     return Conflict(new { message = $"A customer with phone {request.Phone.Trim()} already exists ({existingByPhone.CustomerCode})." });
             }
 
-            var customerCode = await _codeGenerateService.GenerateAsync("CUST", cancellationToken);
+            // CreateCustomerRequest.CustomerCode was accepted and then discarded. Honour an
+            // explicit code when it is free, and fall back to the generated sequence otherwise —
+            // same contract as suppliers.
+            string customerCode;
+            if (!string.IsNullOrWhiteSpace(request.CustomerCode))
+            {
+                customerCode = request.CustomerCode.Trim().ToUpper();
+                if (await _customerRepository.GetByCodeAsync(customerCode, cancellationToken) is not null)
+                    return Conflict(new { message = $"Customer code '{customerCode}' is already in use" });
+            }
+            else
+            {
+                customerCode = await _codeGenerateService.GenerateAsync("CUST", cancellationToken);
+            }
 
             var customer = Customer.Create(
                 customerCode,
