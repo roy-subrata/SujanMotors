@@ -447,17 +447,35 @@ public class ProductsController : ControllerBase
         var oldWarranty = (part.HasWarranty, part.WarrantyPeriodMonths, part.WarrantyType,
                            part.WarrantyTerms, part.WarrantyCertificateTemplate);
 
-        part.Update(request.Name, request.Description, part.SKU, request.CategoryId, request.BrandId,
-            request.BaseUnitId, request.UnitId,
+        // Omitted optional fields keep their stored value; sending an explicit "" still clears one.
+        // A PUT is a full replacement, but the optional fields are nullable precisely so a client
+        // can leave them out, and treating "absent" as "blank this" quietly wiped part numbers,
+        // OEM references and warranty text on any partial update.
+        part.Update(request.Name, request.Description, part.SKU, request.CategoryId,
+            request.BrandId ?? part.BrandId,
+            request.BaseUnitId ?? part.BaseUnitId,
+            request.UnitId ?? part.UnitId,
             request.CostPrice, request.SellingPrice, request.MinimumStock, request.IsActive,
-            request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
-            request.WarrantyTerms, request.WarrantyCertificateTemplate,
-            request.Barcode, request.Tags, request.ProductType,
-            request.IsPerishable, request.WeightKg,
-            request.TaxCode, request.OemNumber, request.LocalName);
-        part.SetPartNumber(string.IsNullOrWhiteSpace(request.PartNumber)
-            ? null
-            : PartNumber.Create(request.PartNumber));
+            request.HasWarranty,
+            request.WarrantyPeriodMonths ?? part.WarrantyPeriodMonths,
+            request.WarrantyType ?? part.WarrantyType,
+            request.WarrantyTerms ?? part.WarrantyTerms,
+            request.WarrantyCertificateTemplate ?? part.WarrantyCertificateTemplate,
+            request.Barcode ?? part.Barcode,
+            request.Tags ?? part.Tags,
+            request.ProductType,
+            request.IsPerishable,
+            request.WeightKg ?? part.WeightKg,
+            request.TaxCode ?? part.TaxCode,
+            request.OemNumber ?? part.OemNumber,
+            request.LocalName ?? part.LocalName);
+
+        if (request.PartNumber is not null)
+        {
+            part.SetPartNumber(string.IsNullOrWhiteSpace(request.PartNumber)
+                ? null
+                : PartNumber.Create(request.PartNumber));
+        }
         part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
         await _productRepository.UpdateAsync(part, cancellationToken);

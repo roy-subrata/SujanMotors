@@ -55,7 +55,7 @@ public class StockLotMovementController : ControllerBase
         try
         {
             var movements = await _repository.GetByStockLotAsync(stockLotId, cancellationToken);
-            var responses = await Task.WhenAll(movements.Select(MapResponse));
+            var responses = await MapResponses(movements);
             return Ok(responses);
         }
         catch (Exception ex)
@@ -115,7 +115,7 @@ public class StockLotMovementController : ControllerBase
         try
         {
             var movements = await _repository.GetByMovementTypeAsync(movementType, cancellationToken);
-            var responses = await Task.WhenAll(movements.Select(MapResponse));
+            var responses = await MapResponses(movements);
             return Ok(responses);
         }
         catch (Exception ex)
@@ -131,7 +131,7 @@ public class StockLotMovementController : ControllerBase
         try
         {
             var movements = await _repository.GetByDateRangeAsync(startDate, endDate, cancellationToken);
-            var responses = await Task.WhenAll(movements.Select(MapResponse));
+            var responses = await MapResponses(movements);
             return Ok(responses);
         }
         catch (Exception ex)
@@ -147,7 +147,7 @@ public class StockLotMovementController : ControllerBase
         try
         {
             var movements = await _repository.GetSalesMovementsAsync(stockLotId, cancellationToken);
-            var responses = await Task.WhenAll(movements.Select(MapResponse));
+            var responses = await MapResponses(movements);
             return Ok(responses);
         }
         catch (Exception ex)
@@ -277,14 +277,42 @@ public class StockLotMovementController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Maps a list without re-entering the DbContext per row.
+    ///
+    /// The previous form was Task.WhenAll(movements.Select(MapResponse)), which fired one lot
+    /// lookup per movement *concurrently* on the scoped DbContext — EF rejects that with
+    /// "A second operation was started on this context instance", so both list endpoints 500'd on
+    /// any non-empty result. Resolving the distinct lots once also removes the N+1.
+    /// </summary>
+    private async Task<List<StockLotMovementResponse>> MapResponses(
+        IEnumerable<StockLotMovement> movements, CancellationToken cancellationToken = default)
+    {
+        var list = movements.ToList();
+        var lotNumbers = new Dictionary<Guid, string>();
+
+        foreach (var lotId in list.Select(m => m.StockLotId).Distinct())
+        {
+            var lot = await _lotRepository.GetByIdAsync(lotId, cancellationToken);
+            if (lot is not null) lotNumbers[lotId] = lot.LotNumber;
+        }
+
+        return list.Select(m => MapResponse(m, lotNumbers.GetValueOrDefault(m.StockLotId, ""))).ToList();
+    }
+
     private async Task<StockLotMovementResponse> MapResponse(StockLotMovement movement)
     {
         var lot = await _lotRepository.GetByIdAsync(movement.StockLotId);
+        return MapResponse(movement, lot?.LotNumber ?? "");
+    }
+
+    private static StockLotMovementResponse MapResponse(StockLotMovement movement, string lotNumber)
+    {
         return new StockLotMovementResponse
         {
             Id = movement.Id,
             StockLotId = movement.StockLotId,
-            LotNumber = lot?.LotNumber ?? "",
+            LotNumber = lotNumber,
             Quantity = movement.Quantity,
             QuantityInBaseUnit = movement.QuantityInBaseUnit,
             UnitId = movement.UnitId,
