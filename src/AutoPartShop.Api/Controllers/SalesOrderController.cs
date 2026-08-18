@@ -1667,14 +1667,20 @@ public class SalesOrderController : ControllerBase
                     var stockDeductedStatuses = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.PAID, SalesOrderStatus.PACKED, SalesOrderStatus.SHIPPED, SalesOrderStatus.DELIVERED, SalesOrderStatus.COMPLETED };
                     if (salesOrder is not null && stockDeductedStatuses.Contains(salesOrder.Status))
                     {
+                        // Stock leaves by two routes and they reference the movement differently:
+                        // the sales-order flow tags each movement with its SalesOrderLine, while a
+                        // quick sale tags them "QuickSale" against the order id. Matching only the
+                        // first meant cancelling a POS invoice restored nothing — and quick sales
+                        // are exactly the DELIVERED/COMPLETED orders this block now covers.
                         var lineIds = salesOrder.LineItems.Select(l => (Guid?)l.Id).ToList();
+                        var orderId = (Guid?)salesOrder.Id;
                         var lotMovements = await _dbContext.StockLotMovements
                             .Include(m => m.StockLot)
                             .Where(m => m.MovementType == "SALE"
-                                     && m.ReferenceType == "SalesOrderLine"
                                      && m.ReferenceId != null
-                                     && lineIds.Contains(m.ReferenceId)
-                                     && !m.Isdeleted)
+                                     && !m.Isdeleted
+                                     && ((m.ReferenceType == "SalesOrderLine" && lineIds.Contains(m.ReferenceId))
+                                         || (m.ReferenceType == "QuickSale" && m.ReferenceId == orderId)))
                             .ToListAsync(cancellationToken);
 
                         var levelRestores = new Dictionary<(Guid PartId, Guid? VariantId, Guid WarehouseId), int>();
