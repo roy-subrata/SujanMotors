@@ -113,6 +113,10 @@ public class PaymentProvider : AuditableEntity
         IsDefault = isDefault;
     }
 
+    public void SetProviderName(string name) => ProviderName = name?.Trim() ?? string.Empty;
+
+    public void SetProviderType(string type) => ProviderType = type?.Trim().ToUpper() ?? string.Empty;
+
     public void Activate()
     {
         Status = PaymentProviderStatus.ACTIVE;

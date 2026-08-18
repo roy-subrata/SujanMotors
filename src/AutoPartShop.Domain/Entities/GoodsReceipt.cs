@@ -40,6 +40,19 @@ public class GoodsReceipt : AuditableEntity
 
     private GoodsReceipt() { }
 
+    /// <summary>
+    /// Assigns the sequential GRN number once the receipt has passed validation. The controller
+    /// builds the receipt and its lines first and only then allocates a number, so a rejected
+    /// receipt does not consume one — GRN numbers are expected to be gapless.
+    /// </summary>
+    public void AssignGRNNumber(string grnNumber)
+    {
+        if (string.IsNullOrWhiteSpace(grnNumber))
+            throw new ArgumentException("GRNNumber cannot be empty", nameof(grnNumber));
+
+        GRNNumber = grnNumber.Trim().ToUpper();
+    }
+
     public static GoodsReceipt Create(string grnNumber, Guid purchaseOrderId, Guid warehouseId,
         DateTime? receiptDate = null, string notes = "")
     {

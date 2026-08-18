@@ -107,7 +107,8 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                 DiscountType = po.DiscountType,
                 GrandTotal = po.TotalAmount,
                 AmountPaid = po.PaidAmount,
-                OutstandingAmount = po.TotalAmount - po.PaidAmount,
+                OutstandingAmount = po.TotalAmount - po.PaidAmount - po.CreditAppliedAmount,
+                 CreditAppliedAmount = po.CreditAppliedAmount,
                 IsOverdue = DateTime.UtcNow > po.ExpectedDeliveryDate && po.Status != PurchaseOrderStatus.DELIVERED && po.Status != PurchaseOrderStatus.CANCELLED,
                 Notes = po.Notes,
                 Lines = po.LineItems.Select(l => new PurchaseOrderLineResponse
@@ -173,7 +174,8 @@ public class PurchaseOrderReadRepository(AutoPartDbContext _dbContext) : IPurcha
                  GrandTotal = po.TotalAmount,
                  Currency = po.Currency,
                  AmountPaid = po.PaidAmount,
-                 OutstandingAmount = po.TotalAmount - po.PaidAmount,
+                 OutstandingAmount = po.TotalAmount - po.PaidAmount - po.CreditAppliedAmount,
+                 CreditAppliedAmount = po.CreditAppliedAmount,
                  IsOverdue = now > po.ExpectedDeliveryDate
                      && po.Status != PurchaseOrderStatus.DELIVERED
                      && po.Status != PurchaseOrderStatus.CANCELLED,

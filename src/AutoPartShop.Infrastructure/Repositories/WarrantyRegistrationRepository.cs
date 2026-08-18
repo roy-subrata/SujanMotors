@@ -9,23 +9,35 @@ public class WarrantyRegistrationRepository(AutoPartDbContext _db) : IWarrantyRe
 {
     public async Task<IEnumerable<WarrantyRegistration>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _db.WarrantyRegistrations
+        var list = await _db.WarrantyRegistrations
             .Where(w => !w.Isdeleted)
             .Include(w => w.Part)
             .Include(w => w.Customer)
             .Include(w => w.SalesOrder)
             .ToListAsync(cancellationToken);
+
+        await SweepExpiredStatusAsync(list, cancellationToken);
+        return list;
     }
 
     public async Task<WarrantyRegistration?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await _db.WarrantyRegistrations
+        var w = await _db.WarrantyRegistrations
             .Include(w => w.Part)
             .Include(w => w.Customer)
             .Include(w => w.SalesOrder)
             .Include(w => w.SalesOrderLine)
             .Include(w => w.Claims)
             .FirstOrDefaultAsync(w => w.Id == id && !w.Isdeleted, cancellationToken);
+
+        if (w is not null)
+        {
+            var previous = w.Status;
+            w.CheckAndUpdateExpiry();
+            if (w.Status != previous) await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return w;
     }
 
     public async Task AddAsync(WarrantyRegistration entity, CancellationToken cancellationToken = default)
@@ -98,12 +110,15 @@ public class WarrantyRegistrationRepository(AutoPartDbContext _db) : IWarrantyRe
 
     public async Task<IEnumerable<WarrantyRegistration>> GetActiveWarrantiesAsync(CancellationToken cancellationToken = default)
     {
-        return await _db.WarrantyRegistrations
+        var list = await _db.WarrantyRegistrations
             .Include(w => w.Part)
             .Include(w => w.Customer)
             .Where(w => w.Status == WarrantyRegistrationStatus.ACTIVE && !w.Isdeleted)
             .OrderBy(w => w.WarrantyExpiryDate)
             .ToListAsync(cancellationToken);
+
+        await SweepExpiredStatusAsync(list, cancellationToken);
+        return list.Where(w => w.Status == WarrantyRegistrationStatus.ACTIVE);
     }
 
     public async Task<IEnumerable<WarrantyRegistration>> GetExpiredWarrantiesAsync(CancellationToken cancellationToken = default)
@@ -210,5 +225,24 @@ public class WarrantyRegistrationRepository(AutoPartDbContext _db) : IWarrantyRe
         var normalizedNumber = warrantyNumber.ToUpper().Trim();
         return await _db.WarrantyRegistrations
             .AnyAsync(w => w.WarrantyNumber == normalizedNumber && !w.Isdeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Flips ACTIVE registrations whose expiry has passed to EXPIRED on read, so /active and
+    /// /expired stay truthful without waiting for someone to call check-expiry. Only saves when
+    /// a status actually changed — a plain list read must not write.
+    /// </summary>
+    private async Task SweepExpiredStatusAsync(List<WarrantyRegistration> warranties, CancellationToken cancellationToken)
+    {
+        var changed = false;
+        foreach (var w in warranties)
+        {
+            var previous = w.Status;
+            w.CheckAndUpdateExpiry();
+            if (w.Status != previous) changed = true;
+        }
+
+        if (changed)
+            await _db.SaveChangesAsync(cancellationToken);
     }
 }

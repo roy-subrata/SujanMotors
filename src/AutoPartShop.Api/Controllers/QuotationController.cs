@@ -56,8 +56,11 @@ public class QuotationController(
             var strategy = dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                var quotationNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("QUOTATION_NUMBER_PREFIX", "QT", cancellationToken), cancellationToken);
                 await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
+                var quotationNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("QUOTATION_NUMBER_PREFIX", "QT", cancellationToken), cancellationToken);
                 try
                 {
                     quotation = Quotation.Create(
@@ -214,7 +217,7 @@ public class QuotationController(
     /// </summary>
     [HttpPost("{id:guid}/convert")]
     [HasPermission(Permissions.SalesCreate)]
-    public async Task<IActionResult> ConvertToSalesOrder(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> ConvertToSalesOrder(Guid id, [FromBody] ConvertQuotationRequest request, CancellationToken cancellationToken)
     {
         var quotation = await quotationRepository.GetByIdAsync(id, cancellationToken);
         if (quotation is null) return NotFound(new { message = "Quotation not found" });
@@ -222,14 +225,27 @@ public class QuotationController(
         if (quotation.Status != QuotationStatus.ACCEPTED)
             return BadRequest(new { message = $"Only ACCEPTED quotations can be converted. Current: {quotation.Status}" });
 
+        // The converted order deducts stock at Confirm, so it needs a warehouse. Without this
+        // the conversion succeeds and the resulting order can never be confirmed.
+        if (request is null || request.WarehouseId == Guid.Empty)
+            return BadRequest(new { message = "WarehouseId is required" });
+
+        var warehouseExists = await dbContext.Warehouses
+            .AnyAsync(w => w.Id == request.WarehouseId && !w.Isdeleted, cancellationToken);
+        if (!warehouseExists)
+            return BadRequest(new { message = "Warehouse not found" });
+
         try
         {
             SalesOrder? order = null;
             var strategy = dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                var soNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
+                var soNumber = await codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 try
                 {
                     order = SalesOrder.Create(
@@ -238,6 +254,7 @@ public class QuotationController(
                         quotation.CustomerName,
                         quotation.CustomerEmail,
                         quotation.CustomerPhone,
+                        request.WarehouseId,
                         notes: $"Converted from quotation {quotation.QuotationNumber}.",
                         currency: quotation.Currency);
 

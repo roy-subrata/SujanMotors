@@ -18,6 +18,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
 import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-purchase-returns',
@@ -38,13 +40,16 @@ import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dia
     PageHeaderComponent,
     FilterBarComponent,
     StatusPillFilterComponent,
-    MoreFiltersDialogComponent
-  ],
+    MoreFiltersDialogComponent,
+    TranslatePipe
+],
   providers: [MessageService, ConfirmationService],
   templateUrl: './purchase-returns.component.html',
   styleUrls: ['./purchase-returns.component.css']
 })
 export class PurchaseReturnsComponent implements OnInit {
+  private readonly i18n = inject(I18nService);
+
   private readonly prService = inject(PurchaseReturnService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);

@@ -70,9 +70,14 @@ public class AuthController : ControllerBase
             var user = await _userManager.FindByNameAsync(request.Username)
                       ?? await _userManager.FindByEmailAsync(request.Username);
 
+            // One message for every failure mode below, so a caller cannot tell an unknown
+            // username from a known one with the wrong password. Distinct wording used to make
+            // /login a working account-enumeration oracle.
+            const string InvalidCredentials = "Invalid credentials";
+
             if (user == null || !user.IsActive)
             {
-                return Unauthorized(ApiError.Unauthorized("Invalid credentials or account is inactive", Request.Path));
+                return Unauthorized(ApiError.Unauthorized(InvalidCredentials, Request.Path));
             }
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
@@ -81,9 +86,23 @@ public class AuthController : ControllerBase
             {
                 if (result.IsLockedOut)
                 {
-                    return Unauthorized(ApiError.Unauthorized("Account is locked. Please try again later.", Request.Path));
+                    // 429 rather than 401: the credentials are not the problem, the attempt rate
+                    // is, and this response carries a Retry-After the client can act on. Lockout
+                    // is the one case that necessarily reveals the account exists — the message
+                    // has to tell the user to wait rather than keep guessing.
+                    var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+                    if (lockoutEnd.HasValue)
+                    {
+                        var retryAfter = (int)Math.Ceiling((lockoutEnd.Value - DateTimeOffset.UtcNow).TotalSeconds);
+                        if (retryAfter > 0)
+                            Response.Headers.RetryAfter = retryAfter.ToString();
+                    }
+
+                    return StatusCode(
+                        StatusCodes.Status429TooManyRequests,
+                        ApiError.TooManyRequests("Account is locked after too many failed sign-in attempts. Please try again later.", Request.Path));
                 }
-                return Unauthorized(ApiError.Unauthorized("Invalid credentials", Request.Path));
+                return Unauthorized(ApiError.Unauthorized(InvalidCredentials, Request.Path));
             }
 
             // Update last login

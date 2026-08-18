@@ -101,10 +101,7 @@ public class WarrantyClaim : AuditableEntity
 
     public void Reject(string rejectionReason, string rejectedBy)
     {
-        if (Status == WarrantyClaimStatus.REJECTED)
-            throw new InvalidOperationException("Claim is already rejected");
-
-        if (Status == WarrantyClaimStatus.IN_PROGRESS || Status == WarrantyClaimStatus.COMPLETED || Status == WarrantyClaimStatus.CLOSED)
+        if (Status is not (WarrantyClaimStatus.PENDING or WarrantyClaimStatus.UNDER_REVIEW))
             throw new InvalidOperationException($"Cannot reject. Current status: {Status}");
 
         if (string.IsNullOrWhiteSpace(rejectionReason))

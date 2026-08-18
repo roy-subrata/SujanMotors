@@ -111,5 +111,13 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                 })
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<Dictionary<Guid, string>> GetShiftNamesAsync(IEnumerable<Guid> shiftIds, CancellationToken cancellationToken)
+        {
+            return await _dbContext.Shifts
+                .Where(s => shiftIds.Contains(s.Id))
+                .Select(s => new { s.Id, s.Name })
+                .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
+        }
     }
 }

@@ -315,27 +315,49 @@ public class CustomerCreditNoteController : ControllerBase
                     remainingAvailableBeforeApply = creditNote.AvailableAmount;
                     creditNote.ApplyToInvoice(request.InvoiceId, request.SalesOrderId, request.AmountToApply);
 
+                    // CreateFromAdvance must NOT be used here: SourceAdvancePaymentId is a self-FK
+                    // to CustomerPayments.Id, so writing a CreditNote id into it violates
+                    // FK_CustomerPayments_CustomerPayments_SourceAdvancePaymentId and the whole
+                    // apply fails after the note has already been consumed. The settlement is a
+                    // payment in its own right, identified by the CREDIT_NOTE method.
                     var defaultProvider = await _dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
-                    if (defaultProvider != null)
-                    {
-                        var customerPayment = CustomerPayment.CreateFromAdvance(
-                            customerId: creditNote.CustomerId,
-                            invoiceId: request.InvoiceId,
-                            sourceAdvancePaymentId: creditNote.Id,
-                            paymentProviderId: defaultProvider.Id,
-                            amount: request.AmountToApply,
-                            description: $"Applied credit note {creditNote.CreditNoteNumber} to invoice",
-                            currency: creditNote.Currency
-                        );
-                        var creditApplyFx = await _currencyConversionService.ConvertToBaseWithRateAsync(customerPayment.Amount, customerPayment.Currency, customerPayment.PaymentDate, cancellationToken);
-                        customerPayment.SetFxBaseAmount(creditApplyFx.BaseAmount, creditApplyFx.RateToBase);
-                        customerPayment.CreatedBy = _currentUserService.GetCurrentUsername();
-                        customerPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
-                        _dbContext.CustomerPayments.Add(customerPayment);
-                    }
+                    var currentUser = _currentUserService.GetCurrentUsername();
+                    var customerPayment = CustomerPayment.Create(
+                        customerId: creditNote.CustomerId,
+                        paymentProviderId: defaultProvider?.Id,
+                        amount: request.AmountToApply,
+                        paymentMethod: "CREDIT_NOTE",
+                        transactionNumber: $"CN-{creditNote.CreditNoteNumber}-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+                        referenceNumber: creditNote.CreditNoteNumber,
+                        paymentDate: DateTime.UtcNow,
+                        currency: creditNote.Currency
+                    );
+                    customerPayment.LinkToInvoice(request.InvoiceId);
+                    customerPayment.MarkAsSettled(currentUser);
+                    var creditApplyFx = await _currencyConversionService.ConvertToBaseWithRateAsync(customerPayment.Amount, customerPayment.Currency, customerPayment.PaymentDate, cancellationToken);
+                    customerPayment.SetFxBaseAmount(creditApplyFx.BaseAmount, creditApplyFx.RateToBase);
+                    customerPayment.CreatedBy = currentUser;
+                    customerPayment.ModifiedBy = currentUser;
+                    _dbContext.CustomerPayments.Add(customerPayment);
+
+                    // Keep the invoice's computed AmountPaid in sync in-memory: the navigation was
+                    // eagerly loaded, and UpdatePaymentStatus() below sums it.
+                    invoice.CustomerPayments.Add(customerPayment);
 
                     salesOrder.RecordPayment(request.AmountToApply);
                     salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    // Update customer balance to reflect the credit note payment
+                    var customerForBalance = await _dbContext.Customers
+                        .FirstOrDefaultAsync(c => c.Id == creditNote.CustomerId && !c.Isdeleted, cancellationToken);
+                    if (customerForBalance != null)
+                    {
+                        var creditApplyBalanceFx = await _currencyConversionService.ConvertToBaseWithRateAsync(
+                            request.AmountToApply, creditNote.Currency, DateTime.UtcNow, cancellationToken);
+                        customerForBalance.UpdateBalance(-creditApplyBalanceFx.BaseAmount);
+                        customerForBalance.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        _dbContext.Customers.Update(customerForBalance);
+                    }
 
                     invoice.UpdatePaymentStatus();
                     invoice.ModifiedBy = _currentUserService.GetCurrentUsername();

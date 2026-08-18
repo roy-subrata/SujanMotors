@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, DestroyRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,7 @@ import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
 import { QuotationService, QuotationResponse } from '../../services/quotation.service';
+import { ConvertQuotationDialogComponent } from '../convert-quotation-dialog.component';
 import { QuotationStatus } from '@/shared/models/status.types';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -56,6 +57,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         DataPaginationComponent,
         StatusPillFilterComponent,
         MoreFiltersDialogComponent,
+        ConvertQuotationDialogComponent,
         TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
@@ -347,29 +349,43 @@ export class QuotationsListComponent implements OnInit {
         });
     }
 
+    /**
+     * Opens the warehouse picker rather than converting straight away: the API needs a warehouse
+     * for the new order, and one created without it can never be confirmed.
+     */
+    /** Quotation awaiting a warehouse choice before it is converted. */
+    quotationToConvert = signal<QuotationResponse | null>(null);
+    convertDialogVisible = signal(false);
+    converting = signal(false);
+
     convertQuotation(quotation: QuotationResponse): void {
-        this.confirmationService.confirm({
-            message: `Convert quotation ${quotation.quotationNumber} into a new Sales Order?`,
-            header: 'Convert to Sales Order',
-            icon: 'pi pi-arrow-right-arrow-left',
-            acceptButtonStyleClass: 'p-button-success',
-            accept: () => {
-                this.quotationService.convertToSalesOrder(quotation.id).subscribe({
-                    next: (result) => {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: this.i18n.t('common.messages.success'),
-                            detail: `Converted to Sales Order ${result.soNumber}.`
-                        });
-                        this.loadData();
-                    },
-                    error: (err) => {
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: this.i18n.t('common.messages.error'),
-                            detail: err?.error?.message ?? 'Failed to convert quotation.'
-                        });
-                    }
+        this.quotationToConvert.set(quotation);
+        this.convertDialogVisible.set(true);
+    }
+
+    onConvertConfirmed(warehouseId: string): void {
+        const quotation = this.quotationToConvert();
+        if (!quotation) return;
+
+        this.converting.set(true);
+        this.quotationService.convertToSalesOrder(quotation.id, warehouseId).subscribe({
+            next: (result) => {
+                this.converting.set(false);
+                this.convertDialogVisible.set(false);
+                this.quotationToConvert.set(null);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: `Converted to Sales Order ${result.soNumber}.`
+                });
+                this.loadData();
+            },
+            error: (err) => {
+                this.converting.set(false);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: err?.error?.message ?? 'Failed to convert quotation.'
                 });
             }
         });

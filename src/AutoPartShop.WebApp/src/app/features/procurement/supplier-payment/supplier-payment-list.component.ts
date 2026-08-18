@@ -25,6 +25,7 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
 import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-supplier-payment-list',
@@ -32,7 +33,9 @@ import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dia
     imports: [CommonModule, FormsModule, RouterModule, ButtonModule, TableModule, InputTextModule,
               ToastModule, ConfirmDialogModule, TagModule, ContextMenuModule, DatePicker,
               TooltipModule, StatusBadgeComponent, PageContainerComponent, PageHeaderComponent,
-              FilterBarComponent, DataPaginationComponent, StatusPillFilterComponent, MoreFiltersDialogComponent],
+              FilterBarComponent, DataPaginationComponent, StatusPillFilterComponent, MoreFiltersDialogComponent,
+              TranslatePipe
+          ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './supplier-payment-list.component.html',
     styleUrls: ['./supplier-payment-list.component.css']

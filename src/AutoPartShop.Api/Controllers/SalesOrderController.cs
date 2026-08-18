@@ -137,13 +137,13 @@ public class SalesOrderController : ControllerBase
     public async Task<IActionResult> GetList(SaleOrderQuery query, CancellationToken cancellationToken = default)
     {
         if (query is null)
-            return BadRequest("Request body is required.");
+            return BadRequest(new { message = "Request body is required." });
 
         if (query.PageNumber < 1)
-            return BadRequest("PageNumber must be greater than 0.");
+            return BadRequest(new { message = "PageNumber must be greater than 0." });
 
         if (query.PageSize < 1)
-            return BadRequest("PageSize must be greater than 0.");
+            return BadRequest(new { message = "PageSize must be greater than 0." });
 
         try
         {
@@ -333,8 +333,11 @@ public class SalesOrderController : ControllerBase
             var createStrategy = _dbContext.Database.CreateExecutionStrategy();
             await createStrategy.ExecuteAsync(async () =>
             {
-                var soNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
+                var soNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 try
                 {
                     order = SalesOrder.Create(
@@ -450,36 +453,21 @@ public class SalesOrderController : ControllerBase
 
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-                var updated = await _dbContext.Set<SalesOrder>()
-                    .Where(so => so.Id == order.Id && !so.Isdeleted)
-                    .ExecuteUpdateAsync(setters => setters
-                        .SetProperty(so => so.CustomerId, request.CustomerId)
-                        .SetProperty(so => so.CustomerName, request.CustomerName)
-                        .SetProperty(so => so.CustomerEmail, request.CustomerEmail)
-                        .SetProperty(so => so.CustomerPhone, request.CustomerPhone)
-                        .SetProperty(so => so.WarehouseId, request.WarehouseId)
-                        .SetProperty(so => so.DeliveryAddress, request.CustomerCity)
-                        .SetProperty(so => so.TechnicianId, request.TechnicianId)
-                        .SetProperty(so => so.TechnicianName, request.TechnicianName)
-                        .SetProperty(so => so.DeliveryDate, request.DeliveryDate)
-                        .SetProperty(so => so.Notes, request.Notes)
-                        .SetProperty(so => so.Currency, request.Currency)
-                        .SetProperty(so => so.SubTotal, subtotal)
-                        .SetProperty(so => so.DiscountPercentage, discountPercentage)
-                        .SetProperty(so => so.DiscountAmount, discountAmount)
-                        .SetProperty(so => so.TotalAmount, totalAmount)
-                        .SetProperty(so => so.TaxAmount, order.TaxAmount)
-                        .SetProperty(so => so.BaseGrandTotal, fx.BaseAmount)
-                        .SetProperty(so => so.FxRateToBase, fx.RateToBase)
-                        .SetProperty(so => so.ModifiedBy, _currentUserService.GetCurrentUsername())
-                        .SetProperty(so => so.ModifiedDate, DateTime.UtcNow),
-                        cancellationToken);
+                // Update the tracked entity using its domain methods instead of
+                // ExecuteUpdateAsync, which bypasses change tracking and causes RowVersion conflicts.
+                order.UpdateCustomer(request.CustomerId, request.CustomerName, request.CustomerEmail,
+                    request.CustomerPhone, request.CustomerCity);
+                order.UpdateWarehouse(request.WarehouseId);
+                order.SetTechnician(request.TechnicianId, request.TechnicianName);
+                order.UpdateDeliveryDate(request.DeliveryDate);
+                order.UpdateNotes(request.Notes);
+                order.UpdateCurrency(request.Currency);
+                order.UpdateFinancials(subtotal, discountPercentage, discountAmount, totalAmount, order.TaxAmount);
+                order.SetFxBaseAmount(fx.BaseAmount, fx.RateToBase);
+                order.ModifiedBy = _currentUserService.GetCurrentUsername();
+                order.ModifiedDate = DateTime.UtcNow;
 
-                if (updated == 0)
-                {
-                    await tx.RollbackAsync(cancellationToken);
-                    throw new DbUpdateConcurrencyException("Sales order update affected 0 rows.");
-                }
+                await _salesOrderRepository.UpdateAsync(order, cancellationToken);
 
                 await _dbContext.Set<SalesOrderLine>()
                     .Where(l => l.SalesOrderId == order.Id)
@@ -790,22 +778,7 @@ public class SalesOrderController : ControllerBase
                     order.Confirm();
                     order.ModifiedBy = _currentUserService.GetCurrentUsername();
 
-                    // Atomic status transition â€” WHERE Status IN ('PENDING','DRAFT') prevents double-confirm.
-                    var rowsUpdated = await _dbContext.Set<SalesOrder>()
-                        .Where(so => so.Id == order.Id
-                                  && (so.Status == SalesOrderStatus.PENDING || so.Status == SalesOrderStatus.DRAFT)
-                                  && !so.Isdeleted)
-                        .ExecuteUpdateAsync(setters => setters
-                            .SetProperty(so => so.Status, order.Status)
-                            .SetProperty(so => so.ConfirmedDate, order.ConfirmedDate)
-                            .SetProperty(so => so.ModifiedBy, order.ModifiedBy)
-                            .SetProperty(so => so.ModifiedDate, DateTime.UtcNow),
-                            cancellationToken);
-
-                    if (rowsUpdated == 0)
-                        throw new InvalidOperationException("Sales order has already been confirmed or no longer exists.");
-
-                    // â”€â”€ Auto-create a DRAFT invoice (mandatory at Confirm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // â"€â"€ Auto-create a DRAFT invoice (mandatory at Confirm) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
                     // AnyAsync check is a first guard; the DB-level unique filtered index on
                     // (SalesOrderId) WHERE Isdeleted=0 is the hard safety net against races.
                     var existingInvoiceCheck = await _dbContext.Invoices
@@ -1530,9 +1503,11 @@ public class SalesOrderController : ControllerBase
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                // Fix #5: generate inside the lambda so retries get a fresh unique code
-                var transactionNumber = await _codeGenerateService.GenerateAsync("TXN", cancellationToken);
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
+                var transactionNumber = await _codeGenerateService.GenerateAsync("TXN", cancellationToken);
                 try
                 {
                     payment = CustomerPayment.Create(
@@ -1686,6 +1661,77 @@ public class SalesOrderController : ControllerBase
                         payment.ModifiedBy = _currentUserService.GetCurrentUsername();
                     }
 
+                    // Restore stock that was deducted when the sales order was confirmed. DELIVERED
+                    // and COMPLETED belong here too — a quick sale goes straight to DELIVERED, so
+                    // omitting them meant cancelling a POS invoice silently destroyed the stock.
+                    var stockDeductedStatuses = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.PAID, SalesOrderStatus.PACKED, SalesOrderStatus.SHIPPED, SalesOrderStatus.DELIVERED, SalesOrderStatus.COMPLETED };
+                    if (salesOrder is not null && stockDeductedStatuses.Contains(salesOrder.Status))
+                    {
+                        // Stock leaves by two routes and they reference the movement differently:
+                        // the sales-order flow tags each movement with its SalesOrderLine, while a
+                        // quick sale tags them "QuickSale" against the order id. Matching only the
+                        // first meant cancelling a POS invoice restored nothing — and quick sales
+                        // are exactly the DELIVERED/COMPLETED orders this block now covers.
+                        var lineIds = salesOrder.LineItems.Select(l => (Guid?)l.Id).ToList();
+                        var orderId = (Guid?)salesOrder.Id;
+                        var lotMovements = await _dbContext.StockLotMovements
+                            .Include(m => m.StockLot)
+                            .Where(m => m.MovementType == "SALE"
+                                     && m.ReferenceId != null
+                                     && !m.Isdeleted
+                                     && ((m.ReferenceType == "SalesOrderLine" && lineIds.Contains(m.ReferenceId))
+                                         || (m.ReferenceType == "QuickSale" && m.ReferenceId == orderId)))
+                            .ToListAsync(cancellationToken);
+
+                        var levelRestores = new Dictionary<(Guid PartId, Guid? VariantId, Guid WarehouseId), int>();
+                        foreach (var lm in lotMovements)
+                        {
+                            if (lm.StockLot is null) continue;
+                            lm.StockLot.AddStock(lm.Quantity, lm.Quantity, $"Invoice cancellation {invoice.InvoiceNumber}");
+                            lm.StockLot.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                            var reversalLotMovement = StockLotMovement.Create(
+                                lm.StockLot.Id,
+                                lm.Quantity,
+                                "RETURN",
+                                lm.ReferenceId,
+                                lm.ReferenceType,
+                                DateTime.UtcNow,
+                                lm.CostAtMovement,
+                                $"Invoice cancellation {invoice.InvoiceNumber}",
+                                "",
+                                lm.StockLot.UnitId,
+                                lm.Quantity,
+                                lm.CostAtMovementInBaseUnit > 0 ? lm.CostAtMovementInBaseUnit : lm.CostAtMovement);
+                            reversalLotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
+                            reversalLotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _dbContext.StockLotMovements.AddAsync(reversalLotMovement, cancellationToken);
+
+                            var key = (lm.StockLot.PartId, lm.StockLot.VariantId, lm.StockLot.WarehouseId);
+                            levelRestores[key] = levelRestores.GetValueOrDefault(key) + lm.Quantity;
+                        }
+
+                        foreach (var (key, restoreQty) in levelRestores)
+                        {
+                            var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                                key.PartId, key.VariantId, key.WarehouseId, cancellationToken);
+                            if (stockLevel is null) continue;
+
+                            stockLevel.AddStock(restoreQty, restoreQty, $"Invoice cancellation {invoice.InvoiceNumber}");
+                            stockLevel.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+
+                            var reversal = StockMovement.Create(
+                                stockLevel.Id, "IN", restoreQty,
+                                $"Invoice Cancellation {invoice.InvoiceNumber}", invoice.InvoiceNumber,
+                                unitId: stockLevel.UnitId, quantityInBaseUnit: restoreQty);
+                            reversal.Approve(_currentUserService.GetCurrentUsername());
+                            reversal.CreatedBy = _currentUserService.GetCurrentUsername();
+                            reversal.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _dbContext.StockMovements.AddAsync(reversal, cancellationToken);
+                        }
+                    }
+
                     invoice.Cancel(reason);
                     invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -1702,6 +1748,25 @@ public class SalesOrderController : ControllerBase
                     }
 
                     await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+
+                    // With its last live invoice gone and the stock back on the shelf, the order is
+                    // not a fulfilled sale any more. Leaving it DELIVERED kept its outstanding
+                    // amount on the books as a receivable the ledger had already dropped.
+                    if (salesOrder is not null && salesOrder.Status is not (SalesOrderStatus.CANCELLED or SalesOrderStatus.RETURNED))
+                    {
+                        var hasOtherLiveInvoice = await _dbContext.Invoices
+                            .AnyAsync(i => i.SalesOrderId == salesOrder.Id
+                                        && i.Id != invoice.Id
+                                        && i.Status != InvoiceStatus.CANCELLED
+                                        && !i.Isdeleted, cancellationToken);
+
+                        if (!hasOtherLiveInvoice)
+                        {
+                            salesOrder.CancelFromInvoiceCancellation();
+                            salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                            await _salesOrderRepository.UpdateAsync(salesOrder, cancellationToken);
+                        }
+                    }
 
                     await tx.CommitAsync(cancellationToken);
                 }
@@ -1967,7 +2032,11 @@ public class SalesOrderController : ControllerBase
             Channel = order.Channel,
             SubTotal = order.SubTotal,
             TaxAmount = order.TaxAmount,
-            Discount = order.DiscountPercentage,
+            // Report the discount in money so the header foots regardless of how it was entered:
+            // a percentage discount is already materialised into DiscountAmount by CalculateTotal.
+            Discount = order.DiscountAmount,
+            DiscountPercentage = order.DiscountPercentage,
+            DiscountAmount = order.DiscountAmount,
             GrandTotal = order.GrandTotal,
             Currency = order.Currency,
             AmountPaid = order.PaidAmount,
@@ -2032,6 +2101,9 @@ public class SalesOrderController : ControllerBase
         }
 
         // Price resolution: manual entry â†’ variant price â†’ product base price â†’ error
+        if (lineRequest.UnitPrice < 0)
+            throw new ArgumentException($"Unit price cannot be negative (got {lineRequest.UnitPrice}).", nameof(lineRequest));
+
         var unitPrice = lineRequest.UnitPrice > 0
             ? lineRequest.UnitPrice
             : (variant?.SellingPrice > 0 ? variant.SellingPrice : part.SellingPrice);
@@ -2048,7 +2120,10 @@ public class SalesOrderController : ControllerBase
 
         _pricingValidationService.ValidateLinePricing(part, baseUnitPrice, lineRequest.Discount);
 
-        var discountPerUnit = unitPrice * (lineRequest.Discount / 100);
+        // Round to the currency's smallest unit here rather than leaving sub-paisa precision on the
+        // line: TotalPrice multiplies it back up by quantity, so an unrounded 3.333 makes the order
+        // subtotal (89.99) disagree with the line the customer sees on the printed invoice (90.00).
+        var discountPerUnit = Math.Round(unitPrice * (lineRequest.Discount / 100), 2, MidpointRounding.AwayFromZero);
 
         return SalesOrderLine.Create(
             order.Id,
@@ -2165,8 +2240,11 @@ public class SalesOrderController : ControllerBase
             if (request.Items == null || !request.Items.Any())
                 return BadRequest(new { message = "At least one item is required" });
 
-            if (request.GrandTotal <= 0)
-                return BadRequest(new { message = "Grand total must be greater than 0" });
+            // Zero is legitimate — a goodwill gesture or a warranty replacement is rung up at a
+            // 100% discount and still has to move stock and produce a receipt. Only negative
+            // totals are nonsense.
+            if (request.GrandTotal < 0)
+                return BadRequest(new { message = "Grand total cannot be negative" });
 
             if (request.DiscountAmount < 0)
                 return BadRequest(new { message = "Discount amount cannot be negative" });
@@ -2247,9 +2325,12 @@ public class SalesOrderController : ControllerBase
             var qsStrategy = _dbContext.Database.CreateExecutionStrategy();
             await qsStrategy.ExecuteAsync(async () =>
             {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                // Allocated inside the transaction: CodeGenerateService enlists in the ambient
+                // transaction, so a rejected create rolls the sequence back instead of burning
+                // a number. Fiscal documents are expected to be gapless.
                 soNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("SALES_ORDER_NUMBER_PREFIX", "SO", cancellationToken), cancellationToken);
                 invoiceNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("INVOICE_NUMBER_PREFIX", "INV", cancellationToken), cancellationToken);
-                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
                     salesOrder = SalesOrder.Create(
@@ -2284,6 +2365,9 @@ public class SalesOrderController : ControllerBase
                         if (part == null)
                             throw new ArgumentException($"Part with ID {item.PartId} not found");
 
+                        if (item.UnitPrice < 0)
+                            throw new ArgumentException($"Unit price cannot be negative (got {item.UnitPrice}).");
+
                         var itemUnitPrice = item.UnitPrice > 0 ? item.UnitPrice : part.SellingPrice;
                         if (itemUnitPrice <= 0)
                             throw new ArgumentException($"No selling price set for '{part.Name}'. Please set a selling price on the product.");
@@ -2297,7 +2381,7 @@ public class SalesOrderController : ControllerBase
 
                         _pricingValidationService.ValidateLinePricing(part, baseUnitPrice, item.Discount);
 
-                        var discountPerUnit = (itemUnitPrice * item.Discount) / 100;
+                        var discountPerUnit = Math.Round((itemUnitPrice * item.Discount) / 100, 2, MidpointRounding.AwayFromZero);
                         var salesOrderLine = SalesOrderLine.Create(
                             salesOrder.Id,
                             item.PartId,

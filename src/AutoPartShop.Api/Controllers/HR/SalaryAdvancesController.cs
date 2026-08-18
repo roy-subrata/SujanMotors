@@ -49,7 +49,7 @@ public class SalaryAdvancesController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
 
             var (advances, totalCount) = await _advanceReadRepository.FindAllQuery(query, cancellationToken);
@@ -63,14 +63,36 @@ public class SalaryAdvancesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Raises an advance request. Nothing is paid out and no cash-book expense is posted until the
+    /// request is approved — previously this endpoint handed over the money immediately, with no
+    /// authorisation gate and no ceiling on the amount.
+    /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Give(GiveAdvanceRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RequestAdvance(GiveAdvanceRequest request, CancellationToken cancellationToken)
     {
         try
         {
             var employee = await _employeeRepository.GetByIdAsync(request.EmployeeId, cancellationToken);
             if (employee is null)
                 return BadRequest(new { message = "Employee not found" });
+
+            if (employee.MonthlySalary <= 0)
+                return BadRequest(new { message = "This employee has no monthly salary set, so an advance cannot be recovered from payroll." });
+
+            // An advance is recovered out of future salary, so it cannot exceed what the employee
+            // will earn — counting anything already advanced and not yet recovered. Without this,
+            // 99999 was accepted against a monthly salary of 20000.
+            var outstanding = (await _advanceRepository.GetOutstandingByEmployeeAsync(request.EmployeeId, cancellationToken))
+                .Sum(a => a.RemainingAmount);
+            var headroom = employee.MonthlySalary - outstanding;
+
+            if (request.Amount > headroom)
+                return BadRequest(new
+                {
+                    message = $"An advance of {request.Amount:N2} exceeds the remaining limit of {headroom:N2} " +
+                              $"(monthly salary {employee.MonthlySalary:N2} less {outstanding:N2} already outstanding)."
+                });
 
             var advance = SalaryAdvance.Create(
                 request.EmployeeId,
@@ -83,18 +105,9 @@ public class SalaryAdvancesController : ControllerBase
             advance.CreatedBy = currentUser;
             advance.ModifiedBy = currentUser;
 
-            var expense = DailyExpense.Create(
-                request.AdvanceDate.Date,
-                "SALARY_ADVANCE",
-                request.Amount,
-                $"Salary advance to {employee.Name} ({employee.EmployeeCode})",
-                request.PaymentMethod);
-            expense.CreatedBy = currentUser;
-            expense.ModifiedBy = currentUser;
+            await _advanceRepository.RequestAsync(advance, cancellationToken);
 
-            await _advanceRepository.GiveAsync(advance, expense, cancellationToken);
-
-            return Ok(new { advance.Id });
+            return Ok(new { advance.Id, advance.Status });
         }
         catch (ArgumentException ex)
         {
@@ -102,7 +115,89 @@ public class SalaryAdvancesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error giving salary advance");
+            _logger.LogError(ex, "Error requesting salary advance");
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
+    /// <summary>
+    /// Authorises the payout: posts the SALARY_ADVANCE cash-book expense and moves the advance to
+    /// OUTSTANDING so payroll starts recovering it. This is where cash leaves the till.
+    /// </summary>
+    [HttpPatch("{id:guid}/approve")]
+    [Authorize(Roles = "Admin,Manager")]
+    public async Task<IActionResult> Approve(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var advance = await _advanceRepository.GetByIdAsync(id, cancellationToken);
+            if (advance is null) return NotFound();
+
+            var employee = await _employeeRepository.GetByIdAsync(advance.EmployeeId, cancellationToken);
+            if (employee is null)
+                return BadRequest(new { message = "Employee not found" });
+
+            var currentUser = _currentUserService.GetCurrentUsername();
+            advance.Approve(currentUser);
+            advance.ModifiedBy = currentUser;
+
+            var expense = DailyExpense.Create(
+                advance.AdvanceDate.Date,
+                "SALARY_ADVANCE",
+                advance.Amount,
+                $"Salary advance to {employee.Name} ({employee.EmployeeCode})",
+                advance.PaymentMethod);
+            expense.CreatedBy = currentUser;
+            expense.ModifiedBy = currentUser;
+
+            await _advanceRepository.ApproveAsync(advance, expense, cancellationToken);
+
+            return Ok(new { advance.Id, advance.Status });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving salary advance {AdvanceId}", id);
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
+    /// <summary>Declines a request. No expense was posted, so there is nothing to reverse.</summary>
+    [HttpPatch("{id:guid}/reject")]
+    [Authorize(Roles = "Admin,Manager")]
+    public async Task<IActionResult> Reject(Guid id, RejectAdvanceRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var advance = await _advanceRepository.GetByIdAsync(id, cancellationToken);
+            if (advance is null) return NotFound();
+
+            var currentUser = _currentUserService.GetCurrentUsername();
+            advance.Reject(currentUser, request?.Reason ?? string.Empty);
+            advance.ModifiedBy = currentUser;
+
+            await _advanceRepository.RejectAsync(advance, cancellationToken);
+
+            return Ok(new { advance.Id, advance.Status });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error rejecting salary advance {AdvanceId}", id);
             return StatusCode(500, "An error occurred");
         }
     }
@@ -117,8 +212,8 @@ public class SalaryAdvancesController : ControllerBase
             var advance = await _advanceRepository.GetByIdAsync(id, cancellationToken);
             if (advance is null) return NotFound();
 
-            if (advance.Status != SalaryAdvanceStatus.OUTSTANDING)
-                return BadRequest(new { message = "Only outstanding advances can be cancelled" });
+            if (advance.Status is not (SalaryAdvanceStatus.REQUESTED or SalaryAdvanceStatus.OUTSTANDING))
+                return BadRequest(new { message = "Only requested or outstanding advances can be cancelled" });
 
             advance.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _advanceRepository.CancelAsync(advance, cancellationToken);

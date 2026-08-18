@@ -50,7 +50,7 @@ public class LeaveRequestsController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
 
             var (requests, totalCount) = await _leaveRequestReadRepository.FindAllQuery(query, cancellationToken);

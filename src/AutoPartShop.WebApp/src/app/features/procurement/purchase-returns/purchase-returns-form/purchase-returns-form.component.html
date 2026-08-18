@@ -256,8 +256,8 @@
                       <div class="lot-option">
                         <div class="lot-main">
                           <span class="lot-number">{{ lot.lotNumber }}</span>
-                          <span class="lot-supplier" [class.same-supplier]="lot.isFromSameSupplier">
-                            {{ lot.isFromSameSupplier ? '✓ Same Supplier' : 'Other' }}
+                          <span class="lot-supplier" [class.same-supplier]="lot.isFromSameSupplier === true">
+                            {{ lot.isFromSameSupplier === null ? '—' : (lot.isFromSameSupplier ? '✓ Same Supplier' : 'Other') }}
                           </span>
                         </div>
                         <span class="lot-qty">Qty: {{ lot.quantityAvailable }}</span>

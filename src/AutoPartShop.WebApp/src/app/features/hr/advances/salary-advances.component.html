@@ -93,9 +93,13 @@
             </td>
             <td class="col-actions">
               <div class="action-cell">
-                <button *ngIf="advance.status === 'OUTSTANDING'" class="btn-action" pTooltip="Cancel advance"
+                <button *ngIf="advance.status === 'REQUESTED'" class="btn-action" pTooltip="Approve advance"
+                  (click)="approveAdvance(advance)"><i class="pi pi-check"></i></button>
+                <button *ngIf="advance.status === 'REQUESTED'" class="btn-action" pTooltip="Reject advance"
+                  (click)="rejectAdvance(advance)"><i class="pi pi-times"></i></button>
+                <button *ngIf="advance.status === 'REQUESTED' || advance.status === 'OUTSTANDING'" class="btn-action" pTooltip="Cancel advance"
                   (click)="cancelAdvance(advance)"><i class="pi pi-trash"></i></button>
-                <span *ngIf="advance.status !== 'OUTSTANDING'" class="text-muted">-</span>
+                <span *ngIf="advance.status === 'SETTLED' || advance.status === 'REJECTED'" class="text-muted">-</span>
               </div>
             </td>
           </tr>
@@ -163,7 +167,13 @@
           </div>
         </div>
 
-        <div class="card-footer" *ngIf="advance.status === 'OUTSTANDING'">
+        <div class="card-footer" *ngIf="advance.status === 'REQUESTED' || advance.status === 'OUTSTANDING'">
+          <button *ngIf="advance.status === 'REQUESTED'" class="btn-card-action" pTooltip="Approve advance" (click)="approveAdvance(advance)">
+            <i class="pi pi-check"></i> Approve
+          </button>
+          <button *ngIf="advance.status === 'REQUESTED'" class="btn-card-action" pTooltip="Reject advance" (click)="rejectAdvance(advance)">
+            <i class="pi pi-times"></i> Reject
+          </button>
           <button class="btn-card-action" pTooltip="Cancel advance" (click)="cancelAdvance(advance)">
             <i class="pi pi-trash"></i>
           </button>
@@ -224,5 +234,16 @@
   <ng-template pTemplate="footer">
     <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
     <button pButton [label]="saving ? 'Saving...' : 'Give Advance'" icon="pi pi-check" [loading]="saving" (click)="giveAdvance()"></button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="rejectDialogVisible" [modal]="true" [style]="{ width: '28rem' }" header="Reject Advance">
+  <div class="flex flex-col gap-2">
+    <label for="rejectReason" class="text-sm font-medium">Reason</label>
+    <input id="rejectReason" pInputText [(ngModel)]="rejectReason" placeholder="Why is this advance being declined?" class="w-full" />
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" class="p-button-outlined" (click)="rejectDialogVisible = false"></button>
+    <button pButton label="Reject" icon="pi pi-times" severity="danger" [disabled]="!rejectReason.trim()" (click)="confirmReject()"></button>
   </ng-template>
 </p-dialog>

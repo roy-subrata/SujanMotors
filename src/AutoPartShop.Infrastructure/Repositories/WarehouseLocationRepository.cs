@@ -39,6 +39,9 @@ public class WarehouseLocationRepository : IWarehouseLocationRepository
     public async Task<IEnumerable<WarehouseLocation>> GetByWarehouseAsync(Guid warehouseId, CancellationToken cancellationToken = default)
     {
         return await _db.WarehouseLocations
+            // Warehouse is included here as it is everywhere else in this repository: the response
+            // mapper reads Warehouse.Name/Code, so omitting it returned nulls for both.
+            .Include(x => x.Warehouse)
             .Include(x => x.Category)
             .Where(x => x.WarehouseId == warehouseId && !x.Isdeleted)
             .OrderBy(x => x.Zone)

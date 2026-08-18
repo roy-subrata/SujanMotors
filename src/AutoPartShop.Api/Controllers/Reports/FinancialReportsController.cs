@@ -26,11 +26,29 @@ public class FinancialReportsController(
     IShopClock shopClock,
     ILogger<FinancialReportsController> logger) : ReportsControllerBase(exportService, shopClock)
 {
+    /// <summary>
+    /// Aging is an as-of snapshot, not a period report — it buckets what is outstanding on a single
+    /// date. fromDate/toDate were accepted and silently discarded, so callers could not tell that
+    /// the range they passed had no effect on the numbers they got back.
+    /// </summary>
+    private IActionResult? RejectDateRange(ReportQuery query)
+    {
+        if (query.FromDate.HasValue || query.ToDate.HasValue)
+        {
+            return BadRequest(ApiError.Validation(
+                "Aging reports are an as-of snapshot and do not take a date range. Use asOfDate instead of fromDate/toDate."));
+        }
+
+        return null;
+    }
+
     /// <summary>Outstanding customer invoices bucketed by age (Current / 1-30 / 31-60 / 61-90 / 90+ days).</summary>
     [HttpPost("receivables-aging")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReportPage<ReceivablesAgingRowDto, AgingTotalsDto>))]
     public async Task<IActionResult> GetReceivablesAging([FromBody] ReportQuery query, CancellationToken cancellationToken)
     {
+        if (RejectDateRange(query) is { } rangeError) return rangeError;
+
         try
         {
             var page = await reportRepository.GetReceivablesAgingAsync(query, cancellationToken: cancellationToken);
@@ -53,6 +71,8 @@ public class FinancialReportsController(
     public async Task<IActionResult> ExportReceivablesAging(
         [FromBody] ReportQuery query, [FromQuery] string format = "xlsx", CancellationToken cancellationToken = default)
     {
+        if (RejectDateRange(query) is { } rangeError) return rangeError;
+
         try
         {
             var page = await reportRepository.GetReceivablesAgingAsync(query, ExportRowCap, cancellationToken);
@@ -74,6 +94,8 @@ public class FinancialReportsController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReportPage<PayablesAgingRowDto, AgingTotalsDto>))]
     public async Task<IActionResult> GetPayablesAging([FromBody] ReportQuery query, CancellationToken cancellationToken)
     {
+        if (RejectDateRange(query) is { } rangeError) return rangeError;
+
         try
         {
             var page = await reportRepository.GetPayablesAgingAsync(query, cancellationToken: cancellationToken);
@@ -96,6 +118,8 @@ public class FinancialReportsController(
     public async Task<IActionResult> ExportPayablesAging(
         [FromBody] ReportQuery query, [FromQuery] string format = "xlsx", CancellationToken cancellationToken = default)
     {
+        if (RejectDateRange(query) is { } rangeError) return rangeError;
+
         try
         {
             var page = await reportRepository.GetPayablesAgingAsync(query, ExportRowCap, cancellationToken);

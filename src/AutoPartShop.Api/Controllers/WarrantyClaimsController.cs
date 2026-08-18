@@ -292,6 +292,10 @@ public class WarrantyClaimsController : ControllerBase
             if (warranty == null)
                 return BadRequest(new { message = "Warranty registration not found" });
 
+            // Check expiry first for a specific message
+            if (warranty.WarrantyExpiryDate < DateTime.UtcNow)
+                return BadRequest(new { message = $"Warranty expired on {warranty.WarrantyExpiryDate:yyyy-MM-dd}. New claims are not allowed." });
+
             if (!warranty.IsValid())
                 return BadRequest(new { message = $"Warranty is not valid. Status: {warranty.Status}" });
 
@@ -300,6 +304,8 @@ public class WarrantyClaimsController : ControllerBase
 
             // Fix #1: use effectiveClaimDate for both expiry check and stored claim date
             var effectiveClaimDate = request.ClaimDate == default ? DateTime.UtcNow : request.ClaimDate;
+            if (effectiveClaimDate > DateTime.UtcNow)
+                return BadRequest(new { message = "Claim date cannot be in the future" });
             if (effectiveClaimDate > warranty.WarrantyExpiryDate)
                 return BadRequest(new
                 {

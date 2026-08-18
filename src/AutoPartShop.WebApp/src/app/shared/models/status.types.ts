@@ -163,4 +163,4 @@ export type AttendanceStatus = 'PRESENT' | 'LATE' | 'HALF_DAY' | 'ABSENT' | 'LEA
 export type PayrollRunStatus = 'DRAFT' | 'APPROVED' | 'PAID';
 
 /** `AutoPartShop.Domain.Enums.HR.SalaryAdvanceStatus` */
-export type SalaryAdvanceStatus = 'OUTSTANDING' | 'SETTLED';
+export type SalaryAdvanceStatus = 'REQUESTED' | 'OUTSTANDING' | 'SETTLED' | 'REJECTED';

@@ -42,6 +42,33 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
             ?? "system";
     }
 
+    /// <summary>
+    /// Caller IP for the audit trail. Prefers the left-most X-Forwarded-For entry because the API
+    /// runs behind a tunnel/proxy, where RemoteIpAddress is the proxy rather than the user.
+    /// Truncated to the column width (50) so an oversized header cannot fail the save.
+    /// </summary>
+    private string? ResolveClientIp()
+    {
+        var http = _httpContextAccessor?.HttpContext;
+        if (http is null) return null;
+
+        var forwarded = http.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        var ip = !string.IsNullOrWhiteSpace(forwarded)
+            ? forwarded.Split(',')[0].Trim()
+            : http.Connection.RemoteIpAddress?.ToString();
+
+        return Truncate(ip, 50);
+    }
+
+    private string? ResolveUserAgent()
+        => Truncate(_httpContextAccessor?.HttpContext?.Request.Headers["User-Agent"].FirstOrDefault(), 500);
+
+    private static string? Truncate(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return value.Length <= maxLength ? value : value[..maxLength];
+    }
+
     public DbSet<CodeSequence> CodeSequences { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Brand> Brands { get; set; }
@@ -224,6 +251,11 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
         var auditLogs = new List<AuditLog>();
         var currentUser = ResolveCurrentUser();
         var currentTime = DateTime.UtcNow;
+        // Resolved once per save rather than per row: every row of one SaveChanges comes from the
+        // same request. These were declared on the DTO but never populated, so "which machine did
+        // this?" could not be answered from the audit trail.
+        var currentIp = ResolveClientIp();
+        var currentUserAgent = ResolveUserAgent();
 
         // Track changes for audit logging
         var auditableEntries = ChangeTracker.Entries()
@@ -240,10 +272,20 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
 
             var entityName = entry.Entity.GetType().Name;
             var entityId = GetEntityId(entry);
+
+            // Almost nothing in this system hard-deletes; a delete flips Isdeleted, which EF sees
+            // as a plain Modified entry. Auditing that as UPDATE left Action=DELETE matching
+            // nothing, so "who deleted this?" was unanswerable for every soft-deleted entity.
+            var isSoftDelete = entry.State == EntityState.Modified
+                && entry.Entity is AuditableEntity
+                && entry.Properties.Any(pr => pr.IsModified
+                    && pr.Metadata.Name == nameof(AuditableEntity.Isdeleted)
+                    && Equals(pr.CurrentValue, true));
+
             var action = entry.State switch
             {
                 EntityState.Added => "INSERT",
-                EntityState.Modified => "UPDATE",
+                EntityState.Modified => isSoftDelete ? "DELETE" : "UPDATE",
                 EntityState.Deleted => "DELETE",
                 _ => "UNKNOWN"
             };
@@ -284,18 +326,25 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
                             OldValue = null,
                             NewValue = currentValue.ToString(),
                             PerformedBy = currentUser,
-                            PerformedAt = currentTime
+                            PerformedAt = currentTime,
+                            IpAddress = currentIp,
+                            UserAgent = currentUserAgent
                         });
                     }
                 }
             }
             else if (entry.State == EntityState.Modified)
             {
-                // For UPDATE, log only changed properties
+                // For UPDATE, log only changed properties. Repositories that call DbSet.Update()
+                // mark every property Modified regardless of whether the value moved, which buried
+                // the real change under rows reading CreatedBy 'admin' -> 'admin'.
                 foreach (var property in entry.Properties.Where(p => p.IsModified))
                 {
                     var oldValue = entry.OriginalValues[property.Metadata.Name];
                     var newValue = entry.CurrentValues[property.Metadata.Name];
+
+                    if (Equals(oldValue, newValue))
+                        continue;
 
                     auditLogs.Add(new AuditLog
                     {
@@ -307,7 +356,9 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
                         OldValue = oldValue?.ToString(),
                         NewValue = newValue?.ToString(),
                         PerformedBy = currentUser,
-                        PerformedAt = currentTime
+                        PerformedAt = currentTime,
+                        IpAddress = currentIp,
+                        UserAgent = currentUserAgent
                     });
                 }
             }
@@ -329,7 +380,9 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
                             OldValue = originalValue.ToString(),
                             NewValue = null,
                             PerformedBy = currentUser,
-                            PerformedAt = currentTime
+                            PerformedAt = currentTime,
+                            IpAddress = currentIp,
+                            UserAgent = currentUserAgent
                         });
                     }
                 }

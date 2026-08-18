@@ -108,23 +108,37 @@ public class CategoriesController(
     /// Check whether moving a category to a new parent would create a circular reference.
     /// Pass newParentId=null to check moving to root.
     /// </summary>
+    /// <param name="id">Category being moved.</param>
+    /// <param name="parentCategoryId">
+    /// Proposed parent, named to match the field on the category itself — which is what callers
+    /// naturally send. Only <c>newParentId</c> used to bind, so a request using this name left the
+    /// parameter null and the endpoint always answered for "move to root": false, every time.
+    /// </param>
+    /// <param name="newParentId">Legacy name for the same value; still accepted.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     [HttpGet("{id:guid}/check-circular-reference")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CheckCircularReference(
-        Guid id, [FromQuery] Guid? newParentId, CancellationToken cancellationToken = default)
+        Guid id,
+        [FromQuery] Guid? parentCategoryId,
+        [FromQuery] Guid? newParentId,
+        CancellationToken cancellationToken = default)
     {
+        var proposedParentId = parentCategoryId ?? newParentId;
+
         if (!await _categoryRepository.ExistsAsync(id, cancellationToken))
             return NotFound(ApiError.NotFound($"Category '{id}' not found", Request.Path));
 
-        if (newParentId.HasValue && !await _categoryRepository.ExistsAsync(newParentId.Value, cancellationToken))
+        if (proposedParentId.HasValue && !await _categoryRepository.ExistsAsync(proposedParentId.Value, cancellationToken))
             return BadRequest(ApiError.Validation("Proposed parent category not found", instance: Request.Path));
 
-        var wouldCreateCircle = await _categoryRepository.WouldCreateCircularReferenceAsync(id, newParentId, cancellationToken);
+        var wouldCreateCircle = await _categoryRepository.WouldCreateCircularReferenceAsync(id, proposedParentId, cancellationToken);
         return Ok(ApiResponse<object>.Ok(new
         {
             categoryId = id,
-            newParentId,
+            parentCategoryId = proposedParentId,
+            newParentId = proposedParentId,
             wouldCreateCircularReference = wouldCreateCircle,
             message = wouldCreateCircle
                 ? "Moving this category to the proposed parent would create a circular reference"
@@ -226,7 +240,7 @@ public class CategoriesController(
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(ApiError.BusinessRule(ex.Message, Request.Path));
+            return Conflict(ApiError.BusinessRuleConflict(ex.Message, Request.Path));
         }
 
         return NoContent();

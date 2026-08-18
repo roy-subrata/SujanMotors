@@ -41,7 +41,22 @@ public class SalaryAdvanceRepository : ISalaryAdvanceRepository
             .ToDictionaryAsync(x => x.Key, x => x.Total, cancellationToken);
     }
 
-    public async Task GiveAsync(SalaryAdvance advance, DailyExpense expense, CancellationToken cancellationToken = default)
+    public async Task RequestAsync(SalaryAdvance advance, CancellationToken cancellationToken = default)
+    {
+        if (advance == null) throw new ArgumentNullException(nameof(advance));
+
+        await _dbContext.SalaryAdvances.AddAsync(advance, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RejectAsync(SalaryAdvance advance, CancellationToken cancellationToken = default)
+    {
+        if (advance == null) throw new ArgumentNullException(nameof(advance));
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ApproveAsync(SalaryAdvance advance, DailyExpense expense, CancellationToken cancellationToken = default)
     {
         if (advance == null) throw new ArgumentNullException(nameof(advance));
         if (expense == null) throw new ArgumentNullException(nameof(expense));
@@ -53,8 +68,9 @@ public class SalaryAdvanceRepository : ISalaryAdvanceRepository
 
             await _dailyExpenseRepository.AddAsync(expense, cancellationToken);
 
+            // The advance already exists (it was REQUESTED); approving links the expense and
+            // flips the status, so this is an update rather than an insert.
             advance.LinkExpense(expense.Id);
-            await _dbContext.SalaryAdvances.AddAsync(advance, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);

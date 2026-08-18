@@ -47,6 +47,14 @@ public class FilesController(
         if (file is null || file.Length == 0)
             return BadRequest(ApiError.Validation("A file is required.", instance: Request.Path));
 
+        // Listing requires both ownerType and ownerId, so accepting one without the other stored a
+        // file nobody could ever find again. Reject the half-pair rather than orphan the upload.
+        var hasOwnerType = !string.IsNullOrWhiteSpace(ownerType);
+        var hasOwnerId = ownerId.HasValue && ownerId.Value != Guid.Empty;
+        if (hasOwnerType != hasOwnerId)
+            return BadRequest(ApiError.Validation(
+                "ownerType and ownerId must be supplied together, or both omitted.", instance: Request.Path));
+
         var rule = UploadRules.Resolve(file.FileName);
         if (rule is null)
             return BadRequest(ApiError.Validation(

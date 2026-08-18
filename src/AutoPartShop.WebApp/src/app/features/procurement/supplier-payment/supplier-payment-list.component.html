@@ -61,7 +61,7 @@
     </div>
     <div filterActions class="filter-group filter-actions-group">
       <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i></button>
-      <button class="text-btn" (click)="moreFiltersVisible = true">More filters</button>
+      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
       <button *ngIf="filterStatus || searchTerm || (dateRange && dateRange.length)" class="btn-clear-filter" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
       </button>

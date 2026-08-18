@@ -30,8 +30,7 @@ public class UnitRepository(AutoPartDbContext dbContext) : IUnitRepository
         var existing = await dbContext.Units.FirstOrDefaultAsync(u => u.Id == entity.Id, cancellationToken);
         if (existing != null)
         {
-            dbContext.Units.Remove(existing);
-            dbContext.Units.Add(entity);
+            existing.Update(entity.Name, entity.Symbol, entity.Description, entity.IsActive, entity.DisplayOrder);
         }
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -147,11 +146,11 @@ public class UnitConversionRepository(AutoPartDbContext dbContext) : IUnitConver
 
     public async Task UpdateAsync(UnitConversion entity, CancellationToken cancellationToken = default)
     {
-        var existing = await dbContext.UnitConversions.FirstOrDefaultAsync(c => c.Id == entity.Id, cancellationToken);
+        var existing = await dbContext.UnitConversions
+            .FirstOrDefaultAsync(c => c.Id == entity.Id, cancellationToken);
         if (existing != null)
         {
-            dbContext.UnitConversions.Remove(existing);
-            dbContext.UnitConversions.Add(entity);
+            existing.Update(entity.ConversionFactor, entity.Description, entity.IsActive);
         }
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -161,7 +160,7 @@ public class UnitConversionRepository(AutoPartDbContext dbContext) : IUnitConver
         var conversion = await dbContext.UnitConversions.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (conversion != null)
         {
-            dbContext.UnitConversions.Remove(conversion);
+            conversion.Isdeleted = true;
         }
         await dbContext.SaveChangesAsync(cancellationToken);
     }

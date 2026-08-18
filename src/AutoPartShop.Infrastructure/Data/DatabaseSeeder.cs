@@ -49,6 +49,7 @@ public class DatabaseSeeder
             // Default database-backup schedule settings (admin-editable from the UI)
             var settingsRepository = scope.ServiceProvider.GetRequiredService<IApplicationSettingsRepository>();
             await SeedBackupSettingsAsync(settingsRepository, logger);
+            await SeedShopProfileSettingsAsync(settingsRepository, logger);
 
             logger.LogInformation("Database seeding completed successfully");
         }
@@ -366,6 +367,42 @@ public class DatabaseSeeder
         await customerRepository.AddAsync(walkInCustomer);
 
         logger.LogInformation("Walk-in customer seeded successfully");
+    }
+
+    /// <summary>
+    /// Seeds the BUSINESS and BRANDING setting rows the company profile and every printed document
+    /// read from. Values are intentionally blank — this seeds the shape, not the shop's details,
+    /// which an admin fills in from Company Profile.
+    ///
+    /// Without the rows the categories did not exist at all: /ApplicationSettings/categories
+    /// listed only BACKUP and CURRENCY, and /public/shop returned empty strings for every field,
+    /// so invoices and challans rendered blank headers with nothing in the UI to explain why.
+    /// </summary>
+    private static async Task SeedShopProfileSettingsAsync(IApplicationSettingsRepository settingsRepository, ILogger logger)
+    {
+        var defaults = new (string Key, string Value, string DataType, string Category, string Description)[]
+        {
+            ("SHOP_NAME", "", "STRING", "BUSINESS", "Trading name shown on invoices, challans and the storefront"),
+            ("SHOP_ADDRESS", "", "STRING", "BUSINESS", "Street address printed in document headers"),
+            ("SHOP_PHONE", "", "STRING", "BUSINESS", "Contact phone printed in document headers"),
+            ("SHOP_EMAIL", "", "STRING", "BUSINESS", "Contact email printed in document headers"),
+            ("SHOP_TAX_NUMBER", "", "STRING", "BUSINESS", "VAT/BIN registration number printed on tax documents"),
+            ("SHOP_TAGLINE", "", "STRING", "BUSINESS", "Optional strapline under the shop name"),
+            ("INVOICE_FOOTER_TEXT", "", "STRING", "BUSINESS", "Free text printed at the foot of every invoice"),
+            ("CHALLAN_FOOTER_TEXT", "", "STRING", "BUSINESS", "Free text printed at the foot of every challan"),
+            ("SHOP_LOGO_URL", "", "STRING", "BRANDING", "Logo used on printed documents"),
+            ("APP_NAME", "", "STRING", "BRANDING", "Application name shown in the web app shell"),
+            ("APP_LOGO_URL", "", "STRING", "BRANDING", "Logo shown in the web app shell")
+        };
+
+        foreach (var (key, value, dataType, category, description) in defaults)
+        {
+            if (await settingsRepository.ExistsByKeyAsync(key))
+                continue;
+
+            await settingsRepository.SetValueAsync(key, value, dataType, category, description, isSystemSetting: false);
+            logger.LogInformation("Seeded shop profile setting {Key}", key);
+        }
     }
 
     /// <summary>

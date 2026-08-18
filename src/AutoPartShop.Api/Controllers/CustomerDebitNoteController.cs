@@ -40,14 +40,8 @@ public class CustomerDebitNoteController(
             if (customer is null)
                 return BadRequest(new { message = "Customer not found" });
 
-            var debitNoteNumber = await codeGenerateService.GenerateAsync("DN", cancellationToken);
             var username = currentUserService.GetCurrentUsername();
-
-            var debitNote = CustomerDebitNote.Create(
-                debitNoteNumber, request.CustomerId, request.InvoiceId, request.Amount,
-                request.Reason, request.Currency, issueDate: null, request.Notes, username);
-            debitNote.CreatedBy = username;
-            debitNote.ModifiedBy = username;
+            CustomerDebitNote debitNote = null!;
 
             // A debit note is a supplementary bill: it increases what the customer owes immediately
             // (mirror image of a credit note reducing it). Settling the note records the payment
@@ -61,6 +55,17 @@ public class CustomerDebitNoteController(
                 await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
+                    // Allocated inside the transaction so a failed FX lookup or save rolls the
+                    // sequence back rather than burning a number; CodeGenerateService enlists in
+                    // the ambient transaction.
+                    var debitNoteNumber = await codeGenerateService.GenerateAsync("DN", cancellationToken);
+
+                    debitNote = CustomerDebitNote.Create(
+                        debitNoteNumber, request.CustomerId, request.InvoiceId, request.Amount,
+                        request.Reason, request.Currency, issueDate: null, request.Notes, username);
+                    debitNote.CreatedBy = username;
+                    debitNote.ModifiedBy = username;
+
                     var dnFx = await currencyService.ConvertToBaseWithRateAsync(debitNote.TotalAmount, debitNote.Currency, debitNote.IssueDate, cancellationToken);
                     await debitNoteRepository.AddAsync(debitNote, cancellationToken);
                     customer.UpdateBalance(dnFx.BaseAmount);

@@ -77,3 +77,9 @@ public class ConvertQuotationResponse
     public Guid SalesOrderId { get; set; }
     public string SONumber { get; set; } = string.Empty;
 }
+
+/// <summary>Request body for converting an accepted quotation into a SalesOrder.</summary>
+public class ConvertQuotationRequest
+{
+    public Guid WarehouseId { get; set; }
+}

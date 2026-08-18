@@ -11,6 +11,13 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
         {
             var day = date.Date;
 
+            // Declared holidays live in their own table and were never consulted here, so a
+            // holiday only showed up if somebody had also hand-marked every employee HOLIDAY.
+            var holiday = await _dbContext.Holidays
+                .Where(h => h.Date == day && !h.Isdeleted)
+                .Select(h => h.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+
             var rows = await _dbContext.Employees
                 .Where(e => !e.Isdeleted && e.Status == EmployeeStatus.ACTIVE)
                 .OrderBy(e => e.Name)
@@ -36,6 +43,8 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                 Department = x.Employee.Department,
                 ShiftName = x.ShiftName,
                 IsMarked = x.Record != null,
+                IsHoliday = holiday is not null,
+                HolidayName = holiday,
                 Status = x.Record != null ? x.Record.Status : null,
                 CheckInTime = x.Record != null ? x.Record.CheckInTime : null,
                 CheckOutTime = x.Record != null ? x.Record.CheckOutTime : null,
@@ -47,6 +56,25 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
         {
             var start = new DateTime(year, month, 1);
             var end = start.AddMonths(1);
+
+            // Days declared as holidays for the whole company. holidayDays used to count only
+            // manually-marked HOLIDAY records, so a declared holiday reported 0.
+            var declaredHolidays = await _dbContext.Holidays
+                .Where(h => h.Date >= start && h.Date < end && !h.Isdeleted)
+                .Select(h => h.Date)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            // Dates an employee was hand-marked HOLIDAY, so a day that is both is not counted twice.
+            var markedHolidayDates = await _dbContext.AttendanceRecords
+                .Where(a => a.Date >= start && a.Date < end && !a.Isdeleted
+                         && a.Status == AttendanceStatus.HOLIDAY)
+                .Select(a => new { a.EmployeeId, a.Date })
+                .ToListAsync(cancellationToken);
+
+            var markedHolidaysByEmployee = markedHolidayDates
+                .GroupBy(x => x.EmployeeId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Date).ToHashSet());
 
             var counts = await _dbContext.AttendanceRecords
                 .Where(a => a.Date >= start && a.Date < end && !a.Isdeleted)
@@ -84,7 +112,9 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                     HalfDays = c?.Half ?? 0,
                     AbsentDays = c?.Absent ?? 0,
                     LeaveDays = c?.Leave ?? 0,
-                    HolidayDays = c?.Holiday ?? 0,
+                    HolidayDays = markedHolidaysByEmployee.TryGetValue(e.Id, out var marked)
+                        ? marked.Union(declaredHolidays).Count()
+                        : declaredHolidays.Count,
                     MarkedDays = c?.Total ?? 0
                 };
             }).ToList();

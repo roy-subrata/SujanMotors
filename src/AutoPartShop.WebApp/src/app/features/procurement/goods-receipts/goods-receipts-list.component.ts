@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-goods-receipts-list',
@@ -23,8 +24,9 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     ButtonModule,
     MenuModule,
     TooltipModule,
-    DataPaginationComponent
-  ],
+    DataPaginationComponent,
+    TranslatePipe
+],
   providers: [ConfirmationService, MessageService],
   templateUrl: './goods-receipts-list.component.html',
   styleUrls: ['./goods-receipts-list.component.css']

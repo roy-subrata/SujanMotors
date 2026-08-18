@@ -17,6 +17,9 @@ export interface SalaryAdvanceResponse {
     status: SalaryAdvanceStatus;
     settledAt: string | null;
     settledRunCode: string | null;
+    approvedBy: string | null;
+    approvedAt: string | null;
+    rejectionReason: string | null;
     createdAt: string;
 }
 
@@ -49,8 +52,21 @@ export class SalaryAdvanceService {
         return this.http.post<PaginatedResponse<SalaryAdvanceResponse>>(`${this.apiUrl}/list`, body);
     }
 
-    giveAdvance(request: GiveAdvanceRequest): Observable<{ id: string }> {
-        return this.http.post<{ id: string }>(this.apiUrl, request);
+    /**
+     * Raises a REQUESTED advance. Nothing is paid out and no cash-book expense is posted until
+     * it is approved.
+     */
+    requestAdvance(request: GiveAdvanceRequest): Observable<{ id: string; status: string }> {
+        return this.http.post<{ id: string; status: string }>(this.apiUrl, request);
+    }
+
+    /** Authorises the payout: posts the cash-book expense and moves the advance to OUTSTANDING. */
+    approveAdvance(id: string): Observable<{ id: string; status: string }> {
+        return this.http.patch<{ id: string; status: string }>(`${this.apiUrl}/${id}/approve`, {});
+    }
+
+    rejectAdvance(id: string, reason: string): Observable<{ id: string; status: string }> {
+        return this.http.patch<{ id: string; status: string }>(`${this.apiUrl}/${id}/reject`, { reason });
     }
 
     cancelAdvance(id: string): Observable<void> {

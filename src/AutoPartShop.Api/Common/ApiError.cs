@@ -79,11 +79,29 @@ public sealed class ApiError
         Instance = instance
     };
 
+    /// <summary>
+    /// A business rule rejected the request. Returned with HTTP 400.
+    ///
+    /// The status carried in the body has to match the status on the response — it used to be
+    /// hard-coded to 422 while callers wrapped it in BadRequest (400) and Conflict (409), so every
+    /// such body contradicted its own response line. Use <see cref="BusinessRuleConflict"/> when
+    /// returning 409.
+    /// </summary>
     public static ApiError BusinessRule(string detail, string? instance = null) => new()
     {
         Type = "BUSINESS_RULE_VIOLATION",
         Title = "Business rule violated",
-        Status = 422,
+        Status = 400,
+        Detail = detail,
+        Instance = instance
+    };
+
+    /// <summary>A business rule rejected the request because of a conflicting record. HTTP 409.</summary>
+    public static ApiError BusinessRuleConflict(string detail, string? instance = null) => new()
+    {
+        Type = "BUSINESS_RULE_VIOLATION",
+        Title = "Business rule violated",
+        Status = 409,
         Detail = detail,
         Instance = instance
     };

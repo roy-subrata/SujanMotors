@@ -64,6 +64,7 @@ public class CreatePaymentProviderRequest
 public class UpdatePaymentProviderRequest
 {
     public string ProviderName { get; set; } = string.Empty;
+    public string ProviderType { get; set; } = string.Empty;
     public string BankName { get; set; } = string.Empty;
     public string BankAccountNumber { get; set; } = string.Empty;
     public string BankRoutingNumber { get; set; } = string.Empty;

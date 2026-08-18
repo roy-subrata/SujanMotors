@@ -63,6 +63,10 @@ public class ProductImportController(
     /// </summary>
     /// <param name="file">The filled .xlsx workbook.</param>
     /// <param name="mode">Create-only (default) or create-and-update.</param>
+    /// <param name="allowNewReferenceData">
+    /// Opt in to creating brands/categories/units the workbook names but the catalogue lacks.
+    /// Off by default, so unknown names come back as row errors.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPost("validate")]
     [HasPermission(Permissions.InventoryCreate)]
@@ -72,6 +76,7 @@ public class ProductImportController(
     public async Task<IActionResult> Validate(
         IFormFile? file,
         [FromQuery] ProductImportMode mode = ProductImportMode.CreateOnly,
+        [FromQuery] bool allowNewReferenceData = false,
         CancellationToken cancellationToken = default)
     {
         var fileError = ValidateUpload(file);
@@ -81,7 +86,7 @@ public class ProductImportController(
         try
         {
             await using var stream = file!.OpenReadStream();
-            var result = await _importService.ValidateAsync(stream, mode, cancellationToken);
+            var result = await _importService.ValidateAsync(stream, mode, allowNewReferenceData, cancellationToken);
             return Ok(ApiResponse<ProductImportValidationResult>.Ok(result));
         }
         catch (InvalidOperationException ex)
@@ -123,7 +128,7 @@ public class ProductImportController(
                 "Updating existing parts requires the inventory.edit permission.", instance: Request.Path));
         }
 
-        var result = await _importService.CommitAsync(request.Rows, request.Mode, cancellationToken);
+        var result = await _importService.CommitAsync(request.Rows, request.Mode, request.AllowNewReferenceData, cancellationToken);
         return Ok(ApiResponse<ProductImportCommitResult>.Ok(result));
     }
 

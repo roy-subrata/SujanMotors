@@ -16,7 +16,13 @@ public enum CustomerLedgerTransactionType
     ADVANCE,
 
     /// <summary>Processed sales return - decreases what the customer owes (credit)</summary>
-    REFUND
+    REFUND,
+
+    /// <summary>Customer debit note - increases what the customer owes (debit)</summary>
+    DEBIT_NOTE,
+
+    /// <summary>Customer credit note applied - decreases what the customer owes (credit)</summary>
+    CREDIT_NOTE
 }
 
 /// <summary>
@@ -55,10 +61,16 @@ public class CustomerLedgerSummaryDto
     /// <summary>Total amount of processed sales returns</summary>
     public decimal TotalRefunds { get; set; }
 
+    /// <summary>Total amount of issued debit notes</summary>
+    public decimal TotalDebitNotes { get; set; }
+
+    /// <summary>Total amount of credit notes applied against invoices</summary>
+    public decimal TotalCreditNotesApplied { get; set; }
+
     /// <summary>Available advance credit (unused advance payments)</summary>
     public decimal AvailableAdvanceCredit { get; set; }
 
-    /// <summary>Calculated current balance: TotalInvoiced - TotalPayments - TotalRefunds</summary>
+    /// <summary>Calculated current balance: TotalInvoiced - TotalPayments - TotalRefunds + TotalDebitNotes - TotalCreditNotesApplied</summary>
     public decimal CurrentBalance { get; set; }
 
     public int TransactionCount { get; set; }

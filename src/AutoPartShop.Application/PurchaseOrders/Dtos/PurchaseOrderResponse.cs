@@ -24,6 +24,9 @@ public class PurchaseOrderResponse
     public string Currency { get; set; } = string.Empty;
     public decimal AmountPaid { get; set; }
     public decimal OutstandingAmount { get; set; }
+
+    /// <summary>Total value of supplier credit notes applied against this order.</summary>
+    public decimal CreditAppliedAmount { get; set; }
     public bool IsOverdue { get; set; }
     public string Notes { get; set; } = string.Empty;
     public List<PurchaseOrderLineResponse> Lines { get; set; } = new();

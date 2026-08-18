@@ -66,6 +66,9 @@ public class StockController : ControllerBase
         if (request is null || request.PartId == Guid.Empty)
             return BadRequest(new { message = "PartId is required" });
 
+        if (request.Quantity <= 0)
+            return BadRequest(new { message = "Quantity must be greater than zero" });
+
         try
         {
             var response = await CheckStockInternalAsync(request.PartId, request.VariantId, request.Quantity, cancellationToken);
@@ -85,6 +88,12 @@ public class StockController : ControllerBase
         if (requests is null || requests.Count == 0)
             return BadRequest(new { message = "At least one stock check request is required" });
 
+        if (requests.Any(r => r is null || r.PartId == Guid.Empty))
+            return BadRequest(new { message = "PartId is required for all requests" });
+
+        if (requests.Any(r => r.Quantity <= 0))
+            return BadRequest(new { message = "Quantity must be greater than zero for all requests" });
+
         try
         {
             var responses = new List<StockCheckResponse>(requests.Count);
@@ -102,6 +111,25 @@ public class StockController : ControllerBase
 
     private async Task<StockCheckResponse> CheckStockInternalAsync(Guid partId, Guid? variantId, int quantity, CancellationToken cancellationToken)
     {
+        // A part that doesn't exist and a part that's out of stock both produce zero levels, so
+        // without this probe the POS reports "insufficient stock" for a mistyped or soft-deleted
+        // barcode — which sends the cashier hunting for inventory instead of re-scanning.
+        var partExists = await _dbContext.Parts
+            .AnyAsync(p => p.Id == partId && !p.Isdeleted, cancellationToken);
+
+        if (!partExists)
+        {
+            return new StockCheckResponse
+            {
+                PartId = partId,
+                VariantId = variantId,
+                PartFound = false,
+                StockAvailable = 0,
+                Available = false,
+                Message = "Product not found"
+            };
+        }
+
         // When a variant is specified, check only that SKU's stock; otherwise sum the part's levels.
         var stockLevels = (variantId.HasValue
             ? await _stockLevelRepository.GetByPartAndVariantAsync(partId, variantId, cancellationToken)
@@ -118,6 +146,7 @@ public class StockController : ControllerBase
         {
             PartId = partId,
             VariantId = variantId,
+            PartFound = true,
             StockAvailable = totalAvailable,
             Available = available,
             Message = available
@@ -146,13 +175,13 @@ public class StockController : ControllerBase
     public async Task<IActionResult> GetStockLevelsList([FromBody] StockLevelQuery? query, CancellationToken cancellationToken = default)
     {
         if (query is null)
-            return BadRequest("Request body is required.");
+            return BadRequest(new { message = "Request body is required." });
 
         if (query.PageNumber < 1)
-            return BadRequest("PageNumber must be greater than 0.");
+            return BadRequest(new { message = "PageNumber must be greater than 0." });
 
         if (query.PageSize < 1)
-            return BadRequest("PageSize must be greater than 0.");
+            return BadRequest(new { message = "PageSize must be greater than 0." });
 
         try
         {
@@ -262,6 +291,12 @@ public class StockController : ControllerBase
             if (request.PartId == Guid.Empty || request.WarehouseId == Guid.Empty)
                 return BadRequest(new { message = "PartId and WarehouseId are required" });
 
+            // Quantity used to be accepted and silently ignored, so callers believed they had
+            // opened a level with stock in it when it was created at 0. Stock only ever enters
+            // through an audited movement, so say so instead of quietly dropping the value.
+            if (request.Quantity != 0)
+                return BadRequest(new { message = "Quantity cannot be set when creating a stock level. Create the level, then post an adjustment to /api/Stock/adjust so the movement is recorded." });
+
             var stockLevel = StockLevel.Create(
                 request.PartId,
                 request.WarehouseId,
@@ -314,6 +349,57 @@ public class StockController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Recovery hatch for stock levels whose display-unit quantity has drifted away from the
+    /// authoritative base-unit quantity (multi-unit parts written before the divergence was
+    /// fixed). Re-derives QuantityOnHand and friends from the base-unit columns; no stock is
+    /// created or destroyed.
+    /// </summary>
+    [HttpPost("levels/{id:guid}/reconcile-units")]
+    [HasPermission(Permissions.InventoryAdjustStock)]
+    public async Task<IActionResult> ReconcileStockLevelUnits(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var level = await _stockLevelRepository.GetByIdAsync(id, cancellationToken);
+            if (level is null) return NotFound(new { message = "Stock level not found" });
+
+            var part = await _dbContext.Parts
+                .FirstOrDefaultAsync(p => p.Id == level.PartId && !p.Isdeleted, cancellationToken);
+            if (part is null) return NotFound(new { message = "Part not found for this stock level" });
+
+            // Base units per display unit. Absent a display unit (or when it already is the base
+            // unit) the two columns are the same measure, so the factor is 1.
+            var conversionFactor = 1m;
+            if (level.UnitId.HasValue && part.UnitId.HasValue && level.UnitId.Value != part.UnitId.Value)
+            {
+                conversionFactor = await _unitConversionService.GetConversionFactorAsync(
+                    level.UnitId.Value, part.UnitId.Value);
+            }
+
+            var before = new { level.QuantityOnHand, level.QuantityReserved };
+            level.ReconcileDisplayQuantities(conversionFactor);
+            level.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+            await _stockLevelRepository.UpdateAsync(level, cancellationToken);
+
+            _logger.LogInformation(
+                "Reconciled stock level {StockLevelId}: onHand {OldOnHand}->{NewOnHand}, reserved {OldReserved}->{NewReserved} (factor {Factor})",
+                id, before.QuantityOnHand, level.QuantityOnHand, before.QuantityReserved, level.QuantityReserved, conversionFactor);
+
+            return Ok(MapToStockLevelResponse(level));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reconciling stock level: {StockLevelId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while reconciling the stock level");
+        }
+    }
+
     [HttpGet("movements")]
     public async Task<IActionResult> GetAllMovements(CancellationToken cancellationToken)
     {
@@ -334,13 +420,13 @@ public class StockController : ControllerBase
     public async Task<IActionResult> GetMovementsList(StockMovementQuery query, CancellationToken cancellationToken = default)
     {
         if (query is null)
-            return BadRequest("Request body is required.");
+            return BadRequest(new { message = "Request body is required." });
 
         if (query.PageNumber < 1)
-            return BadRequest("PageNumber must be greater than 0.");
+            return BadRequest(new { message = "PageNumber must be greater than 0." });
 
         if (query.PageSize < 1)
-            return BadRequest("PageSize must be greater than 0.");
+            return BadRequest(new { message = "PageSize must be greater than 0." });
 
         try
         {
@@ -462,7 +548,7 @@ public class StockController : ControllerBase
                 // Convert from display unit to base unit
                 var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
                     request.UnitId.Value, part.UnitId.Value);
-                quantityInBaseUnit = (int)Math.Round(request.Quantity * conversionFactor);
+                quantityInBaseUnit = (int)Math.Round(request.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
             }
             else if (!request.UnitId.HasValue)
             {
@@ -738,7 +824,7 @@ public class StockController : ControllerBase
                 // Convert from display unit to base unit
                 var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
                     request.UnitId.Value, part.UnitId.Value);
-                quantityInBaseUnit = (int)Math.Round(Math.Abs(request.Quantity) * conversionFactor);
+                quantityInBaseUnit = (int)Math.Round(Math.Abs(request.Quantity) * conversionFactor, MidpointRounding.AwayFromZero);
                 // Preserve sign (positive for increase, negative for decrease)
                 quantityInBaseUnit = request.Quantity < 0 ? -quantityInBaseUnit : quantityInBaseUnit;
             }
@@ -877,6 +963,8 @@ public class StockController : ControllerBase
             ReservedQuantityInBaseUnit = level.QuantityReservedInBaseUnit,
             AvailableQuantity = level.QuantityAvailable,
             AvailableQuantityInBaseUnit = level.QuantityAvailableInBaseUnit,
+            DamagedQuantity = level.QuantityDamaged,
+            QuarantineQuantity = level.QuantityQuarantine,
             ReorderLevel = level.ReorderLevel,
             ReorderQuantity = level.ReorderQuantity,
             // Status is calculated based on BASE UNIT quantities for accuracy

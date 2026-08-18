@@ -438,9 +438,9 @@
     </form>
 
     <!-- Credit Notes Section (outside form, below summary) -->
-    <div class="credit-notes-section" *ngIf="form.get('supplierId')?.value && poId">
+    <div class="credit-notes-section" *ngIf="form.get('supplier')?.value?.id && poId">
       <app-apply-credit-notes
-          [supplierId]="form.get('supplierId')?.value"
+          [supplierId]="form.get('supplier')?.value?.id"
           [purchaseOrderId]="poId"
           [poTotalAmount]="getGrandTotal()"
           [poPaidAmount]="0"

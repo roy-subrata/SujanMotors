@@ -123,6 +123,8 @@ public class Payslip : AuditableEntity
 
         GrossPay = Math.Round(MonthlySalary + OvertimeAmount + BonusAmount + OtherAllowance + CommissionAmount, 2);
         TotalDeduction = Math.Round(AbsenceDeduction + AdvanceDeduction + TaxDeduction + OtherDeduction, 2);
+        if (TotalDeduction > GrossPay)
+            throw new ArgumentException("Total deductions exceed gross pay, resulting in negative net pay.");
         NetPay = GrossPay - TotalDeduction;
     }
 }

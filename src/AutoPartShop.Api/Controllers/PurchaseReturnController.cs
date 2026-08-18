@@ -647,19 +647,8 @@ public class PurchaseReturnController : ControllerBase
             var currency = linkedPO?.Currency ?? "NPR";
             var defaultProvider = await _dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
 
-            var creditNoteNumber = await _codeGenerateService.GenerateAsync("CN", cancellationToken);
             var currentUser = _currentUserService.GetCurrentUsername();
-
-            var creditNote = CreditNote.Create(
-                creditNoteNumber: creditNoteNumber,
-                supplierId: purchaseReturn.SupplierId,
-                purchaseReturnId: purchaseReturn.Id,
-                amount: creditAmount,
-                currency: currency,
-                issueDate: DateTime.UtcNow,
-                notes: $"Credit note for return {purchaseReturn.ReturnNumber}",
-                issuedBy: currentUser
-            );
+            CreditNote creditNote = null!;
 
             // All writes in one transaction â€” if the SupplierPayment insert fails, the
             // credit note and return status update are rolled back together. Runs under the EF
@@ -670,6 +659,22 @@ public class PurchaseReturnController : ControllerBase
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
+                    // Allocated inside the transaction so a failed issue rolls the sequence back
+                    // instead of burning a number. CodeGenerateService enlists in the ambient
+                    // transaction; allocating above it left CN001/CN002 permanently missing.
+                    var creditNoteNumber = await _codeGenerateService.GenerateAsync("CN", cancellationToken);
+
+                    creditNote = CreditNote.Create(
+                        creditNoteNumber: creditNoteNumber,
+                        supplierId: purchaseReturn.SupplierId,
+                        purchaseReturnId: purchaseReturn.Id,
+                        amount: creditAmount,
+                        currency: currency,
+                        issueDate: DateTime.UtcNow,
+                        notes: $"Credit note for return {purchaseReturn.ReturnNumber}",
+                        issuedBy: currentUser
+                    );
+
                     purchaseReturn.IssueCreditNote(creditAmount);
                     purchaseReturn.ModifiedBy = currentUser;
                     await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
@@ -686,7 +691,7 @@ public class PurchaseReturnController : ControllerBase
                             paymentProviderId: defaultProvider.Id,
                             amount: creditAmount,
                             paymentMethod: "CREDIT_NOTE",
-                            transactionNumber: creditNoteNumber,
+                            transactionNumber: creditNote.CreditNoteNumber,
                             referenceNumber: purchaseReturn.ReturnNumber,
                             paymentDate: DateTime.UtcNow,
                             currency: currency
@@ -710,7 +715,7 @@ public class PurchaseReturnController : ControllerBase
 
             _logger.LogInformation(
                 "Credit note {CreditNoteNumber} issued for return {ReturnId}, amount: {Amount}, supplier: {SupplierId}",
-                creditNoteNumber, id, creditAmount, purchaseReturn.SupplierId);
+                creditNote.CreditNoteNumber, id, creditAmount, purchaseReturn.SupplierId);
 
             var response = MapToPurchaseReturnResponse(purchaseReturn);
             response.CreditNoteId = creditNote.Id;
@@ -865,10 +870,10 @@ public class PurchaseReturnController : ControllerBase
                     CostPrice = l.CostPrice,
                     ReceivingDate = l.ReceivingDate,
                     ExpiryDate = l.ExpiryDate,
-                    IsFromSameSupplier = supplierId.HasValue && l.SupplierId == supplierId.Value,
+                    IsFromSameSupplier = supplierId.HasValue ? l.SupplierId == supplierId.Value : null,
                     Status = NormalizeBucket(l.Status)
                 })
-                .OrderByDescending(l => l.IsFromSameSupplier)  // Same supplier lots first
+                .OrderByDescending(l => l.IsFromSameSupplier == true)  // Same supplier lots first
                 .ThenBy(l => l.ReceivingDate)  // Then FIFO
                 .ToList();
 
