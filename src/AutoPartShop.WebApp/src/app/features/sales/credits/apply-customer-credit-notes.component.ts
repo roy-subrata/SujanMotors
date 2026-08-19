@@ -13,6 +13,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CustomerCreditNoteService, CustomerCreditNoteResponse } from '../services/customer-credit-note.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
 
 @Component({
   selector: 'app-apply-customer-credit-notes',
@@ -27,7 +28,8 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
     ToastModule,
     ConfirmDialogModule,
     TooltipModule,
-    TranslatePipe
+    TranslatePipe,
+    AppCurrencyPipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './apply-customer-credit-notes.component.html',

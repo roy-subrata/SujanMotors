@@ -29,6 +29,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
@@ -58,7 +59,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
         StatStripComponent,
         StatusPillFilterComponent,
         MoreFiltersDialogComponent,
-        TranslatePipe
+        TranslatePipe,
+        MoneyFormatPipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './warranties-list.component.html',

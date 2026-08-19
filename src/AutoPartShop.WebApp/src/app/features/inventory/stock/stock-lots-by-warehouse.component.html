@@ -135,14 +135,14 @@
             @if (priceCodeService.getDisplayPrice(lot.costPrice) !== null) {
               <span class="coded-price">{{ priceCodeService.getDisplayPrice(lot.costPrice) }}</span>
             } @else {
-              {{ lot.costPrice | currency:lot.currency:'symbol':'1.2-2' }}
+              {{ lot.costPrice | appCurrency:lot.currency }}
             }
           </td>
           <td class="text-right">
             @if (priceCodeService.getDisplayPrice(lot.totalCost) !== null) {
               <span class="coded-price">{{ priceCodeService.getDisplayPrice(lot.totalCost) }}</span>
             } @else {
-              <span class="font-semibold">{{ lot.totalCost | currency:lot.currency:'symbol':'1.2-2' }}</span>
+              <span class="font-semibold">{{ lot.totalCost | appCurrency:lot.currency }}</span>
             }
           </td>
           <td class="text-right">
@@ -150,7 +150,7 @@
               <span class="coded-price">{{ priceCodeService.getDisplayPrice(lot.availableCost) }}</span>
             } @else {
               <span [ngClass]="lot.quantityAvailable === 0 ? 'text-red-500' : ''">
-                {{ lot.availableCost | currency:lot.currency:'symbol':'1.2-2' }}
+                {{ lot.availableCost | appCurrency:lot.currency }}
               </span>
             }
           </td>
@@ -277,7 +277,7 @@
               @if (priceCodeService.getDisplayPrice(lot.costPrice) !== null) {
                 <span class="amount-value coded-price">{{ priceCodeService.getDisplayPrice(lot.costPrice) }}</span>
               } @else {
-                <span class="amount-value">{{ lot.costPrice | currency:lot.currency:'symbol':'1.2-2' }}</span>
+                <span class="amount-value">{{ lot.costPrice | appCurrency:lot.currency }}</span>
               }
             </div>
             <button class="btn-card-action" (click)="printLabel(lot); $event.stopPropagation()">
@@ -293,15 +293,15 @@
     <div class="summary-section" *ngIf="stockLots.length > 0">
       <div class="summary-item">
         <label>{{ 'stockLots.summary.availableValue' | translate }}</label>
-        <span class="summary-value">{{ summary.availableCost | currency:currencyCode:'symbol':'1.2-2' }}</span>
+        <span class="summary-value">{{ summary.availableCost | appCurrency:currencyCode }}</span>
       </div>
       <div class="summary-item">
         <label>{{ 'stockLots.summary.totalValue' | translate }}</label>
-        <span class="summary-value">{{ summary.totalCost | currency:currencyCode:'symbol':'1.2-2' }}</span>
+        <span class="summary-value">{{ summary.totalCost | appCurrency:currencyCode }}</span>
       </div>
       <div class="summary-item">
         <label>{{ 'stockLots.summary.averageCost' | translate }}</label>
-        <span class="summary-value">{{ summary.averageCostPerUnit | currency:currencyCode:'symbol':'1.2-2' }}</span>
+        <span class="summary-value">{{ summary.averageCostPerUnit | appCurrency:currencyCode }}</span>
       </div>
     </div>
   </p-card>

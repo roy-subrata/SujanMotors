@@ -22,6 +22,7 @@ import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../s
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
 import { map } from 'rxjs';
 
 @Component({
@@ -40,7 +41,8 @@ import { map } from 'rxjs';
     TooltipModule,
     LazyAutocompleteComponent,
     DataPaginationComponent,
-    TranslatePipe
+    TranslatePipe,
+    AppCurrencyPipe
   ],
   providers: [MessageService, DialogService],
   templateUrl: './stock-lots-by-warehouse.component.html',

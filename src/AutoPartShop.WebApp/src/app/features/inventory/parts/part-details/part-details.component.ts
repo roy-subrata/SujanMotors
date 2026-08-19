@@ -31,6 +31,7 @@ import { ProductSpecsManagerComponent } from '../product-specs-manager/product-s
 import { PriceCodeService } from '@/shared/services/price-code.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 
 @Component({
     selector: 'app-part-details',
@@ -42,7 +43,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         TextareaModule, DatePickerModule, TooltipModule, TabsModule,
         ToggleSwitchModule, CheckboxModule, SelectModule, ConfirmDialogModule,
         ProductLocationManagerComponent, ProductVariantManagerComponent, ProductMediaManagerComponent,
-        ProductSpecsManagerComponent, TranslatePipe
+        ProductSpecsManagerComponent, TranslatePipe, MoneyFormatPipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './part-details.component.html',

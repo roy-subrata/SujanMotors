@@ -347,12 +347,14 @@ export class CurrencyService {
   formatCurrency(amount: number, currencyCode: string): string {
     const code = currencyCode?.trim().toUpperCase();
     const currency = this.activeCurrenciesSubject.value.find(c => c.code === code);
-    const sign = amount < 0 ? '-' : '';
     const abs = Math.abs(amount);
     if (!currency) {
-      return `${sign}${abs.toFixed(2)} ${code || ''}`.trim();
+      const formatted = abs.toFixed(2);
+      return amount < 0 ? `-(${formatted} ${code || ''})` : `${formatted} ${code || ''}`.trim();
     }
-    return `${sign}${currency.symbol} ${abs.toFixed(currency.decimalPlaces)}`;
+    const formatted = abs.toFixed(currency.decimalPlaces);
+    const sym = `${currency.symbol} `;
+    return amount < 0 ? `-${sym}(${formatted})` : `${sym}${formatted}`;
   }
 
   /**

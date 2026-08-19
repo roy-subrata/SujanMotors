@@ -175,7 +175,7 @@
               <div class="price-card" [class.price-card-empty]="!part.sellingPrice || part.sellingPrice === 0">
                 <ng-container *ngIf="part.sellingPrice > 0">
                   <div class="price-card-amount">
-                    <span class="price-big">{{ part.sellingPrice | number:'1.2-2' }}</span>
+                    <span class="price-big">{{ part.sellingPrice | moneyFormat }}</span>
                     <span class="price-currency">BDT</span>
                     <span class="price-badge" data-source="PRODUCT">{{ 'parts.partDetails.currentPrice' | translate }}</span>
                   </div>
@@ -220,11 +220,11 @@
                       <td class="text-secondary text-sm">{{ v.code }}<span *ngIf="v.sku"> · {{ v.sku }}</span></td>
                       <td>
                         <span *ngIf="v.sellingPrice && v.sellingPrice > 0" class="variant-price-value">
-                          {{ v.sellingPrice | number:'1.2-2' }} {{ v.currency }}
+                          {{ v.sellingPrice | moneyFormat }}
                           <span class="price-badge variant-badge">{{ 'parts.partDetails.ownPrice' | translate }}</span>
                         </span>
                         <span *ngIf="!v.sellingPrice || v.sellingPrice === 0" class="text-secondary text-sm">
-                          {{ 'parts.partDetails.inheritsBaseWithPrice' | translate: { price: (part.sellingPrice | number:'1.2-2') + '' } }}
+                          {{ 'parts.partDetails.inheritsBaseWithPrice' | translate: { price: (part.sellingPrice | moneyFormat) } }}
                         </span>
                       </td>
                       <td style="text-align: right">

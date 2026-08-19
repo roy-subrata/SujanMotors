@@ -275,7 +275,7 @@
             <div class="line-option">
               <span class="line-part">{{ line.partName }}</span>
               <small *ngIf="line.partLocalName" class="part-row-local d-block">{{ line.partLocalName }}</small>
-              <span class="line-detail">{{ 'warranties.dialog.skuLabel' | translate }}: {{ line.partSku }} | {{ 'warranties.dialog.qtyLabel' | translate }}: {{ line.quantity }} | {{ line.unitPrice | number:'1.2-2' }}</span>
+              <span class="line-detail">{{ 'warranties.dialog.skuLabel' | translate }}: {{ line.partSku }} | {{ 'warranties.dialog.qtyLabel' | translate }}: {{ line.quantity }} | {{ line.unitPrice | moneyFormat }}</span>
             </div>
           </ng-template>
         </p-select>

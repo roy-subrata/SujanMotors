@@ -32,6 +32,7 @@ import { PurchaseOrderResponse, PurchaseOrderService } from '../services/purchas
 import { BarcodeDialogComponent } from '../../inventory/parts/barcode-dialog/barcode-dialog.component';
 import { labelFromGrnLine } from '../../inventory/parts/barcode-dialog/label-data';
 import { StatusDisplayService } from '@/shared/services/status-display.service';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 
 type WorkflowStatus = 'PENDING' | 'VERIFIED' | 'ACCEPTED';
 
@@ -58,7 +59,8 @@ interface SubmitValidationResult {
     ConfirmDialogModule,
     LazyAutocompleteComponent,
     TextareaModule,
-    CheckboxModule
+    CheckboxModule,
+    MoneyFormatPipe
   ],
   providers: [MessageService, ConfirmationService, DialogService],
   templateUrl: './goods-receipt-form.component.html',

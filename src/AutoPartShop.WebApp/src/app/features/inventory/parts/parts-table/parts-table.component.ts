@@ -15,6 +15,7 @@ import { PriceCodeService } from '@/shared/services/price-code.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -24,7 +25,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     CommonModule,
     TableModule, ButtonModule, ConfirmDialogModule, TooltipModule,
     TagModule, ContextMenuModule, RippleModule, ToastModule,
-    DataPaginationComponent, TranslatePipe
+    DataPaginationComponent, TranslatePipe, MoneyFormatPipe
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './parts-table.component.html',

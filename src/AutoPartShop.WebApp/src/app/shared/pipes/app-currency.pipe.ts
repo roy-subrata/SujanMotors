@@ -21,11 +21,6 @@ export class AppCurrencyPipe implements PipeTransform {
       return '';
     }
 
-    // If no currency code provided, use selected currency from settings
-    if (!currencyCode) {
-      currencyCode = this.currencyService.selectedCurrency();
-    }
-
-    return this.currencyService.formatCurrency(value, currencyCode);
+    return this.currencyService.formatCurrency(value, currencyCode || this.currencyService.selectedCurrency());
   }
 }

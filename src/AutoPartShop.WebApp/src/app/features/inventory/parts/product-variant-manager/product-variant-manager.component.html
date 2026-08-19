@@ -68,7 +68,7 @@
         </td>
         <td>
           <span *ngIf="v.sellingPrice != null && v.sellingPrice > 0" class="text-sm font-medium">
-            {{ v.sellingPrice | number:'1.2-2' }} {{ v.currency }}
+            {{ v.sellingPrice | moneyFormat }}
           </span>
           <span *ngIf="!v.sellingPrice || v.sellingPrice === 0" class="text-secondary text-sm">
             {{ 'parts.variantManager.inheritsBase' | translate }}

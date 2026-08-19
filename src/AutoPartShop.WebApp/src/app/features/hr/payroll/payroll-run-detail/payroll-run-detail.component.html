@@ -38,15 +38,15 @@
     </div>
     <div class="summary-item">
       <span class="summary-label">{{ 'hr.payroll.detail.summary.totalGross' | translate }}</span>
-      <span class="summary-value">{{ run.totalGross | number: '1.2-2' }} {{ run.currency }}</span>
+      <span class="summary-value">{{ run.totalGross | moneyFormat }}</span>
     </div>
     <div class="summary-item">
       <span class="summary-label">{{ 'hr.payroll.detail.summary.totalDeductions' | translate }}</span>
-      <span class="summary-value">{{ run.totalDeductions | number: '1.2-2' }} {{ run.currency }}</span>
+      <span class="summary-value">{{ run.totalDeductions | moneyFormat }}</span>
     </div>
     <div class="summary-item">
       <span class="summary-label">{{ 'hr.payroll.detail.summary.netPayable' | translate }}</span>
-      <span class="summary-value summary-net">{{ run.totalNet | number: '1.2-2' }} {{ run.currency }}</span>
+      <span class="summary-value summary-net">{{ run.totalNet | moneyFormat }}</span>
     </div>
     <div class="summary-item" *ngIf="run.paidAt">
       <span class="summary-label">{{ 'hr.payroll.paidPrefix' | translate }}</span>
@@ -261,7 +261,7 @@
     </div>
     <small class="dialog-hint" *ngIf="run">
       <i class="pi pi-info-circle"></i>
-      {{ 'hr.payroll.detail.payDialog.hintPrefix' | translate }} {{ run.totalNet | number: '1.2-2' }} {{ run.currency }} {{ 'hr.payroll.detail.payDialog.hintSuffix' | translate }}
+      {{ 'hr.payroll.detail.payDialog.hintPrefix' | translate }} {{ run.totalNet | moneyFormat }} {{ 'hr.payroll.detail.payDialog.hintSuffix' | translate }}
     </small>
   </div>
   <ng-template pTemplate="footer">

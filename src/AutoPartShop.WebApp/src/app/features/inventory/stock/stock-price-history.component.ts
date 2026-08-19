@@ -17,6 +17,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
 import { map } from 'rxjs';
 
 @Component({
@@ -34,7 +35,8 @@ import { map } from 'rxjs';
     LazyAutocompleteComponent,
     DataPaginationComponent,
     StatStripComponent,
-    TranslatePipe
+    TranslatePipe,
+    AppCurrencyPipe
   ],
   providers: [MessageService],
   templateUrl: './stock-price-history.component.html',

@@ -11,6 +11,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { CreditNoteService, CreditNoteResponse } from '../services/credit-note.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
@@ -27,7 +28,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     ConfirmDialogModule,
     TranslatePipe,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    AppCurrencyPipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './apply-credit-notes.component.html',

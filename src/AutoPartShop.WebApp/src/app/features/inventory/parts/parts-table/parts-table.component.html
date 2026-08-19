@@ -65,7 +65,7 @@
 
           <td class="price-cell">
             <span *ngIf="part.effectiveSellingPrice > 0" class="price-value-tag">
-              {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
+              {{ part.effectiveSellingPrice | moneyFormat }}
               <span *ngIf="part.isVariant" class="price-source-dot" [pTooltip]="'parts.variantPriceTooltip' | translate"></span>
             </span>
             <span *ngIf="part.effectiveSellingPrice === 0" class="text-gray-400">—</span>
@@ -191,7 +191,7 @@
         <div class="card-amount">
           <span class="amount-label">{{ 'parts.sellingPrice' | translate }}</span>
           <span class="amount-value" *ngIf="part.effectiveSellingPrice > 0">
-            {{ part.effectiveSellingPrice | number:'1.2-2' }} {{ part.currency }}
+            {{ part.effectiveSellingPrice | moneyFormat }}
           </span>
           <span class="amount-value" *ngIf="part.effectiveSellingPrice === 0">—</span>
         </div>

@@ -30,7 +30,7 @@
           </div>
           <div *ngIf="selectedPO" class="po-summary">
             <div><b>Supplier:</b> {{ selectedPO.supplierName }}</div>
-            <div><b>Total:</b> {{ selectedPO.grandTotal | number:'1.2-2' }}</div>
+            <div><b>Total:</b> {{ selectedPO.grandTotal | moneyFormat }}</div>
             <div><b>Status:</b> {{ selectedPO.status }}</div>
           </div>
           <div class="form-row">
@@ -161,7 +161,7 @@
               <div>Driver: {{ reviewSummary.delivery.driverName }}</div>
               <div>Notes: {{ reviewSummary.delivery.deliveryNotes }}</div>
             </div>
-            <div class="summary-row"><b>Total Cost (All Items):</b> {{ totalCostAllItems | number:'1.2-2' }}</div>
+            <div class="summary-row"><b>Total Cost (All Items):</b> {{ totalCostAllItems | moneyFormat }}</div>
             <div class="summary-row"><b>Total Ordered:</b> {{ totalOrdered }}</div>
             <div class="summary-row"><b>Already Received:</b> {{ totalReceived }}</div>
             <div class="summary-row"><b>Receiving Now (This GRN):</b> {{ totalReceivingNow }}</div>

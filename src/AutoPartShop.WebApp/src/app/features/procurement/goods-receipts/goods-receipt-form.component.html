@@ -724,7 +724,7 @@
                     <td class="cost-cell" data-label="Unit Cost">
                       <p-inputNumber *ngIf="mode !== 'view'" formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }"></p-inputNumber>
                       <span *ngIf="mode === 'view'" class="view-text font-semibold">
-                        {{ line.get('unitCost')?.value | number:'1.2-2' }}
+                        {{ line.get('unitCost')?.value | moneyFormat }}
                         <span class="text-secondary"> {{ line.get('currency')?.value }}</span>
                       </span>
                     </td>

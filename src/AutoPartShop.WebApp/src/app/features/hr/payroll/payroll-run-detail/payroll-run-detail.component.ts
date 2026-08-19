@@ -16,13 +16,14 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 
 @Component({
     selector: 'app-payroll-run-detail',
     standalone: true,
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, InputNumberModule, Select,
         DialogModule, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, TranslatePipe],
+        PageContainerComponent, PageHeaderComponent, TranslatePipe, MoneyFormatPipe],
     providers: [MessageService, ConfirmationService],
     templateUrl: './payroll-run-detail.component.html',
     styleUrls: ['./payroll-run-detail.component.css']

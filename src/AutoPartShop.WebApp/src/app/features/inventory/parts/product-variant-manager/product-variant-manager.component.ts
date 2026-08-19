@@ -28,6 +28,7 @@ import {
 } from '../../services/product-attribute.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 
 interface AttrRow {
   attributeId: string;
@@ -56,7 +57,8 @@ interface AttrRow {
     DialogModule,
     Select,
     ConfirmDialogModule,
-    TranslatePipe
+    TranslatePipe,
+    MoneyFormatPipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './product-variant-manager.component.html'

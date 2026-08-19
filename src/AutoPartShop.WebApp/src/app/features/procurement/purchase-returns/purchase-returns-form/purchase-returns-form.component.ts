@@ -22,6 +22,7 @@ import { PurchaseReturnService, PurchaseReturnResponse, AvailableLotForReturn, R
 import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purchase-order.service';
 import { PartService } from '../../../inventory/services/part.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
 import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
@@ -46,7 +47,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     DialogModule,
     CheckboxModule,
     TagModule,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    AppCurrencyPipe
   ],
   templateUrl: './purchase-returns-form.component.html',
   styleUrls: ['./purchase-returns-form.component.css'],

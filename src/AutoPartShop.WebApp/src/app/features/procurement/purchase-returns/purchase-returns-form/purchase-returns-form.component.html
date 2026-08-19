@@ -287,7 +287,7 @@
                     [disabled]="true"
                     [style]="{ width: '100%' }">
                   </p-inputNumber>
-                  <span *ngIf="isViewMode" class="price-display">{{ item.get('unitPrice')?.value | currency:currencyCode:'symbol':'1.2-2' }}</span>
+                  <span *ngIf="isViewMode" class="price-display">{{ item.get('unitPrice')?.value | appCurrency:currencyCode }}</span>
                 </td>
                 <td class="rejected-cell" data-label="Rejected">
                   <p-inputNumber
@@ -313,7 +313,7 @@
                   <span *ngIf="isViewMode" class="condition-display">{{ item.get('condition')?.value }}</span>
                 </td>
                 <td class="line-total-cell" data-label="Refund">
-                  <span class="line-total">{{ ((item.get('quantity')?.value - item.get('rejectedQuantity')?.value) * item.get('unitPrice')?.value) | currency:currencyCode:'symbol':'1.2-2' }}</span>
+                  <span class="line-total">{{ ((item.get('quantity')?.value - item.get('rejectedQuantity')?.value) * item.get('unitPrice')?.value) | appCurrency:currencyCode }}</span>
                 </td>
                 <td class="action-cell" *ngIf="!isViewMode" data-label="Actions">
                   <button
@@ -357,7 +357,7 @@
           </div>
           <div class="summary-row grand-total">
             <span class="summary-label">Total Refund Amount:</span>
-            <span class="summary-value">{{ getTotalRefundAmount() | currency:currencyCode:'symbol':'1.2-2' }}</span>
+            <span class="summary-value">{{ getTotalRefundAmount() | appCurrency:currencyCode }}</span>
           </div>
         </div>
       </div>
@@ -435,9 +435,9 @@
             <div class="item-info">
               <span class="item-name">{{ item.displayName || getPartName(item.partId) }}</span>
               <small *ngIf="item.partLocalName" class="part-row-local d-block">{{ item.partLocalName }}</small>
-              <span class="item-details">Qty: {{ item.quantity }} | Price: {{ item.unitPrice | currency:currencyCode:'symbol':'1.2-2' }}</span>
+              <span class="item-details">Qty: {{ item.quantity }} | Price: {{ item.unitPrice | appCurrency:currencyCode }}</span>
             </div>
-            <span class="item-total">{{ (item.quantity * item.unitPrice) | currency:currencyCode:'symbol':'1.2-2' }}</span>
+            <span class="item-total">{{ (item.quantity * item.unitPrice) | appCurrency:currencyCode }}</span>
           </label>
         </div>
       </div>
