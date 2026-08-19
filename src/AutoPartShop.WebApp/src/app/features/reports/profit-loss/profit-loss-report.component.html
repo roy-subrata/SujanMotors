@@ -48,41 +48,41 @@
     <div class="pnl-statement">
       <section class="pnl-section">
         <h3>{{ 'reports.profitLoss.revenue' | translate }}</h3>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.totalSales' | translate }}</span><span class="amount-value">{{ summary.totalSales | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.cashSales' | translate }}</span><span class="amount-value">{{ summary.cashSales | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.creditSales' | translate }}</span><span class="amount-value">{{ summary.creditSales | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.customerPaymentsReceived' | translate }}</span><span class="amount-value">{{ summary.customerPaymentsReceived | number:'1.2-2' }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.totalSales' | translate }}</span><span class="amount-value" [class]="summary.totalSales | amountSign">{{ summary.totalSales | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.cashSales' | translate }}</span><span class="amount-value" [class]="summary.cashSales | amountSign">{{ summary.cashSales | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.creditSales' | translate }}</span><span class="amount-value" [class]="summary.creditSales | amountSign">{{ summary.creditSales | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.customerPaymentsReceived' | translate }}</span><span class="amount-value" [class]="summary.customerPaymentsReceived | amountSign">{{ summary.customerPaymentsReceived | moneyFormat }}</span></div>
       </section>
 
       <section class="pnl-section">
         <h3>{{ 'reports.profitLoss.expenses' | translate }}</h3>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.totalPurchases' | translate }}</span><span class="amount-value">{{ summary.totalPurchases | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.supplierPaymentsMade' | translate }}</span><span class="amount-value">{{ summary.supplierPaymentsMade | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.dailyExpenses' | translate }}</span><span class="amount-value">{{ summary.dailyExpenses | number:'1.2-2' }}</span></div>
-        <div class="pnl-row pnl-row-total"><span>{{ 'reports.profitLoss.totalExpenses' | translate }}</span><span class="amount-value">{{ summary.totalExpenses | number:'1.2-2' }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.totalPurchases' | translate }}</span><span class="amount-value" [class]="summary.totalPurchases | amountSign">{{ summary.totalPurchases | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.supplierPaymentsMade' | translate }}</span><span class="amount-value" [class]="summary.supplierPaymentsMade | amountSign">{{ summary.supplierPaymentsMade | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.dailyExpenses' | translate }}</span><span class="amount-value" [class]="summary.dailyExpenses | amountSign">{{ summary.dailyExpenses | moneyFormat }}</span></div>
+        <div class="pnl-row pnl-row-total"><span>{{ 'reports.profitLoss.totalExpenses' | translate }}</span><span class="amount-value" [class]="summary.totalExpenses | amountSign">{{ summary.totalExpenses | moneyFormat }}</span></div>
       </section>
 
       <section class="pnl-section pnl-section-highlight">
         <h3>{{ 'reports.profitLoss.profitability' | translate }}</h3>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.grossProfit' | translate }}</span><span class="amount-value">{{ summary.grossProfit | number:'1.2-2' }}</span></div>
-        <div class="pnl-row pnl-row-total"><span>{{ 'reports.profitLoss.netProfit' | translate }}</span><span class="amount-value">{{ summary.netProfit | number:'1.2-2' }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.grossProfit' | translate }}</span><span class="amount-value" [class]="summary.grossProfit | amountSign">{{ summary.grossProfit | moneyFormat }}</span></div>
+        <div class="pnl-row pnl-row-total"><span>{{ 'reports.profitLoss.netProfit' | translate }}</span><span class="amount-value" [class]="summary.netProfit | amountSign">{{ summary.netProfit | moneyFormat }}</span></div>
         <div class="pnl-row"><span>{{ 'reports.profitLoss.profitMargin' | translate }}</span><span class="amount-value">{{ summary.profitMargin | number:'1.2-2' }}%</span></div>
       </section>
 
       <section class="pnl-section">
         <h3>{{ 'reports.profitLoss.outstandingBalances' | translate }}</h3>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.customerDue' | translate }}</span><span class="amount-value">{{ summary.customerDueAmount | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.customerOverdue' | translate }}</span><span class="amount-value">{{ summary.customerOverdueAmount | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.supplierDue' | translate }}</span><span class="amount-value">{{ summary.supplierDueAmount | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.supplierOverdue' | translate }}</span><span class="amount-value">{{ summary.supplierOverdueAmount | number:'1.2-2' }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.customerDue' | translate }}</span><span class="amount-value" [class]="summary.customerDueAmount | amountSign">{{ summary.customerDueAmount | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.customerOverdue' | translate }}</span><span class="amount-value" [class]="summary.customerOverdueAmount | amountSign">{{ summary.customerOverdueAmount | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.supplierDue' | translate }}</span><span class="amount-value" [class]="summary.supplierDueAmount | amountSign">{{ summary.supplierDueAmount | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.supplierOverdue' | translate }}</span><span class="amount-value" [class]="summary.supplierOverdueAmount | amountSign">{{ summary.supplierOverdueAmount | moneyFormat }}</span></div>
       </section>
 
       <section class="pnl-section">
         <h3>{{ 'reports.profitLoss.cashFlowInventory' | translate }}</h3>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.cashInflow' | translate }}</span><span class="amount-value">{{ summary.cashInflow | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.cashOutflow' | translate }}</span><span class="amount-value">{{ summary.cashOutflow | number:'1.2-2' }}</span></div>
-        <div class="pnl-row pnl-row-total"><span>{{ 'reports.profitLoss.closingBalance' | translate }}</span><span class="amount-value">{{ summary.closingBalance | number:'1.2-2' }}</span></div>
-        <div class="pnl-row"><span>{{ 'reports.profitLoss.inventoryValue' | translate }}</span><span class="amount-value">{{ summary.inventoryValue | number:'1.2-2' }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.cashInflow' | translate }}</span><span class="amount-value" [class]="summary.cashInflow | amountSign">{{ summary.cashInflow | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.cashOutflow' | translate }}</span><span class="amount-value" [class]="summary.cashOutflow | amountSign">{{ summary.cashOutflow | moneyFormat }}</span></div>
+        <div class="pnl-row pnl-row-total"><span>{{ 'reports.profitLoss.closingBalance' | translate }}</span><span class="amount-value" [class]="summary.closingBalance | amountSign">{{ summary.closingBalance | moneyFormat }}</span></div>
+        <div class="pnl-row"><span>{{ 'reports.profitLoss.inventoryValue' | translate }}</span><span class="amount-value" [class]="summary.inventoryValue | amountSign">{{ summary.inventoryValue | moneyFormat }}</span></div>
       </section>
     </div>
   } @else {

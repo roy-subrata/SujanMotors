@@ -107,9 +107,9 @@
       @for (total of config.totals ?? []; track total.field) {
         <div class="totals-card">
           <span class="totals-label">{{ total.label | translate }}</span>
-          <span class="totals-value">
+          <span class="totals-value" [class]="total.type === 'money' ? (totals[total.field] | amountSign) : ''">
             @if (total.type === 'money') {
-              {{ (totals[total.field] | number:'1.2-2') || '0.00' }}
+              {{ totals[total.field] | moneyFormat }}
             } @else {
               {{ (totals[total.field] | number) || 0 }}
             }
@@ -154,7 +154,7 @@
               <td [class.col-amount]="col.type === 'money' || col.type === 'number' || col.type === 'percent'">
                 @switch (col.type) {
                   @case ('money') {
-                    <span class="amount-value">{{ row[col.field] !== null && row[col.field] !== undefined ? (row[col.field] | number:'1.2-2') : '—' }}</span>
+                    <span class="amount-value" [class]="row[col.field] | amountSign">{{ row[col.field] !== null && row[col.field] !== undefined ? (row[col.field] | moneyFormat) : '—' }}</span>
                   }
                   @case ('number') {
                     {{ row[col.field] | number }}
@@ -221,7 +221,7 @@
                   <span class="row-value">
                     @switch (col.type) {
                       @case ('money') {
-                        {{ row[col.field] !== null && row[col.field] !== undefined ? (row[col.field] | number:'1.2-2') : '—' }}
+                        <span [class]="row[col.field] | amountSign">{{ row[col.field] !== null && row[col.field] !== undefined ? (row[col.field] | moneyFormat) : '—' }}</span>
                       }
                       @case ('number') {
                         {{ row[col.field] | number }}

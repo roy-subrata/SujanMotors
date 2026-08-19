@@ -14,6 +14,8 @@ import { HasPermissionDirective } from '../../../shared/directives/has-permissio
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
+import { AmountSignPipe } from '@/shared/pipes/amount-sign.pipe';
 import { REPORT_REGISTRY } from '../report-configs';
 import { ReportExportFormat, ReportQuery, ReportsService } from '../services/reports.service';
 
@@ -50,7 +52,8 @@ interface FinancialSummaryResponse {
     standalone: true,
     imports: [
         CommonModule, FormsModule, DatePickerModule, ToastModule, TooltipModule,
-        PageContainerComponent, PageHeaderComponent, HasPermissionDirective, TranslatePipe
+        PageContainerComponent, PageHeaderComponent, HasPermissionDirective, TranslatePipe,
+        MoneyFormatPipe, AmountSignPipe
     ],
     providers: [MessageService],
     templateUrl: './profit-loss-report.component.html',

@@ -503,6 +503,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.amount-value.negative,
+.totals-value.negative {
+  color: var(--color-danger);
+}
+
 .cell-avatar {
   display: flex;
   align-items: center;

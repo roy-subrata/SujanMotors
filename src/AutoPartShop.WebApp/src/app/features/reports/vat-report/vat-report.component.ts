@@ -16,6 +16,8 @@ import { extractApiError } from '../../../shared/utils/api-error.util';
 import { PdfDownloadService } from '../../../shared/services/pdf-download.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
+import { AmountSignPipe } from '@/shared/pipes/amount-sign.pipe';
 import { ReportQuery } from '../services/reports.service';
 
 /** Backend VatReportDto (see Application/DTOs/ReportDtos/FinancialReportDtos.cs). */
@@ -41,7 +43,8 @@ interface VatReportResponse {
     standalone: true,
     imports: [
         CommonModule, FormsModule, DatePickerModule, InputNumberModule, ToastModule, TooltipModule,
-        PageContainerComponent, PageHeaderComponent, HasPermissionDirective, TranslatePipe
+        PageContainerComponent, PageHeaderComponent, HasPermissionDirective, TranslatePipe,
+        MoneyFormatPipe, AmountSignPipe
     ],
     providers: [MessageService],
     templateUrl: './vat-report.component.html',
