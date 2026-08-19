@@ -5,11 +5,14 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 import { CustomerPaymentService, CustomerPaymentHistorySummary } from '../services/customer-payment.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-customer-payment-summary',
@@ -19,7 +22,10 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
     ButtonModule,
     SkeletonModule,
     ToastModule,
-    TranslatePipe
+    TooltipModule,
+    TranslatePipe,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService],
   templateUrl: './customer-payment-summary.component.html',

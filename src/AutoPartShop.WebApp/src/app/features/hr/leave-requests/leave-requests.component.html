@@ -5,13 +5,13 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Leave Requests"
-    subtitle="Manage employee leave applications"
-    [count]="totalRecords" countLabel="requests" countIcon="pi pi-calendar-minus">
+    [title]="'hr.leaveRequests.title' | translate"
+    [subtitle]="'hr.leaveRequests.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'hr.leaveRequests.countLabel' | translate" countIcon="pi pi-calendar-minus">
     <ng-container actions>
       <button class="btn-primary" (click)="openCreate()">
         <i class="pi pi-plus"></i>
-        <span>New Leave Request</span>
+        <span>{{ 'hr.leaveRequests.newRequest' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -21,7 +21,7 @@
     <div search class="filter-group search-group">
       <div class="search-input-wrapper">
         <i class="pi pi-search"></i>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by employee name, code, reason..."
+        <input type="text" [(ngModel)]="searchTerm" [placeholder]="'hr.leaveRequests.searchPlaceholder' | translate"
           class="search-input" (keyup.enter)="onSearch()">
         <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
       </div>
@@ -36,12 +36,12 @@
     </div>
 
     <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
+      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> {{ 'common.actions.search' | translate }}</button>
       <button class="text-btn" (click)="moreFiltersVisible = true">
-        More filters
+        {{ 'common.labels.moreFilters' | translate }}
       </button>
       <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i> Clear
+        <i class="pi pi-filter-slash"></i> {{ 'common.actions.clear' | translate }}
       </button>
     </div>
   </app-filter-bar>
@@ -63,15 +63,15 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-employee">Employee</th>
-            <th class="col-type">Type</th>
-            <th class="col-dates">From</th>
-            <th class="col-dates">To</th>
-            <th class="col-days">Days</th>
-            <th class="col-reason">Reason</th>
-            <th class="col-status">Status</th>
-            <th class="col-decision">Decision By</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-employee">{{ 'hr.leaveRequests.columns.employee' | translate }}</th>
+            <th class="col-type">{{ 'hr.leaveRequests.columns.type' | translate }}</th>
+            <th class="col-dates">{{ 'hr.leaveRequests.columns.from' | translate }}</th>
+            <th class="col-dates">{{ 'hr.leaveRequests.columns.to' | translate }}</th>
+            <th class="col-days">{{ 'hr.leaveRequests.columns.days' | translate }}</th>
+            <th class="col-reason">{{ 'hr.leaveRequests.columns.reason' | translate }}</th>
+            <th class="col-status">{{ 'hr.leaveRequests.columns.status' | translate }}</th>
+            <th class="col-decision">{{ 'hr.leaveRequests.columns.decisionBy' | translate }}</th>
+            <th class="col-actions">{{ 'hr.leaveRequests.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -93,9 +93,9 @@
             <td class="col-actions">
               <div class="action-cell">
                 <ng-container *ngIf="request.status === 'PENDING'">
-                  <button class="btn-action" pTooltip="Approve" (click)="approve(request)"><i class="pi pi-check"></i></button>
-                  <button class="btn-action" pTooltip="Reject" (click)="reject(request)"><i class="pi pi-times"></i></button>
-                  <button class="btn-action" pTooltip="Edit" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
+                  <button class="btn-action" [pTooltip]="'hr.leaveRequests.tooltips.approve' | translate" (click)="approve(request)"><i class="pi pi-check"></i></button>
+                  <button class="btn-action" [pTooltip]="'hr.leaveRequests.tooltips.reject' | translate" (click)="reject(request)"><i class="pi pi-times"></i></button>
+                  <button class="btn-action" [pTooltip]="'hr.leaveRequests.tooltips.edit' | translate" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
                 </ng-container>
                 <span *ngIf="request.status !== 'PENDING'" class="text-muted">-</span>
               </div>
@@ -108,8 +108,8 @@
             <td colspan="9">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-calendar-minus"></i></div>
-                <h3>No Leave Requests Found</h3>
-                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a leave request' }}</p>
+                <h3>{{ 'hr.leaveRequests.emptyTitle' | translate }}</h3>
+                <p>{{ (searchTerm ? 'hr.leaveRequests.emptyHintFiltered' : 'hr.leaveRequests.emptyHintCreate') | translate }}</p>
               </div>
             </td>
           </tr>
@@ -136,8 +136,8 @@
 
     <div *ngIf="!loading && requests.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-calendar-minus"></i></div>
-      <h3>No Leave Requests Found</h3>
-      <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a leave request' }}</p>
+      <h3>{{ 'hr.leaveRequests.emptyTitle' | translate }}</h3>
+      <p>{{ (searchTerm ? 'hr.leaveRequests.emptyHintFiltered' : 'hr.leaveRequests.emptyHintCreate') | translate }}</p>
     </div>
 
     <div *ngIf="!loading && requests.length > 0" class="cards-grid">
@@ -162,9 +162,9 @@
         </div>
 
         <div class="card-footer" *ngIf="request.status === 'PENDING'">
-          <button class="btn-card-action" pTooltip="Approve" (click)="approve(request)"><i class="pi pi-check"></i></button>
-          <button class="btn-card-action" pTooltip="Reject" (click)="reject(request)"><i class="pi pi-times"></i></button>
-          <button class="btn-card-action" pTooltip="Edit" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
+          <button class="btn-card-action" [pTooltip]="'hr.leaveRequests.tooltips.approve' | translate" (click)="approve(request)"><i class="pi pi-check"></i></button>
+          <button class="btn-card-action" [pTooltip]="'hr.leaveRequests.tooltips.reject' | translate" (click)="reject(request)"><i class="pi pi-times"></i></button>
+          <button class="btn-card-action" [pTooltip]="'hr.leaveRequests.tooltips.edit' | translate" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
         </div>
       </div>
     </div>
@@ -186,39 +186,39 @@
 
 <!-- ==================== CREATE / EDIT DIALOG ==================== -->
 <p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '480px' }"
-  [header]="editingId ? 'Edit Leave Request' : 'New Leave Request'" [draggable]="false" [resizable]="false">
+  [header]="editingId ? ('hr.leaveRequests.dialog.editTitle' | translate) : ('hr.leaveRequests.dialog.createTitle' | translate)" [draggable]="false" [resizable]="false">
   <div class="dialog-form">
     <div class="dialog-field">
-      <label>Employee <span class="required">*</span></label>
+      <label>{{ 'hr.leaveRequests.dialog.employeeLabel' | translate }} <span class="required">*</span></label>
       <p-select [options]="employees" [(ngModel)]="form.employeeId" optionValue="id" optionLabel="name"
-        placeholder="Select employee" [filter]="true" filterBy="name,employeeCode" appendTo="body"
+        [placeholder]="'hr.leaveRequests.dialog.employeePlaceholder' | translate" [filter]="true" filterBy="name,employeeCode" appendTo="body"
         [disabled]="!!editingId"></p-select>
-      <small class="p-error" *ngIf="submitted && !form.employeeId">Employee is required</small>
+      <small class="p-error" *ngIf="submitted && !form.employeeId">{{ 'hr.leaveRequests.dialog.employeeRequired' | translate }}</small>
     </div>
     <div class="dialog-field">
-      <label>Leave Type <span class="required">*</span></label>
+      <label>{{ 'hr.leaveRequests.dialog.leaveTypeLabel' | translate }} <span class="required">*</span></label>
       <p-select [options]="leaveTypeOptions" [(ngModel)]="form.leaveType" appendTo="body"></p-select>
     </div>
     <div class="dialog-row">
       <div class="dialog-field">
-        <label>From <span class="required">*</span></label>
+        <label>{{ 'hr.leaveRequests.dialog.fromLabel' | translate }} <span class="required">*</span></label>
         <p-datepicker [(ngModel)]="form.fromDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body"></p-datepicker>
-        <small class="p-error" *ngIf="submitted && !form.fromDate">From date is required</small>
+        <small class="p-error" *ngIf="submitted && !form.fromDate">{{ 'hr.leaveRequests.dialog.fromRequired' | translate }}</small>
       </div>
       <div class="dialog-field">
-        <label>To <span class="required">*</span></label>
+        <label>{{ 'hr.leaveRequests.dialog.toLabel' | translate }} <span class="required">*</span></label>
         <p-datepicker [(ngModel)]="form.toDate" dateFormat="dd/mm/yy" [showIcon]="true"
           [minDate]="form.fromDate || undefined" appendTo="body"></p-datepicker>
-        <small class="p-error" *ngIf="submitted && !form.toDate">To date is required</small>
+        <small class="p-error" *ngIf="submitted && !form.toDate">{{ 'hr.leaveRequests.dialog.toRequired' | translate }}</small>
       </div>
     </div>
     <div class="dialog-field">
-      <label>Reason</label>
-      <textarea pInputTextarea [(ngModel)]="form.reason" rows="3" placeholder="Reason for leave..."></textarea>
+      <label>{{ 'hr.leaveRequests.dialog.reasonLabel' | translate }}</label>
+      <textarea pInputTextarea [(ngModel)]="form.reason" rows="3" [placeholder]="'hr.leaveRequests.dialog.reasonPlaceholder' | translate"></textarea>
     </div>
   </div>
   <ng-template pTemplate="footer">
-    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
-    <button pButton [label]="saving ? 'Saving...' : 'Save'" icon="pi pi-check" [loading]="saving" (click)="saveRequest()"></button>
+    <button pButton [label]="'hr.leaveRequests.dialog.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+    <button pButton [label]="(saving ? 'hr.leaveRequests.dialog.saving' : 'hr.leaveRequests.dialog.save') | translate" icon="pi pi-check" [loading]="saving" (click)="saveRequest()"></button>
   </ng-template>
 </p-dialog>

@@ -15,7 +15,7 @@
       [tableStyle]="{ 'min-width': '50rem' }"
       dataKey="id">
 
-      <ng-template pTemplate="header">
+      <ng-template #header>
         <tr>
           <th class="col-po">Return Number</th>
           <th class="col-supplier">Supplier</th>
@@ -26,7 +26,7 @@
         </tr>
       </ng-template>
 
-      <ng-template pTemplate="body" let-pr>
+      <ng-template #body let-pr>
         <tr class="data-row" (dblclick)="viewPurchaseReturn(pr)">
           <td class="col-po">
             <div class="so-cell">
@@ -62,7 +62,7 @@
         </tr>
       </ng-template>
 
-      <ng-template pTemplate="emptymessage">
+      <ng-template #emptymessage>
         <tr>
           <td colspan="6">
             <div class="empty-state">

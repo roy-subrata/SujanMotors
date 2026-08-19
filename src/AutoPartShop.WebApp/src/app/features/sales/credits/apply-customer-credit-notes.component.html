@@ -21,7 +21,7 @@
     styleClass="credit-table"
     responsiveLayout="scroll">
 
-    <ng-template pTemplate="header">
+    <ng-template #header>
       <tr>
         <th style="width: 140px">{{ 'customerCredits.columns.creditNote' | translate }}</th>
         <th class="col-hide-md">{{ 'customerCredits.columns.returnNumber' | translate }}</th>
@@ -34,7 +34,7 @@
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="body" let-credit>
+    <ng-template #body let-credit>
       <tr [class.selected]="selectedCreditNote?.id === credit.id">
         <td>
           <span class="credit-number">{{ credit.creditNoteNumber }}</span>
@@ -70,7 +70,7 @@
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="emptymessage">
+    <ng-template #emptymessage>
       <tr>
         <td colspan="8" class="text-center">
           <div class="empty-state">

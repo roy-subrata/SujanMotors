@@ -5,13 +5,13 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Shifts"
-    subtitle="Work schedules for staff"
-    [count]="shifts.length" countLabel="shifts" countIcon="pi pi-clock">
+    [title]="'hr.shifts.title' | translate"
+    [subtitle]="'hr.shifts.subtitle' | translate"
+    [count]="shifts.length" [countLabel]="'hr.shifts.countLabel' | translate" countIcon="pi pi-clock">
     <ng-container actions>
       <button class="btn-primary" (click)="openCreate()">
         <i class="pi pi-plus"></i>
-        <span>Add Shift</span>
+        <span>{{ 'hr.shifts.dialog.createTitle' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -24,12 +24,12 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-name">Shift</th>
-            <th class="col-time">Start</th>
-            <th class="col-time">End</th>
-            <th class="col-grace">Grace (min)</th>
-            <th class="col-notes">Notes</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-name">{{ 'hr.shifts.columns.shift' | translate }}</th>
+            <th class="col-time">{{ 'hr.shifts.columns.start' | translate }}</th>
+            <th class="col-time">{{ 'hr.shifts.columns.end' | translate }}</th>
+            <th class="col-grace">{{ 'hr.shifts.columns.grace' | translate }}</th>
+            <th class="col-notes">{{ 'hr.shifts.columns.notes' | translate }}</th>
+            <th class="col-actions">{{ 'hr.shifts.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -54,8 +54,8 @@
             <td colspan="6">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-clock"></i></div>
-                <h3>No Shifts Defined</h3>
-                <p>Add shifts like "Morning 9-6" and assign them to employees; device check-ins after start + grace are flagged LATE</p>
+                <h3>{{ 'hr.shifts.emptyTitle' | translate }}</h3>
+                <p>{{ 'hr.shifts.emptyHint' | translate }}</p>
               </div>
             </td>
           </tr>
@@ -82,8 +82,8 @@
 
     <div *ngIf="!loading && shifts.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-clock"></i></div>
-      <h3>No Shifts Defined</h3>
-      <p>Add shifts like "Morning 9-6" and assign them to employees; device check-ins after start + grace are flagged LATE</p>
+      <h3>{{ 'hr.shifts.emptyTitle' | translate }}</h3>
+      <p>{{ 'hr.shifts.emptyHint' | translate }}</p>
     </div>
 
     <div *ngIf="!loading && shifts.length > 0" class="cards-grid">
@@ -114,37 +114,37 @@
 
 <!-- ==================== ADD / EDIT DIALOG ==================== -->
 <p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '420px' }"
-  [header]="editingId ? 'Edit Shift' : 'Add Shift'" [draggable]="false" [resizable]="false">
+  [header]="editingId ? ('hr.shifts.dialog.editTitle' | translate) : ('hr.shifts.dialog.createTitle' | translate)" [draggable]="false" [resizable]="false">
   <div class="dialog-form">
     <div class="dialog-field">
-      <label>Shift Name <span class="required">*</span></label>
-      <input pInputText [(ngModel)]="form.name" placeholder="e.g., Morning 9-6" />
-      <small class="p-error" *ngIf="submitted && !form.name.trim()">Shift name is required</small>
+      <label>{{ 'hr.shifts.dialog.nameLabel' | translate }} <span class="required">*</span></label>
+      <input pInputText [(ngModel)]="form.name" [placeholder]="'hr.shifts.dialog.namePlaceholder' | translate" />
+      <small class="p-error" *ngIf="submitted && !form.name.trim()">{{ 'hr.shifts.dialog.nameRequired' | translate }}</small>
     </div>
     <div class="dialog-row">
       <div class="dialog-field">
-        <label>Start Time <span class="required">*</span></label>
+        <label>{{ 'hr.shifts.dialog.startTimeLabel' | translate }} <span class="required">*</span></label>
         <input type="time" class="time-input" [(ngModel)]="form.startTime" />
-        <small class="p-error" *ngIf="submitted && !form.startTime">Start time is required</small>
+        <small class="p-error" *ngIf="submitted && !form.startTime">{{ 'hr.shifts.dialog.startTimeRequired' | translate }}</small>
       </div>
       <div class="dialog-field">
-        <label>End Time <span class="required">*</span></label>
+        <label>{{ 'hr.shifts.dialog.endTimeLabel' | translate }} <span class="required">*</span></label>
         <input type="time" class="time-input" [(ngModel)]="form.endTime" />
-        <small class="p-error" *ngIf="submitted && !form.endTime">End time is required</small>
+        <small class="p-error" *ngIf="submitted && !form.endTime">{{ 'hr.shifts.dialog.endTimeRequired' | translate }}</small>
       </div>
     </div>
     <div class="dialog-field">
-      <label>Grace Minutes</label>
+      <label>{{ 'hr.shifts.dialog.graceLabel' | translate }}</label>
       <p-inputNumber [(ngModel)]="form.graceMinutes" [min]="0" [max]="240" [showButtons]="true"></p-inputNumber>
-      <small class="dialog-hint"><i class="pi pi-info-circle"></i> Check-ins later than start + grace are marked LATE</small>
+      <small class="dialog-hint"><i class="pi pi-info-circle"></i> {{ 'hr.shifts.dialog.graceHint' | translate }}</small>
     </div>
     <div class="dialog-field">
-      <label>Notes</label>
-      <input pInputText [(ngModel)]="form.notes" placeholder="Optional notes" />
+      <label>{{ 'hr.shifts.dialog.notesLabel' | translate }}</label>
+      <input pInputText [(ngModel)]="form.notes" [placeholder]="'hr.shifts.dialog.notesPlaceholder' | translate" />
     </div>
   </div>
   <ng-template pTemplate="footer">
-    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
-    <button pButton [label]="saving ? 'Saving...' : 'Save'" icon="pi pi-check" [loading]="saving" (click)="saveShift()"></button>
+    <button pButton [label]="'hr.shifts.dialog.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+    <button pButton [label]="(saving ? 'hr.shifts.dialog.saving' : 'hr.shifts.dialog.save') | translate" icon="pi pi-check" [loading]="saving" (click)="saveShift()"></button>
   </ng-template>
 </p-dialog>

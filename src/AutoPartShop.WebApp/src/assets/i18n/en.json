@@ -347,6 +347,7 @@
     }
   },
   "categories": {
+    "countLabel": "categories",
     "title": "Categories",
     "addCategory": "Add Category",
     "editCategory": "Edit Category",
@@ -383,6 +384,7 @@
     }
   },
   "brands": {
+    "countLabel": "brands",
     "title": "Brands",
     "addBrand": "Add Brand",
     "editBrand": "Edit Brand",
@@ -418,6 +420,7 @@
     }
   },
   "units": {
+    "countLabel": "units",
     "title": "Units",
     "addUnit": "Add Unit",
     "editUnit": "Edit Unit",
@@ -449,6 +452,7 @@
     }
   },
   "suppliers": {
+    "countLabel": "suppliers",
     "title": "Suppliers",
     "manageSuppliers": "Manage Suppliers",
     "subtitle": "Manage and track all suppliers",
@@ -539,6 +543,7 @@
     }
   },
   "warehouses": {
+    "countLabel": "warehouses",
     "title": "Warehouses",
     "subtitle": "Organize and manage your warehouse locations",
     "addWarehouse": "Add Warehouse",
@@ -584,6 +589,7 @@
     }
   },
   "warehouseLocations": {
+    "countLabel": "locations",
     "title": "Warehouse Locations",
     "subtitle": "Manage physical bin/shelf locations for barcode labeling",
     "newLocation": "New Location",
@@ -1336,6 +1342,7 @@
     }
   },
   "supplierPayments": {
+    "countLabel": "payments",
     "title": "Supplier Payments",
     "addPayment": "Add Payment",
     "editPayment": "Edit Payment",
@@ -1480,6 +1487,7 @@
     }
   },
   "stockTakes": {
+    "countLabel": "stock takes",
     "title": "Stock Take",
     "subtitle": "Physical inventory counts and variance reconciliation",
     "newStockTake": "New Stock Take",
@@ -1564,6 +1572,7 @@
     }
   },
   "vehicles": {
+    "countLabel": "vehicles",
     "title": "Vehicles",
     "subtitle": "Manage vehicle makes, models, and compatibility",
     "addVehicle": "Add Vehicle",
@@ -1635,6 +1644,7 @@
     }
   },
   "discounts": {
+    "countLabel": "discounts",
     "title": "Discounts",
     "subtitle": "Manage discount rules and promotions",
     "addDiscount": "Add Discount",
@@ -1941,6 +1951,7 @@
     "cardRefund": "Refund"
   },
   "purchaseReturns": {
+    "countLabel": "returns",
     "title": "Purchase Returns",
     "messages": {
       "loadFailed": "Failed to load purchase returns",
@@ -2562,6 +2573,7 @@
     }
   },
   "paymentProviders": {
+    "countLabel": "providers",
     "title": "Payment Providers",
     "addProvider": "Add Provider",
     "editProvider": "Edit Provider",
@@ -2577,6 +2589,12 @@
       "setDefaultSuccess": "Payment provider set as default",
       "setDefaultFailed": "Failed to set default provider"
     }
+  },
+  "dailyExpenses": {
+    "countLabel": "expenses"
+  },
+  "supplierPerformance": {
+    "countLabel": "suppliers"
   },
   "conversions": {
     "title": "Unit Conversions",
@@ -2644,6 +2662,7 @@
     }
   },
   "supplierPaymentAccounts": {
+    "countLabel": "accounts",
     "title": "Payment Accounts",
     "addAccount": "Add Account",
     "addPaymentAccount": "Add Payment Account",
@@ -5519,6 +5538,394 @@
       "REFUND": "Purchase Return",
       "ADVANCE": "Advance Payment",
       "CANCELLATION": "Cancellation"
+    }
+  },
+  "hr": {
+    "employees": {
+      "title": "Employees",
+      "subtitle": "Manage shop staff records",
+      "countLabel": "employees",
+      "searchPlaceholder": "Search by name, code, phone, designation...",
+      "allDepartments": "All Departments",
+      "emptyTitle": "No Employees Found",
+      "emptyHintFiltered": "Try adjusting your filters or search criteria",
+      "emptyHintCreate": "Start by adding a new employee",
+      "emptyTitleMobile": "No Employees",
+      "emptyHintFilteredMobile": "Try different filters",
+      "emptyHintCreateMobile": "Add your first employee",
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "designation": "Designation",
+        "department": "Department",
+        "phone": "Phone",
+        "joinDate": "Join Date",
+        "loginAccount": "Login Account",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "tooltips": {
+        "exportCsv": "Export CSV",
+        "exportJson": "Export JSON",
+        "view": "View",
+        "edit": "Edit",
+        "deactivate": "Deactivate",
+        "activate": "Activate"
+      },
+      "statusDialog": {
+        "deactivateTitle": "Deactivate Employee",
+        "activateTitle": "Activate Employee",
+        "deactivateLabel": "Deactivate",
+        "activateLabel": "Activate",
+        "disableLogin": "Also disable login account",
+        "enableLogin": "Also enable login account",
+        "loginHint": "They will no longer be able to sign in. An already-open session stays valid until its token expires (~1 hour).",
+        "noLoginHint": "No login account is linked to this employee.",
+        "cancel": "Cancel",
+        "working": "Working..."
+      },
+      "form": {
+        "breadcrumbEmployees": "Employees",
+        "breadcrumbNew": "New",
+        "breadcrumbEdit": "Edit",
+        "breadcrumbView": "View",
+        "loading": "Loading employee details...",
+        "editBtn": "Edit",
+        "basicSection": "Basic Information",
+        "photoAlt": "Employee photo",
+        "changePhoto": "Change Photo",
+        "uploadPhoto": "Upload Photo",
+        "removePhoto": "Remove",
+        "photoHint": "JPG, PNG or WebP — max 5 MB",
+        "employeeCodeLabel": "Employee Code",
+        "codePlaceholder": "Auto-generated",
+        "codeHint": "Code is auto-generated and cannot be changed",
+        "fullNameLabel": "Full Name",
+        "fullNamePlaceholder": "e.g., Abdul Karim",
+        "fullNameRequired": "Name is required (min 2 characters)",
+        "phoneLabel": "Phone",
+        "phonePlaceholder": "e.g., +8801716625369",
+        "phoneRequired": "Phone is required",
+        "emailLabel": "Email",
+        "emailPlaceholder": "e.g., employee@example.com",
+        "emailInvalid": "Valid email is required",
+        "nidLabel": "National ID (NID)",
+        "nidPlaceholder": "e.g., 1234567890123",
+        "dobLabel": "Date of Birth",
+        "dobPlaceholder": "Select date",
+        "genderLabel": "Gender",
+        "genderPlaceholder": "Select gender",
+        "cityLabel": "City",
+        "cityPlaceholder": "e.g., Dhaka",
+        "addressLabel": "Address",
+        "addressPlaceholder": "e.g., 123 Main Street, Gulshan",
+        "employmentSection": "Employment Details",
+        "designationLabel": "Designation",
+        "designationPlaceholder": "e.g., Salesperson, Cashier, Storekeeper",
+        "designationRequired": "Designation is required",
+        "departmentLabel": "Department",
+        "departmentPlaceholder": "Select department",
+        "departmentRequired": "Department is required",
+        "joinDateLabel": "Join Date",
+        "joinDatePlaceholder": "Select date",
+        "joinDateRequired": "Join date is required",
+        "employmentTypeLabel": "Employment Type",
+        "employmentTypeRequired": "Employment type is required",
+        "monthlySalaryLabel": "Monthly Salary (BDT)",
+        "monthlySalaryPlaceholder": "e.g., 25000",
+        "monthlySalaryRequired": "Salary is required and cannot be negative",
+        "shiftLabel": "Shift",
+        "shiftPlaceholder": "No shift",
+        "shiftHint": "Used by device check-in to flag late arrivals",
+        "taxDeductionLabel": "Monthly Tax Deduction (BDT)",
+        "taxDeductionPlaceholder": "0",
+        "taxDeductionHint": "Fixed amount deducted on every payslip",
+        "commissionLabel": "Sales Commission (%)",
+        "commissionPlaceholder": "0",
+        "commissionHint": "% of own monthly sales (needs a linked login account)",
+        "loginAccountLabel": "Login Account",
+        "loginAccountPlaceholder": "No login account",
+        "loginAccountHint": "Optional — link this employee to a staff login account",
+        "emergencySection": "Emergency Contact",
+        "emergencyContactNameLabel": "Contact Name",
+        "emergencyContactNamePlaceholder": "e.g., Rahim Uddin",
+        "emergencyContactPhoneLabel": "Contact Phone",
+        "emergencyContactPhonePlaceholder": "e.g., +8801812345678",
+        "notesSection": "Additional Notes",
+        "notesLabel": "Notes",
+        "notesPlaceholder": "Additional notes about this employee...",
+        "backBtn": "Back",
+        "cancelBtn": "Cancel",
+        "createBtn": "Create Employee",
+        "updateBtn": "Update Employee",
+        "savingBtn": "Saving..."
+      }
+    },
+    "attendance": {
+      "title": "Daily Attendance",
+      "subtitle": "Mark attendance for shop staff",
+      "countLabel": "marked",
+      "markAllTooltip": "Mark all present",
+      "saving": "Saving...",
+      "saveAll": "Save All",
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "designation": "Designation",
+        "shift": "Shift",
+        "status": "Status",
+        "checkIn": "Check In",
+        "checkOut": "Check Out",
+        "notes": "Notes"
+      },
+      "statusPlaceholder": "Not marked",
+      "alreadyMarkedTooltip": "Already marked",
+      "emptyTitle": "No Active Employees",
+      "emptyHint": "Add employees in HR > Employees first",
+      "mobileLabels": {
+        "status": "Status",
+        "checkIn": "Check In",
+        "checkOut": "Check Out",
+        "notes": "Notes"
+      }
+    },
+    "leaveRequests": {
+      "title": "Leave Requests",
+      "subtitle": "Manage employee leave applications",
+      "countLabel": "requests",
+      "searchPlaceholder": "Search by employee name, code, reason...",
+      "newRequest": "New Leave Request",
+      "columns": {
+        "employee": "Employee",
+        "type": "Type",
+        "from": "From",
+        "to": "To",
+        "days": "Days",
+        "reason": "Reason",
+        "status": "Status",
+        "decisionBy": "Decision By",
+        "actions": "Actions"
+      },
+      "tooltips": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "edit": "Edit"
+      },
+      "emptyTitle": "No Leave Requests Found",
+      "emptyHintFiltered": "Try adjusting your filters or search criteria",
+      "emptyHintCreate": "Start by creating a leave request",
+      "dialog": {
+        "editTitle": "Edit Leave Request",
+        "createTitle": "New Leave Request",
+        "employeeLabel": "Employee",
+        "employeePlaceholder": "Select employee",
+        "employeeRequired": "Employee is required",
+        "leaveTypeLabel": "Leave Type",
+        "fromLabel": "From",
+        "fromRequired": "From date is required",
+        "toLabel": "To",
+        "toRequired": "To date is required",
+        "reasonLabel": "Reason",
+        "reasonPlaceholder": "Reason for leave...",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "save": "Save"
+      }
+    },
+    "holidays": {
+      "title": "Holidays",
+      "subtitle": "Shop holiday calendar",
+      "countLabel": "holidays",
+      "columns": {
+        "date": "Date",
+        "day": "Day",
+        "holiday": "Holiday",
+        "actions": "Actions"
+      },
+      "emptyTitlePrefix": "No Holidays for",
+      "emptyHint": "Add Eid, national holidays and other shop closures",
+      "dialog": {
+        "editTitle": "Edit Holiday",
+        "createTitle": "Add Holiday",
+        "dateLabel": "Date",
+        "dateRequired": "Date is required",
+        "nameLabel": "Holiday Name",
+        "namePlaceholder": "e.g., Eid-ul-Fitr",
+        "nameRequired": "Holiday name is required",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "save": "Save"
+      }
+    },
+    "shifts": {
+      "title": "Shifts",
+      "subtitle": "Work schedules for staff",
+      "countLabel": "shifts",
+      "columns": {
+        "shift": "Shift",
+        "start": "Start",
+        "end": "End",
+        "grace": "Grace (min)",
+        "notes": "Notes",
+        "actions": "Actions"
+      },
+      "emptyTitle": "No Shifts Defined",
+      "emptyHint": "Add shifts like \"Morning 9-6\" and assign them to employees; device check-ins after start + grace are flagged LATE",
+      "dialog": {
+        "editTitle": "Edit Shift",
+        "createTitle": "Add Shift",
+        "nameLabel": "Shift Name",
+        "namePlaceholder": "e.g., Morning 9-6",
+        "nameRequired": "Shift name is required",
+        "startTimeLabel": "Start Time",
+        "startTimeRequired": "Start time is required",
+        "endTimeLabel": "End Time",
+        "endTimeRequired": "End time is required",
+        "graceLabel": "Grace Minutes",
+        "graceHint": "Check-ins later than start + grace are marked LATE",
+        "notesLabel": "Notes",
+        "notesPlaceholder": "Optional notes",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "save": "Save"
+      }
+    },
+    "payroll": {
+      "title": "Payroll",
+      "subtitle": "Monthly salary runs",
+      "countLabel": "runs",
+      "columns": {
+        "run": "Run",
+        "month": "Month",
+        "employees": "Employees",
+        "gross": "Gross",
+        "deductions": "Deductions",
+        "netPay": "Net Pay",
+        "status": "Status",
+        "paid": "Paid",
+        "actions": "Actions"
+      },
+      "tooltips": {
+        "open": "Open",
+        "delete": "Delete"
+      },
+      "employeesSuffix": "employees",
+      "grossPrefix": "Gross",
+      "deductionsPrefix": "Deductions",
+      "netPrefix": "Net",
+      "paidPrefix": "Paid",
+      "emptyTitle": "No Payroll Runs",
+      "emptyHint": "Generate the first monthly payroll run",
+      "generateDialog": {
+        "title": "Generate Payroll",
+        "yearLabel": "Year",
+        "monthLabel": "Month",
+        "hint": "Creates a draft from active employees and the month's attendance. Regenerating a draft replaces its payslips.",
+        "cancel": "Cancel",
+        "generating": "Generating...",
+        "generate": "Generate"
+      },
+      "detail": {
+        "backTooltip": "Back to runs",
+        "printTooltip": "Print",
+        "sendTooltip": "Email/SMS payslips",
+        "approveBtn": "Approve",
+        "recordPaymentBtn": "Record Payment",
+        "summary": {
+          "status": "Status",
+          "totalGross": "Total Gross",
+          "totalDeductions": "Total Deductions",
+          "netPayable": "Net Payable"
+        },
+        "payslipColumns": {
+          "employee": "Employee",
+          "attendance": "Attendance (P/L/H/A/Lv)",
+          "attendanceTooltip": "Present / Late / Half / Absent / Leave",
+          "basic": "Basic",
+          "overtime": "Overtime",
+          "bonus": "Bonus",
+          "allowance": "Allowance",
+          "commission": "Commission",
+          "commissionTooltipPrefix": "From sales of",
+          "absenceDeduction": "Absence Ded.",
+          "advanceDeduction": "Advance Ded.",
+          "taxDeduction": "Tax Ded.",
+          "otherDeduction": "Other Ded.",
+          "netPay": "Net Pay",
+          "saveTooltip": "Save adjustments"
+        },
+        "mobileLabels": {
+          "overtime": "Overtime",
+          "bonus": "Bonus",
+          "allowance": "Allowance",
+          "commission": "Commission",
+          "advanceDeduction": "Advance Ded.",
+          "taxDeduction": "Tax Ded.",
+          "otherDeduction": "Other Ded."
+        },
+        "emptyTitle": "No Payslips",
+        "emptyHint": "Regenerate this payroll run",
+        "payDialog": {
+          "title": "Record Salary Payment",
+          "methodLabel": "Payment Method",
+          "hintPrefix": "This records",
+          "hintSuffix": "as a SALARIES expense in the daily cash book.",
+          "cancel": "Cancel",
+          "recording": "Recording...",
+          "confirmPayment": "Confirm Payment"
+        }
+      }
+    },
+    "salaryAdvances": {
+      "title": "Salary Advances",
+      "subtitle": "Cash advances against future salary",
+      "countLabel": "advances",
+      "searchPlaceholder": "Search by employee name, code...",
+      "columns": {
+        "employee": "Employee",
+        "date": "Date",
+        "amount": "Amount",
+        "method": "Method",
+        "notes": "Notes",
+        "status": "Status",
+        "settled": "Settled",
+        "actions": "Actions"
+      },
+      "tooltips": {
+        "approve": "Approve advance",
+        "reject": "Reject advance",
+        "cancel": "Cancel advance"
+      },
+      "emptyTitle": "No Salary Advances",
+      "emptyHint": "Advances are deducted automatically in the next payroll run",
+      "settledPrefix": "Settled",
+      "approveBtn": "Approve",
+      "rejectBtn": "Reject",
+      "giveAdvanceBtn": "Give Advance",
+      "giveDialog": {
+        "title": "Give Salary Advance",
+        "employeeLabel": "Employee",
+        "employeePlaceholder": "Select employee",
+        "employeeRequired": "Employee is required",
+        "dateLabel": "Date",
+        "amountLabel": "Amount (BDT)",
+        "amountPlaceholder": "e.g., 5000",
+        "amountRequired": "Enter an amount greater than 0",
+        "methodLabel": "Payment Method",
+        "notesLabel": "Notes",
+        "notesPlaceholder": "Optional notes",
+        "hint": "Posts a SALARY_ADVANCE expense to the cash book now; the amount is deducted in the next payroll run.",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "submit": "Give Advance"
+      },
+      "rejectDialog": {
+        "title": "Reject Advance",
+        "reasonLabel": "Reason",
+        "reasonPlaceholder": "Why is this advance being declined?",
+        "cancel": "Cancel",
+        "reject": "Reject"
+      }
     }
   }
 }

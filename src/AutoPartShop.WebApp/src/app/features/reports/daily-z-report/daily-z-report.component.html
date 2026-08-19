@@ -3,14 +3,14 @@
 <app-page-container>
 
   <app-page-header
-    [title]="i18n.t('reports.dailyZ.title')"
-    [subtitle]="i18n.t('reports.dailyZ.subtitle')"
+    [title]="'reports.dailyZ.title' | translate"
+    [subtitle]="'reports.dailyZ.subtitle' | translate"
     [backLink]="['/reports']">
   </app-page-header>
 
   <div class="report-filter">
     <div class="filter-item">
-      <label class="filter-label">{{ i18n.t('reports.dailyZ.businessDate') }}</label>
+      <label class="filter-label">{{ 'reports.dailyZ.businessDate' | translate }}</label>
       <p-datepicker
         [(ngModel)]="businessDate"
         dateFormat="dd M yy"
@@ -20,11 +20,11 @@
       </p-datepicker>
     </div>
     <div class="filter-item">
-      <label class="filter-label">{{ i18n.t('reports.filters.warehouse') }}</label>
+      <label class="filter-label">{{ 'reports.filters.warehouse' | translate }}</label>
       <p-select
         [options]="warehouseOptions"
         [(ngModel)]="warehouseId"
-        [placeholder]="i18n.t('reports.filters.allWarehouses')"
+        [placeholder]="'reports.filters.allWarehouses' | translate"
         [showClear]="true"
         [filter]="warehouseOptions.length > 10"
         appendTo="body"
@@ -38,20 +38,20 @@
       <i class="pi pi-file-pdf"></i>
     </div>
     <div class="z-report-body">
-      <h3>{{ i18n.t('reports.dailyZ.contentsTitle') }}</h3>
-      <p>{{ i18n.t('reports.dailyZ.contentsIntro') }}</p>
+      <h3>{{ 'reports.dailyZ.contentsTitle' | translate }}</h3>
+      <p>{{ 'reports.dailyZ.contentsIntro' | translate }}</p>
       <ul>
-        <li>{{ i18n.t('reports.dailyZ.contentGrossSales') }}</li>
-        <li>{{ i18n.t('reports.dailyZ.contentVat') }}</li>
-        <li>{{ i18n.t('reports.dailyZ.contentReceiptCount') }}</li>
-        <li>{{ i18n.t('reports.dailyZ.contentPaymentsByMethod') }}</li>
-        <li>{{ i18n.t('reports.dailyZ.contentSalesByCategory') }}</li>
+        <li>{{ 'reports.dailyZ.contentGrossSales' | translate }}</li>
+        <li>{{ 'reports.dailyZ.contentVat' | translate }}</li>
+        <li>{{ 'reports.dailyZ.contentReceiptCount' | translate }}</li>
+        <li>{{ 'reports.dailyZ.contentPaymentsByMethod' | translate }}</li>
+        <li>{{ 'reports.dailyZ.contentSalesByCategory' | translate }}</li>
       </ul>
     </div>
     <ng-container *appHasPermission="'reports.export'">
       <button class="btn-primary z-report-download" (click)="downloadPdf()" [disabled]="downloading || !businessDate">
         <i [class]="downloading ? 'pi pi-spin pi-spinner' : 'pi pi-download'"></i>
-        <span>{{ i18n.t('reports.dailyZ.downloadButton') }}</span>
+        <span>{{ 'reports.dailyZ.downloadButton' | translate }}</span>
       </button>
     </ng-container>
   </div>

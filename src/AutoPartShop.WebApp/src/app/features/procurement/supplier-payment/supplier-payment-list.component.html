@@ -8,7 +8,7 @@
   <app-page-header
     title="Supplier Payments"
     subtitle="Track and manage all payments to suppliers"
-    [count]="totalCount" countLabel="payments">
+    [count]="totalCount" [countLabel]="'supplierPayments.countLabel' | translate">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadSupplierPayments()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>

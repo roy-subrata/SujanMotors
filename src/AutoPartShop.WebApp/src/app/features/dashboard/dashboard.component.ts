@@ -29,6 +29,9 @@ import { SalesReturnService } from '../sales/services/sales-return.service';
 import { StockTakeService } from '../inventory/services/stock-take.service';
 import { StockService, StockLevelResponse } from '../inventory/services/stock.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 interface PeriodOption {
   label: string;
@@ -60,7 +63,10 @@ interface WorkQueueItem {
     TagModule,
     ToastModule,
     SkeletonModule,
-    TooltipModule
+    TooltipModule,
+    TranslatePipe,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService],
   templateUrl: './dashboard.component.html',

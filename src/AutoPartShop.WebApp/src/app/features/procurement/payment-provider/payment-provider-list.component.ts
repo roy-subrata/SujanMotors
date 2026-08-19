@@ -20,6 +20,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
@@ -41,7 +42,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     PageContainerComponent,
     PageHeaderComponent,
     FilterBarComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './payment-provider-list.component.html',

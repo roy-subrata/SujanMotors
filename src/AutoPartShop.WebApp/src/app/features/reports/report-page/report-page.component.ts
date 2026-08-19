@@ -19,6 +19,7 @@ import { DataPaginationComponent } from '../../../shared/components/data-paginat
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 import { WarehouseService } from '../../inventory/services/warehouse.service';
 import { CategoryService } from '../../inventory/services/category.service';
@@ -43,7 +44,7 @@ type ReportRow = Record<string, any>;
         CommonModule, FormsModule, TableModule, SelectModule, DatePickerModule,
         CheckboxModule, ChartModule, ToastModule, TooltipModule,
         PageContainerComponent, PageHeaderComponent, FilterBarComponent,
-        DataPaginationComponent, HasPermissionDirective
+        DataPaginationComponent, HasPermissionDirective, TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './report-page.component.html',

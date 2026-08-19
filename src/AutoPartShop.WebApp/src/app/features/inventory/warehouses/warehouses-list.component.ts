@@ -9,6 +9,7 @@ import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { RippleModule } from 'primeng/ripple';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -29,6 +30,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
     RippleModule,
     TagModule,
     TooltipModule,
+    ToastModule,
     DataPaginationComponent,
     TranslatePipe
   ],

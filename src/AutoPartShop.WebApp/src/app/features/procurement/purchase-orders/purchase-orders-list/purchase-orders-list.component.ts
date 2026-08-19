@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
@@ -23,6 +24,7 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     CommonModule,
     ContextMenuModule,
     ConfirmDialogModule,
+    TableModule,
     TooltipModule,
     RouterModule,
     DataPaginationComponent,

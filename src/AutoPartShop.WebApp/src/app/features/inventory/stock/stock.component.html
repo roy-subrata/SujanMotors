@@ -98,7 +98,7 @@
           styleClass="app-table"
           responsiveLayout="scroll">
 
-          <ng-template pTemplate="header">
+          <ng-template #header>
             <tr>
               <th>
                 <span class="th-content">{{ 'stock.columns.part' | translate }}</span>
@@ -117,7 +117,7 @@
             </tr>
           </ng-template>
 
-          <ng-template pTemplate="body" let-stock>
+          <ng-template #body let-stock>
             <tr [class.low-stock-row]="isLowStock(stock)">
               <td>
                 <div class="part-info">
@@ -198,7 +198,7 @@
             </tr>
           </ng-template>
 
-          <ng-template pTemplate="emptymessage">
+          <ng-template #emptymessage>
             <tr>
               <td colspan="8">
                 <div class="empty-state">
@@ -333,7 +333,7 @@
           [first]="lowFirst" (onLazyLoad)="onLowLazyLoad($event)" styleClass="app-table"
           responsiveLayout="scroll">
 
-          <ng-template pTemplate="header">
+          <ng-template #header>
             <tr>
               <th>{{ 'stock.columns.part' | translate }}</th>
               <th>{{ 'stock.warehouse' | translate }}</th>
@@ -345,7 +345,7 @@
             </tr>
           </ng-template>
 
-          <ng-template pTemplate="body" let-stock>
+          <ng-template #body let-stock>
             <tr>
               <td>
                 <div class="part-info">
@@ -395,7 +395,7 @@
             </tr>
           </ng-template>
 
-          <ng-template pTemplate="emptymessage">
+          <ng-template #emptymessage>
             <tr>
               <td colspan="7">
                 <div class="empty-state success-state">

@@ -397,7 +397,7 @@
           [loading]="loadingCompatibilities"
           styleClass="p-datatable-sm p-datatable-striped"
           style="margin-top: 1rem">
-          <ng-template pTemplate="header">
+          <ng-template #header>
             <tr>
               <th>{{ 'parts.partForm.vehicleLabel' | translate }}</th>
               <th style="width: 120px">{{ 'common.labels.status' | translate }}</th>
@@ -405,7 +405,7 @@
               <th style="width: 60px"></th>
             </tr>
           </ng-template>
-          <ng-template pTemplate="body" let-row>
+          <ng-template #body let-row>
             <tr>
               <td>
                 <span class="font-semibold">{{ row.vehicleInfo }}</span>

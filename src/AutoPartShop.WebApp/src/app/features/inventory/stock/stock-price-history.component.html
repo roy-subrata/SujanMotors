@@ -53,40 +53,7 @@
     </ng-template>
 
     <!-- Statistics -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <label>{{ 'priceHistory.stats.latest' | translate }}</label>
-        @if (priceCodeService.getDisplayPrice(priceHistory.latestPrice) !== null) {
-          <span class="stat-value coded-price">{{ priceCodeService.getDisplayPrice(priceHistory.latestPrice) }}</span>
-        } @else {
-          <span class="stat-value">{{ priceHistory.latestPrice | currency:currencyCode:'symbol':'1.2-4' }}</span>
-        }
-      </div>
-      <div class="stat-card">
-        <label>{{ 'priceHistory.stats.average' | translate }}</label>
-        @if (priceCodeService.getDisplayPrice(priceHistory.averagePrice) !== null) {
-          <span class="stat-value coded-price">{{ priceCodeService.getDisplayPrice(priceHistory.averagePrice) }}</span>
-        } @else {
-          <span class="stat-value">{{ priceHistory.averagePrice | currency:currencyCode:'symbol':'1.2-4' }}</span>
-        }
-      </div>
-      <div class="stat-card">
-        <label>{{ 'priceHistory.stats.minimum' | translate }}</label>
-        @if (priceCodeService.getDisplayPrice(priceHistory.minPrice) !== null) {
-          <span class="stat-value coded-price">{{ priceCodeService.getDisplayPrice(priceHistory.minPrice) }}</span>
-        } @else {
-          <span class="stat-value text-green">{{ priceHistory.minPrice | currency:currencyCode:'symbol':'1.2-4' }}</span>
-        }
-      </div>
-      <div class="stat-card">
-        <label>{{ 'priceHistory.stats.maximum' | translate }}</label>
-        @if (priceCodeService.getDisplayPrice(priceHistory.maxPrice) !== null) {
-          <span class="stat-value coded-price">{{ priceCodeService.getDisplayPrice(priceHistory.maxPrice) }}</span>
-        } @else {
-          <span class="stat-value text-red">{{ priceHistory.maxPrice | currency:currencyCode:'symbol':'1.2-4' }}</span>
-        }
-      </div>
-    </div>
+    <app-stat-strip [stats]="priceStats"></app-stat-strip>
 
     <!-- ==================== DESKTOP TABLE ==================== -->
     <section class="table-section desktop-only">
@@ -103,7 +70,7 @@
       [tableStyle]="{ 'min-width': '60rem' }">
 
       <!-- Header -->
-      <ng-template pTemplate="header">
+      <ng-template #header>
         <tr>
           <th style="width: 15%">{{ 'priceHistory.columns.lotNumber' | translate }}</th>
           <th style="width: 15%">{{ 'priceHistory.columns.supplier' | translate }}</th>
@@ -117,7 +84,7 @@
       </ng-template>
 
       <!-- Data Rows -->
-      <ng-template pTemplate="body" let-lot>
+      <ng-template #body let-lot>
         <tr>
           <td>
             <span class="font-semibold">{{ lot.lotNumber }}</span>
@@ -163,7 +130,7 @@
       </ng-template>
 
       <!-- Empty Message -->
-      <ng-template pTemplate="emptymessage">
+      <ng-template #emptymessage>
         <tr>
           <td colspan="8">
             <div class="empty-state">

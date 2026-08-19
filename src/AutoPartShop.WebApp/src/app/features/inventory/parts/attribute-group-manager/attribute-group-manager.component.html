@@ -261,7 +261,7 @@
         <!-- Attributes table -->
         <div class="attributes-table" *ngIf="group.attributes.length > 0">
           <p-table [value]="group.attributes" styleClass="p-datatable-sm attr-table" [tableStyle]="{ 'min-width': '40rem' }">
-            <ng-template pTemplate="header">
+            <ng-template #header>
               <tr>
                 <th>{{ 'parts.attributeGroupManager.columnAttribute' | translate }}</th>
                 <th>{{ 'parts.attributeGroupManager.columnCode' | translate }}</th>
@@ -272,7 +272,7 @@
                 <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
               </tr>
             </ng-template>
-            <ng-template pTemplate="body" let-attr>
+            <ng-template #body let-attr>
               <tr>
                 <td class="attr-name">{{ attr.name }}</td>
                 <td><code class="attr-code">{{ attr.code }}</code></td>
@@ -326,7 +326,7 @@
                 </td>
               </tr>
             </ng-template>
-            <ng-template pTemplate="emptymessage">
+            <ng-template #emptymessage>
               <tr>
                 <td colspan="7" class="empty-attrs-row">
                   {{ 'parts.attributeGroupManager.emptyAttributesRow' | translate }}

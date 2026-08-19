@@ -5,27 +5,27 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    [title]="run ? ('Payroll — ' + monthLabel) : 'Payroll Run'"
-    [subtitle]="run ? (run.runCode + ' · ' + run.employeeCount + ' employees') : ''"
-    [count]="run?.payslips?.length || 0" countLabel="payslips" countIcon="pi pi-wallet">
+    [title]="run ? ('hr.payroll.title' | translate) + ' \u2014 ' + monthLabel : ('hr.payroll.title' | translate)"
+    [subtitle]="run ? (run.runCode + ' \u00B7 ' + run.employeeCount + ' ' + ('hr.payroll.employeesSuffix' | translate)) : ''"
+    [count]="run?.payslips?.length || 0" [countLabel]="'hr.payroll.detail.payslipColumns.employee' | translate" countIcon="pi pi-wallet">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Back to runs" tooltipPosition="bottom" (click)="back()">
+      <button class="btn-icon" [pTooltip]="'hr.payroll.detail.backTooltip' | translate" tooltipPosition="bottom" (click)="back()">
         <i class="pi pi-arrow-left"></i>
       </button>
-      <button class="btn-icon" pTooltip="Print" tooltipPosition="bottom" (click)="print()">
+      <button class="btn-icon" [pTooltip]="'hr.payroll.detail.printTooltip' | translate" tooltipPosition="bottom" (click)="print()">
         <i class="pi pi-print"></i>
       </button>
-      <button *ngIf="run?.status === 'APPROVED' || run?.status === 'PAID'" class="btn-icon" pTooltip="Email/SMS payslips"
+      <button *ngIf="run?.status === 'APPROVED' || run?.status === 'PAID'" class="btn-icon" [pTooltip]="'hr.payroll.detail.sendTooltip' | translate"
         tooltipPosition="bottom" (click)="sendPayslips()" [disabled]="sending">
         <i class="pi" [ngClass]="sending ? 'pi-spin pi-spinner' : 'pi-send'"></i>
       </button>
       <button *ngIf="run?.status === 'DRAFT'" class="btn-primary" (click)="approve()" [disabled]="approving">
         <i class="pi" [ngClass]="approving ? 'pi-spin pi-spinner' : 'pi-check'"></i>
-        <span>Approve</span>
+        <span>{{ 'hr.payroll.detail.approveBtn' | translate }}</span>
       </button>
       <button *ngIf="run?.status === 'APPROVED'" class="btn-primary" (click)="openPay()">
         <i class="pi pi-money-bill"></i>
-        <span>Record Payment</span>
+        <span>{{ 'hr.payroll.detail.recordPaymentBtn' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -33,24 +33,24 @@
   <!-- ==================== SUMMARY BAR ==================== -->
   <section *ngIf="run" class="summary-bar">
     <div class="summary-item">
-      <span class="summary-label">Status</span>
+      <span class="summary-label">{{ 'hr.payroll.detail.summary.status' | translate }}</span>
       <span class="status-pill" [attr.data-status]="run.status.toLowerCase()">{{ run.status }}</span>
     </div>
     <div class="summary-item">
-      <span class="summary-label">Total Gross</span>
+      <span class="summary-label">{{ 'hr.payroll.detail.summary.totalGross' | translate }}</span>
       <span class="summary-value">{{ run.totalGross | number: '1.2-2' }} {{ run.currency }}</span>
     </div>
     <div class="summary-item">
-      <span class="summary-label">Total Deductions</span>
+      <span class="summary-label">{{ 'hr.payroll.detail.summary.totalDeductions' | translate }}</span>
       <span class="summary-value">{{ run.totalDeductions | number: '1.2-2' }} {{ run.currency }}</span>
     </div>
     <div class="summary-item">
-      <span class="summary-label">Net Payable</span>
+      <span class="summary-label">{{ 'hr.payroll.detail.summary.netPayable' | translate }}</span>
       <span class="summary-value summary-net">{{ run.totalNet | number: '1.2-2' }} {{ run.currency }}</span>
     </div>
     <div class="summary-item" *ngIf="run.paidAt">
-      <span class="summary-label">Paid</span>
-      <span class="summary-value">{{ run.paidAt | date: 'dd MMM yyyy' }} · {{ run.paymentMethod }} · by {{ run.paidBy }}</span>
+      <span class="summary-label">{{ 'hr.payroll.paidPrefix' | translate }}</span>
+      <span class="summary-value">{{ run.paidAt | date: 'dd MMM yyyy' }} &middot; {{ run.paymentMethod }} &middot; {{ run.paidBy }}</span>
     </div>
   </section>
 
@@ -62,18 +62,18 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-employee">Employee</th>
-            <th class="col-att" pTooltip="Present / Late / Half / Absent / Leave">Attendance (P/L/H/A/Lv)</th>
-            <th class="col-amount">Basic</th>
-            <th class="col-input">Overtime</th>
-            <th class="col-input">Bonus</th>
-            <th class="col-input">Allowance</th>
-            <th class="col-input">Commission</th>
-            <th class="col-amount">Absence Ded.</th>
-            <th class="col-input">Advance Ded.</th>
-            <th class="col-input">Tax Ded.</th>
-            <th class="col-input">Other Ded.</th>
-            <th class="col-amount">Net Pay</th>
+            <th class="col-employee">{{ 'hr.payroll.detail.payslipColumns.employee' | translate }}</th>
+            <th class="col-att" [pTooltip]="'hr.payroll.detail.payslipColumns.attendanceTooltip' | translate">{{ 'hr.payroll.detail.payslipColumns.attendance' | translate }}</th>
+            <th class="col-amount">{{ 'hr.payroll.detail.payslipColumns.basic' | translate }}</th>
+            <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.overtime' | translate }}</th>
+            <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.bonus' | translate }}</th>
+            <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.allowance' | translate }}</th>
+            <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.commission' | translate }}</th>
+            <th class="col-amount">{{ 'hr.payroll.detail.payslipColumns.absenceDeduction' | translate }}</th>
+            <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.advanceDeduction' | translate }}</th>
+            <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.taxDeduction' | translate }}</th>
+            <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.otherDeduction' | translate }}</th>
+            <th class="col-amount">{{ 'hr.payroll.detail.payslipColumns.netPay' | translate }}</th>
             <th class="col-save" *ngIf="isDraft"></th>
           </tr>
         </ng-template>
@@ -82,7 +82,7 @@
           <tr class="data-row">
             <td class="col-employee">
               <span class="cell-primary">{{ payslip.employeeName }}</span>
-              <span class="text-muted code-sub">{{ payslip.employeeCode }} · {{ payslip.designation || '-' }}</span>
+              <span class="text-muted code-sub">{{ payslip.employeeCode }} &middot; {{ payslip.designation || '-' }}</span>
             </td>
             <td class="col-att">
               <span class="att-counts">{{ payslip.presentDays }}/{{ payslip.lateDays }}/{{ payslip.halfDays }}/<b class="att-absent">{{ payslip.absentDays }}</b>/{{ payslip.leaveDays }}</span>
@@ -103,7 +103,7 @@
                 [maxFractionDigits]="2" styleClass="cell-number"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.otherAllowance | number: '1.2-2' }}</span>
             </td>
-            <td class="col-input" [pTooltip]="payslip.monthlySalesTotal > 0 ? ('From sales of ' + (payslip.monthlySalesTotal | number: '1.2-2')) : ''">
+            <td class="col-input" [pTooltip]="payslip.monthlySalesTotal > 0 ? ('hr.payroll.detail.payslipColumns.commissionTooltipPrefix' | translate) + ' ' + (payslip.monthlySalesTotal | number: '1.2-2') : ''">
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.commissionAmount" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.commissionAmount | number: '1.2-2' }}</span>
@@ -126,7 +126,7 @@
             </td>
             <td class="col-amount"><span class="cell-primary">{{ payslip.netPay | number: '1.2-2' }}</span></td>
             <td class="col-save" *ngIf="isDraft">
-              <button class="btn-action" pTooltip="Save adjustments" (click)="savePayslip(payslip)"
+              <button class="btn-action" [pTooltip]="'hr.payroll.detail.payslipColumns.saveTooltip' | translate" (click)="savePayslip(payslip)"
                 [disabled]="savingPayslipId === payslip.id">
                 <i class="pi" [ngClass]="savingPayslipId === payslip.id ? 'pi-spin pi-spinner' : 'pi-save'"></i>
               </button>
@@ -139,8 +139,8 @@
             <td colspan="13">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-wallet"></i></div>
-                <h3>No Payslips</h3>
-                <p>Regenerate this payroll run</p>
+                <h3>{{ 'hr.payroll.detail.emptyTitle' | translate }}</h3>
+                <p>{{ 'hr.payroll.detail.emptyHint' | translate }}</p>
               </div>
             </td>
           </tr>
@@ -150,10 +150,6 @@
   </section>
 
   <!-- ==================== PAYSLIPS (Mobile Cards) ==================== -->
-  <!-- Spreadsheet-like editor: each card shows the read-only summary
-       (attendance, basic, absence deduction, net pay) up top, with the
-       editable adjustment fields grouped below and a per-employee save
-       action — same data as the desktop row, just re-flowed. -->
   <section class="cards-section mobile-only">
 
     <div *ngIf="loading" class="cards-grid">
@@ -171,8 +167,8 @@
 
     <div *ngIf="!loading && (!run?.payslips || run!.payslips.length === 0)" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-wallet"></i></div>
-      <h3>No Payslips</h3>
-      <p>Regenerate this payroll run</p>
+      <h3>{{ 'hr.payroll.detail.emptyTitle' | translate }}</h3>
+      <p>{{ 'hr.payroll.detail.emptyHint' | translate }}</p>
     </div>
 
     <div *ngIf="!loading && run?.payslips?.length" class="cards-grid">
@@ -189,52 +185,52 @@
           </div>
 
           <div class="card-meta">
-            <span class="card-meta-item" pTooltip="Present / Late / Half / Absent / Leave">
+            <span class="card-meta-item" [pTooltip]="'hr.payroll.detail.payslipColumns.attendanceTooltip' | translate">
               <i class="pi pi-calendar-check"></i>&nbsp;{{ payslip.presentDays }}/{{ payslip.lateDays }}/{{ payslip.halfDays }}/{{ payslip.absentDays }}/{{ payslip.leaveDays }}
             </span>
-            <span class="card-meta-item"><i class="pi pi-money-bill"></i>&nbsp;Basic {{ payslip.monthlySalary | number: '1.2-2' }}</span>
-            <span class="card-meta-item"><i class="pi pi-minus-circle"></i>&nbsp;Absence Ded. {{ payslip.absenceDeduction | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-money-bill"></i>&nbsp;{{ 'hr.payroll.detail.payslipColumns.basic' | translate }} {{ payslip.monthlySalary | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-minus-circle"></i>&nbsp;{{ 'hr.payroll.detail.payslipColumns.absenceDeduction' | translate }} {{ payslip.absenceDeduction | number: '1.2-2' }}</span>
           </div>
 
           <div class="payslip-adjustments">
             <div class="attendance-field">
-              <label>Overtime</label>
+              <label>{{ 'hr.payroll.detail.mobileLabels.overtime' | translate }}</label>
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.overtimeAmount" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.overtimeAmount | number: '1.2-2' }}</span>
             </div>
             <div class="attendance-field">
-              <label>Bonus</label>
+              <label>{{ 'hr.payroll.detail.mobileLabels.bonus' | translate }}</label>
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.bonusAmount" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.bonusAmount | number: '1.2-2' }}</span>
             </div>
             <div class="attendance-field">
-              <label>Allowance</label>
+              <label>{{ 'hr.payroll.detail.mobileLabels.allowance' | translate }}</label>
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.otherAllowance" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.otherAllowance | number: '1.2-2' }}</span>
             </div>
-            <div class="attendance-field" [pTooltip]="payslip.monthlySalesTotal > 0 ? ('From sales of ' + (payslip.monthlySalesTotal | number: '1.2-2')) : ''">
-              <label>Commission</label>
+            <div class="attendance-field" [pTooltip]="payslip.monthlySalesTotal > 0 ? ('hr.payroll.detail.payslipColumns.commissionTooltipPrefix' | translate) + ' ' + (payslip.monthlySalesTotal | number: '1.2-2') : ''">
+              <label>{{ 'hr.payroll.detail.mobileLabels.commission' | translate }}</label>
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.commissionAmount" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.commissionAmount | number: '1.2-2' }}</span>
             </div>
             <div class="attendance-field">
-              <label>Advance Ded.</label>
+              <label>{{ 'hr.payroll.detail.mobileLabels.advanceDeduction' | translate }}</label>
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.advanceDeduction" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.advanceDeduction | number: '1.2-2' }}</span>
             </div>
             <div class="attendance-field">
-              <label>Tax Ded.</label>
+              <label>{{ 'hr.payroll.detail.mobileLabels.taxDeduction' | translate }}</label>
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.taxDeduction" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.taxDeduction | number: '1.2-2' }}</span>
             </div>
             <div class="attendance-field">
-              <label>Other Ded.</label>
+              <label>{{ 'hr.payroll.detail.mobileLabels.otherDeduction' | translate }}</label>
               <p-inputNumber *ngIf="isDraft" [(ngModel)]="payslip.otherDeduction" mode="decimal" [min]="0"
                 [maxFractionDigits]="2" styleClass="cell-number-mobile"></p-inputNumber>
               <span *ngIf="!isDraft">{{ payslip.otherDeduction | number: '1.2-2' }}</span>
@@ -243,7 +239,7 @@
         </div>
 
         <div class="card-footer" *ngIf="isDraft">
-          <button class="btn-card-action" pTooltip="Save adjustments" (click)="savePayslip(payslip)"
+          <button class="btn-card-action" [pTooltip]="'hr.payroll.detail.payslipColumns.saveTooltip' | translate" (click)="savePayslip(payslip)"
             [disabled]="savingPayslipId === payslip.id">
             <i class="pi" [ngClass]="savingPayslipId === payslip.id ? 'pi-spin pi-spinner' : 'pi-save'"></i>
           </button>
@@ -257,19 +253,19 @@
 
 <!-- ==================== PAY DIALOG ==================== -->
 <p-dialog [(visible)]="payDialogVisible" [modal]="true" [style]="{ width: '400px' }"
-  header="Record Salary Payment" [draggable]="false" [resizable]="false">
+  [header]="'hr.payroll.detail.payDialog.title' | translate" [draggable]="false" [resizable]="false">
   <div class="dialog-form">
     <div class="dialog-field">
-      <label>Payment Method</label>
+      <label>{{ 'hr.payroll.detail.payDialog.methodLabel' | translate }}</label>
       <p-select [options]="paymentMethodOptions" [(ngModel)]="paymentMethod" appendTo="body"></p-select>
     </div>
     <small class="dialog-hint" *ngIf="run">
       <i class="pi pi-info-circle"></i>
-      This records {{ run.totalNet | number: '1.2-2' }} {{ run.currency }} as a SALARIES expense in the daily cash book.
+      {{ 'hr.payroll.detail.payDialog.hintPrefix' | translate }} {{ run.totalNet | number: '1.2-2' }} {{ run.currency }} {{ 'hr.payroll.detail.payDialog.hintSuffix' | translate }}
     </small>
   </div>
   <ng-template pTemplate="footer">
-    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="payDialogVisible = false"></button>
-    <button pButton [label]="paying ? 'Recording...' : 'Confirm Payment'" icon="pi pi-check" [loading]="paying" (click)="pay()"></button>
+    <button pButton [label]="'hr.payroll.detail.payDialog.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="payDialogVisible = false"></button>
+    <button pButton [label]="(paying ? 'hr.payroll.detail.payDialog.recording' : 'hr.payroll.detail.payDialog.confirmPayment') | translate" icon="pi pi-check" [loading]="paying" (click)="pay()"></button>
   </ng-template>
 </p-dialog>

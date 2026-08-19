@@ -1,5 +1,5 @@
+import { CurrencyPipe, CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -14,6 +14,7 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { PriceCodeService } from '../../../shared/services/price-code.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { map } from 'rxjs';
@@ -32,6 +33,7 @@ import { map } from 'rxjs';
     TooltipModule,
     LazyAutocompleteComponent,
     DataPaginationComponent,
+    StatStripComponent,
     TranslatePipe
   ],
   providers: [MessageService],
@@ -59,6 +61,22 @@ export class StockPriceHistoryComponent implements OnInit {
 
   get currencyCode(): string {
     return this.currencyService.selectedCurrency();
+  }
+
+  get priceStats(): StatStripItem[] {
+    if (!this.priceHistory) return [];
+    const fmt = new CurrencyPipe('en-US');
+    const formatPrice = (price: number): string => {
+      const coded = this.priceCodeService.getDisplayPrice(price);
+      if (coded !== null) return coded;
+      return fmt.transform(price, this.currencyCode, 'symbol', '1.2-4') ?? String(price);
+    };
+    return [
+      { label: this.i18n.t('priceHistory.stats.latest'), value: formatPrice(this.priceHistory.latestPrice) },
+      { label: this.i18n.t('priceHistory.stats.average'), value: formatPrice(this.priceHistory.averagePrice) },
+      { label: this.i18n.t('priceHistory.stats.minimum'), value: formatPrice(this.priceHistory.minPrice) },
+      { label: this.i18n.t('priceHistory.stats.maximum'), value: formatPrice(this.priceHistory.maxPrice) },
+    ];
   }
 
   // Lazy autocomplete fetch function for parts

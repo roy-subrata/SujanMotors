@@ -4,22 +4,22 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    [title]="i18n.t(config.title)"
-    [subtitle]="i18n.t(config.subtitle)"
+    [title]="config.title | translate"
+    [subtitle]="config.subtitle | translate"
     [count]="totalRecords" [countLabel]="itemLabel"
     [backLink]="['/reports']">
     <ng-container actions>
-      <button class="btn-icon" [pTooltip]="i18n.t('common.actions.refresh')" tooltipPosition="bottom" (click)="loadData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <ng-container *appHasPermission="'reports.export'">
         <button class="btn-secondary" (click)="export('xlsx')" [disabled]="exporting !== null || loading">
           <i [class]="exporting === 'xlsx' ? 'pi pi-spin pi-spinner' : 'pi pi-file-excel'"></i>
-          <span>{{ i18n.t('reports.actions.excel') }}</span>
+          <span>{{ 'reports.actions.excel' | translate }}</span>
         </button>
         <button class="btn-secondary" (click)="export('pdf')" [disabled]="exporting !== null || loading">
           <i [class]="exporting === 'pdf' ? 'pi pi-spin pi-spinner' : 'pi pi-file-pdf'"></i>
-          <span>{{ i18n.t('reports.actions.pdf') }}</span>
+          <span>{{ 'reports.actions.pdf' | translate }}</span>
         </button>
       </ng-container>
     </ng-container>
@@ -46,11 +46,11 @@
 
     @if (hasDateRange) {
       <div filters class="filter-group">
-        <label class="filter-label">{{ i18n.t('reports.filters.dateRange') }}</label>
+        <label class="filter-label">{{ 'reports.filters.dateRange' | translate }}</label>
         <p-datepicker
           [(ngModel)]="dateRange"
           selectionMode="range"
-          [placeholder]="i18n.t('reports.filters.selectDateRange')"
+          [placeholder]="'reports.filters.selectDateRange' | translate"
           dateFormat="dd M yy"
           [showIcon]="true"
           [showButtonBar]="true"
@@ -63,11 +63,11 @@
 
     @for (filter of selectFilters; track filter.key) {
       <div filters class="filter-group">
-        <label class="filter-label">{{ i18n.t(filter.label) }}</label>
+        <label class="filter-label">{{ filter.label | translate }}</label>
         <p-select
           [options]="optionsFor(filter)"
           [(ngModel)]="filterValues[filter.key]"
-          [placeholder]="i18n.t(filter.placeholder || 'common.status.all')"
+          [placeholder]="(filter.placeholder || 'common.status.all') | translate"
           [showClear]="filter.default === undefined"
           [filter]="optionsFor(filter).length > 10"
           (onChange)="onFilterChange()"
@@ -85,18 +85,18 @@
           [inputId]="filter.key"
           (onChange)="onFilterChange()">
         </p-checkbox>
-        <label class="filter-label" [for]="filter.key">{{ i18n.t(filter.label) }}</label>
+        <label class="filter-label" [for]="filter.key">{{ filter.label | translate }}</label>
       </div>
     }
 
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        {{ i18n.t('reports.actions.run') }}
+        {{ 'reports.actions.run' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        {{ i18n.t('common.actions.clear') }}
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
   </app-filter-bar>
@@ -106,7 +106,7 @@
     <section class="totals-strip">
       @for (total of config.totals ?? []; track total.field) {
         <div class="totals-card">
-          <span class="totals-label">{{ i18n.t(total.label) }}</span>
+          <span class="totals-label">{{ total.label | translate }}</span>
           <span class="totals-value">
             @if (total.type === 'money') {
               {{ (totals[total.field] | number:'1.2-2') || '0.00' }}
@@ -142,7 +142,7 @@
           <tr>
             @for (col of config.columns; track col.field) {
               <th [class.col-amount]="col.type === 'money' || col.type === 'number' || col.type === 'percent'">
-                {{ i18n.t(col.header) }}
+                {{ col.header | translate }}
               </th>
             }
           </tr>
@@ -179,7 +179,7 @@
             <td [attr.colspan]="config.columns.length">
               <div class="empty-state">
                 <i class="pi pi-chart-bar"></i>
-                <p>{{ i18n.t('reports.empty.noFilterData') }}</p>
+                <p>{{ 'reports.empty.noFilterData' | translate }}</p>
               </div>
             </td>
           </tr>
@@ -199,7 +199,7 @@
     } @else if (rows.length === 0) {
       <div class="empty-state">
         <i class="pi pi-chart-bar"></i>
-        <p>{{ i18n.t('reports.empty.noFilterData') }}</p>
+        <p>{{ 'reports.empty.noFilterData' | translate }}</p>
       </div>
     } @else {
       @for (row of rows; track $index) {
@@ -217,7 +217,7 @@
             @for (col of config.columns; track col.field) {
               @if (col.field !== mobilePrimaryField) {
                 <div class="order-card-row">
-                  <span class="row-label">{{ i18n.t(col.header) }}</span>
+                  <span class="row-label">{{ col.header | translate }}</span>
                   <span class="row-value">
                     @switch (col.type) {
                       @case ('money') {

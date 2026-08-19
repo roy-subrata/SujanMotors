@@ -22,6 +22,7 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
 import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-salary-advances',
@@ -29,7 +30,7 @@ import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dia
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, InputNumberModule, Select, DatePickerModule,
         DialogModule, TooltipModule, ToastModule, ConfirmDialogModule,
         PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent,
-        StatusPillFilterComponent, MoreFiltersDialogComponent],
+        StatusPillFilterComponent, MoreFiltersDialogComponent, TranslatePipe],
     providers: [MessageService, ConfirmationService],
     templateUrl: './salary-advances.component.html',
     styleUrls: ['./salary-advances.component.css']

@@ -23,6 +23,9 @@ import {
 } from '../../../shared/services/audit-trail.service';
 import { EntityTimelineDialogComponent } from '../entity-timeline-dialog/entity-timeline-dialog.component';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -42,7 +45,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     DatePickerModule,
     SelectModule,
     ToastModule,
-    DynamicDialogModule
+    DynamicDialogModule,
+    TranslatePipe,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService, DialogService],
   templateUrl: './audit-dashboard.component.html',

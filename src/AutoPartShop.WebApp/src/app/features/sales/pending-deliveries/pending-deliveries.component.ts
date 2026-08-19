@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
+import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
@@ -22,7 +23,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 @Component({
   selector: 'app-pending-deliveries',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ButtonModule, ToastModule, TooltipModule, ConfirmDialogModule, DialogModule, DividerModule, InputTextModule, TextareaModule, PageContainerComponent, PageHeaderComponent,
+  imports: [CommonModule, FormsModule, RouterModule, ButtonModule, ToastModule, TableModule, TooltipModule, ConfirmDialogModule, DialogModule, DividerModule, InputTextModule, TextareaModule, PageContainerComponent, PageHeaderComponent,
         TranslatePipe],
   providers: [MessageService, ConfirmationService],
   templateUrl: './pending-deliveries.component.html',

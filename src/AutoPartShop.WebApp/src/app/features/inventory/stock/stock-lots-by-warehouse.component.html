@@ -82,7 +82,7 @@
       [tableStyle]="{ 'min-width': '70rem' }">
 
       <!-- Header -->
-      <ng-template pTemplate="header">
+      <ng-template #header>
         <tr>
           <th style="width: 11%">{{ 'stockLots.columns.lotNumber' | translate }}</th>
           <th style="width: 14%" class="text-right">{{ 'stockLots.columns.qtyReceived' | translate }}</th>
@@ -99,7 +99,7 @@
       </ng-template>
 
       <!-- Data Rows -->
-      <ng-template pTemplate="body" let-lot>
+      <ng-template #body let-lot>
         <tr>
           <td>
             <span class="font-semibold">{{ lot.lotNumber }}</span>
@@ -192,7 +192,7 @@
       </ng-template>
 
       <!-- Empty Message -->
-      <ng-template pTemplate="emptymessage">
+      <ng-template #emptymessage>
         <tr>
           <td colspan="11">
             <div class="empty-state">

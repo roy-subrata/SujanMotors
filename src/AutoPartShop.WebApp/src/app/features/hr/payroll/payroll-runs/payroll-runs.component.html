@@ -5,13 +5,13 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Payroll"
-    subtitle="Monthly salary runs"
-    [count]="runs.length" countLabel="runs" countIcon="pi pi-wallet">
+    [title]="'hr.payroll.title' | translate"
+    [subtitle]="'hr.payroll.subtitle' | translate"
+    [count]="runs.length" [countLabel]="'hr.payroll.countLabel' | translate" countIcon="pi pi-wallet">
     <ng-container actions>
       <button class="btn-primary" (click)="openGenerate()">
         <i class="pi pi-plus"></i>
-        <span>Generate Payroll</span>
+        <span>{{ 'hr.payroll.generateDialog.title' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -24,15 +24,15 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-code">Run</th>
-            <th class="col-month">Month</th>
-            <th class="col-count">Employees</th>
-            <th class="col-amount">Gross</th>
-            <th class="col-amount">Deductions</th>
-            <th class="col-amount">Net Pay</th>
-            <th class="col-status">Status</th>
-            <th class="col-paid">Paid</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-code">{{ 'hr.payroll.columns.run' | translate }}</th>
+            <th class="col-month">{{ 'hr.payroll.columns.month' | translate }}</th>
+            <th class="col-count">{{ 'hr.payroll.columns.employees' | translate }}</th>
+            <th class="col-amount">{{ 'hr.payroll.columns.gross' | translate }}</th>
+            <th class="col-amount">{{ 'hr.payroll.columns.deductions' | translate }}</th>
+            <th class="col-amount">{{ 'hr.payroll.columns.netPay' | translate }}</th>
+            <th class="col-status">{{ 'hr.payroll.columns.status' | translate }}</th>
+            <th class="col-paid">{{ 'hr.payroll.columns.paid' | translate }}</th>
+            <th class="col-actions">{{ 'hr.payroll.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -53,8 +53,8 @@
             </td>
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="Open" (click)="viewRun(run)"><i class="pi pi-eye"></i></button>
-                <button *ngIf="run.status !== 'PAID'" class="btn-action" pTooltip="Delete" (click)="deleteRun(run)"><i class="pi pi-trash"></i></button>
+                <button class="btn-action" [pTooltip]="'hr.payroll.tooltips.open' | translate" (click)="viewRun(run)"><i class="pi pi-eye"></i></button>
+                <button *ngIf="run.status !== 'PAID'" class="btn-action" [pTooltip]="'hr.payroll.tooltips.delete' | translate" (click)="deleteRun(run)"><i class="pi pi-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -65,8 +65,8 @@
             <td colspan="9">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-wallet"></i></div>
-                <h3>No Payroll Runs</h3>
-                <p>Generate the first monthly payroll run</p>
+                <h3>{{ 'hr.payroll.emptyTitle' | translate }}</h3>
+                <p>{{ 'hr.payroll.emptyHint' | translate }}</p>
               </div>
             </td>
           </tr>
@@ -93,8 +93,8 @@
 
     <div *ngIf="!loading && runs.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-wallet"></i></div>
-      <h3>No Payroll Runs</h3>
-      <p>Generate the first monthly payroll run</p>
+      <h3>{{ 'hr.payroll.emptyTitle' | translate }}</h3>
+      <p>{{ 'hr.payroll.emptyHint' | translate }}</p>
     </div>
 
     <div *ngIf="!loading && runs.length > 0" class="cards-grid">
@@ -109,22 +109,22 @@
           <div class="card-customer">
             <div class="customer-info">
               <span class="customer-name">{{ monthLabel(run) }}</span>
-              <span class="customer-phone">{{ run.employeeCount }} employees</span>
+              <span class="customer-phone">{{ run.employeeCount }} {{ 'hr.payroll.employeesSuffix' | translate }}</span>
             </div>
           </div>
           <div class="card-meta">
-            <span class="card-meta-item"><i class="pi pi-money-bill"></i>&nbsp;Gross {{ run.totalGross | number: '1.2-2' }}</span>
-            <span class="card-meta-item"><i class="pi pi-minus-circle"></i>&nbsp;Deductions {{ run.totalDeductions | number: '1.2-2' }}</span>
-            <span class="card-meta-item"><i class="pi pi-wallet"></i>&nbsp;Net {{ run.totalNet | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-money-bill"></i>&nbsp;{{ 'hr.payroll.grossPrefix' | translate }} {{ run.totalGross | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-minus-circle"></i>&nbsp;{{ 'hr.payroll.deductionsPrefix' | translate }} {{ run.totalDeductions | number: '1.2-2' }}</span>
+            <span class="card-meta-item"><i class="pi pi-wallet"></i>&nbsp;{{ 'hr.payroll.netPrefix' | translate }} {{ run.totalNet | number: '1.2-2' }}</span>
             <span class="card-meta-item" *ngIf="run.paidAt">
-              <i class="pi pi-check-circle"></i>&nbsp;Paid {{ run.paidAt | date: 'dd MMM yyyy' }} ({{ run.paymentMethod }})
+              <i class="pi pi-check-circle"></i>&nbsp;{{ 'hr.payroll.paidPrefix' | translate }} {{ run.paidAt | date: 'dd MMM yyyy' }} ({{ run.paymentMethod }})
             </span>
           </div>
         </div>
 
         <div class="card-footer">
-          <button class="btn-card-action" pTooltip="Open" (click)="viewRun(run); $event.stopPropagation()"><i class="pi pi-eye"></i></button>
-          <button *ngIf="run.status !== 'PAID'" class="btn-card-action" pTooltip="Delete"
+          <button class="btn-card-action" [pTooltip]="'hr.payroll.tooltips.open' | translate" (click)="viewRun(run); $event.stopPropagation()"><i class="pi pi-eye"></i></button>
+          <button *ngIf="run.status !== 'PAID'" class="btn-card-action" [pTooltip]="'hr.payroll.tooltips.delete' | translate"
             (click)="deleteRun(run); $event.stopPropagation()"><i class="pi pi-trash"></i></button>
         </div>
       </div>
@@ -136,25 +136,25 @@
 
 <!-- ==================== GENERATE DIALOG ==================== -->
 <p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '400px' }"
-  header="Generate Payroll" [draggable]="false" [resizable]="false">
+  [header]="'hr.payroll.generateDialog.title' | translate" [draggable]="false" [resizable]="false">
   <div class="dialog-form">
     <div class="dialog-row">
       <div class="dialog-field">
-        <label>Year</label>
+        <label>{{ 'hr.payroll.generateDialog.yearLabel' | translate }}</label>
         <p-select [options]="yearOptions" [(ngModel)]="genYear" appendTo="body"></p-select>
       </div>
       <div class="dialog-field">
-        <label>Month</label>
+        <label>{{ 'hr.payroll.generateDialog.monthLabel' | translate }}</label>
         <p-select [options]="monthOptions" [(ngModel)]="genMonth" appendTo="body"></p-select>
       </div>
     </div>
     <small class="dialog-hint">
       <i class="pi pi-info-circle"></i>
-      Creates a draft from active employees and the month's attendance. Regenerating a draft replaces its payslips.
+      {{ 'hr.payroll.generateDialog.hint' | translate }}
     </small>
   </div>
   <ng-template pTemplate="footer">
-    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
-    <button pButton [label]="generating ? 'Generating...' : 'Generate'" icon="pi pi-cog" [loading]="generating" (click)="generate()"></button>
+    <button pButton [label]="'hr.payroll.generateDialog.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+    <button pButton [label]="(generating ? 'hr.payroll.generateDialog.generating' : 'hr.payroll.generateDialog.generate') | translate" icon="pi pi-cog" [loading]="generating" (click)="generate()"></button>
   </ng-template>
 </p-dialog>

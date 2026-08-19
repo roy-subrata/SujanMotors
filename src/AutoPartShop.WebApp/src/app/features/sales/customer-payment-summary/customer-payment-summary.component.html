@@ -1,72 +1,71 @@
-<p-toast></p-toast>
+<app-page-container>
+  <p-toast></p-toast>
 
-<div class="container">
-  <!-- Header Section -->
-  <div class="header-card">
-    <div class="header-content">
-      <div>
-        <h2 class="header-title">{{ customerName }}</h2>
-        <p class="header-subtitle">{{ 'customerPaymentSummary.subtitle' | translate }}</p>
-      </div>
-      <button pButton type="button" icon="pi pi-arrow-left" (click)="goBack()" [text]="true" [label]="'common.actions.back' | translate"></button>
-    </div>
+  <app-page-header
+    [title]="customerName || ('customerPaymentSummary.title' | translate)"
+    [subtitle]="'customerPaymentSummary.subtitle' | translate">
+    <ng-container actions>
+      <button class="btn-icon" [pTooltip]="'common.actions.back' | translate" tooltipPosition="bottom" (click)="goBack()">
+        <i class="pi pi-arrow-left"></i>
+      </button>
+    </ng-container>
+  </app-page-header>
 
-    <!-- Loading State -->
-    <div *ngIf="loading" class="loading-state">
-      <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
-      <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
-      <p-skeleton height="2rem"></p-skeleton>
-    </div>
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+    <p-skeleton height="2rem" styleClass="mb-2"></p-skeleton>
+    <p-skeleton height="2rem"></p-skeleton>
+  </div>
 
-    <!-- Error State -->
-    <div *ngIf="error && !loading" class="error-state">
-      {{ error }}
-    </div>
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    {{ error }}
+  </div>
 
-    <!-- Metrics Section -->
-    <div *ngIf="!loading && !error && summary" class="metrics-grid">
-      <div class="metric-card metric-primary">
-        <div class="metric-label">{{ 'customerPaymentSummary.totalInvoiceAmount' | translate }}</div>
-        <div class="metric-value">{{ formatCurrency(summary.totalInvoiceAmount || 0) }}</div>
-        <div class="metric-helper">{{ 'customerPaymentSummary.invoicesCount' | translate:{ count: summary.totalInvoices || 0 } }}</div>
-      </div>
-      <div class="metric-card metric-success">
-        <div class="metric-label">{{ 'customerPaymentSummary.totalPaid' | translate }}</div>
-        <div class="metric-value">{{ formatCurrency(summary.totalPaid || 0) }}</div>
-        <div class="metric-helper">{{ 'customerPaymentSummary.completedPaymentsCount' | translate:{ count: summary.completedPayments || 0 } }}</div>
-      </div>
-      <div class="metric-card" [ngClass]="(summary.totalOutstanding || 0) > 0 ? 'metric-warning' : 'metric-neutral'">
-        <div class="metric-label">{{ 'customerPaymentSummary.outstandingBalance' | translate }}</div>
-        <div class="metric-value">{{ formatCurrency(summary.totalOutstanding || 0) }}</div>
-        <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) > 0">{{ 'customerPaymentSummary.unpaidInvoicesCount' | translate:{ count: summary.unpaidInvoices } }}</div>
-        <div class="metric-helper metric-helper-danger" *ngIf="(summary.overdueInvoices || 0) > 0">{{ 'customerPaymentSummary.overdueCount' | translate:{ count: summary.overdueInvoices } }}</div>
-        <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) === 0">{{ 'customerPaymentSummary.allPaidUp' | translate }}</div>
-      </div>
-      <div class="metric-card" [ngClass]="(summary.availableAdvance || 0) > 0 ? 'metric-success' : 'metric-neutral'">
-        <div class="metric-label">
-          <i class="pi pi-gift mr-2"></i>{{ 'customerPaymentSummary.advanceBalance' | translate }}
-        </div>
-        <div class="metric-value">{{ formatCurrency(summary.availableAdvance || 0) }}</div>
-        <div class="metric-helper" *ngIf="(summary.availableAdvance || 0) > 0">{{ 'customerPaymentSummary.storeCredit' | translate }}</div>
-        <div class="metric-helper" *ngIf="(summary.availableAdvance || 0) === 0">{{ 'customerPaymentSummary.noCredit' | translate }}</div>
-      </div>
+  <!-- Metrics Section -->
+  <div *ngIf="!loading && !error && summary" class="metrics-grid">
+    <div class="metric-card metric-primary">
+      <div class="metric-label">{{ 'customerPaymentSummary.totalInvoiceAmount' | translate }}</div>
+      <div class="metric-value">{{ formatCurrency(summary.totalInvoiceAmount || 0) }}</div>
+      <div class="metric-helper">{{ 'customerPaymentSummary.invoicesCount' | translate:{ count: summary.totalInvoices || 0 } }}</div>
     </div>
+    <div class="metric-card metric-success">
+      <div class="metric-label">{{ 'customerPaymentSummary.totalPaid' | translate }}</div>
+      <div class="metric-value">{{ formatCurrency(summary.totalPaid || 0) }}</div>
+      <div class="metric-helper">{{ 'customerPaymentSummary.completedPaymentsCount' | translate:{ count: summary.completedPayments || 0 } }}</div>
+    </div>
+    <div class="metric-card" [ngClass]="(summary.totalOutstanding || 0) > 0 ? 'metric-warning' : 'metric-neutral'">
+      <div class="metric-label">{{ 'customerPaymentSummary.outstandingBalance' | translate }}</div>
+      <div class="metric-value">{{ formatCurrency(summary.totalOutstanding || 0) }}</div>
+      <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) > 0">{{ 'customerPaymentSummary.unpaidInvoicesCount' | translate:{ count: summary.unpaidInvoices } }}</div>
+      <div class="metric-helper metric-helper-danger" *ngIf="(summary.overdueInvoices || 0) > 0">{{ 'customerPaymentSummary.overdueCount' | translate:{ count: summary.overdueInvoices } }}</div>
+      <div class="metric-helper" *ngIf="(summary.unpaidInvoices || 0) === 0">{{ 'customerPaymentSummary.allPaidUp' | translate }}</div>
+    </div>
+    <div class="metric-card" [ngClass]="(summary.availableAdvance || 0) > 0 ? 'metric-success' : 'metric-neutral'">
+      <div class="metric-label">
+        <i class="pi pi-gift mr-2"></i>{{ 'customerPaymentSummary.advanceBalance' | translate }}
+      </div>
+      <div class="metric-value">{{ formatCurrency(summary.availableAdvance || 0) }}</div>
+      <div class="metric-helper" *ngIf="(summary.availableAdvance || 0) > 0">{{ 'customerPaymentSummary.storeCredit' | translate }}</div>
+      <div class="metric-helper" *ngIf="(summary.availableAdvance || 0) === 0">{{ 'customerPaymentSummary.noCredit' | translate }}</div>
+    </div>
+  </div>
 
-    <!-- Secondary Stats -->
-    <div *ngIf="!loading && !error && summary && (summary.pendingPayments > 0 || summary.failedPayments > 0 || summary.lastPaymentDate)" class="secondary-stats">
-      <span *ngIf="summary.lastPaymentDate" class="stat-chip">
-        {{ 'customerPaymentSummary.lastPayment' | translate:{ amount: formatCurrency(summary.lastPaymentAmount), date: formatDate(summary.lastPaymentDate) } }}
-      </span>
-      <span *ngIf="(summary.pendingPayments || 0) > 0" class="stat-chip stat-chip-info">
-        {{ 'customerPaymentSummary.pendingCount' | translate:{ count: summary.pendingPayments } }}
-      </span>
-      <span *ngIf="(summary.failedPayments || 0) > 0" class="stat-chip stat-chip-danger">
-        {{ 'customerPaymentSummary.failedCount' | translate:{ count: summary.failedPayments } }}
-      </span>
-      <span *ngIf="(summary.totalFees || 0) > 0" class="stat-chip">
-        {{ 'customerPaymentSummary.feesLabel' | translate:{ amount: formatCurrency(summary.totalFees) } }}
-      </span>
-    </div>
+  <!-- Secondary Stats -->
+  <div *ngIf="!loading && !error && summary && (summary.pendingPayments > 0 || summary.failedPayments > 0 || summary.lastPaymentDate)" class="secondary-stats">
+    <span *ngIf="summary.lastPaymentDate" class="stat-chip">
+      {{ 'customerPaymentSummary.lastPayment' | translate:{ amount: formatCurrency(summary.lastPaymentAmount), date: formatDate(summary.lastPaymentDate) } }}
+    </span>
+    <span *ngIf="(summary.pendingPayments || 0) > 0" class="stat-chip stat-chip-info">
+      {{ 'customerPaymentSummary.pendingCount' | translate:{ count: summary.pendingPayments } }}
+    </span>
+    <span *ngIf="(summary.failedPayments || 0) > 0" class="stat-chip stat-chip-danger">
+      {{ 'customerPaymentSummary.failedCount' | translate:{ count: summary.failedPayments } }}
+    </span>
+    <span *ngIf="(summary.totalFees || 0) > 0" class="stat-chip">
+      {{ 'customerPaymentSummary.feesLabel' | translate:{ amount: formatCurrency(summary.totalFees) } }}
+    </span>
   </div>
 
   <!-- Payment History Link -->
@@ -77,4 +76,4 @@
     </div>
     <p class="empty-hint">{{ 'customerPaymentSummary.historyHint' | translate }}</p>
   </div>
-</div>
+</app-page-container>

@@ -6,6 +6,8 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule, Menu } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToastModule } from 'primeng/toast';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -24,6 +26,8 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
     ButtonModule,
     MenuModule,
     TooltipModule,
+    ToastModule,
+    ConfirmDialogModule,
     DataPaginationComponent,
     TranslatePipe
 ],

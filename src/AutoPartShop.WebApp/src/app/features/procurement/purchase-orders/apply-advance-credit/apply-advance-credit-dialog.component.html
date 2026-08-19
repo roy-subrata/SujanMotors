@@ -12,7 +12,7 @@
                     dataKey="id"
                     responsiveLayout="scroll"
                     styleClass="p-datatable-sm">
-                    <ng-template pTemplate="header">
+                    <ng-template #header>
                         <tr>
                             <th style="width: 3rem"></th>
                             <th>{{ 'applyAdvanceCredit.columns.transaction' | translate }}</th>
@@ -22,7 +22,7 @@
                             <th>{{ 'applyAdvanceCredit.columns.available' | translate }}</th>
                         </tr>
                     </ng-template>
-                    <ng-template pTemplate="body" let-advance>
+                    <ng-template #body let-advance>
                         <tr [pSelectableRow]="advance">
                             <td>
                                 <p-tableRadioButton [value]="advance"></p-tableRadioButton>
@@ -42,7 +42,7 @@
                             </td>
                         </tr>
                     </ng-template>
-                    <ng-template pTemplate="emptymessage">
+                    <ng-template #emptymessage>
                         <tr>
                             <td colspan="6" class="text-center">
                                 <div class="empty-state">

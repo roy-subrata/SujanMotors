@@ -5,13 +5,13 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Holidays"
-    subtitle="Shop holiday calendar"
-    [count]="holidays.length" countLabel="holidays" countIcon="pi pi-calendar">
+    [title]="'hr.holidays.title' | translate"
+    [subtitle]="'hr.holidays.subtitle' | translate"
+    [count]="holidays.length" [countLabel]="'hr.holidays.countLabel' | translate" countIcon="pi pi-calendar">
     <ng-container actions>
       <button class="btn-primary" (click)="openCreate()">
         <i class="pi pi-plus"></i>
-        <span>Add Holiday</span>
+        <span>{{ 'hr.holidays.dialog.createTitle' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -19,7 +19,6 @@
   <!-- ==================== YEAR FILTER ==================== -->
   <app-filter-bar>
     <div filters class="filter-group">
-      <!-- <label class="filter-label">Year</label> -->
       <p-select [options]="yearOptions" [(ngModel)]="selectedYear" (onChange)="loadHolidays()"
         appendTo="body" styleClass="filter-dropdown"></p-select>
     </div>
@@ -33,10 +32,10 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-date">Date</th>
-            <th class="col-day">Day</th>
-            <th class="col-name">Holiday</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-date">{{ 'hr.holidays.columns.date' | translate }}</th>
+            <th class="col-day">{{ 'hr.holidays.columns.day' | translate }}</th>
+            <th class="col-name">{{ 'hr.holidays.columns.holiday' | translate }}</th>
+            <th class="col-actions">{{ 'hr.holidays.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -59,8 +58,8 @@
             <td colspan="4">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-calendar"></i></div>
-                <h3>No Holidays for {{ selectedYear }}</h3>
-                <p>Add Eid, national holidays and other shop closures</p>
+                <h3>{{ 'hr.holidays.emptyTitlePrefix' | translate }} {{ selectedYear }}</h3>
+                <p>{{ 'hr.holidays.emptyHint' | translate }}</p>
               </div>
             </td>
           </tr>
@@ -87,8 +86,8 @@
 
     <div *ngIf="!loading && holidays.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-calendar"></i></div>
-      <h3>No Holidays for {{ selectedYear }}</h3>
-      <p>Add Eid, national holidays and other shop closures</p>
+      <h3>{{ 'hr.holidays.emptyTitlePrefix' | translate }} {{ selectedYear }}</h3>
+      <p>{{ 'hr.holidays.emptyHint' | translate }}</p>
     </div>
 
     <div *ngIf="!loading && holidays.length > 0" class="cards-grid">
@@ -118,21 +117,21 @@
 
 <!-- ==================== ADD / EDIT DIALOG ==================== -->
 <p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '420px' }"
-  [header]="editingId ? 'Edit Holiday' : 'Add Holiday'" [draggable]="false" [resizable]="false">
+  [header]="editingId ? ('hr.holidays.dialog.editTitle' | translate) : ('hr.holidays.dialog.createTitle' | translate)" [draggable]="false" [resizable]="false">
   <div class="dialog-form">
     <div class="dialog-field">
-      <label>Date <span class="required">*</span></label>
+      <label>{{ 'hr.holidays.dialog.dateLabel' | translate }} <span class="required">*</span></label>
       <p-datepicker [(ngModel)]="form.date" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body"></p-datepicker>
-      <small class="p-error" *ngIf="submitted && !form.date">Date is required</small>
+      <small class="p-error" *ngIf="submitted && !form.date">{{ 'hr.holidays.dialog.dateRequired' | translate }}</small>
     </div>
     <div class="dialog-field">
-      <label>Holiday Name <span class="required">*</span></label>
-      <input pInputText [(ngModel)]="form.name" placeholder="e.g., Eid-ul-Fitr" />
-      <small class="p-error" *ngIf="submitted && !form.name.trim()">Holiday name is required</small>
+      <label>{{ 'hr.holidays.dialog.nameLabel' | translate }} <span class="required">*</span></label>
+      <input pInputText [(ngModel)]="form.name" [placeholder]="'hr.holidays.dialog.namePlaceholder' | translate" />
+      <small class="p-error" *ngIf="submitted && !form.name.trim()">{{ 'hr.holidays.dialog.nameRequired' | translate }}</small>
     </div>
   </div>
   <ng-template pTemplate="footer">
-    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
-    <button pButton [label]="saving ? 'Saving...' : 'Save'" icon="pi pi-check" [loading]="saving" (click)="saveHoliday()"></button>
+    <button pButton [label]="'hr.holidays.dialog.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+    <button pButton [label]="(saving ? 'hr.holidays.dialog.saving' : 'hr.holidays.dialog.save') | translate" icon="pi pi-check" [loading]="saving" (click)="saveHoliday()"></button>
   </ng-template>
 </p-dialog>

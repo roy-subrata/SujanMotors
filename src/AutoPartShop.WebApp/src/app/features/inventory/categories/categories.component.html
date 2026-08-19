@@ -10,7 +10,7 @@
   <app-page-header
     [title]="'categories.title' | translate"
     [subtitle]="'categories.subtitle' | translate"
-    [count]="totalRecords" countLabel="categories">
+    [count]="totalRecords" [countLabel]="'categories.countLabel' | translate">
     <ng-container actions>
       <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>

@@ -8,7 +8,7 @@
   <app-page-header
     [title]="'supplierPaymentAccounts.title' | translate"
     [subtitle]="subtitle"
-    [count]="accounts.length" countLabel="accounts">
+    [count]="accounts.length" [countLabel]="'supplierPaymentAccounts.countLabel' | translate">
     <ng-container actions>
       <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadAccounts()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>

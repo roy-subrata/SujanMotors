@@ -4,7 +4,7 @@
   <app-page-header
     title="Supplier Performance"
     subtitle="Damaged/rejected rate from accepted goods receipts"
-    [count]="rows.length" countLabel="suppliers" countIcon="pi pi-chart-bar">
+    [count]="rows.length" [countLabel]="'supplierPerformance.countLabel' | translate" countIcon="pi pi-chart-bar">
   </app-page-header>
 
   <app-filter-bar>
@@ -31,7 +31,7 @@
         [totalRecords]="rows.length"
         [loading]="loading" styleClass="app-table">
 
-        <ng-template pTemplate="header">
+        <ng-template #header>
           <tr>
             <th>Supplier</th>
             <th>Code</th>
@@ -43,7 +43,7 @@
           </tr>
         </ng-template>
 
-        <ng-template pTemplate="body" let-row>
+        <ng-template #body let-row>
           <tr>
             <td>{{ row.supplierName }}</td>
             <td>{{ row.supplierCode }}</td>
@@ -57,7 +57,7 @@
           </tr>
         </ng-template>
 
-        <ng-template pTemplate="emptymessage">
+        <ng-template #emptymessage>
           <tr>
             <td colspan="7">
               <div class="empty-state">

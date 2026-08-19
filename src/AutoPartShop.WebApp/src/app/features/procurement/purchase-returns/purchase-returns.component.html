@@ -7,7 +7,7 @@
   <app-page-header
     title="Purchase Returns"
     subtitle="Track and manage supplier returns and refunds"
-    [count]="totalRecords" countLabel="returns">
+    [count]="totalRecords" [countLabel]="'purchaseReturns.countLabel' | translate">
     <ng-container actions>
       <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadPurchaseReturns(currentPage, rows, searchTerm)">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>

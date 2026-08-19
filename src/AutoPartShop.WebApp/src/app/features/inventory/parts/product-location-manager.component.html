@@ -8,7 +8,7 @@
     </div>
 
     <p-table [value]="locations" [loading]="loading" responsiveLayout="stack" breakpoint="768px" styleClass="p-datatable-sm">
-        <ng-template pTemplate="header">
+        <ng-template #header>
             <tr>
                 <th style="width: 30px"></th>
                 <th>{{ 'parts.locationManager.columnWarehouse' | translate }}</th>
@@ -17,7 +17,7 @@
                 <th style="width: 100px">{{ 'common.labels.actions' | translate }}</th>
             </tr>
         </ng-template>
-        <ng-template pTemplate="body" let-location>
+        <ng-template #body let-location>
             <tr>
                 <td>
                     <p-tag *ngIf="location.isPrimary" [value]="'parts.locationManager.primaryTag' | translate" [severity]="getSeverity(location.isPrimary)" [rounded]="true"></p-tag>
@@ -59,7 +59,7 @@
                 </td>
             </tr>
         </ng-template>
-        <ng-template pTemplate="emptymessage">
+        <ng-template #emptymessage>
             <tr>
                 <td colspan="5" class="text-center">{{ 'parts.locationManager.emptyMessage' | translate }}</td>
             </tr>

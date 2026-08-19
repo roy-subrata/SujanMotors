@@ -68,7 +68,7 @@
               <p-table [value]="pagedUsers()" [loading]="usersLoading()" responsiveLayout="scroll"
                 [paginator]="false"
                 [rowHover]="true" styleClass="settings-table">
-                <ng-template pTemplate="header">
+                <ng-template #header>
                   <tr>
                     <th>User</th>
                     <th>Email</th>
@@ -78,7 +78,7 @@
                     <th class="col-actions">Actions</th>
                   </tr>
                 </ng-template>
-                <ng-template pTemplate="body" let-user>
+                <ng-template #body let-user>
                   <tr>
                     <td>
                       <div class="user-cell">
@@ -119,7 +119,7 @@
                     </td>
                   </tr>
                 </ng-template>
-                <ng-template pTemplate="emptymessage">
+                <ng-template #emptymessage>
                   <tr>
                     <td colspan="6">
                       <div class="empty-state">
@@ -159,7 +159,7 @@
             <div class="table-card">
               <p-table [value]="pagedRoles()" [loading]="rolesLoading()" responsiveLayout="scroll"
                 [paginator]="false" [rowHover]="true" styleClass="settings-table">
-                <ng-template pTemplate="header">
+                <ng-template #header>
                   <tr>
                     <th>Role</th>
                     <th>Description</th>
@@ -168,7 +168,7 @@
                     <th class="col-actions">Actions</th>
                   </tr>
                 </ng-template>
-                <ng-template pTemplate="body" let-role>
+                <ng-template #body let-role>
                   <tr>
                     <td>
                       <div class="role-cell">
@@ -198,7 +198,7 @@
                     </td>
                   </tr>
                 </ng-template>
-                <ng-template pTemplate="emptymessage">
+                <ng-template #emptymessage>
                   <tr>
                     <td colspan="5">
                       <div class="empty-state">
@@ -238,7 +238,7 @@
             <div class="table-card">
               <p-table [value]="pagedPermissions()" [loading]="permissionsLoading()" responsiveLayout="scroll"
                 [paginator]="false" [rowHover]="true" styleClass="settings-table">
-                <ng-template pTemplate="header">
+                <ng-template #header>
                   <tr>
                     <th>Permission</th>
                     <th>Display Name</th>
@@ -247,7 +247,7 @@
                     <th>Status</th>
                   </tr>
                 </ng-template>
-                <ng-template pTemplate="body" let-permission>
+                <ng-template #body let-permission>
                   <tr>
                     <td><code class="permission-code">{{ permission.name }}</code></td>
                     <td><span class="text-primary-bold">{{ permission.displayName }}</span></td>
@@ -260,7 +260,7 @@
                     </td>
                   </tr>
                 </ng-template>
-                <ng-template pTemplate="emptymessage">
+                <ng-template #emptymessage>
                   <tr>
                     <td colspan="5">
                       <div class="empty-state">

@@ -5,7 +5,7 @@
   <app-page-header
     title="Payment Providers"
     subtitle="Manage payment methods and gateway configurations"
-    [count]="totalCount" countLabel="providers" countIcon="pi pi-credit-card">
+    [count]="totalCount" [countLabel]="'paymentProviders.countLabel' | translate" countIcon="pi pi-credit-card">
     <ng-container actions>
       <button class="btn-primary" (click)="createNew()">
         <i class="pi pi-plus"></i><span>New Provider</span>
@@ -36,7 +36,7 @@
         [loading]="loading" (onLazyLoad)="onPageChange($event)" [lazy]="true" [scrollable]="true"
         styleClass="app-table" [globalFilterFields]="['providerName', 'providerType', 'status']">
 
-        <ng-template pTemplate="header">
+        <ng-template #header>
           <tr>
             <th>Provider Name</th>
             <th>Type</th>
@@ -49,7 +49,7 @@
           </tr>
         </ng-template>
 
-        <ng-template pTemplate="body" let-provider>
+        <ng-template #body let-provider>
           <tr>
             <td>{{ provider.providerName }}</td>
             <td>{{ provider.providerType }}</td>
@@ -83,7 +83,7 @@
           </tr>
         </ng-template>
 
-        <ng-template pTemplate="emptymessage">
+        <ng-template #emptymessage>
           <tr>
             <td colspan="8" class="text-center py-8 text-gray-500">No payment providers found</td>
           </tr>

@@ -25,6 +25,7 @@ import { EXPENSE_PAYMENT_METHODS, PaymentMethodOption } from '../../../shared/co
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-daily-expenses',
@@ -45,7 +46,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         CheckboxModule,
         PageContainerComponent,
         PageHeaderComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './daily-expenses.component.html',

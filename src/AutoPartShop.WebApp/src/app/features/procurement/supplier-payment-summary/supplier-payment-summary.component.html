@@ -135,7 +135,7 @@
       [loading]="ledgerLoading"
       responsiveLayout="scroll"
       styleClass="app-table">
-      <ng-template pTemplate="header">
+      <ng-template #header>
         <tr>
           <th>Date</th>
           <th>Type</th>
@@ -146,7 +146,7 @@
           <th>Status</th>
         </tr>
       </ng-template>
-      <ng-template pTemplate="body" let-entry>
+      <ng-template #body let-entry>
         <tr>
           <td>{{ formatDate(entry.transactionDate) }}</td>
           <td>
@@ -174,7 +174,7 @@
           </td>
         </tr>
       </ng-template>
-      <ng-template pTemplate="emptymessage">
+      <ng-template #emptymessage>
         <tr>
           <td colspan="7" class="text-center">No transactions found</td>
         </tr>

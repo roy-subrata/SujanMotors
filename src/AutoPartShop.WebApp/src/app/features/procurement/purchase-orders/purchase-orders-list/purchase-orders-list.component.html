@@ -15,86 +15,101 @@
 <!-- ==================== DATA TABLE (Desktop) ==================== -->
 <section class="table-section desktop-only">
   <div class="table-container">
-    <div class="table-wrapper">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th class="col-po">{{ 'purchaseOrders.columns.poNumber' | translate }}</th>
-            <th class="col-supplier">{{ 'purchaseOrders.columns.supplier' | translate }}</th>
-            <th class="col-date">{{ 'purchaseOrders.columns.orderDate' | translate }}</th>
-            <th class="col-date">{{ 'purchaseOrders.columns.deliveryDate' | translate }}</th>
-            <th class="col-status">{{ 'purchaseOrders.columns.status' | translate }}</th>
-            <th class="col-amount">{{ 'purchaseOrders.columns.outstanding' | translate }}</th>
-            <th class="col-actions">{{ 'purchaseOrders.columns.actions' | translate }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngIf="loading" class="loading-row">
-            <td colspan="7">
-              <div class="loading-spinner">
-                <i class="pi pi-spin pi-spinner"></i>
-                <span>{{ 'purchaseOrders.loading' | translate }}</span>
-              </div>
-            </td>
-          </tr>
+    <p-table
+      [value]="purchaseOrders"
+      [lazy]="true"
+      [paginator]="false"
+      [rows]="rows"
+      [totalRecords]="totalRecords"
+      [loading]="loading"
+      [rowHover]="true"
+      [scrollable]="true"
+      scrollHeight="flex"
+      styleClass="app-table">
 
-          <tr *ngIf="!loading && purchaseOrders.length === 0" class="empty-row">
-            <td colspan="7">
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <i class="pi pi-shopping-bag"></i>
-                </div>
-                <h3>{{ 'purchaseOrders.emptyTitle' | translate }}</h3>
-                <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'purchaseOrders.emptyHintCreate') | translate }}</p>
-              </div>
-            </td>
-          </tr>
+      <ng-template #header>
+        <tr>
+          <th class="col-po">{{ 'purchaseOrders.columns.poNumber' | translate }}</th>
+          <th class="col-supplier">{{ 'purchaseOrders.columns.supplier' | translate }}</th>
+          <th class="col-date">{{ 'purchaseOrders.columns.orderDate' | translate }}</th>
+          <th class="col-date">{{ 'purchaseOrders.columns.deliveryDate' | translate }}</th>
+          <th class="col-status">{{ 'purchaseOrders.columns.status' | translate }}</th>
+          <th class="col-amount">{{ 'purchaseOrders.columns.outstanding' | translate }}</th>
+          <th class="col-actions">{{ 'purchaseOrders.columns.actions' | translate }}</th>
+        </tr>
+      </ng-template>
 
-          <tr *ngFor="let po of purchaseOrders" class="data-row" [class.row-overdue]="po.isOverdue" (dblclick)="viewPurchaseOrder(po)">
-            <td class="col-po">
-              <div class="so-cell">
-                <a class="so-link" (click)="viewPurchaseOrder(po)">{{ po.poNumber }}</a>
-                <span *ngIf="po.isOverdue" class="overdue-badge">{{ 'purchaseOrders.overdue' | translate }}</span>
+      <ng-template #body let-po>
+        <tr class="data-row" [class.row-overdue]="po.isOverdue" (dblclick)="viewPurchaseOrder(po)">
+          <td class="col-po">
+            <div class="so-cell">
+              <a class="so-link" (click)="viewPurchaseOrder(po)">{{ po.poNumber }}</a>
+              <span *ngIf="po.isOverdue" class="overdue-badge">{{ 'purchaseOrders.overdue' | translate }}</span>
+            </div>
+          </td>
+          <td class="col-supplier">
+            <div class="customer-cell">
+              <div class="customer-info">
+                <a class="customer-name entity-link" [routerLink]="['/inventory/suppliers', po.supplierId]" *ngIf="po.supplierId">{{ po.supplierName || '-' }}</a>
+                <span class="customer-name" *ngIf="!po.supplierId">{{ po.supplierName || '-' }}</span>
+                <span *ngIf="po.supplierCode" class="customer-phone">{{ po.supplierCode }}</span>
               </div>
-            </td>
-            <td class="col-supplier">
-              <div class="customer-cell">
-                <div class="customer-info">
-                  <a class="customer-name entity-link" [routerLink]="['/inventory/suppliers', po.supplierId]" *ngIf="po.supplierId">{{ po.supplierName || '-' }}</a>
-                  <span class="customer-name" *ngIf="!po.supplierId">{{ po.supplierName || '-' }}</span>
-                  <span *ngIf="po.supplierCode" class="customer-phone">{{ po.supplierCode }}</span>
-                </div>
+            </div>
+          </td>
+          <td class="col-date">
+            <span class="date-text">{{ formatDate(po.orderDate) }}</span>
+          </td>
+          <td class="col-date">
+            <span class="date-text" [class.text-danger]="po.isOverdue">
+              {{ formatDate(po.deliveryDate) }}
+            </span>
+          </td>
+          <td class="col-status">
+            <span class="status-pill" [attr.data-status]="po.status.toLowerCase()">
+              {{ statusLabel(po.status) }}
+            </span>
+          </td>
+          <td class="col-amount">
+            <span class="amount-value" [class.text-danger]="po.outstandingAmount > 0">
+              {{ formatCurrency(po.outstandingAmount) }}
+            </span>
+          </td>
+          <td class="col-actions">
+            <div class="action-cell">
+              <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showContextMenu($event, po)">
+                <i class="pi pi-ellipsis-v"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="pi pi-shopping-bag"></i>
               </div>
-            </td>
-            <td class="col-date">
-              <span class="date-text">{{ formatDate(po.orderDate) }}</span>
-            </td>
-            <td class="col-date">
-              <span class="date-text" [class.text-danger]="po.isOverdue">
-                {{ formatDate(po.deliveryDate) }}
-              </span>
-            </td>
-            <td class="col-status">
-              <span class="status-pill" [attr.data-status]="po.status.toLowerCase()">
-                {{ statusLabel(po.status) }}
-              </span>
-            </td>
-            <td class="col-amount">
-              <span class="amount-value" [class.text-danger]="po.outstandingAmount > 0">
-                {{ formatCurrency(po.outstandingAmount) }}
-              </span>
-            </td>
-            <td class="col-actions">
-              <div class="action-cell">
-                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showContextMenu($event, po)">
-                  <i class="pi pi-ellipsis-v"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              <h3>{{ 'purchaseOrders.emptyTitle' | translate }}</h3>
+              <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'purchaseOrders.emptyHintCreate') | translate }}</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #loadingbody>
+        <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
+          <td><div class="skeleton skeleton-text"></div></td>
+          <td><div class="skeleton skeleton-text"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-badge"></div></td>
+          <td><div class="skeleton skeleton-text-sm"></div></td>
+          <td><div class="skeleton skeleton-actions"></div></td>
+        </tr>
+      </ng-template>
+    </p-table>
   </div>
 </section>
 

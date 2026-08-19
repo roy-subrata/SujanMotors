@@ -11,7 +11,7 @@
   <app-page-header
     [title]="'brands.title' | translate"
     [subtitle]="'brands.subtitle' | translate"
-    [count]="totalRecords" countLabel="brands" countIcon="pi pi-tags">
+    [count]="totalRecords" [countLabel]="'brands.countLabel' | translate" countIcon="pi pi-tags">
     <ng-container actions>
       <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>

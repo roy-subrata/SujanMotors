@@ -1,16 +1,14 @@
-<p-toast></p-toast>
-<p-confirmDialog></p-confirmDialog>
+<app-page-container>
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
 
-<p-card>
-  <ng-template pTemplate="header">
-    <div class="card-header">
-      <h3>Available Credits from Supplier</h3>
-      <div class="credit-summary" *ngIf="totalAvailableCredit > 0">
-        <span class="credit-label">Total Available:</span>
-        <span class="credit-value">{{ totalAvailableCredit | currency }}</span>
-      </div>
-    </div>
-  </ng-template>
+  <app-page-header
+    [title]="'applyCreditNotes.title' | translate"
+    [subtitle]="'applyCreditNotes.subtitle' | translate"
+    [count]="totalAvailableCredit"
+    [countLabel]="'applyCreditNotes.availableLabel' | translate"
+    countIcon="pi pi-wallet">
+  </app-page-header>
 
   <!-- Available Credits Table -->
   <div class="credit-table-wrapper" *ngIf="availableCredits.length > 0">
@@ -21,19 +19,19 @@
     styleClass="credit-table"
     responsiveLayout="scroll">
 
-    <ng-template pTemplate="header">
+    <ng-template #header>
       <tr>
-        <th style="width: 120px">Credit Note #</th>
-        <th class="col-hide-md">Return #</th>
-        <th style="width: 100px" class="text-right col-hide-sm">Total</th>
-        <th style="width: 100px" class="text-right col-hide-sm">Used</th>
-        <th style="width: 100px" class="text-right">Available</th>
-        <th style="width: 120px" class="col-hide-md">Issue Date</th>
-        <th style="width: 100px">Action</th>
+        <th style="width: 120px">{{ 'applyCreditNotes.columns.creditNoteNumber' | translate }}</th>
+        <th class="col-hide-md">{{ 'applyCreditNotes.columns.returnNumber' | translate }}</th>
+        <th style="width: 100px" class="text-right col-hide-sm">{{ 'applyCreditNotes.columns.total' | translate }}</th>
+        <th style="width: 100px" class="text-right col-hide-sm">{{ 'applyCreditNotes.columns.used' | translate }}</th>
+        <th style="width: 100px" class="text-right">{{ 'applyCreditNotes.columns.available' | translate }}</th>
+        <th style="width: 120px" class="col-hide-md">{{ 'applyCreditNotes.columns.issueDate' | translate }}</th>
+        <th style="width: 100px">{{ 'applyCreditNotes.columns.action' | translate }}</th>
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="body" let-credit>
+    <ng-template #body let-credit>
       <tr [class.selected]="selectedCreditNote?.id === credit.id">
         <td>
           <span class="credit-number">{{ credit.creditNoteNumber }}</span>
@@ -50,7 +48,7 @@
             pButton
             type="button"
             icon="pi pi-plus"
-            label="Apply"
+            [label]="'applyCreditNotes.actions.apply' | translate"
             class="p-button-sm p-button-success"
             (click)="selectCredit(credit)"
             [disabled]="credit.availableAmount <= 0">
@@ -59,12 +57,12 @@
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="emptymessage">
+    <ng-template #emptymessage>
       <tr>
         <td colspan="7" class="text-center">
           <div class="empty-state">
             <i class="pi pi-info-circle"></i>
-            <p>No available credits from this supplier</p>
+            <p>{{ 'applyCreditNotes.emptyState' | translate }}</p>
           </div>
         </td>
       </tr>
@@ -75,26 +73,26 @@
   <!-- Apply Credit Form -->
   <div class="apply-section" *ngIf="selectedCreditNote">
     <div class="apply-form">
-      <h4>Apply Credit from {{ selectedCreditNote.creditNoteNumber }}</h4>
+      <h4>{{ 'applyCreditNotes.form.title' | translate:{ number: selectedCreditNote.creditNoteNumber } }}</h4>
 
       <div class="form-row">
         <div class="form-group">
-          <label>Available Credit</label>
+          <label>{{ 'applyCreditNotes.form.availableCredit' | translate }}</label>
           <div class="value-display">{{ selectedCreditNote.availableAmount | currency }}</div>
         </div>
 
         <div class="form-group">
-          <label>Outstanding PO Amount</label>
+          <label>{{ 'applyCreditNotes.form.outstandingAmount' | translate }}</label>
           <div class="value-display">{{ getOutstandingAmount() | currency }}</div>
         </div>
 
         <div class="form-group">
-          <label>Amount to Apply</label>
+          <label>{{ 'applyCreditNotes.form.amountToApply' | translate }}</label>
           <p-inputNumber
             [(ngModel)]="amountToApply"
             [min]="0"
             [max]="selectedCreditNote.availableAmount"
-            placeholder="Enter amount"
+            [placeholder]="'applyCreditNotes.form.amountPlaceholder' | translate"
             styleClass="amount-input">
           </p-inputNumber>
         </div>
@@ -104,7 +102,7 @@
         <button
           pButton
           type="button"
-          label="Cancel"
+          [label]="'common.actions.cancel' | translate"
           icon="pi pi-times"
           class="p-button-text p-button-secondary"
           (click)="resetSelection()">
@@ -112,7 +110,7 @@
         <button
           pButton
           type="button"
-          label="Apply Credit"
+          [label]="'applyCreditNotes.actions.applyCredit' | translate"
           icon="pi pi-check"
           class="p-button-success"
           [disabled]="!amountToApply || amountToApply <= 0"
@@ -121,4 +119,4 @@
       </div>
     </div>
   </div>
-</p-card>
+</app-page-container>

@@ -5,7 +5,7 @@
     <app-page-header
         title="Daily Expenses"
         subtitle="Track and manage day-to-day shop expenses"
-        [count]="expenses().length" countLabel="expenses" countIcon="pi pi-wallet">
+        [count]="expenses().length" [countLabel]="'dailyExpenses.countLabel' | translate" countIcon="pi pi-wallet">
         <ng-container actions>
             <button class="btn-primary" (click)="openNewExpenseDialog()">
                 <i class="pi pi-plus"></i><span>Add Expense</span>
@@ -22,7 +22,7 @@
         [scrollable]="true"
         styleClass="app-table"
     >
-        <ng-template pTemplate="header">
+        <ng-template #header>
             <tr>
                 <th>Date</th>
                 <th>Category</th>
@@ -35,7 +35,7 @@
             </tr>
         </ng-template>
 
-        <ng-template pTemplate="body" let-expense>
+        <ng-template #body let-expense>
             <tr>
                 <td>{{ formatDate(expense.expenseDate) }}</td>
                 <td>
@@ -75,7 +75,7 @@
             </tr>
         </ng-template>
 
-        <ng-template pTemplate="emptymessage">
+        <ng-template #emptymessage>
             <tr>
                 <td colspan="8" class="text-center py-8 text-gray-500">No expenses found</td>
             </tr>

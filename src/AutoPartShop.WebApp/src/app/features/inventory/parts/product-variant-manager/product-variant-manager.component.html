@@ -38,7 +38,7 @@
     styleClass="p-datatable-sm p-datatable-striped"
     [tableStyle]="{ 'min-width': '40rem' }">
 
-    <ng-template pTemplate="header">
+    <ng-template #header>
       <tr>
         <th>{{ 'parts.variantManager.columnVariant' | translate }}</th>
         <th>{{ 'parts.variantManager.columnPartOem' | translate }}</th>
@@ -50,7 +50,7 @@
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="body" let-v>
+    <ng-template #body let-v>
       <tr>
         <td>
           <div class="font-semibold">{{ v.name }}</div>
@@ -93,7 +93,7 @@
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="emptymessage">
+    <ng-template #emptymessage>
       <tr>
         <td [attr.colspan]="isViewMode ? 6 : 7" class="text-center py-4 text-secondary">
           {{ 'parts.variantManager.noVariantsYet' | translate }}

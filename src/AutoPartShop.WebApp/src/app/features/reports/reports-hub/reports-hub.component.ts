@@ -10,6 +10,7 @@ import { REPORT_GROUPS, ReportGroupInfo } from '../report-configs';
 import { DashboardService, FinancialSummaryResponse, TopProductDto } from '../../dashboard/services/dashboard.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 /**
  * Reports hub: category cards linking to every configured report page,
@@ -20,7 +21,7 @@ import { I18nService } from '@/shared/services/i18n.service';
 @Component({
     selector: 'app-reports-hub',
     standalone: true,
-    imports: [CommonModule, RouterModule, ChartModule, PageContainerComponent, PageHeaderComponent],
+    imports: [CommonModule, RouterModule, ChartModule, PageContainerComponent, PageHeaderComponent, TranslatePipe],
     templateUrl: './reports-hub.component.html',
     styleUrls: ['./reports-hub.component.scss']
 })

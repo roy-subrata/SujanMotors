@@ -33,73 +33,107 @@
   <!-- ══ ORDERS TABLE ════════════════════════════════════════════════ -->
   <div *ngIf="!loading() && orders().length > 0" class="pd-content">
 
-    <div class="pd-table-card">
-      <table class="pd-table">
-        <thead>
-          <tr>
-            <th>{{ 'pendingDeliveries.columns.order' | translate }}</th>
-            <th>{{ 'pendingDeliveries.columns.customer' | translate }}</th>
-            <th>{{ 'pendingDeliveries.columns.confirmed' | translate }}</th>
-            <th>{{ 'pendingDeliveries.columns.items' | translate }}</th>
-            <th>{{ 'pendingDeliveries.columns.grandTotal' | translate }}</th>
-            <th>{{ 'pendingDeliveries.columns.status' | translate }}</th>
-            <th>{{ 'pendingDeliveries.columns.actions' | translate }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let o of orders()" class="pd-row" [attr.data-status]="o.status" (dblclick)="view(o.id)">
+    <section class="table-section">
+      <div class="table-container">
+        <p-table
+          [value]="orders()"
+          [loading]="loading()"
+          [rowHover]="true"
+          [scrollable]="true"
+          scrollHeight="flex"
+          styleClass="app-table">
 
-            <td>
-              <div class="so-cell">
-                <span class="so-number">{{ o.soNumber }}</span>
-                <span class="so-date" *ngIf="o.deliveryDate">{{ 'pendingDeliveries.expectedPrefix' | translate }} {{ formatDate(o.deliveryDate) }}</span>
-              </div>
-            </td>
+          <ng-template #header>
+            <tr>
+              <th>{{ 'pendingDeliveries.columns.order' | translate }}</th>
+              <th>{{ 'pendingDeliveries.columns.customer' | translate }}</th>
+              <th>{{ 'pendingDeliveries.columns.confirmed' | translate }}</th>
+              <th>{{ 'pendingDeliveries.columns.items' | translate }}</th>
+              <th>{{ 'pendingDeliveries.columns.grandTotal' | translate }}</th>
+              <th>{{ 'pendingDeliveries.columns.status' | translate }}</th>
+              <th>{{ 'pendingDeliveries.columns.actions' | translate }}</th>
+            </tr>
+          </ng-template>
 
-            <td>
-              <div class="customer-cell">
-                <span class="customer-name">{{ o.customerName }}</span>
-                <span class="customer-phone" *ngIf="o.customerPhone">{{ o.customerPhone }}</span>
-              </div>
-            </td>
+          <ng-template #body let-o>
+            <tr class="data-row" [attr.data-status]="o.status" (dblclick)="view(o.id)">
 
-            <td><span class="date-text">{{ o.createdAt ? formatDate(o.createdAt) : '—' }}</span></td>
+              <td>
+                <div class="so-cell">
+                  <span class="so-number">{{ o.soNumber }}</span>
+                  <span class="so-date" *ngIf="o.deliveryDate">{{ 'pendingDeliveries.expectedPrefix' | translate }} {{ formatDate(o.deliveryDate) }}</span>
+                </div>
+              </td>
 
-            <td><span class="item-count">{{ 'pendingDeliveries.itemCount' | translate:{ count: o.lines.length } }}</span></td>
+              <td>
+                <div class="customer-cell">
+                  <span class="customer-name">{{ o.customerName }}</span>
+                  <span class="customer-phone" *ngIf="o.customerPhone">{{ o.customerPhone }}</span>
+                </div>
+              </td>
 
-            <td><span class="amount-value">{{ formatCurrency(o.grandTotal) }}</span></td>
+              <td><span class="date-text">{{ o.createdAt ? formatDate(o.createdAt) : '—' }}</span></td>
 
-            <td>
-              <span class="status-pill" [attr.data-status]="o.status">{{ statusLabel(o.status) }}</span>
-            </td>
+              <td><span class="item-count">{{ 'pendingDeliveries.itemCount' | translate:{ count: o.lines.length } }}</span></td>
 
-            <td>
-              <div class="action-cell">
-                <!-- Generate challan (for any status — auto-transitions if CONFIRMED) -->
-                <button class="action-btn challan-btn" [pTooltip]="'pendingDeliveries.generateChallanTooltip' | translate" tooltipPosition="top"
-                  (click)="openChallanDialog(o); $event.stopPropagation()">
-                  <i class="pi pi-file-export"></i>
-                  <span>{{ 'pendingDeliveries.challanShort' | translate }}</span>
-                </button>
+              <td><span class="amount-value">{{ formatCurrency(o.grandTotal) }}</span></td>
 
-                <!-- Deliver direct -->
-                <button class="action-btn deliver-btn" [pTooltip]="'pendingDeliveries.deliverNowTooltip' | translate" tooltipPosition="top"
-                  (click)="deliverDirect(o); $event.stopPropagation()">
-                  <i class="pi pi-check-circle"></i>
-                  <span>{{ 'pendingDeliveries.deliverShort' | translate }}</span>
-                </button>
+              <td>
+                <span class="status-pill" [attr.data-status]="o.status">{{ statusLabel(o.status) }}</span>
+              </td>
 
-                <button class="action-btn view-btn" [pTooltip]="'pendingDeliveries.viewOrderTooltip' | translate" tooltipPosition="top"
-                  (click)="view(o.id); $event.stopPropagation()">
-                  <i class="pi pi-eye"></i>
-                </button>
-              </div>
-            </td>
+              <td>
+                <div class="action-cell">
+                  <button class="action-btn challan-btn" [pTooltip]="'pendingDeliveries.generateChallanTooltip' | translate" tooltipPosition="top"
+                    (click)="openChallanDialog(o); $event.stopPropagation()">
+                    <i class="pi pi-file-export"></i>
+                    <span>{{ 'pendingDeliveries.challanShort' | translate }}</span>
+                  </button>
 
-          </tr>
-        </tbody>
-      </table>
-    </div>
+                  <button class="action-btn deliver-btn" [pTooltip]="'pendingDeliveries.deliverNowTooltip' | translate" tooltipPosition="top"
+                    (click)="deliverDirect(o); $event.stopPropagation()">
+                    <i class="pi pi-check-circle"></i>
+                    <span>{{ 'pendingDeliveries.deliverShort' | translate }}</span>
+                  </button>
+
+                  <button class="action-btn view-btn" [pTooltip]="'pendingDeliveries.viewOrderTooltip' | translate" tooltipPosition="top"
+                    (click)="view(o.id); $event.stopPropagation()">
+                    <i class="pi pi-eye"></i>
+                  </button>
+                </div>
+              </td>
+
+            </tr>
+          </ng-template>
+
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <div class="empty-icon">
+                    <i class="pi pi-check-circle"></i>
+                  </div>
+                  <h3>{{ 'pendingDeliveries.emptyTitle' | translate }}</h3>
+                  <p>{{ 'pendingDeliveries.emptyHint' | translate }}</p>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template #loadingbody>
+            <tr *ngFor="let _ of [1,2,3,4,5]" class="skeleton-row">
+              <td><div class="skeleton skeleton-text"></div></td>
+              <td><div class="skeleton skeleton-text"></div></td>
+              <td><div class="skeleton skeleton-text-sm"></div></td>
+              <td><div class="skeleton skeleton-text-sm"></div></td>
+              <td><div class="skeleton skeleton-text-sm"></div></td>
+              <td><div class="skeleton skeleton-badge"></div></td>
+              <td><div class="skeleton skeleton-actions"></div></td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </section>
 
   </div>
 

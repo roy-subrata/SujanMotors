@@ -25,6 +25,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -47,7 +48,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     PageContainerComponent,
     PageHeaderComponent,
     FilterBarComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService, DialogService],
   templateUrl: './audit-logs.component.html',

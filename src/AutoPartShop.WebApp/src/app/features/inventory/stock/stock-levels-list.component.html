@@ -14,7 +14,7 @@
       styleClass="app-table">
 
       <!-- Header Template -->
-      <ng-template pTemplate="header">
+      <ng-template #header>
         <tr>
           <th style="width: 15%">{{ 'stockLevels.columns.partName' | translate }}</th>
           <th style="width: 12%">{{ 'stockLevels.columns.warehouse' | translate }}</th>
@@ -31,7 +31,7 @@
       </ng-template>
 
       <!-- Data Rows -->
-      <ng-template pTemplate="body" let-stock>
+      <ng-template #body let-stock>
         <tr>
           <td>
             <span class="font-semibold">{{ stock.partName || (getPartInfo ? getPartInfo(stock.partId) : stock.partId) }}</span>
@@ -105,7 +105,7 @@
       </ng-template>
 
       <!-- Empty Message -->
-      <ng-template pTemplate="emptymessage">
+      <ng-template #emptymessage>
         <tr>
           <td colspan="11">
             <div class="empty-state">
@@ -117,7 +117,7 @@
         </tr>
       </ng-template>
 
-      <ng-template pTemplate="loadingbody">
+      <ng-template #loadingbody>
         <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
           <td><div class="skeleton skeleton-text"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>

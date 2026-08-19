@@ -5,18 +5,6 @@
   <!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
   <app-page-header [title]="i18n.t('cashBook.title')" [subtitle]="headingDate()">
     <ng-container actions>
-      <div class="header-stat in" *ngIf="book()">
-        <span class="stat-label">{{ i18n.t('cashBook.in') }}</span>
-        <span class="stat-value">{{ formatCurrency(book()!.totalCashIn) }}</span>
-      </div>
-      <div class="header-stat out" *ngIf="book()">
-        <span class="stat-label">{{ i18n.t('cashBook.out') }}</span>
-        <span class="stat-value">{{ formatCurrency(book()!.totalCashOut) }}</span>
-      </div>
-      <div class="header-stat net" *ngIf="book()" [class.positive]="book()!.netCash >= 0" [class.negative]="book()!.netCash < 0">
-        <span class="stat-label">{{ i18n.t('cashBook.net') }}</span>
-        <span class="stat-value">{{ book()!.netCash >= 0 ? '+' : '' }}{{ formatCurrency(book()!.netCash) }}</span>
-      </div>
       <button class="btn-icon" [pTooltip]="i18n.t('common.actions.refresh')" tooltipPosition="bottom" (click)="load()">
         <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
       </button>
@@ -30,6 +18,8 @@
       </div>
     </ng-container>
   </app-page-header>
+
+  <app-stat-strip *ngIf="headerStats().length" [stats]="headerStats()"></app-stat-strip>
 
   <!-- ═══════════════════════════════ CONTROLS ═══════════════════════════════ -->
   <section class="controls-bar">

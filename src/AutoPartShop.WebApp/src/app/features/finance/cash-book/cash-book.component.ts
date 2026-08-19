@@ -12,6 +12,7 @@ import { CashBookService, DailyCashBook, LedgerRow, CashBookEntry } from '../ser
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
 import { I18nService } from '@/shared/services/i18n.service';
 
 type Preset = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'custom';
@@ -23,7 +24,7 @@ const CREDIT_METHODS = new Set(['DUE', 'PART_PAY']);
 @Component({
   selector: 'app-cash-book',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TableModule, DatePickerModule, TooltipModule, SelectModule, PageContainerComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TableModule, DatePickerModule, TooltipModule, SelectModule, PageContainerComponent, PageHeaderComponent, StatStripComponent],
   providers: [MessageService],
   templateUrl: './cash-book.component.html',
   styleUrls: ['./cash-book.component.css']
@@ -96,6 +97,16 @@ export class CashBookComponent implements OnInit {
     if (!b) return [];
     const methods = [...new Set([...b.cashIn, ...b.cashOut].map(e => e.paymentMethod))].sort();
     return [{ label: this.i18n.t('cashBook.allMethods'), value: '' }, ...methods.map(m => ({ label: this.methodLabel(m), value: m }))];
+  });
+
+  headerStats = computed<StatStripItem[]>(() => {
+    const b = this.book();
+    if (!b) return [];
+    return [
+      { label: this.i18n.t('cashBook.in'), value: this.formatCurrency(b.totalCashIn) },
+      { label: this.i18n.t('cashBook.out'), value: this.formatCurrency(b.totalCashOut) },
+      { label: this.i18n.t('cashBook.net'), value: (b.netCash >= 0 ? '+' : '') + this.formatCurrency(b.netCash) },
+    ];
   });
 
   // ── Lifecycle ────────────────────────────────────────────────────

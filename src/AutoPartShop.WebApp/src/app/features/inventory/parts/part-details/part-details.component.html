@@ -206,7 +206,7 @@
                 <p-table
                   [value]="variants()"
                   styleClass="p-datatable-sm variant-price-table">
-                  <ng-template pTemplate="header">
+                  <ng-template #header>
                     <tr>
                       <th>{{ 'parts.variantManager.columnVariant' | translate }}</th>
                       <th>{{ 'parts.partDetails.codeSku' | translate }}</th>
@@ -214,7 +214,7 @@
                       <th style="width: 120px; text-align: right">{{ 'parts.partDetails.action' | translate }}</th>
                     </tr>
                   </ng-template>
-                  <ng-template pTemplate="body" let-v>
+                  <ng-template #body let-v>
                     <tr>
                       <td><span class="font-semibold">{{ v.name }}</span></td>
                       <td class="text-secondary text-sm">{{ v.code }}<span *ngIf="v.sku"> · {{ v.sku }}</span></td>
@@ -338,7 +338,7 @@
                 styleClass="p-datatable-sm"
                 responsiveLayout="stack"
                 breakpoint="768px">
-                <ng-template pTemplate="header">
+                <ng-template #header>
                   <tr>
                     <th>{{ 'parts.partDetails.make' | translate }}</th>
                     <th>{{ 'parts.partDetails.model' | translate }}</th>
@@ -349,7 +349,7 @@
                     <th style="width:60px"></th>
                   </tr>
                 </ng-template>
-                <ng-template pTemplate="body" let-v>
+                <ng-template #body let-v>
                   <tr>
                     <td><span class="p-column-title">{{ 'parts.partDetails.make' | translate }}</span>{{ v.vehicleMake }}</td>
                     <td><span class="p-column-title">{{ 'parts.partDetails.model' | translate }}</span>{{ v.vehicleModel }}</td>
@@ -440,7 +440,7 @@
       </div>
     </form>
 
-    <ng-template pTemplate="footer">
+    <ng-template #footer>
       <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times"
         class="p-button-text p-button-secondary"
         (click)="showSetPriceDialog.set(false)"></button>

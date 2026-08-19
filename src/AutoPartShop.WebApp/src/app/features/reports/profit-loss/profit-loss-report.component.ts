@@ -13,6 +13,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { REPORT_REGISTRY } from '../report-configs';
 import { ReportExportFormat, ReportQuery, ReportsService } from '../services/reports.service';
 
@@ -49,7 +50,7 @@ interface FinancialSummaryResponse {
     standalone: true,
     imports: [
         CommonModule, FormsModule, DatePickerModule, ToastModule, TooltipModule,
-        PageContainerComponent, PageHeaderComponent, HasPermissionDirective
+        PageContainerComponent, PageHeaderComponent, HasPermissionDirective, TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './profit-loss-report.component.html',
