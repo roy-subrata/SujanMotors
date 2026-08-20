@@ -12,6 +12,7 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '../../shared/services/auth.service';
 import { extractApiError } from '../../shared/utils/api-error.util';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-login',
@@ -25,7 +26,8 @@ import { extractApiError } from '../../shared/utils/api-error.util';
     CheckboxModule,
     CardModule,
     MessageModule,
-    ToastModule
+    ToastModule,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './login.component.html',

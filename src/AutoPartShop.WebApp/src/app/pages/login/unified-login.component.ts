@@ -5,11 +5,13 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
 import { AppBrandingService } from '../../shared/services/app-branding.service';
 import { extractApiError } from '../../shared/utils/api-error.util';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { I18nService } from '../../shared/services/i18n.service';
 
 @Component({
   selector: 'app-unified-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, TranslatePipe],
   templateUrl: './unified-login.component.html',
   styleUrls: ['./unified-login.component.css'],
 })
@@ -18,6 +20,7 @@ export class UnifiedLoginComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly branding = inject(AppBrandingService);
+  protected readonly i18n = inject(I18nService);
 
   /** Up-to-2-letter monogram derived from the configured application name. */
   get brandInitials(): string {
@@ -48,17 +51,17 @@ export class UnifiedLoginComponent implements OnInit {
   }
 
   get identifierLabel(): string {
-    return 'Username or Email';
+    return this.i18n.t('login.usernameOrEmail');
   }
 
   get identifierPlaceholder(): string {
-    return 'Enter your username or email';
+    return this.i18n.t('login.usernamePlaceholder');
   }
 
   validate(): boolean {
     this.errors = {};
-    if (!this.identifier.trim()) this.errors['identifier'] = 'Username is required';
-    if (!this.password.trim()) this.errors['password'] = 'Password is required';
+    if (!this.identifier.trim()) this.errors['identifier'] = this.i18n.t('login.validation.usernameRequired');
+    if (!this.password.trim()) this.errors['password'] = this.i18n.t('login.validation.passwordRequired');
     return Object.keys(this.errors).length === 0;
   }
 

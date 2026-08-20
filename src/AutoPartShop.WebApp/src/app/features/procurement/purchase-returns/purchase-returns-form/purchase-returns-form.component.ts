@@ -25,6 +25,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
 import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-purchase-returns-form',
@@ -115,6 +116,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly branding = inject(AppBrandingService);
   private readonly statusDisplay = inject(StatusDisplayService);
+  private readonly i18n = inject(I18nService);
 
   constructor() {
     this.form = this.createForm();

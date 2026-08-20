@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../services/purchase-order.service';
 import { WarehouseService, WarehouseResponse } from '../../inventory/services/warehouse.service';
 import { GoodsReceiptService } from '../services/goods-receipt.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-goods-receipt-wizard',
@@ -20,17 +21,20 @@ export class GoodsReceiptWizardComponent implements OnInit {
     warehouseService = inject(WarehouseService);
     grnService = inject(GoodsReceiptService);
     fb = inject(FormBuilder);
+    private readonly i18n = inject(I18nService);
 
     selectedPO: PurchaseOrderResponse | null = null;
     selectedWarehouse: WarehouseResponse | null = null;
 
     lineItems: any[] = [];
-    conditions = [
-        { label: 'Good', value: 'GOOD' },
-        { label: 'Acceptable', value: 'ACCEPTABLE' },
-        { label: 'Damaged', value: 'DAMAGED' },
-        { label: 'Defective', value: 'DEFECTIVE' }
-    ];
+    get conditions() {
+        return [
+            { label: this.i18n.t('goodsReceipt.good'), value: 'GOOD' },
+            { label: this.i18n.t('goodsReceipt.acceptable'), value: 'ACCEPTABLE' },
+            { label: this.i18n.t('goodsReceipt.damaged'), value: 'DAMAGED' },
+            { label: this.i18n.t('goodsReceipt.defective'), value: 'DEFECTIVE' }
+        ];
+    }
 
     showItemSetupDialog = false;
     selectedItem: any = null;
@@ -142,13 +146,13 @@ export class GoodsReceiptWizardComponent implements OnInit {
         this.submitError = null;
         this.submitSuccess = null;
         if (!this.selectedPO || !this.selectedWarehouse || this.lineItems.length === 0) {
-            this.submitError = 'Missing required data.'; this.isSubmitting = false; return;
+            this.submitError = this.i18n.t('goodsReceipt.missingRequiredData'); this.isSubmitting = false; return;
         }
         if (this.lineItems.some(i => i.receivingQuantity < 0)) {
-            this.submitError = 'Receiving quantity cannot be negative.'; this.isSubmitting = false; return;
+            this.submitError = this.i18n.t('goodsReceipt.qtyCannotBeNegative'); this.isSubmitting = false; return;
         }
         if (this.lineItems.some(i => i.hasWarranty && !i.warrantyPeriod)) {
-            this.submitError = 'Warranty period is required for items with warranty.'; this.isSubmitting = false; return;
+            this.submitError = this.i18n.t('goodsReceipt.warrantyPeriodRequired'); this.isSubmitting = false; return;
         }
         const po = this.selectedPO as any;
         const request = {
@@ -178,12 +182,12 @@ export class GoodsReceiptWizardComponent implements OnInit {
         this.grnService.createGoodsReceipt(request).subscribe({
             next: (res: any) => {
                 this.isSubmitting = false;
-                this.submitSuccess = `Goods Receipt '${res.grnNumber || ''}' created successfully.`;
+                this.submitSuccess = this.i18n.t('goodsReceipt.createdSuccess', { number: res.grnNumber || '' });
                 this.goToStep(1);
             },
             error: (err: any) => {
                 this.isSubmitting = false;
-                this.submitError = err?.error?.message || 'Failed to create goods receipt.';
+                this.submitError = err?.error?.message || this.i18n.t('goodsReceipt.createFailed');
             }
         });
     }

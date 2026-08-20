@@ -6,12 +6,12 @@
       <div class="ul-logo-mark">{{ brandInitials }}</div>
       <div class="ul-logo-text">
         <span class="ul-logo-title">{{ branding.appName() }}</span>
-        <span class="ul-logo-sub">Management System</span>
+        <span class="ul-logo-sub">{{ 'login.managementSystem' | translate }}</span>
       </div>
     </div>
 
-    <h2 class="ul-heading">Sign in</h2>
-    <p class="ul-sub">Enter your staff credentials to continue.</p>
+    <h2 class="ul-heading">{{ 'login.signInHeading' | translate }}</h2>
+    <p class="ul-sub">{{ 'login.signInSub' | translate }}</p>
 
     <!-- Error banner -->
     <div class="ul-error" *ngIf="error()">
@@ -40,7 +40,7 @@
 
       <!-- Password -->
       <div class="ul-field">
-        <label>Password<span class="ul-required">*</span></label>
+        <label>{{ 'login.password' | translate }}<span class="ul-required">*</span></label>
         <div class="ul-input-wrap">
           <i class="pi pi-lock ul-input-icon"></i>
           <input
@@ -62,7 +62,7 @@
       <div class="ul-remember">
         <label class="ul-checkbox-label">
           <input type="checkbox" [(ngModel)]="rememberMe" />
-          <span>Remember me</span>
+          <span>{{ 'login.rememberMe' | translate }}</span>
         </label>
       </div>
 
@@ -74,13 +74,13 @@
         type="button"
       >
         <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-sign-in'"></i>
-        {{ loading() ? 'Signing in…' : 'Sign In' }}
+        {{ loading() ? ('login.signingIn' | translate) : ('login.signInButton' | translate) }}
       </button>
     </div>
 
     <!-- Footer -->
     <div class="ul-footer">
-      Need access? <a href="javascript:void(0)">Contact administrator</a>
+      {{ 'login.needAccess' | translate }} <a href="javascript:void(0)">{{ 'login.contactAdmin' | translate }}</a>
     </div>
 
   </div>
