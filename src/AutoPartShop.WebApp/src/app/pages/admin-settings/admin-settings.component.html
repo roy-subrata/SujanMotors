@@ -3,21 +3,21 @@
 
 <app-page-container>
   <app-page-header
-    title="Settings"
-    subtitle="Manage users, roles, permissions & configuration">
+    [title]="'adminSettings.title' | translate"
+    [subtitle]="'adminSettings.subtitle' | translate">
     <ng-container actions>
       <div class="stats-badge">
         <i class="pi pi-users"></i>
         <div class="stats-info">
           <span class="stats-value">{{ users().length }}</span>
-          <span class="stats-label">users</span>
+          <span class="stats-label">{{ 'adminSettings.stats.users' | translate }}</span>
         </div>
       </div>
       <div class="stats-badge">
         <i class="pi pi-shield"></i>
         <div class="stats-info">
           <span class="stats-value">{{ roles().length }}</span>
-          <span class="stats-label">roles</span>
+          <span class="stats-label">{{ 'adminSettings.stats.roles' | translate }}</span>
         </div>
       </div>
     </ng-container>
@@ -29,23 +29,23 @@
       <p-tablist>
         <p-tab [value]="0">
           <i class="pi pi-users mr-2"></i>
-          Users
+          {{ 'adminSettings.tabs.users' | translate }}
         </p-tab>
         <p-tab [value]="1">
           <i class="pi pi-shield mr-2"></i>
-          Roles
+          {{ 'adminSettings.tabs.roles' | translate }}
         </p-tab>
         <p-tab [value]="2">
           <i class="pi pi-key mr-2"></i>
-          Permissions
+          {{ 'adminSettings.tabs.permissions' | translate }}
         </p-tab>
         <p-tab [value]="3">
           <i class="pi pi-lock mr-2"></i>
-          Price Code
+          {{ 'adminSettings.tabs.priceCode' | translate }}
         </p-tab>
         <p-tab [value]="4">
           <i class="pi pi-bell mr-2"></i>
-          Notifications
+          {{ 'adminSettings.tabs.notifications' | translate }}
         </p-tab>
       </p-tablist>
 
@@ -55,12 +55,12 @@
           <div class="tab-content">
             <div class="tab-toolbar">
               <div class="toolbar-left">
-                <span class="section-title">User Accounts</span>
-                <span class="section-count">{{ users().length }} total</span>
+                <span class="section-title">{{ 'adminSettings.users.sectionTitle' | translate }}</span>
+                <span class="section-count">{{ users().length }} {{ 'adminSettings.total' | translate }}</span>
               </div>
               <button class="btn-add" (click)="openUserDialog()">
                 <i class="pi pi-plus"></i>
-                <span>Add User</span>
+                <span>{{ 'adminSettings.users.addUser' | translate }}</span>
               </button>
             </div>
 
@@ -70,12 +70,12 @@
                 [rowHover]="true" styleClass="settings-table">
                 <ng-template #header>
                   <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Roles</th>
-                    <th>Status</th>
-                    <th>Last Login</th>
-                    <th class="col-actions">Actions</th>
+                    <th>{{ 'adminSettings.labels.user' | translate }}</th>
+                    <th>{{ 'common.labels.email' | translate }}</th>
+                    <th>{{ 'adminSettings.labels.roles' | translate }}</th>
+                    <th>{{ 'common.labels.status' | translate }}</th>
+                    <th>{{ 'adminSettings.labels.lastLogin' | translate }}</th>
+                    <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
                   </tr>
                 </ng-template>
                 <ng-template #body let-user>
@@ -93,25 +93,25 @@
                     <td>
                       <div class="role-tags">
                         <span *ngFor="let role of user.roles" class="role-chip">{{ role }}</span>
-                        <span *ngIf="user.roles.length === 0" class="text-muted">No roles</span>
+                        <span *ngIf="user.roles.length === 0" class="text-muted">{{ 'adminSettings.noRoles' | translate }}</span>
                       </div>
                     </td>
                     <td>
                       <span class="status-pill" [attr.data-status]="user.isActive ? 'active' : 'inactive'">
-                        {{ user.isActive ? 'Active' : 'Inactive' }}
+                        {{ user.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate) }}
                       </span>
                     </td>
-                    <td><span class="text-muted">{{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : 'Never' }}</span></td>
+                    <td><span class="text-muted">{{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : ('adminSettings.never' | translate) }}</span></td>
                     <td class="col-actions">
                       <div class="action-btns">
-                        <button class="btn-action" pTooltip="Assign Roles" (click)="openAssignRolesDialog(user)">
+                        <button class="btn-action" [pTooltip]="'adminSettings.tooltips.assignRoles' | translate" (click)="openAssignRolesDialog(user)">
                           <i class="pi pi-user-edit"></i>
                         </button>
-                        <button class="btn-action" pTooltip="Edit" (click)="openUserDialog(user)">
+                        <button class="btn-action" [pTooltip]="'common.actions.edit' | translate" (click)="openUserDialog(user)">
                           <i class="pi pi-pencil"></i>
                         </button>
                         <button class="btn-action" [class.btn-danger]="user.isActive"
-                          [pTooltip]="user.isActive ? 'Deactivate' : 'Activate'"
+                          [pTooltip]="user.isActive ? ('common.actions.deactivate' | translate) : ('common.actions.activate' | translate)"
                           (click)="toggleUserStatus(user)">
                           <i class="pi" [ngClass]="user.isActive ? 'pi-ban' : 'pi-check'"></i>
                         </button>
@@ -124,7 +124,7 @@
                     <td colspan="6">
                       <div class="empty-state">
                         <i class="pi pi-users"></i>
-                        <p>No users found</p>
+                        <p>{{ 'adminSettings.emptyUsers' | translate }}</p>
                       </div>
                     </td>
                   </tr>
@@ -134,7 +134,7 @@
                 [first]="usersFirst()"
                 [pageSize]="usersPageSize()"
                 [totalRecords]="users().length"
-                itemLabel="users"
+                [itemLabel]="'adminSettings.stats.users' | translate"
                 (pageChange)="goToUsersPage($event)"
                 (pageSizeChange)="onUsersPageSizeChange($event)">
               </app-data-pagination>
@@ -147,12 +147,12 @@
           <div class="tab-content">
             <div class="tab-toolbar">
               <div class="toolbar-left">
-                <span class="section-title">Roles</span>
-                <span class="section-count">{{ roles().length }} total</span>
+                <span class="section-title">{{ 'adminSettings.tabs.roles' | translate }}</span>
+                <span class="section-count">{{ roles().length }} {{ 'adminSettings.total' | translate }}</span>
               </div>
               <button class="btn-add" (click)="openRoleDialog()">
                 <i class="pi pi-plus"></i>
-                <span>Add Role</span>
+                <span>{{ 'adminSettings.roles.addRole' | translate }}</span>
               </button>
             </div>
 
@@ -161,11 +161,11 @@
                 [paginator]="false" [rowHover]="true" styleClass="settings-table">
                 <ng-template #header>
                   <tr>
-                    <th>Role</th>
-                    <th>Description</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th class="col-actions">Actions</th>
+                    <th>{{ 'adminSettings.labels.role' | translate }}</th>
+                    <th>{{ 'common.labels.description' | translate }}</th>
+                    <th>{{ 'common.labels.status' | translate }}</th>
+                    <th>{{ 'adminSettings.labels.created' | translate }}</th>
+                    <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
                   </tr>
                 </ng-template>
                 <ng-template #body let-role>
@@ -179,19 +179,19 @@
                     <td><span class="text-secondary">{{ role.description || '-' }}</span></td>
                     <td>
                       <span class="status-pill" [attr.data-status]="role.isActive ? 'active' : 'inactive'">
-                        {{ role.isActive ? 'Active' : 'Inactive' }}
+                        {{ role.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate) }}
                       </span>
                     </td>
                     <td><span class="text-muted">{{ role.createdAt | date:'mediumDate' }}</span></td>
                     <td class="col-actions">
                       <div class="action-btns">
-                        <button class="btn-action" pTooltip="Permissions" (click)="openAssignPermissionsDialog(role)">
+                        <button class="btn-action" [pTooltip]="'adminSettings.tabs.permissions' | translate" (click)="openAssignPermissionsDialog(role)">
                           <i class="pi pi-key"></i>
                         </button>
-                        <button class="btn-action" pTooltip="Edit" (click)="openRoleDialog(role)">
+                        <button class="btn-action" [pTooltip]="'common.actions.edit' | translate" (click)="openRoleDialog(role)">
                           <i class="pi pi-pencil"></i>
                         </button>
-                        <button class="btn-action btn-danger" pTooltip="Delete" (click)="deleteRole(role)">
+                        <button class="btn-action btn-danger" [pTooltip]="'common.actions.delete' | translate" (click)="deleteRole(role)">
                           <i class="pi pi-trash"></i>
                         </button>
                       </div>
@@ -203,7 +203,7 @@
                     <td colspan="5">
                       <div class="empty-state">
                         <i class="pi pi-shield"></i>
-                        <p>No roles found</p>
+                        <p>{{ 'adminSettings.emptyRoles' | translate }}</p>
                       </div>
                     </td>
                   </tr>
@@ -213,7 +213,7 @@
                 [first]="rolesFirst()"
                 [pageSize]="rolesPageSize()"
                 [totalRecords]="roles().length"
-                itemLabel="roles"
+                [itemLabel]="'adminSettings.stats.roles' | translate"
                 (pageChange)="goToRolesPage($event)"
                 (pageSizeChange)="onRolesPageSizeChange($event)">
               </app-data-pagination>
@@ -226,12 +226,12 @@
           <div class="tab-content">
             <div class="tab-toolbar">
               <div class="toolbar-left">
-                <span class="section-title">Permissions</span>
-                <span class="section-count">{{ permissions().length }} total</span>
+                <span class="section-title">{{ 'adminSettings.tabs.permissions' | translate }}</span>
+                <span class="section-count">{{ permissions().length }} {{ 'adminSettings.total' | translate }}</span>
               </div>
               <button class="btn-add" (click)="openPermissionDialog()">
                 <i class="pi pi-plus"></i>
-                <span>Add Permission</span>
+                <span>{{ 'adminSettings.permissions.addPermission' | translate }}</span>
               </button>
             </div>
 
@@ -240,11 +240,11 @@
                 [paginator]="false" [rowHover]="true" styleClass="settings-table">
                 <ng-template #header>
                   <tr>
-                    <th>Permission</th>
-                    <th>Display Name</th>
-                    <th>Category</th>
-                    <th>Description</th>
-                    <th>Status</th>
+                    <th>{{ 'adminSettings.labels.permission' | translate }}</th>
+                    <th>{{ 'adminSettings.labels.displayName' | translate }}</th>
+                    <th>{{ 'common.labels.category' | translate }}</th>
+                    <th>{{ 'common.labels.description' | translate }}</th>
+                    <th>{{ 'common.labels.status' | translate }}</th>
                   </tr>
                 </ng-template>
                 <ng-template #body let-permission>
@@ -255,7 +255,7 @@
                     <td><span class="text-secondary">{{ permission.description || '-' }}</span></td>
                     <td>
                       <span class="status-pill" [attr.data-status]="permission.isActive ? 'active' : 'inactive'">
-                        {{ permission.isActive ? 'Active' : 'Inactive' }}
+                        {{ permission.isActive ? ('common.status.active' | translate) : ('common.status.inactive' | translate) }}
                       </span>
                     </td>
                   </tr>
@@ -265,7 +265,7 @@
                     <td colspan="5">
                       <div class="empty-state">
                         <i class="pi pi-key"></i>
-                        <p>No permissions found</p>
+                        <p>{{ 'adminSettings.emptyPermissions' | translate }}</p>
                       </div>
                     </td>
                   </tr>
@@ -275,7 +275,7 @@
                 [first]="permissionsFirst()"
                 [pageSize]="permissionsPageSize()"
                 [totalRecords]="permissions().length"
-                itemLabel="permissions"
+                [itemLabel]="'adminSettings.stats.permissions' | translate"
                 (pageChange)="goToPermissionsPage($event)"
                 (pageSizeChange)="onPermissionsPageSizeChange($event)">
               </app-data-pagination>
@@ -291,9 +291,9 @@
             <div class="price-code-header">
               <i class="pi pi-lock" style="font-size: 1.75rem; color: var(--color-primary);"></i>
               <div>
-                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Price Code Configuration</h3>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">{{ 'adminSettings.priceCode.title' | translate }}</h3>
                 <p style="margin: 0.25rem 0 0; color: var(--color-text-muted); font-size: 0.875rem;">
-                  Encode cost prices using a secret word. Each of the 10 letters maps to a digit (1–9, 0). Only users who know the word can read the price.
+                  {{ 'adminSettings.priceCode.description' | translate }}
                 </p>
               </div>
             </div>
@@ -303,15 +303,15 @@
               <!-- Left: Form inputs -->
               <div class="price-code-form-panel">
                 <div class="form-field">
-                  <label for="priceCodeWord">Magic Word (10 unique letters)</label>
+                  <label for="priceCodeWord">{{ 'adminSettings.priceCode.magicWord' | translate }}</label>
                   <input pInputText id="priceCodeWord"
                     [(ngModel)]="priceCodeWord"
                     class="w-full"
                     maxlength="10"
-                    placeholder="e.g. SUJANMOTER"
+                    [placeholder]="'adminSettings.priceCode.magicWordPlaceholder' | translate"
                     style="text-transform: uppercase; letter-spacing: 0.15em; font-weight: 600; font-size: 1.1rem;" />
                   <small style="color: var(--color-text-muted); display: block; margin-top: 0.35rem;">
-                    Each letter represents a digit: 1st→1, 2nd→2, ... 10th→0. Length: {{ priceCodeWord.length }}/10
+                    {{ 'adminSettings.priceCode.digitHint' | translate }} {{ 'adminSettings.priceCode.lengthLabel' | translate:{ length: priceCodeWord.length } }}
                   </small>
                   @if (priceCodeWord.length > 0 && !getPriceCodeValidation().valid) {
                     <small style="color: var(--color-danger); display: block; margin-top: 0.25rem;">
@@ -323,37 +323,37 @@
 
                 <div class="prefix-suffix-row">
                   <div class="form-field">
-                    <label for="priceCodePrefix">Prefix <span style="color: var(--color-text-muted); font-weight: normal;">(optional)</span></label>
+                    <label for="priceCodePrefix">{{ 'adminSettings.priceCode.prefix' | translate }} <span style="color: var(--color-text-muted); font-weight: normal;">({{ 'common.labels.optional' | translate }})</span></label>
                     <input pInputText id="priceCodePrefix"
                       [(ngModel)]="priceCodePrefix"
                       class="w-full"
                       maxlength="5"
-                      placeholder="e.g. #, *, XX" />
-                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.25rem;">Prepended to encoded price</small>
+                      [placeholder]="'adminSettings.priceCode.prefixPlaceholder' | translate" />
+                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.25rem;">{{ 'adminSettings.priceCode.prefixHint' | translate }}</small>
                   </div>
                   <div class="form-field">
-                    <label for="priceCodeSuffix">Suffix <span style="color: var(--color-text-muted); font-weight: normal;">(optional)</span></label>
+                    <label for="priceCodeSuffix">{{ 'adminSettings.priceCode.suffix' | translate }} <span style="color: var(--color-text-muted); font-weight: normal;">({{ 'common.labels.optional' | translate }})</span></label>
                     <input pInputText id="priceCodeSuffix"
                       [(ngModel)]="priceCodeSuffix"
                       class="w-full"
                       maxlength="5"
-                      placeholder="e.g. /, **, ZZ" />
-                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.25rem;">Appended to encoded price</small>
+                      [placeholder]="'adminSettings.priceCode.suffixPlaceholder' | translate" />
+                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.25rem;">{{ 'adminSettings.priceCode.suffixHint' | translate }}</small>
                   </div>
                 </div>
 
                 <div class="price-code-actions">
-                  <button pButton label="Save Price Code" icon="pi pi-save"
+                  <button pButton [label]="'adminSettings.priceCode.savePriceCode' | translate" icon="pi pi-save"
                     (click)="savePriceCode()"
                     [disabled]="!getPriceCodeValidation().valid || priceCodeSaving()"
                     [loading]="priceCodeSaving()"></button>
-                  <button pButton label="Reset" icon="pi pi-refresh" class="p-button-text"
+                  <button pButton [label]="'common.actions.reset' | translate" icon="pi pi-refresh" class="p-button-text"
                     (click)="initPriceCode()"></button>
                   @if (priceCodeService.isConfigured()) {
-                    <button pButton label="Clear" icon="pi pi-trash" class="p-button-danger p-button-text"
+                    <button pButton [label]="'common.actions.clear' | translate" icon="pi pi-trash" class="p-button-danger p-button-text"
                       (click)="clearPriceCode()"
                       [disabled]="priceCodeSaving()"
-                      pTooltip="Remove price code and show plain numbers"></button>
+                      [pTooltip]="'adminSettings.priceCode.clearTooltip' | translate"></button>
                   }
                 </div>
               </div>
@@ -363,7 +363,7 @@
                 @if (getPriceCodeValidation().valid) {
                   <div class="price-code-preview">
                     <h4 style="margin: 0 0 0.75rem; font-size: 0.95rem; color: var(--color-text-primary); font-weight: 600;">
-                      <i class="pi pi-table" style="margin-right: 0.4rem; color: var(--color-primary);"></i>Digit → Letter Mapping
+                      <i class="pi pi-table" style="margin-right: 0.4rem; color: var(--color-primary);"></i>{{ 'adminSettings.priceCode.mappingTitle' | translate }}
                     </h4>
                     <div class="preview-mapping">
                       @for (digit of [1,2,3,4,5,6,7,8,9,0]; track digit) {
@@ -383,7 +383,7 @@
                   <div class="price-code-preview" style="display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--color-text-muted);">
                     <div style="text-align: center;">
                       <i class="pi pi-eye-slash" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
-                      <span style="font-size: 0.9rem;">Enter a valid 10-letter word to see the preview</span>
+                      <span style="font-size: 0.9rem;">{{ 'adminSettings.priceCode.previewHint' | translate }}</span>
                     </div>
                   </div>
                 }
@@ -394,12 +394,12 @@
             @if (priceCodeService.isConfigured()) {
               <div class="price-code-status">
                 <i class="pi pi-check-circle" style="color: var(--color-success);"></i>
-                <span>Price code is <strong>active</strong>. Cost prices are displayed as encoded letters across all inventory views.</span>
+                <span>{{ 'adminSettings.priceCode.statusActive' | translate }}</span>
               </div>
             } @else {
               <div class="price-code-status inactive">
                 <i class="pi pi-info-circle" style="color: var(--color-warning);"></i>
-                <span>No price code configured. Cost prices are shown as plain numbers.</span>
+                <span>{{ 'adminSettings.priceCode.statusInactive' | translate }}</span>
               </div>
             }
           </div>
@@ -414,9 +414,9 @@
             <div class="price-code-header">
               <i class="pi pi-bell" style="font-size: 1.75rem; color: var(--color-primary);"></i>
               <div>
-                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Notification Channels</h3>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">{{ 'adminSettings.notifications.title' | translate }}</h3>
                 <p style="margin: 0.25rem 0 0; color: var(--color-text-muted); font-size: 0.875rem;">
-                  Enable or disable outbound notification channels. Changes take effect immediately — no restart required.
+                  {{ 'adminSettings.notifications.description' | translate }}
                 </p>
               </div>
             </div>
@@ -435,7 +435,7 @@
                   </div>
                   <div class="notif-channel-info">
                     <span class="notif-channel-name">SMS</span>
-                    <span class="notif-channel-desc">Send order confirmation texts via Twilio</span>
+                    <span class="notif-channel-desc">{{ 'adminSettings.notifications.smsDesc' | translate }}</span>
                   </div>
                   <p-toggleswitch
                     [ngModel]="notifSettings().smsEnabled"
@@ -450,7 +450,7 @@
                   </div>
                   <div class="notif-channel-info">
                     <span class="notif-channel-name">WhatsApp</span>
-                    <span class="notif-channel-desc">Send order confirmation messages via Twilio WhatsApp</span>
+                    <span class="notif-channel-desc">{{ 'adminSettings.notifications.whatsappDesc' | translate }}</span>
                   </div>
                   <p-toggleswitch
                     [ngModel]="notifSettings().whatsAppEnabled"
@@ -465,8 +465,8 @@
                       <i class="pi pi-wifi"></i>
                     </div>
                     <div class="notif-channel-info">
-                      <span class="notif-channel-name">Real-time Alerts (SignalR)</span>
-                      <span class="notif-channel-desc">Which roles receive in-app sale pop-ups. Leave empty to notify all staff.</span>
+                      <span class="notif-channel-name">{{ 'adminSettings.notifications.signalrTitle' | translate }}</span>
+                      <span class="notif-channel-desc">{{ 'adminSettings.notifications.signalrDesc' | translate }}</span>
                     </div>
                   </div>
                   <p-multiselect
@@ -475,7 +475,7 @@
                     (ngModelChange)="updateSignalRRoles($event)"
                     optionLabel="label"
                     optionValue="value"
-                    placeholder="All staff (no filter)"
+                    [placeholder]="'adminSettings.notifications.allStaff' | translate"
                     appendTo="body"
                     styleClass="w-full"
                   ></p-multiselect>
@@ -484,7 +484,7 @@
               </div>
 
               <div style="margin-top: 1.5rem;">
-                <button pButton label="Save Changes" icon="pi pi-save"
+                <button pButton [label]="'common.actions.save' | translate" icon="pi pi-save"
                   (click)="saveNotificationSettings()"
                   [loading]="notifSaving()"
                   [disabled]="notifSaving()">
@@ -493,7 +493,7 @@
 
               <div class="price-code-status" style="margin-top: 1.25rem;">
                 <i class="pi pi-info-circle" style="color: var(--color-primary);"></i>
-                <span>Email notifications are always active and cannot be disabled here.</span>
+                <span>{{ 'adminSettings.notifications.emailAlwaysActive' | translate }}</span>
               </div>
             }
 
@@ -506,51 +506,51 @@
   </div>
 
   <!-- User Dialog -->
-  <p-dialog [(visible)]="userDialogVisible" [header]="editingUser() ? 'Edit User' : 'Add User'"
+  <p-dialog [(visible)]="userDialogVisible" [header]="editingUser() ? ('adminSettings.dialogs.editUser' | translate) : ('adminSettings.dialogs.addUser' | translate)"
     [modal]="true" [style]="{width: '480px'}" styleClass="settings-dialog">
     <form [formGroup]="userForm" (ngSubmit)="saveUser()">
       <div class="dialog-form">
         <div class="form-row">
           <div class="form-field">
-            <label for="username"><span class="required">*</span> Username</label>
-            <input pInputText id="username" formControlName="username" class="w-full" placeholder="Enter username" />
+            <label for="username"><span class="required">*</span> {{ 'adminSettings.labels.username' | translate }}</label>
+            <input pInputText id="username" formControlName="username" class="w-full" [placeholder]="'adminSettings.placeholders.enterUsername' | translate" />
             <small class="p-error" *ngIf="userForm.get('username')?.touched && userForm.get('username')?.invalid">
-              Username is required (min 3 characters)
+              {{ 'adminSettings.validation.usernameRequired' | translate }}
             </small>
           </div>
           <div class="form-field">
-            <label for="email"><span class="required">*</span> Email</label>
+            <label for="email"><span class="required">*</span> {{ 'common.labels.email' | translate }}</label>
             <input pInputText id="email" type="email" formControlName="email" class="w-full" placeholder="user@example.com" />
             <small class="p-error" *ngIf="userForm.get('email')?.touched && userForm.get('email')?.invalid">
-              A valid email is required
+              {{ 'adminSettings.validation.emailRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-field">
-            <label for="firstName"><span class="required">*</span> First Name</label>
-            <input pInputText id="firstName" formControlName="firstName" class="w-full" placeholder="First name" />
+            <label for="firstName"><span class="required">*</span> {{ 'common.labels.firstName' | translate }}</label>
+            <input pInputText id="firstName" formControlName="firstName" class="w-full" [placeholder]="'common.labels.firstName' | translate" />
             <small class="p-error" *ngIf="userForm.get('firstName')?.touched && userForm.get('firstName')?.invalid">
-              First name is required
+              {{ 'adminSettings.validation.firstNameRequired' | translate }}
             </small>
           </div>
           <div class="form-field">
-            <label for="lastName"><span class="required">*</span> Last Name</label>
-            <input pInputText id="lastName" formControlName="lastName" class="w-full" placeholder="Last name" />
+            <label for="lastName"><span class="required">*</span> {{ 'common.labels.lastName' | translate }}</label>
+            <input pInputText id="lastName" formControlName="lastName" class="w-full" [placeholder]="'common.labels.lastName' | translate" />
             <small class="p-error" *ngIf="userForm.get('lastName')?.touched && userForm.get('lastName')?.invalid">
-              Last name is required
+              {{ 'adminSettings.validation.lastNameRequired' | translate }}
             </small>
           </div>
         </div>
 
         @if (!editingUser()) {
           <div class="form-field">
-            <label for="password"><span class="required">*</span> Password</label>
+            <label for="password"><span class="required">*</span> {{ 'common.labels.password' | translate }}</label>
             <p-password id="password" formControlName="password" [toggleMask]="true"
-              styleClass="w-full" [inputStyle]="{width: '100%'}" placeholder="Minimum 8 characters"></p-password>
+              styleClass="w-full" [inputStyle]="{width: '100%'}" [placeholder]="'adminSettings.placeholders.passwordMin' | translate"></p-password>
             <small class="p-error" *ngIf="userForm.get('password')?.touched && userForm.get('password')?.invalid">
-              Password is required (min 8 characters)
+              {{ 'adminSettings.validation.passwordRequired' | translate }}
             </small>
           </div>
         }
@@ -558,123 +558,123 @@
         <div class="form-field">
           <div class="checkbox-row">
             <p-checkbox formControlName="isActive" inputId="isActive" [binary]="true"></p-checkbox>
-            <label for="isActive">Active</label>
+            <label for="isActive">{{ 'common.status.active' | translate }}</label>
           </div>
         </div>
       </div>
 
       <div class="dialog-footer">
-        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+        <button pButton [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text"
           type="button" (click)="userDialogVisible.set(false)"></button>
-        <button pButton label="Save" icon="pi pi-check" type="submit"></button>
+        <button pButton [label]="'common.actions.save' | translate" icon="pi pi-check" type="submit"></button>
       </div>
     </form>
   </p-dialog>
 
   <!-- Role Dialog -->
-  <p-dialog [(visible)]="roleDialogVisible" [header]="editingRole() ? 'Edit Role' : 'Add Role'"
+  <p-dialog [(visible)]="roleDialogVisible" [header]="editingRole() ? ('adminSettings.dialogs.editRole' | translate) : ('adminSettings.dialogs.addRole' | translate)"
     [modal]="true" [style]="{width: '450px'}" styleClass="settings-dialog">
     <form [formGroup]="roleForm" (ngSubmit)="saveRole()">
       <div class="dialog-form">
         <div class="form-field">
-          <label for="roleName"><span class="required">*</span> Role Name</label>
-          <input pInputText id="roleName" formControlName="name" class="w-full" placeholder="e.g. Manager, Cashier" />
+          <label for="roleName"><span class="required">*</span> {{ 'adminSettings.labels.roleName' | translate }}</label>
+          <input pInputText id="roleName" formControlName="name" class="w-full" [placeholder]="'adminSettings.placeholders.roleName' | translate" />
           <small class="p-error" *ngIf="roleForm.get('name')?.touched && roleForm.get('name')?.invalid">
-            Role name is required
+            {{ 'adminSettings.validation.roleNameRequired' | translate }}
           </small>
         </div>
 
         <div class="form-field">
-          <label for="roleDescription">Description</label>
-          <input pInputText id="roleDescription" formControlName="description" class="w-full" placeholder="Brief description of the role" />
+          <label for="roleDescription">{{ 'common.labels.description' | translate }}</label>
+          <input pInputText id="roleDescription" formControlName="description" class="w-full" [placeholder]="'adminSettings.placeholders.roleDescription' | translate" />
         </div>
 
         @if (editingRole()) {
           <div class="form-field">
             <div class="checkbox-row">
               <p-checkbox formControlName="isActive" inputId="roleActive" [binary]="true"></p-checkbox>
-              <label for="roleActive">Active</label>
+              <label for="roleActive">{{ 'common.status.active' | translate }}</label>
             </div>
           </div>
         }
       </div>
 
       <div class="dialog-footer">
-        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+        <button pButton [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text"
           type="button" (click)="roleDialogVisible.set(false)"></button>
-        <button pButton label="Save" icon="pi pi-check" type="submit"></button>
+        <button pButton [label]="'common.actions.save' | translate" icon="pi pi-check" type="submit"></button>
       </div>
     </form>
   </p-dialog>
 
   <!-- Permission Dialog -->
-  <p-dialog [(visible)]="permissionDialogVisible" header="Add Permission"
+  <p-dialog [(visible)]="permissionDialogVisible" [header]="'adminSettings.dialogs.addPermission' | translate"
     [modal]="true" [style]="{width: '480px'}" styleClass="settings-dialog">
     <form [formGroup]="permissionForm" (ngSubmit)="savePermission()">
       <div class="dialog-form">
         <div class="form-row">
           <div class="form-field">
-            <label for="permissionName"><span class="required">*</span> Permission Name (code)</label>
+            <label for="permissionName"><span class="required">*</span> {{ 'adminSettings.labels.permissionCode' | translate }}</label>
             <input pInputText id="permissionName" formControlName="name" class="w-full"
-              placeholder="e.g., users.create" />
+              [placeholder]="'adminSettings.placeholders.permissionCode' | translate" />
             <small class="p-error" *ngIf="permissionForm.get('name')?.touched && permissionForm.get('name')?.invalid">
-              Permission code is required
+              {{ 'adminSettings.validation.permissionCodeRequired' | translate }}
             </small>
           </div>
           <div class="form-field">
-            <label for="displayName"><span class="required">*</span> Display Name</label>
+            <label for="displayName"><span class="required">*</span> {{ 'adminSettings.labels.displayName' | translate }}</label>
             <input pInputText id="displayName" formControlName="displayName" class="w-full"
-              placeholder="e.g., Create Users" />
+              [placeholder]="'adminSettings.placeholders.displayName' | translate" />
             <small class="p-error" *ngIf="permissionForm.get('displayName')?.touched && permissionForm.get('displayName')?.invalid">
-              Display name is required
+              {{ 'adminSettings.validation.displayNameRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-field">
-            <label for="category"><span class="required">*</span> Category</label>
+            <label for="category"><span class="required">*</span> {{ 'common.labels.category' | translate }}</label>
             <input pInputText id="category" formControlName="category" class="w-full"
-              placeholder="e.g., User Management" />
+              [placeholder]="'adminSettings.placeholders.category' | translate" />
             <small class="p-error" *ngIf="permissionForm.get('category')?.touched && permissionForm.get('category')?.invalid">
-              Category is required
+              {{ 'adminSettings.validation.categoryRequired' | translate }}
             </small>
           </div>
           <div class="form-field">
-            <label for="permissionDescription">Description</label>
+            <label for="permissionDescription">{{ 'common.labels.description' | translate }}</label>
             <input pInputText id="permissionDescription" formControlName="description" class="w-full"
-              placeholder="Optional description" />
+              [placeholder]="'adminSettings.placeholders.optionalDescription' | translate" />
           </div>
         </div>
       </div>
 
       <div class="dialog-footer">
-        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+        <button pButton [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text"
           type="button" (click)="permissionDialogVisible.set(false)"></button>
-        <button pButton label="Save" icon="pi pi-check" type="submit"></button>
+        <button pButton [label]="'common.actions.save' | translate" icon="pi pi-check" type="submit"></button>
       </div>
     </form>
   </p-dialog>
 
   <!-- Assign Roles Dialog -->
-  <p-dialog [(visible)]="assignRolesDialogVisible" header="Assign Roles"
+  <p-dialog [(visible)]="assignRolesDialogVisible" [header]="'adminSettings.dialogs.assignRoles' | translate"
     [modal]="true" [style]="{width: '480px'}" styleClass="settings-dialog">
     @if (selectedUserForRoles(); as user) {
       <div class="dialog-form">
         <div class="assign-info">
           <i class="pi pi-user"></i>
-          <span>Assign roles to <strong>{{ user.username }}</strong></span>
+          <span>{{ 'adminSettings.messages.assignRolesTo' | translate:{ username: user.username } }}</span>
         </div>
 
         <div class="form-field">
-          <label for="userRoles">Select Roles</label>
+          <label for="userRoles">{{ 'adminSettings.labels.selectRoles' | translate }}</label>
           <p-multiselect
             id="userRoles"
             [(ngModel)]="selectedUserRoles"
             [options]="getRoleOptions()"
             optionLabel="label"
             optionValue="value"
-            placeholder="Select roles"
+            [placeholder]="'adminSettings.placeholders.selectRoles' | translate"
             [showClear]="true"
             [filter]="false"
             display="chip"
@@ -685,15 +685,15 @@
       </div>
 
       <div class="dialog-footer">
-        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+        <button pButton [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text"
           (click)="assignRolesDialogVisible.set(false)"></button>
-        <button pButton label="Assign Roles" icon="pi pi-check" (click)="saveUserRoles()"></button>
+        <button pButton [label]="'adminSettings.dialogs.assignRoles' | translate" icon="pi pi-check" (click)="saveUserRoles()"></button>
       </div>
     }
   </p-dialog>
 
   <!-- Assign Permissions Dialog -->
-  <p-dialog [(visible)]="assignPermissionsDialogVisible" header="Assign Permissions"
+  <p-dialog [(visible)]="assignPermissionsDialogVisible" [header]="'adminSettings.dialogs.assignPermissions' | translate"
     [modal]="true" [style]="{width: '780px'}" styleClass="settings-dialog permissions-dialog">
     @if (selectedRoleForPermissions(); as role) {
       <div class="permissions-dialog-content">
@@ -701,21 +701,21 @@
         <div class="perm-dialog-header">
           <div class="assign-info">
             <i class="pi pi-shield"></i>
-            <span>Manage permissions for role <strong>{{ role.name }}</strong></span>
+            <span>{{ 'adminSettings.messages.managePermissionsFor' | translate:{ name: role.name } }}</span>
           </div>
           <div class="perm-summary">
             <span class="perm-count">{{ selectedPermissionIds().length }}</span>
-            <span class="perm-count-label">of {{ permissions().length }} selected</span>
+            <span class="perm-count-label">{{ 'adminSettings.messages.ofSelected' | translate:{ total: permissions().length } }}</span>
           </div>
         </div>
 
         <!-- Quick actions -->
         <div class="perm-actions-bar">
           <button class="perm-quick-btn" (click)="selectAllPermissions()">
-            <i class="pi pi-check-square"></i> Select All
+            <i class="pi pi-check-square"></i> {{ 'adminSettings.actions.selectAll' | translate }}
           </button>
           <button class="perm-quick-btn" (click)="clearAllPermissions()">
-            <i class="pi pi-stop"></i> Clear All
+            <i class="pi pi-stop"></i> {{ 'adminSettings.actions.clearAll' | translate }}
           </button>
         </div>
 
@@ -754,9 +754,9 @@
       </div>
 
       <div class="dialog-footer">
-        <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+        <button pButton [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text"
           (click)="assignPermissionsDialogVisible.set(false)"></button>
-        <button pButton label="Save Permissions" icon="pi pi-check" (click)="saveRolePermissions()"></button>
+        <button pButton [label]="'adminSettings.actions.savePermissions' | translate" icon="pi pi-check" (click)="saveRolePermissions()"></button>
       </div>
     }
   </p-dialog>

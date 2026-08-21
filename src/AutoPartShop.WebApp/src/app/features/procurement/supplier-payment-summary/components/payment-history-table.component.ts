@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { PaymentHistoryItem } from '../../services/supplier-payment.service';
 import { SupplierLedgerEntryDto, SupplierLedgerTransactionType } from '../../services/supplier-ledger.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-payment-history-table',
@@ -10,25 +11,28 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
   imports: [CommonModule],
   template: `
     <div>
-      <h3 class="text-lg font-bold mb-4">{{ useLedger ? 'Transaction Ledger' : 'Payment History' }} (Last {{ entryLimit }})</h3>
+      <h3 class="text-lg font-bold mb-4">
+        {{ useLedger ? i18n.t('supplierPaymentSummary.transactionLedger') : i18n.t('supplierPaymentSummary.paymentHistory') }}
+        ({{ i18n.t('supplierPaymentSummary.lastN', { count: entryLimit }) }})
+      </h3>
 
       <!-- Ledger View -->
       <ng-container *ngIf="useLedger">
         <div *ngIf="!ledgerEntries || ledgerEntries.length === 0" class="text-center py-8 text-gray-500">
-          No transactions available
+          {{ i18n.t('supplierPaymentSummary.noTransactionsAvailable') }}
         </div>
 
         <div *ngIf="ledgerEntries && ledgerEntries.length > 0" class="overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="border-b-2 border-gray-300">
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Date</th>
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Type</th>
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Reference</th>
-                <th class="text-right py-3 px-3 font-semibold text-gray-700">Debit</th>
-                <th class="text-right py-3 px-3 font-semibold text-gray-700">Credit</th>
-                <th class="text-right py-3 px-3 font-semibold text-gray-700">Balance</th>
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Status</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.date') }}</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.type') }}</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.reference') }}</th>
+                <th class="text-right py-3 px-3 font-semibold text-gray-700">{{ i18n.t('supplierAccountSummary.debit') }}</th>
+                <th class="text-right py-3 px-3 font-semibold text-gray-700">{{ i18n.t('supplierAccountSummary.credit') }}</th>
+                <th class="text-right py-3 px-3 font-semibold text-gray-700">{{ i18n.t('supplierAccountSummary.balance') }}</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.status') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -68,19 +72,19 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
       <!-- Payment History View (legacy) -->
       <ng-container *ngIf="!useLedger">
         <div *ngIf="!payments || payments.length === 0" class="text-center py-8 text-gray-500">
-          No payment history available
+          {{ i18n.t('supplierPaymentSummary.noHistoryAvailable') }}
         </div>
 
         <div *ngIf="payments && payments.length > 0" class="overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="border-b-2 border-gray-300">
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Date</th>
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Amount</th>
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Type</th>
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Method</th>
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Reference</th>
-                <th class="text-left py-3 px-3 font-semibold text-gray-700">Status</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.date') }}</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.amount') }}</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.type') }}</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('supplierPayments.paymentMethod') }}</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.reference') }}</th>
+                <th class="text-left py-3 px-3 font-semibold text-gray-700">{{ i18n.t('common.labels.status') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -97,7 +101,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
                 <td class="py-3 px-3 text-sm">
                   <div [ngClass]="getPaymentMethodClass(payment.paymentMethod)">{{ payment.paymentMethod }}</div>
                   <div *ngIf="payment.sourceAdvanceTransactionNumber" class="text-xs text-gray-500 mt-1">
-                    From: {{ payment.sourceAdvanceTransactionNumber }}
+                    {{ i18n.t('supplierPaymentSummary.fromPrefix') }}: {{ payment.sourceAdvanceTransactionNumber }}
                   </div>
                 </td>
                 <td class="py-3 px-3 text-sm">
@@ -105,16 +109,16 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
                     {{ payment.transactionNumber }}
                   </div>
                   <div *ngIf="!isRefundPayment(payment) && payment.purchaseOrderNumber" class="text-blue-600 font-medium">
-                    PO: {{ payment.purchaseOrderNumber }}
+                    {{ i18n.t('supplierPaymentSummary.poPrefix') }}: {{ payment.purchaseOrderNumber }}
                   </div>
                   <div *ngIf="!isRefundPayment(payment) && payment.goodsReceiptNumber && !payment.purchaseOrderNumber" class="text-green-600 font-medium">
-                    GR: {{ payment.goodsReceiptNumber }}
+                    {{ i18n.t('supplierPaymentSummary.grPrefix') }}: {{ payment.goodsReceiptNumber }}
                   </div>
                   <div *ngIf="!isRefundPayment(payment) && !payment.purchaseOrderNumber && !payment.goodsReceiptNumber && payment.invoiceNumber" class="text-gray-600">
                     {{ payment.invoiceNumber }}
                   </div>
                   <div *ngIf="!isRefundPayment(payment) && !payment.purchaseOrderNumber && !payment.goodsReceiptNumber && !payment.invoiceNumber" class="text-gray-400">
-                    N/A
+                    {{ i18n.t('common.labels.notAvailable') }}
                   </div>
                 </td>
                 <td class="py-3 px-3 text-sm">
@@ -147,6 +151,7 @@ export class PaymentHistoryTableComponent {
   @Input() entryLimit: number = 10;
 
   private readonly currencyService = inject(CurrencyService);
+  protected readonly i18n = inject(I18nService);
 
   formatCurrency(value: number): string {
     return this.currencyService.formatCurrency(value ?? 0, this.currencyService.selectedCurrency());
@@ -226,19 +231,19 @@ export class PaymentHistoryTableComponent {
     switch (type) {
       case 'PURCHASE':
       case SupplierLedgerTransactionType.PURCHASE:
-        return 'Purchase';
+        return this.i18n.t('supplierPaymentSummary.type.purchase');
       case 'PAYMENT':
       case SupplierLedgerTransactionType.PAYMENT:
-        return 'Payment';
+        return this.i18n.t('supplierPaymentSummary.type.payment');
       case 'REFUND':
       case SupplierLedgerTransactionType.REFUND:
-        return 'Refund';
+        return this.i18n.t('supplierPaymentSummary.type.refund');
       case 'ADVANCE':
       case SupplierLedgerTransactionType.ADVANCE:
-        return 'Advance';
+        return this.i18n.t('supplierPaymentSummary.type.advance');
       case 'CANCELLATION':
       case SupplierLedgerTransactionType.CANCELLATION:
-        return 'Cancelled';
+        return this.i18n.t('supplierPaymentSummary.type.cancelled');
       default:
         return type?.toString() || '';
     }

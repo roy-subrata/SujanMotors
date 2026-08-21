@@ -9,6 +9,7 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { TooltipModule } from 'primeng/tooltip';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ToastModule } from 'primeng/toast';
@@ -34,6 +35,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     CheckboxModule,
     ToastModule,
     ConfirmDialogModule,
+    TooltipModule,
     PageContainerComponent,
     PageHeaderComponent,
     DataPaginationComponent,
@@ -46,12 +48,12 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 
     <app-page-container>
       <app-page-header
-        title="Currency Management"
-        subtitle="Manage system currencies and exchange rates"
-        [count]="currencies().length" countLabel="currencies" countIcon="pi pi-dollar">
+        [title]="i18n.t('currencies.title')"
+        [subtitle]="i18n.t('currencies.subtitle')"
+        [count]="currencies().length" [countLabel]="i18n.t('currencies.countLabel')" countIcon="pi pi-dollar">
         <ng-container actions>
           <button class="btn-primary" (click)="openDialog()">
-            <i class="pi pi-plus"></i><span>Add Currency</span>
+            <i class="pi pi-plus"></i><span>{{ i18n.t('currencies.addCurrency') }}</span>
           </button>
         </ng-container>
       </app-page-header>
@@ -67,15 +69,15 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 
         <ng-template pTemplate="header">
           <tr>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Symbol</th>
-            <th>Decimal Places</th>
-            <th>Status</th>
-            <th>Base Currency</th>
-            <th>Default Currency</th>
-            <th>Display Order</th>
-            <th>Actions</th>
+            <th>{{ i18n.t('common.labels.code') }}</th>
+            <th>{{ i18n.t('common.labels.name') }}</th>
+            <th>{{ i18n.t('currencies.table.symbol') }}</th>
+            <th>{{ i18n.t('currencies.table.decimalPlaces') }}</th>
+            <th>{{ i18n.t('common.labels.status') }}</th>
+            <th>{{ i18n.t('currencies.table.baseCurrency') }}</th>
+            <th>{{ i18n.t('currencies.table.defaultCurrency') }}</th>
+            <th>{{ i18n.t('common.labels.displayOrder') }}</th>
+            <th>{{ i18n.t('common.labels.actions') }}</th>
           </tr>
         </ng-template>
 
@@ -94,13 +96,13 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
               <span
                 *ngIf="currency.isBaseCurrency"
                 class="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
-                <i class="pi pi-star-fill"></i> Base
+                <i class="pi pi-star-fill"></i> {{ i18n.t('currencies.badge.base') }}
               </span>
               <button
                 *ngIf="!currency.isBaseCurrency"
                 pButton
                 type="button"
-                label="Set as Base"
+                [label]="i18n.t('common.actions.setAsBase')"
                 class="p-button-text p-button-sm"
                 (click)="setAsBase(currency)">
               </button>
@@ -109,13 +111,13 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
               <span
                 *ngIf="isDefaultCurrency(currency.id)"
                 class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">
-                <i class="pi pi-check-circle"></i> Default
+                <i class="pi pi-check-circle"></i> {{ i18n.t('currencies.badge.default') }}
               </span>
               <button
                 *ngIf="!isDefaultCurrency(currency.id)"
                 pButton
                 type="button"
-                label="Set as Default"
+                [label]="i18n.t('common.actions.setAsDefault')"
                 class="p-button-text p-button-sm"
                 (click)="setAsDefault(currency)">
               </button>
@@ -128,7 +130,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                   type="button"
                   icon="pi pi-pencil"
                   class="p-button-rounded p-button-text p-button-sm"
-                  pTooltip="Edit"
+                  [pTooltip]="i18n.t('common.actions.edit')"
                   (click)="openDialog(currency)">
                 </button>
                 <button
@@ -136,7 +138,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                   type="button"
                   icon="pi pi-trash"
                   class="p-button-rounded p-button-text p-button-sm p-button-danger"
-                  pTooltip="Delete"
+                  [pTooltip]="i18n.t('common.actions.delete')"
                   [disabled]="currency.isBaseCurrency"
                   (click)="confirmDelete(currency)">
                 </button>
@@ -148,7 +150,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         <ng-template pTemplate="emptymessage">
           <tr>
             <td colspan="8" class="text-center py-8 text-gray-500">
-              No currencies found
+              {{ i18n.t('currencies.empty') }}
             </td>
           </tr>
         </ng-template>
@@ -160,7 +162,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         [first]="first()"
         [pageSize]="pageSize()"
         [totalRecords]="currencies().length"
-        itemLabel="currencies"
+        [itemLabel]="i18n.t('currencies.countLabel')"
         (pageChange)="goToPage($event)"
         (pageSizeChange)="onPageSizeChange($event)">
       </app-data-pagination>
@@ -168,7 +170,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
       <!-- Currency Dialog -->
       <p-dialog
         [(visible)]="dialogVisible"
-        [header]="isEditing ? 'Edit Currency' : 'Add Currency'"
+        [header]="isEditing ? i18n.t('currencies.dialog.editTitle') : i18n.t('currencies.dialog.addTitle')"
         [modal]="true"
         [style]="{width: '550px'}"
         [closable]="true"
@@ -179,51 +181,51 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             <!-- Currency Code -->
             <div class="field mb-4">
               <label htmlFor="code" class="block font-semibold mb-2">
-                Currency Code (ISO 4217) <span class="text-red-500">*</span>
+                {{ i18n.t('currencies.form.codeLabel') }} <span class="text-red-500">*</span>
               </label>
               <input
                 pInputText
                 id="code"
                 formControlName="code"
-                placeholder="e.g., USD, EUR, BDT"
+                [placeholder]="i18n.t('currencies.form.codePlaceholder')"
                 maxlength="3"
                 [readonly]="isEditing"
                 [class.p-invalid]="currencyForm.get('code')?.invalid && currencyForm.get('code')?.touched"
                 style="text-transform: uppercase;" />
               <small class="p-error block mt-1" *ngIf="currencyForm.get('code')?.invalid && currencyForm.get('code')?.touched">
-                3-character currency code is required
+                {{ i18n.t('currencies.form.codeRequired') }}
               </small>
             </div>
 
             <!-- Currency Name -->
             <div class="field mb-4">
               <label htmlFor="name" class="block font-semibold mb-2">
-                Currency Name <span class="text-red-500">*</span>
+                {{ i18n.t('currencies.form.nameLabel') }} <span class="text-red-500">*</span>
               </label>
               <input
                 pInputText
                 id="name"
                 formControlName="name"
-                placeholder="e.g., US Dollar, Euro"
+                [placeholder]="i18n.t('currencies.form.namePlaceholder')"
                 [class.p-invalid]="currencyForm.get('name')?.invalid && currencyForm.get('name')?.touched" />
               <small class="p-error block mt-1" *ngIf="currencyForm.get('name')?.invalid && currencyForm.get('name')?.touched">
-                Currency name is required
+                {{ i18n.t('currencies.form.nameRequired') }}
               </small>
             </div>
 
             <!-- Symbol -->
             <div class="field mb-4">
               <label htmlFor="symbol" class="block font-semibold mb-2">
-                Symbol <span class="text-red-500">*</span>
+                {{ i18n.t('currencies.form.symbolLabel') }} <span class="text-red-500">*</span>
               </label>
               <input
                 pInputText
                 id="symbol"
                 formControlName="symbol"
-                placeholder="e.g., $, €, ৳"
+                [placeholder]="i18n.t('currencies.form.symbolPlaceholder')"
                 [class.p-invalid]="currencyForm.get('symbol')?.invalid && currencyForm.get('symbol')?.touched" />
               <small class="p-error block mt-1" *ngIf="currencyForm.get('symbol')?.invalid && currencyForm.get('symbol')?.touched">
-                Currency symbol is required
+                {{ i18n.t('currencies.form.symbolRequired') }}
               </small>
             </div>
 
@@ -249,7 +251,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 
               <div class="field col-6">
                 <label htmlFor="displayOrder" class="block font-semibold mb-2">
-                  Display Order
+                  {{ i18n.t('currencies.form.displayOrder') }}
                 </label>
                 <p-inputNumber
                   inputId="displayOrder"
@@ -274,7 +276,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                     formControlName="isActive"
                     [binary]="true">
                   </p-checkbox>
-                  <label htmlFor="isActive" class="ml-2 cursor-pointer">Active</label>
+                  <label htmlFor="isActive" class="ml-2 cursor-pointer">{{ i18n.t('currencies.form.active') }}</label>
                 </div>
 
                 <div class="flex align-items-center" *ngIf="!isEditing">
@@ -293,7 +295,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             <button
               pButton
               type="button"
-              label="Cancel"
+              [label]="i18n.t('common.actions.cancel')"
               icon="pi pi-times"
               class="p-button-text p-button-secondary"
               (click)="dialogVisible = false">
@@ -301,7 +303,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             <button
               pButton
               type="submit"
-              [label]="isEditing ? 'Update' : 'Create'"
+              [label]="isEditing ? i18n.t('common.actions.update') : i18n.t('common.actions.create')"
               [icon]="isEditing ? 'pi pi-save' : 'pi pi-plus'"
               [loading]="saving()"
               [disabled]="currencyForm.invalid"
@@ -369,7 +371,7 @@ export class CurrenciesListComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
-  private readonly i18n = inject(I18nService);
+  readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
   currencies = signal<Currency[]>([]);

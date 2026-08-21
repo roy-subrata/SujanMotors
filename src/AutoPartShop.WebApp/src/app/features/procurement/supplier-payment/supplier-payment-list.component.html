@@ -6,19 +6,19 @@
 
   <!-- Header -->
   <app-page-header
-    title="Supplier Payments"
-    subtitle="Track and manage all payments to suppliers"
+    [title]="'supplierPayments.title' | translate"
+    [subtitle]="'supplierPayments.subtitle' | translate"
     [count]="totalCount" [countLabel]="'supplierPayments.countLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="loadSupplierPayments()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadSupplierPayments()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
-      <button class="btn-icon btn-icon-outline" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportPayments('csv')">
+      <button class="btn-icon btn-icon-outline" [pTooltip]="('common.actions.export' | translate) + ' CSV'" tooltipPosition="bottom" (click)="exportPayments('csv')">
         <i class="pi pi-download"></i>
       </button>
       <button class="btn-primary" (click)="createNew()">
         <i class="pi pi-plus"></i>
-        <span>New Payment</span>
+        <span>{{ 'supplierPayments.addPayment' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -27,10 +27,10 @@
   <div *ngIf="supplierFilter" class="supplier-banner">
     <div class="supplier-banner-info">
       <i class="pi pi-truck"></i>
-      <span>Payments for: <strong>{{ supplierFilterName || '...' }}</strong></span>
+      <span>{{ 'supplierPayments.paymentsFor' | translate }} <strong>{{ supplierFilterName || '...' }}</strong></span>
     </div>
     <button class="btn-clear-banner" (click)="clearSupplierFilter()">
-      <i class="pi pi-times"></i> Show All
+      <i class="pi pi-times"></i> {{ 'supplierPayments.showAll' | translate }}
     </button>
   </div>
 
@@ -39,7 +39,7 @@
     <div search class="filter-group search-group">
       <div class="search-input-wrapper">
         <i class="pi pi-search"></i>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Search supplier, invoice number..."
+        <input type="text" [(ngModel)]="searchTerm" [placeholder]="'supplierPayments.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()" class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
           <i class="pi pi-times"></i>
@@ -55,7 +55,7 @@
     </div>
     <div filters class="filter-group date-group">
       <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-        placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
+        [placeholder]="'common.labels.date' | translate" dateFormat="M dd, yy" [showButtonBar]="true"
         (onSelect)="onDateRangeSelect()" (onClearButtonClick)="onDateClear()"
         styleClass="filter-select"></p-datepicker>
     </div>
@@ -95,14 +95,14 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-date">Date</th>
-            <th class="col-supplier">Supplier</th>
-            <th class="col-amount text-right">Amount</th>
-            <th class="col-method">Method</th>
-            <th class="col-type">Type</th>
-            <th class="col-invoice">Invoice #</th>
-            <th class="col-status">Status</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-date">{{ 'common.labels.date' | translate }}</th>
+            <th class="col-supplier">{{ 'supplierPayments.supplier' | translate }}</th>
+            <th class="col-amount text-right">{{ 'common.labels.amount' | translate }}</th>
+            <th class="col-method">{{ 'supplierPayments.paymentMethod' | translate }}</th>
+            <th class="col-type">{{ 'common.labels.type' | translate }}</th>
+            <th class="col-invoice">{{ 'supplierPayments.invoiceRef' | translate }}</th>
+            <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+            <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -123,7 +123,7 @@
             <td class="col-amount text-right">
               <div class="amount-cell">
                 <span class="amount-value">{{ formatCurrency(payment.amount) }}</span>
-                <span *ngIf="payment.paymentFee" class="amount-fee">Fee: {{ formatCurrency(payment.paymentFee) }}</span>
+                <span *ngIf="payment.paymentFee" class="amount-fee">{{ 'supplierPayments.feePrefix' | translate }} {{ formatCurrency(payment.paymentFee) }}</span>
               </div>
             </td>
             <td class="col-method">
@@ -144,7 +144,7 @@
             </td>
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, payment)">
+                <button class="btn-action" [pTooltip]="'common.labels.more' | translate" (click)="showContextMenu($event, payment)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -157,11 +157,11 @@
             <td colspan="8">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-money-bill"></i></div>
-                <h3>No Payments Found</h3>
-                <p *ngIf="filterStatus || searchTerm">Try adjusting your filters</p>
-                <p *ngIf="!filterStatus && !searchTerm">Record your first supplier payment</p>
+                <h3>{{ 'supplierPayments.emptyTitle' | translate }}</h3>
+                <p *ngIf="filterStatus || searchTerm">{{ 'supplierPayments.emptyFilteredHint' | translate }}</p>
+                <p *ngIf="!filterStatus && !searchTerm">{{ 'supplierPayments.emptyFirstHint' | translate }}</p>
                 <button class="btn-primary" (click)="createNew()">
-                  <i class="pi pi-plus"></i> New Payment
+                  <i class="pi pi-plus"></i> {{ 'supplierPayments.addPayment' | translate }}
                 </button>
               </div>
             </td>
@@ -176,7 +176,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalCount"
-    itemLabel="payments"
+    [itemLabel]="'supplierPayments.countLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>
@@ -192,10 +192,10 @@
 
     <div *ngIf="!loading && supplierPayments.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-money-bill"></i></div>
-      <h3>No Payments Found</h3>
-      <p>{{ filterStatus || searchTerm ? 'Try different filters' : 'Record your first payment' }}</p>
+      <h3>{{ 'supplierPayments.emptyTitle' | translate }}</h3>
+      <p>{{ filterStatus || searchTerm ? ('supplierPayments.emptyFilteredHint' | translate) : ('supplierPayments.emptyFirstMobileHint' | translate) }}</p>
       <button class="btn-primary" (click)="createNew()">
-        <i class="pi pi-plus"></i> New Payment
+        <i class="pi pi-plus"></i> {{ 'supplierPayments.addPayment' | translate }}
       </button>
     </div>
 
@@ -212,15 +212,15 @@
             <span class="supplier-name">{{ payment.supplierName }}</span>
           </div>
           <div class="card-row">
-            <span class="label">Amount</span>
+            <span class="label">{{ 'common.labels.amount' | translate }}</span>
             <span class="value amount-highlight">{{ formatCurrency(payment.amount) }}</span>
           </div>
           <div class="card-row">
-            <span class="label">Method</span>
+            <span class="label">{{ 'supplierPayments.paymentMethod' | translate }}</span>
             <span class="value">{{ payment.paymentMethod }}</span>
           </div>
           <div class="card-row" *ngIf="payment.invoiceNumber">
-            <span class="label">Invoice</span>
+            <span class="label">{{ 'supplierPayments.invoiceRef' | translate }}</span>
             <span class="value">{{ payment.invoiceNumber }}</span>
           </div>
         </div>

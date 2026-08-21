@@ -21,6 +21,8 @@ import { AppSettingsService, NotificationSettings } from '../../shared/services/
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-admin-settings',
@@ -44,7 +46,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     ToggleSwitchModule,
     PageContainerComponent,
     PageHeaderComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './admin-settings.component.html',
@@ -57,6 +60,7 @@ export class AdminSettingsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   readonly priceCodeService = inject(PriceCodeService);
   private readonly appSettingsService = inject(AppSettingsService);
+  private readonly i18n = inject(I18nService);
 
   // Active tab (regular variable for two-way binding with p-tabs)
   activeTabIndex: number = 0;
@@ -161,8 +165,8 @@ export class AdminSettingsComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load users'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('adminSettings.messages.loadUsersFailed')
         });
         this.usersLoading.set(false);
       }
@@ -214,8 +218,8 @@ export class AdminSettingsComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'User updated successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('adminSettings.messages.userUpdated')
           });
           this.userDialogVisible.set(false);
           this.loadUsers();
@@ -223,8 +227,8 @@ export class AdminSettingsComponent implements OnInit {
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error.error?.message || 'Failed to update user'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error.error?.message || this.i18n.t('adminSettings.messages.updateUserFailed')
           });
         }
       });
@@ -234,8 +238,8 @@ export class AdminSettingsComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'User created successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('adminSettings.messages.userCreated')
           });
           this.userDialogVisible.set(false);
           this.loadUsers();
@@ -243,8 +247,8 @@ export class AdminSettingsComponent implements OnInit {
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error.error?.message || 'Failed to create user'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error.error?.message || this.i18n.t('adminSettings.messages.createUserFailed')
           });
         }
       });
@@ -253,24 +257,24 @@ export class AdminSettingsComponent implements OnInit {
 
   toggleUserStatus(user: UserResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} this user?`,
-      header: 'Confirm Action',
+      message: this.i18n.t(user.isActive ? 'adminSettings.messages.deactivateConfirm' : 'adminSettings.messages.activateConfirm'),
+      header: this.i18n.t('adminSettings.messages.confirmAction'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.adminService.toggleUserStatus(user.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `User ${user.isActive ? 'deactivated' : 'activated'} successfully`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t(user.isActive ? 'adminSettings.messages.userDeactivated' : 'adminSettings.messages.userActivated')
             });
             this.loadUsers();
           },
           error: () => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to update user status'
+              summary: this.i18n.t('common.messages.error'),
+              detail: this.i18n.t('adminSettings.messages.toggleStatusFailed')
             });
           }
         });
@@ -292,8 +296,8 @@ export class AdminSettingsComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Roles assigned successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('adminSettings.messages.rolesAssigned')
         });
         this.assignRolesDialogVisible.set(false);
         this.loadUsers();
@@ -301,8 +305,8 @@ export class AdminSettingsComponent implements OnInit {
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to assign roles'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('adminSettings.messages.assignRolesFailed')
         });
       }
     });
@@ -319,8 +323,8 @@ export class AdminSettingsComponent implements OnInit {
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load roles'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('adminSettings.messages.loadRolesFailed')
         });
         this.rolesLoading.set(false);
       }
@@ -352,8 +356,8 @@ export class AdminSettingsComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Role updated successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('adminSettings.messages.roleUpdated')
           });
           this.roleDialogVisible.set(false);
           this.loadRoles();
@@ -361,8 +365,8 @@ export class AdminSettingsComponent implements OnInit {
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error.error?.message || 'Failed to update role'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error.error?.message || this.i18n.t('adminSettings.messages.updateRoleFailed')
           });
         }
       });
@@ -371,8 +375,8 @@ export class AdminSettingsComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Role created successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('adminSettings.messages.roleCreated')
           });
           this.roleDialogVisible.set(false);
           this.loadRoles();
@@ -380,8 +384,8 @@ export class AdminSettingsComponent implements OnInit {
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error.error?.message || 'Failed to create role'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error.error?.message || this.i18n.t('adminSettings.messages.createRoleFailed')
           });
         }
       });
@@ -390,24 +394,24 @@ export class AdminSettingsComponent implements OnInit {
 
   deleteRole(role: RoleResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete the role "${role.name}"?`,
-      header: 'Confirm Delete',
+      message: this.i18n.t('adminSettings.messages.deleteRoleConfirm', { name: role.name }),
+      header: this.i18n.t('adminSettings.messages.deleteHeader'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.adminService.deleteRole(role.id).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Role deleted successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('adminSettings.messages.roleDeleted')
             });
             this.loadRoles();
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error.error?.message || 'Failed to delete role'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error.error?.message || this.i18n.t('adminSettings.messages.deleteRoleFailed')
             });
           }
         });
@@ -427,8 +431,8 @@ export class AdminSettingsComponent implements OnInit {
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load role permissions'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('adminSettings.messages.loadRolePermissionsFailed')
         });
       }
     });
@@ -444,16 +448,16 @@ export class AdminSettingsComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Permissions assigned successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('adminSettings.messages.permissionsAssigned')
         });
         this.assignPermissionsDialogVisible.set(false);
       },
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to assign permissions'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('adminSettings.messages.assignPermissionsFailed')
         });
       }
     });
@@ -470,8 +474,8 @@ export class AdminSettingsComponent implements OnInit {
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load permissions'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('adminSettings.messages.loadPermissionsFailed')
         });
         this.permissionsLoading.set(false);
       }
@@ -493,8 +497,8 @@ export class AdminSettingsComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Permission created successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('adminSettings.messages.permissionCreated')
         });
         this.permissionDialogVisible.set(false);
         this.loadPermissions();
@@ -502,8 +506,8 @@ export class AdminSettingsComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error.error?.message || 'Failed to create permission'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error.error?.message || this.i18n.t('adminSettings.messages.createPermissionFailed')
         });
       }
     });
@@ -599,7 +603,7 @@ export class AdminSettingsComponent implements OnInit {
         this.notifLoading.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load notification settings' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('adminSettings.messages.notifLoadFailed') });
         this.notifLoading.set(false);
       }
     });
@@ -610,11 +614,11 @@ export class AdminSettingsComponent implements OnInit {
     this.appSettingsService.updateNotificationSettings(this.notifSettings()).subscribe({
       next: (updated) => {
         this.notifSettings.set(updated);
-        this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Notification settings updated' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('adminSettings.messages.saved'), detail: this.i18n.t('adminSettings.messages.notifUpdated') });
         this.notifSaving.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save notification settings' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('adminSettings.messages.notifSaveFailed') });
         this.notifSaving.set(false);
       }
     });
@@ -678,21 +682,21 @@ export class AdminSettingsComponent implements OnInit {
   savePriceCode(): void {
     const validation = this.getPriceCodeValidation();
     if (!validation.valid) {
-      this.messageService.add({ severity: 'error', summary: 'Error', detail: validation.error || 'Invalid magic word' });
+      this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: validation.error || this.i18n.t('adminSettings.messages.invalidMagicWord') });
       return;
     }
 
     this.priceCodeSaving.set(true);
     this.priceCodeService.saveMagicWord(this.priceCodeWord, this.priceCodePrefix, this.priceCodeSuffix).subscribe({
       next: () => {
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Price code word saved successfully' });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('adminSettings.messages.priceCodeSaved') });
         this.priceCodeSaving.set(false);
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to save price code word')
+          summary: this.i18n.t('common.messages.error'),
+          detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('adminSettings.messages.priceCodeSaveFailed'))
         });
         this.priceCodeSaving.set(false);
       }
@@ -701,8 +705,8 @@ export class AdminSettingsComponent implements OnInit {
 
   clearPriceCode(): void {
     this.confirmationService.confirm({
-      message: 'Are you sure you want to clear the price code? Cost prices will be shown as plain numbers.',
-      header: 'Clear Price Code',
+      message: this.i18n.t('adminSettings.messages.clearPriceCodeConfirm'),
+      header: this.i18n.t('adminSettings.messages.clearPriceCodeTitle'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
@@ -712,11 +716,11 @@ export class AdminSettingsComponent implements OnInit {
             this.priceCodeWord = '';
             this.priceCodePrefix = '';
             this.priceCodeSuffix = '';
-            this.messageService.add({ severity: 'success', summary: 'Cleared', detail: 'Price code removed. Cost prices will display as numbers.' });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('adminSettings.messages.cleared'), detail: this.i18n.t('adminSettings.messages.priceCodeCleared') });
             this.priceCodeSaving.set(false);
           },
           error: () => {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to clear price code' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('adminSettings.messages.priceCodeClearFailed') });
             this.priceCodeSaving.set(false);
           }
         });

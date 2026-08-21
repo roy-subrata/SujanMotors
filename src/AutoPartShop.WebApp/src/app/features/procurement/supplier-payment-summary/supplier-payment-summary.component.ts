@@ -11,6 +11,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
+import { TooltipModule } from 'primeng/tooltip';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
 
 import { SupplierPaymentService, SupplierPaymentHistorySummary } from '../services/supplier-payment.service';
@@ -19,11 +20,13 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-supplier-payment-summary',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, SkeletonModule, ToastModule, TableModule, TagModule, Select, DatePicker, DataPaginationComponent, PageContainerComponent, PageHeaderComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, SkeletonModule, ToastModule, TableModule, TagModule, Select, DatePicker, TooltipModule, DataPaginationComponent, PageContainerComponent, PageHeaderComponent, TranslatePipe],
     providers: [MessageService],
     templateUrl: './supplier-payment-summary.component.html',
     styleUrls: ['./supplier-payment-summary.component.css']
@@ -36,6 +39,7 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
     private readonly destroy$ = new Subject<void>();
 
     supplierId: string = '';
@@ -74,14 +78,16 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
         this.ledgerFirst = 0;
     }
 
-    transactionTypeOptions = [
-        { label: 'All Types', value: null },
-        { label: 'Purchase', value: SupplierLedgerTransactionType.PURCHASE },
-        { label: 'Payment', value: SupplierLedgerTransactionType.PAYMENT },
-        { label: 'Refund', value: SupplierLedgerTransactionType.REFUND },
-        { label: 'Advance', value: SupplierLedgerTransactionType.ADVANCE },
-        { label: 'Cancellation', value: SupplierLedgerTransactionType.CANCELLATION }
-    ];
+    get transactionTypeOptions(): { label: string; value: SupplierLedgerTransactionType | null }[] {
+        return [
+            { label: this.i18n.t('supplierPaymentSummary.allTypes'), value: null },
+            { label: this.i18n.t('supplierPaymentSummary.type.purchase'), value: SupplierLedgerTransactionType.PURCHASE },
+            { label: this.i18n.t('supplierPaymentSummary.type.payment'), value: SupplierLedgerTransactionType.PAYMENT },
+            { label: this.i18n.t('supplierPaymentSummary.type.refund'), value: SupplierLedgerTransactionType.REFUND },
+            { label: this.i18n.t('supplierPaymentSummary.type.advance'), value: SupplierLedgerTransactionType.ADVANCE },
+            { label: this.i18n.t('supplierPaymentSummary.type.cancelled'), value: SupplierLedgerTransactionType.CANCELLATION }
+        ];
+    }
 
     ngOnInit(): void {
         // Get supplierId from route params
@@ -90,7 +96,7 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
             if (this.supplierId) {
                 this.loadSummary();
             } else {
-                this.error = 'Supplier ID not provided';
+                this.error = this.i18n.t('supplierPaymentSummary.messages.supplierIdMissing');
                 this.loading = false;
             }
         });
@@ -118,11 +124,11 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
                 },
                 error: (err) => {
                     console.error('Error loading payment summary:', err);
-                    this.error = typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to load payment summary. Please try again.');
+                    this.error = typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('supplierPaymentSummary.messages.loadFailed'));
                     this.loading = false;
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
+                        summary: this.i18n.t('common.messages.error'),
                         detail: this.error!,
                         life: 5000
                     });
@@ -157,11 +163,11 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
 
     getLedgerTypeLabel(type: SupplierLedgerTransactionType | string): string {
         switch (type) {
-            case SupplierLedgerTransactionType.PURCHASE: return 'Purchase';
-            case SupplierLedgerTransactionType.PAYMENT: return 'Payment';
-            case SupplierLedgerTransactionType.REFUND: return 'Refund';
-            case SupplierLedgerTransactionType.ADVANCE: return 'Advance';
-            case SupplierLedgerTransactionType.CANCELLATION: return 'Cancelled';
+            case SupplierLedgerTransactionType.PURCHASE: return this.i18n.t('supplierPaymentSummary.type.purchase');
+            case SupplierLedgerTransactionType.PAYMENT: return this.i18n.t('supplierPaymentSummary.type.payment');
+            case SupplierLedgerTransactionType.REFUND: return this.i18n.t('supplierPaymentSummary.type.refund');
+            case SupplierLedgerTransactionType.ADVANCE: return this.i18n.t('supplierPaymentSummary.type.advance');
+            case SupplierLedgerTransactionType.CANCELLATION: return this.i18n.t('supplierPaymentSummary.type.cancelled');
             default: return type?.toString() || '';
         }
     }
@@ -231,8 +237,8 @@ export class SupplierPaymentSummaryComponent implements OnInit, OnDestroy {
                 this.ledgerLoading = false;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || 'Failed to load ledger entries'),
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: typeof err?.error === 'string' ? err.error : (err?.error?.message || this.i18n.t('supplierPaymentSummary.messages.ledgerLoadFailed')),
                     life: 5000
                 });
             }

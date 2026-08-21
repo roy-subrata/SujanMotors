@@ -1,4 +1,4 @@
-{
+﻿{
   "menu": {
     "financialDashboard": "আর্থিক ড্যাশবোর্ড",
     "financial": "আর্থিক",
@@ -129,6 +129,7 @@
       "import": "আমদানি",
       "print": "মুদ্রণ",
       "refresh": "রিফ্রেশ",
+      "reset": "রিসেট",
       "view": "দেখুন",
       "viewDetails": "বিস্তারিত দেখুন",
       "activate": "সক্রিয়",
@@ -288,6 +289,9 @@
       "level": "স্তর",
       "root": "রুট",
       "fullName": "পুরো নাম",
+      "firstName": "নাম",
+      "lastName": "পদবি",
+      "password": "পাসওয়ার্ড",
       "customerCode": "গ্রাহক কোড",
       "supplierCode": "সরবরাহকারী কোড",
       "search": "অনুসন্ধান",
@@ -347,6 +351,7 @@
     }
   },
   "categories": {
+    "countLabel": "বিভাগ",
     "title": "বিভাগসমূহ",
     "addCategory": "বিভাগ যোগ করুন",
     "editCategory": "বিভাগ সম্পাদনা করুন",
@@ -383,6 +388,7 @@
     }
   },
   "brands": {
+    "countLabel": "ব্র্যান্ড",
     "title": "ব্র্যান্ডসমূহ",
     "addBrand": "ব্র্যান্ড যোগ করুন",
     "editBrand": "ব্র্যান্ড সম্পাদনা করুন",
@@ -418,6 +424,7 @@
     }
   },
   "units": {
+    "countLabel": "একক",
     "title": "একক",
     "addUnit": "একক যোগ করুন",
     "editUnit": "একক সম্পাদনা করুন",
@@ -449,6 +456,7 @@
     }
   },
   "suppliers": {
+    "countLabel": "সরবরাহকারী",
     "title": "সরবরাহকারীগণ",
     "manageSuppliers": "সরবরাহকারী পরিচালনা",
     "subtitle": "সকল সরবরাহকারী পরিচালনা ও ট্র্যাক করুন",
@@ -539,6 +547,7 @@
     }
   },
   "warehouses": {
+    "countLabel": "গুদাম",
     "title": "গুদামসমূহ",
     "subtitle": "আপনার গুদামের অবস্থান সংগঠিত ও পরিচালনা করুন",
     "addWarehouse": "গুদাম যোগ করুন",
@@ -584,6 +593,7 @@
     }
   },
   "warehouseLocations": {
+    "countLabel": "লোকেশন",
     "title": "গুদাম অবস্থান",
     "subtitle": "বারকোড লেবেলিংয়ের জন্য শারীরিক বিন/শেলফ অবস্থান পরিচালনা করুন",
     "newLocation": "নতুন অবস্থান",
@@ -1336,18 +1346,28 @@
     }
   },
   "supplierPayments": {
+    "countLabel": "পেমেন্ট",
     "title": "সরবরাহকারী পেমেন্ট",
-    "addPayment": "পেমেন্ট যোগ করুন",
+    "subtitle": "সরবরাহকারীদের সকল পেমেন্ট ট্র্যাক ও ব্যবস্থাপনা করুন",
+    "addPayment": "নতুন পেমেন্ট",
     "editPayment": "পেমেন্ট সম্পাদনা করুন",
     "paymentDate": "পেমেন্টের তারিখ",
-    "paymentMethod": "পেমেন্ট পদ্ধতি",
-    "paymentType": "পেমেন্টের ধরন",
-    "grossAmount": "মোট পরিমাণ",
-    "paymentFee": "পেমেন্ট ফি",
+    "paymentMethod": "পদ্ধতি",
+    "paymentType": "ধরন",
+    "grossAmount": "পরিমাণ",
+    "paymentFee": "ফি",
     "netAmount": "নিট পরিমাণ",
-    "invoiceRef": "চালান রেফারেন্স",
-    "searchPayments": "পেমেন্ট অনুসন্ধান করুন...",
+    "invoiceRef": "চালান #",
+    "searchPayments": "অনুসন্ধান",
     "supplier": "সরবরাহকারী",
+    "searchPlaceholder": "সরবরাহকারী, চালান নম্বর অনুসন্ধান করুন...",
+    "paymentsFor": "এই সরবরাহকারীর পেমেন্ট:",
+    "showAll": "সব দেখুন",
+    "feePrefix": "ফি:",
+    "emptyTitle": "কোনো পেমেন্ট পাওয়া যায়নি",
+    "emptyFilteredHint": "আপনার ফিল্টার পরিবর্তন করে দেখুন",
+    "emptyFirstHint": "প্রথম সরবরাহকারী পেমেন্ট রেকর্ড করুন",
+    "emptyFirstMobileHint": "আপনার প্রথম পেমেন্ট রেকর্ড করুন",
     "statusOptions": {
       "all": "সব",
       "pending": "অপেক্ষমাণ",
@@ -1375,6 +1395,322 @@
       "noDataExport": "রপ্তানির জন্য কোনো সরবরাহকারী পেমেন্ট নেই",
       "exportCSVSuccess": "সরবরাহকারী পেমেন্ট CSV-এ রপ্তানি হয়েছে",
       "exportJSONSuccess": "সরবরাহকারী পেমেন্ট JSON-এ রপ্তানি হয়েছে"
+    }
+  },
+  "supplierPaymentForm": {
+    "editCrumb": "সম্পাদনা",
+    "newCrumb": "নতুন",
+    "editTitle": "সরবরাহকারী পেমেন্ট সম্পাদনা",
+    "createTitle": "সরবরাহকারী পেমেন্ট রেকর্ড করুন",
+    "editSubtitle": "পেমেন্টের তথ্য আপডেট করুন",
+    "createSubtitle": "একজন সরবরাহকারীকে পেমেন্ট রেকর্ড করুন",
+    "fromPurchaseOrder": "ক্রয়াদেশ থেকে",
+    "searchSupplierPlaceholder": "সরবরাহকারী অনুসন্ধান করুন...",
+    "supplierDeterminedByPo": "নির্বাচিত ক্রয়াদেশ অনুযায়ী সরবরাহকারী নির্ধারিত হবে",
+    "supplierRequired": "সরবরাহকারী আবশ্যক",
+    "destinationSection": "পেমেন্টের গন্তব্য (সরবরাহকারীর অ্যাকাউন্ট)",
+    "sendToLabel": "প্রেরণের ঠিকানা",
+    "selectReceivingAccountPlaceholder": "সরবরাহকারীর গ্রহণকারী অ্যাকাউন্ট নির্বাচন করুন...",
+    "receivingAccountHint": "সরবরাহকারীর ব্যাংক/মোবাইল অ্যাকাউন্ট যেখানে পেমেন্ট গৃহীত হবে",
+    "noAccountsTitle": "কোনো পেমেন্ট অ্যাকাউন্ট কনফিগার করা নেই",
+    "noAccountsMessage": "এই সরবরাহকারীর কোনো পেমেন্ট অ্যাকাউন্ট নেই।",
+    "addPaymentAccount": "পেমেন্ট অ্যাকাউন্ট যোগ করুন",
+    "regularPayment": "নিয়মিত পেমেন্ট",
+    "regularPaymentDesc": "নির্দিষ্ট ক্রয়াদেশের জন্য পেমেন্ট",
+    "advancePayment": "অগ্রিম পেমেন্ট",
+    "advancePaymentDesc": "নির্দিষ্ট অর্ডার ছাড়া অগ্রিম পরিশোধ",
+    "advanceCreditInfo": "অগ্রিম পেমেন্ট ভবিষ্যৎ অর্ডারের জন্য ক্রেডিট হিসেবে সংরক্ষিত হবে।",
+    "sourceSection": "পেমেন্টের উৎস (আপনার অ্যাকাউন্ট)",
+    "payFromLabel": "প্রেরকের অ্যাকাউন্ট",
+    "selectPayAccountPlaceholder": "আপনার পেমেন্ট অ্যাকাউন্ট নির্বাচন করুন...",
+    "payAccountHint": "আপনার ব্যাংক/মোবাইল/নগদ অ্যাকাউন্ট যেখান থেকে পেমেন্ট পাঠানো হবে",
+    "providerRequired": "পেমেন্ট প্রোভাইডার আবশ্যক",
+    "flowTitle": "পেমেন্ট প্রবাহ",
+    "flowFrom": "থেকে (আপনার অ্যাকাউন্ট)",
+    "flowTo": "প্রতি (সরবরাহকারীর অ্যাকাউন্ট)",
+    "currencyPlaceholder": "মুদ্রা",
+    "amountRequired": "পরিমাণ আবশ্যক।",
+    "amountMin": "পরিমাণ ০-এর বেশি হতে হবে।",
+    "amountMax": "পরিমাণ বকেয়ার চেয়ে বেশি হতে পারে না।",
+    "selectDate": "তারিখ নির্বাচন করুন",
+    "purchaseOrderLabel": "ক্রয়াদেশ",
+    "locked": "লক",
+    "selectPoPlaceholder": "ক্রয়াদেশ নির্বাচন করুন...",
+    "noPosAvailable": "এই সরবরাহকারীর জন্য কোনো ক্রয়াদেশ নেই",
+    "dueLabel": "বকেয়া:",
+    "poSpecificHint": "এই নির্দিষ্ট ক্রয়াদেশের জন্য পেমেন্ট রেকর্ড করা হচ্ছে",
+    "descriptionPlaceholder": "যেমন: আসন্ন অর্ডারের জন্য অগ্রিম",
+    "referenceSection": "রেফারেন্স তথ্য",
+    "transactionNumberLabel": "লেনদেন নম্বর",
+    "autoGeneratedPlaceholder": "স্বয়ংক্রিয়ভাবে তৈরি",
+    "autoGeneratedHint": "সংরক্ষণের সময় স্বয়ংক্রিয়ভাবে তৈরি হবে",
+    "authorizationCodeLabel": "অনুমোদন কোড",
+    "notesPlaceholder": "এই পেমেন্ট সম্পর্কে অতিরিক্ত নোট",
+    "updatePayment": "পেমেন্ট আপডেট করুন",
+    "recordPayment": "পেমেন্ট রেকর্ড করুন",
+    "messages": {
+      "validationError": "যাচাইকরণ ত্রুটি",
+      "fillRequired": "অনুগ্রহ করে সকল আবশ্যক ঘর পূরণ করুন",
+      "regularRequiresPo": "নিয়মিত পেমেন্ট অবশ্যই একটি ক্রয়াদেশের সাথে যুক্ত হতে হবে। একটি PO নির্বাচন করুন বা অগ্রিম পেমেন্ট ধরন বেছে নিন।",
+      "updated": "সরবরাহকারী পেমেন্ট সফলভাবে আপডেট হয়েছে",
+      "created": "সরবরাহকারী পেমেন্ট সফলভাবে তৈরি হয়েছে",
+      "updateFailed": "সরবরাহকারী পেমেন্ট আপডেট করতে ব্যর্থ হয়েছে",
+      "createFailed": "সরবরাহকারী পেমেন্ট তৈরি করতে ব্যর্থ হয়েছে",
+      "loadFailed": "সরবরাহকারী পেমেন্ট লোড করতে ব্যর্থ হয়েছে",
+      "loadPoFailed": "ক্রয়াদেশের বিবরণ লোড করতে ব্যর্থ হয়েছে",
+      "loadSupplierFailed": "সরবরাহকারীর বিবরণ লোড করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "adminSettings": {
+    "title": "সেটিংস",
+    "subtitle": "ব্যবহারকারী, ভূমিকা, অনুমতি ও কনফিগারেশন পরিচালনা করুন",
+    "total": "মোট",
+    "stats": {
+      "users": "ব্যবহারকারী",
+      "roles": "ভূমিকা",
+      "permissions": "অনুমতি"
+    },
+    "tabs": {
+      "users": "ব্যবহারকারী",
+      "roles": "ভূমিকা",
+      "permissions": "অনুমতি",
+      "priceCode": "প্রাইস কোড",
+      "notifications": "নোটিফিকেশন"
+    },
+    "users": {
+      "sectionTitle": "ব্যবহারকারী অ্যাকাউন্ট",
+      "addUser": "ব্যবহারকারী যোগ করুন"
+    },
+    "roles": {
+      "addRole": "ভূমিকা যোগ করুন"
+    },
+    "permissions": {
+      "addPermission": "অনুমতি যোগ করুন"
+    },
+    "labels": {
+      "user": "ব্যবহারকারী",
+      "username": "ইউজারনেম",
+      "roles": "ভূমিকা",
+      "role": "ভূমিকা",
+      "roleName": "ভূমিকার নাম",
+      "lastLogin": "সর্বশেষ লগইন",
+      "created": "তৈরি",
+      "permission": "অনুমতি",
+      "permissionCode": "অনুমতির নাম (কোড)",
+      "displayName": "প্রদর্শন নাম",
+      "selectRoles": "ভূমিকা নির্বাচন করুন"
+    },
+    "noRoles": "কোনো ভূমিকা নেই",
+    "never": "কখনো নেই",
+    "tooltips": {
+      "assignRoles": "ভূমিকা নির্ধারণ করুন"
+    },
+    "emptyUsers": "কোনো ব্যবহারকারী পাওয়া যায়নি",
+    "emptyRoles": "কোনো ভূমিকা পাওয়া যায়নি",
+    "emptyPermissions": "কোনো অনুমতি পাওয়া যায়নি",
+    "priceCode": {
+      "title": "প্রাইস কোড কনফিগারেশন",
+      "description": "একটি গোপন শব্দ দিয়ে ক্রয়মূল্য এনকোড করুন। ১০টি অক্ষরের প্রতিটি একটি সংখ্যার (১–৯, ০) প্রতিনিধিত্ব করে। শুধু শব্দটি জানা ব্যক্তিরাই মূল্য পড়তে পারবে।",
+      "magicWord": "ম্যাজিক শব্দ (১০টি স্বতন্ত্র অক্ষর)",
+      "magicWordPlaceholder": "যেমন SUJANMOTER",
+      "digitHint": "প্রতিটি অক্ষর একটি সংখ্যা নির্দেশ করে: ১ম→১, ২য়→২, ... ১০ম→০।",
+      "lengthLabel": "দৈর্ঘ্য: {{length}}/10",
+      "prefix": "প্রিফিক্স",
+      "prefixPlaceholder": "যেমন #, *, XX",
+      "prefixHint": "এনকোড করা মূল্যের আগে বসে",
+      "suffix": "সাফিক্স",
+      "suffixPlaceholder": "যেমন /, **, ZZ",
+      "suffixHint": "এনকোড করা মূল্যের পরে বসে",
+      "savePriceCode": "প্রাইস কোড সংরক্ষণ করুন",
+      "clearTooltip": "প্রাইস কোড সরিয়ে সাধারণ সংখ্যা দেখান",
+      "mappingTitle": "সংখ্যা → অক্ষর ম্যাপিং",
+      "previewHint": "প্রিভিউ দেখতে বৈধ ১০ অক্ষরের শব্দ লিখুন",
+      "statusActive": "প্রাইস কোড সক্রিয় আছে। সব ইনভেন্টরি ভিউতে ক্রয়মূল্য এনকোড করা অক্ষর হিসেবে দেখানো হবে।",
+      "statusInactive": "কোনো প্রাইস কোড কনফিগার করা নেই। ক্রয়মূল্য সাধারণ সংখ্যা হিসেবে দেখানো হচ্ছে।",
+      "errors": {
+        "required": "ম্যাজিক শব্দ প্রয়োজন",
+        "exactly10": "ঠিক ১০টি অক্ষর হতে হবে",
+        "lettersOnly": "শুধুমাত্র A-Z অক্ষর ব্যবহার করা যাবে",
+        "unique": "১০টি অক্ষরই অবশ্যই স্বতন্ত্র হতে হবে"
+      }
+    },
+    "notifications": {
+      "title": "নোটিফিকেশন চ্যানেল",
+      "description": "আউটগোয়িং নোটিফিকেশন চ্যানেল চালু বা বন্ধ করুন। পরিবর্তন সঙ্গে সঙ্গে কার্যকর হয় — রিস্টার্ট লাগবে না।",
+      "smsDesc": "Twilio-এর মাধ্যমে অর্ডার নিশ্চিতকরণ SMS পাঠান",
+      "whatsappDesc": "Twilio WhatsApp-এর মাধ্যমে অর্ডার নিশ্চিতকরণ বার্তা পাঠান",
+      "signalrTitle": "রিয়েল-টাইম অ্যালার্ট (SignalR)",
+      "signalrDesc": "কোন ভূমিকাগুলো অ্যাপে বিক্রির পপ-আপ পাবে। খালি রাখলে সব কর্মী নোটিফাই হবে।",
+      "allStaff": "সব কর্মী (কোনো ফিল্টার নেই)",
+      "emailAlwaysActive": "ইমেইল নোটিফিকেশন সবসময় সক্রিয় থাকে এবং এখান থেকে বন্ধ করা যায় না।"
+    },
+    "dialogs": {
+      "addUser": "ব্যবহারকারী যোগ করুন",
+      "editUser": "ব্যবহারকারী সম্পাদনা করুন",
+      "addRole": "ভূমিকা যোগ করুন",
+      "editRole": "ভূমিকা সম্পাদনা করুন",
+      "addPermission": "অনুমতি যোগ করুন",
+      "assignRoles": "ভূমিকা নির্ধারণ করুন",
+      "assignPermissions": "অনুমতি নির্ধারণ করুন"
+    },
+    "placeholders": {
+      "enterUsername": "ইউজারনেম লিখুন",
+      "passwordMin": "কমপক্ষে ৮ অক্ষর",
+      "roleName": "যেমন ম্যানেজার, ক্যাশিয়ার",
+      "roleDescription": "ভূমিকার সংক্ষিপ্ত বিবরণ",
+      "permissionCode": "যেমন users.create",
+      "displayName": "যেমন ব্যবহারকারী তৈরি",
+      "category": "যেমন ব্যবহারকারী ব্যবস্থাপনা",
+      "optionalDescription": "ঐচ্ছিক বিবরণ",
+      "selectRoles": "ভূমিকা নির্বাচন করুন"
+    },
+    "validation": {
+      "usernameRequired": "ইউজারনেম প্রয়োজন (কমপক্ষে ৩ অক্ষর)",
+      "emailRequired": "একটি বৈধ ইমেইল প্রয়োজন",
+      "firstNameRequired": "নাম প্রয়োজন",
+      "lastNameRequired": "পদবি প্রয়োজন",
+      "passwordRequired": "পাসওয়ার্ড প্রয়োজন (কমপক্ষে ৮ অক্ষর)",
+      "roleNameRequired": "ভূমিকার নাম প্রয়োজন",
+      "permissionCodeRequired": "অনুমতির কোড প্রয়োজন",
+      "displayNameRequired": "প্রদর্শন নাম প্রয়োজন",
+      "categoryRequired": "ক্যাটাগরি প্রয়োজন"
+    },
+    "actions": {
+      "selectAll": "সব নির্বাচন করুন",
+      "clearAll": "সব মুছুন",
+      "savePermissions": "অনুমতি সংরক্ষণ করুন"
+    },
+    "messages": {
+      "confirmAction": "কার্যক্রম নিশ্চিত করুন",
+      "deleteHeader": "মুছে ফেলা নিশ্চিত করুন",
+      "activateConfirm": "আপনি কি এই ব্যবহারকারীকে সক্রিয় করতে চান?",
+      "deactivateConfirm": "আপনি কি এই ব্যবহারকারীকে নিষ্ক্রিয় করতে চান? তারা আর সাইন ইন করতে পারবে না।",
+      "assignRolesTo": "{{username}}-কে ভূমিকা নির্ধারণ করুন",
+      "managePermissionsFor": "{{name}} ভূমিকার অনুমতি পরিচালনা করুন",
+      "ofSelected": "{{total}}টির মধ্যে নির্বাচিত",
+      "loadUsersFailed": "ব্যবহারকারী লোড করতে ব্যর্থ",
+      "loadRolesFailed": "ভূমিকা লোড করতে ব্যর্থ",
+      "loadPermissionsFailed": "অনুমতি লোড করতে ব্যর্থ",
+      "loadRolePermissionsFailed": "ভূমিকার অনুমতি লোড করতে ব্যর্থ",
+      "userCreated": "ব্যবহারকারী সফলভাবে তৈরি হয়েছে",
+      "userUpdated": "ব্যবহারকারী সফলভাবে আপডেট হয়েছে",
+      "createUserFailed": "ব্যবহারকারী তৈরি করতে ব্যর্থ",
+      "updateUserFailed": "ব্যবহারকারী আপডেট করতে ব্যর্থ",
+      "userActivated": "ব্যবহারকারী সফলভাবে সক্রিয় হয়েছে",
+      "userDeactivated": "ব্যবহারকারী সফলভাবে নিষ্ক্রিয় হয়েছে",
+      "toggleStatusFailed": "ব্যবহারকারীর স্ট্যাটাস আপডেট করতে ব্যর্থ",
+      "rolesAssigned": "ভূমিকা সফলভাবে নির্ধারণ হয়েছে",
+      "assignRolesFailed": "ভূমিকা নির্ধারণ করতে ব্যর্থ",
+      "roleCreated": "ভূমিকা সফলভাবে তৈরি হয়েছে",
+      "roleUpdated": "ভূমিকা সফলভাবে আপডেট হয়েছে",
+      "createRoleFailed": "ভূমিকা তৈরি করতে ব্যর্থ",
+      "updateRoleFailed": "ভূমিকা আপডেট করতে ব্যর্থ",
+      "deleteRoleConfirm": "আপনি কি \"{{name}}\" ভূমিকাটি মুছে ফেলতে চান?",
+      "roleDeleted": "ভূমিকা সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteRoleFailed": "ভূমিকা মুছে ফেলতে ব্যর্থ",
+      "permissionsAssigned": "অনুমতি সফলভাবে নির্ধারণ হয়েছে",
+      "assignPermissionsFailed": "অনুমতি নির্ধারণ করতে ব্যর্থ",
+      "permissionCreated": "অনুমতি সফলভাবে তৈরি হয়েছে",
+      "createPermissionFailed": "অনুমতি তৈরি করতে ব্যর্থ",
+      "notifLoadFailed": "নোটিফিকেশন সেটিংস লোড করতে ব্যর্থ",
+      "saved": "সংরক্ষিত",
+      "notifUpdated": "নোটিফিকেশন সেটিংস আপডেট হয়েছে",
+      "notifSaveFailed": "নোটিফিকেশন সেটিংস সংরক্ষণ করতে ব্যর্থ",
+      "invalidMagicWord": "অবৈধ ম্যাজিক শব্দ",
+      "priceCodeSaved": "প্রাইস কোড শব্দ সফলভাবে সংরক্ষিত হয়েছে",
+      "priceCodeSaveFailed": "প্রাইস কোড শব্দ সংরক্ষণ করতে ব্যর্থ",
+      "cleared": "মুছে ফেলা হয়েছে",
+      "priceCodeCleared": "প্রাইস কোড সরানো হয়েছে। ক্রয়মূল্য সংখ্যা হিসেবে দেখানো হবে।",
+      "clearPriceCodeConfirm": "আপনি কি প্রাইস কোড মুছে ফেলতে চান? ক্রয়মূল্য সাধারণ সংখ্যা হিসেবে দেখানো হবে।",
+      "clearPriceCodeTitle": "প্রাইস কোড মুছুন",
+      "priceCodeClearFailed": "প্রাইস কোড মুছতে ব্যর্থ"
+    }
+  },
+  "supplierPaymentSummary": {
+    "subtitle": "পেমেন্ট সারসংক্ষেপ",
+    "allTypes": "সব ধরন",
+    "transactionLedger": "লেনদেন লেজার",
+    "paymentHistory": "পেমেন্ট ইতিহাস",
+    "viewAllPayments": "সব পেমেন্ট দেখুন",
+    "noTransactions": "কোনো লেনদেন পাওয়া যায়নি",
+    "noTransactionsTitle": "কোনো লেনদেন নেই",
+    "noTransactionsAvailable": "কোনো লেনদেন নেই",
+    "noHistoryAvailable": "কোনো পেমেন্ট ইতিহাস নেই",
+    "noEntriesHint": "এই সরবরাহকারীর জন্য কোনো লেজার এন্ট্রি পাওয়া যায়নি",
+    "transactionsLabel": "লেনদেন",
+    "lastN": "সর্বশেষ {{count}}টি",
+    "completed": "সম্পন্ন",
+    "advanceCredit": "অগ্রিম ক্রেডিট",
+    "availableToApply": "প্রয়োগের জন্য উপলব্ধ",
+    "noCreditAvailable": "কোনো ক্রেডিট উপলব্ধ নেই",
+    "owedToSupplier": "সরবরাহকারীকে প্রদেয় পরিমাণ",
+    "totalDue": "মোট বকেয়া",
+    "totalPaid": "মোট পরিশোধিত",
+    "amountDue": "বকেয়া পরিমাণ",
+    "outstandingInvoices": "বকেয়া চালান",
+    "advanceAmount": "অগ্রিম পরিমাণ",
+    "prepaymentsOnFile": "নথিভুক্ত অগ্রিম পরিশোধ",
+    "noAdvance": "কোনো অগ্রিম নেই",
+    "returns": "ফেরত",
+    "lastTransaction": "সর্বশেষ লেনদেন",
+    "lastPayment": "সর্বশেষ পেমেন্ট",
+    "on": "তারিখে",
+    "legacyHint": "সম্পূর্ণ পেমেন্ট ইতিহাস, অনুসন্ধান, ফিল্টার ও অ্যাকশন দেখতে পেমেন্ট তালিকায় যান।",
+    "fromPrefix": "থেকে",
+    "poPrefix": "PO",
+    "grPrefix": "GR",
+    "type": {
+      "purchase": "ক্রয়",
+      "payment": "পেমেন্ট",
+      "refund": "রিফান্ড",
+      "advance": "অগ্রিম",
+      "cancelled": "বাতিল"
+    },
+    "status": {
+      "completed": "সম্পন্ন",
+      "pending": "অপেক্ষমাণ",
+      "processing": "প্রক্রিয়াধীন",
+      "reconciled": "মিলিত",
+      "failed": "ব্যর্থ",
+      "cancelled": "বাতিল"
+    },
+    "metrics": {
+      "confirmedPos": "নিশ্চিতকৃত ক্রয়াদেশ",
+      "completedPayments": "সম্পন্ন পেমেন্ট",
+      "completedCount": "{{count}}টি সম্পন্ন পেমেন্ট",
+      "purchaseReturns": "ক্রয় ফেরত",
+      "settledRefunds": "নিষ্পত্তিকৃত রিফান্ড",
+      "refundsProcessed": "{{count}}টি রিফান্ড নিষ্পত্তি হয়েছে",
+      "outstandingInvoicesCount": "{{count}}টি বকেয়া চালান",
+      "overpaidCredit": "অতিরিক্ত পরিশোধ / ক্রেডিট",
+      "creditBalance": "ক্রেডিট ব্যালেন্স"
+    },
+    "creditInfo": {
+      "title": "ক্রেডিট তথ্য",
+      "creditLimit": "ক্রেডিট সীমা",
+      "creditUtilized": "ব্যবহৃত ক্রেডিট",
+      "utilizedPercent": "{{percent}}% ব্যবহৃত",
+      "creditAvailable": "উপলব্ধ ক্রেডিট",
+      "statusGood": "ভালো অবস্থা - ক্রেডিট উপলব্ধ",
+      "statusWarning": "সতর্কতা - ক্রেডিট সীমার কাছাকাছি",
+      "statusRisk": "ঝুঁকিপূর্ণ - ক্রেডিট সীমা অতিক্রম বা সংকটাপন্ন"
+    },
+    "actions": {
+      "title": "অ্যাকশন",
+      "allPayments": "সব পেমেন্ট",
+      "downloadReport": "রিপোর্ট ডাউনলোড করুন",
+      "hint": "এই অ্যাকশনগুলো দিয়ে আপনি সরবরাহকারী পেমেন্ট ব্যবস্থাপনা, নতুন পেমেন্ট তৈরি এবং বিস্তারিত পেমেন্ট ইতিহাস দেখতে পারেন।",
+      "reportSuccess": "রিপোর্ট সফলভাবে PDF হিসেবে ডাউনলোড হয়েছে",
+      "reportFailed": "রিপোর্ট ডাউনলোড করতে ব্যর্থ হয়েছে"
+    },
+    "statusChart": {
+      "title": "পেমেন্ট স্ট্যাটাস বিশ্লেষণ",
+      "totalPayments": "মোট: {{count}}টি পেমেন্ট"
+    },
+    "messages": {
+      "supplierIdMissing": "সরবরাহকারী আইডি প্রদান করা হয়নি",
+      "loadFailed": "পেমেন্ট সারসংক্ষেপ লোড করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।",
+      "ledgerLoadFailed": "লেজার এন্ট্রি লোড করতে ব্যর্থ হয়েছে"
     }
   },
   "stock": {
@@ -1481,6 +1817,7 @@
     }
   },
   "stockTakes": {
+    "countLabel": "স্টক টেক",
     "title": "স্টক গণনা",
     "subtitle": "শারীরিক ইনভেন্টরি গণনা ও পার্থক্য নিষ্পত্তি",
     "newStockTake": "নতুন স্টক গণনা",
@@ -1565,6 +1902,7 @@
     }
   },
   "vehicles": {
+    "countLabel": "গাড়ি",
     "title": "যানবাহন",
     "subtitle": "যানবাহনের প্রস্তুতকারক, মডেল ও সামঞ্জস্যতা পরিচালনা করুন",
     "addVehicle": "যানবাহন যোগ করুন",
@@ -1636,6 +1974,7 @@
     }
   },
   "discounts": {
+    "countLabel": "ছাড়",
     "title": "ছাড়সমূহ",
     "subtitle": "ছাড়ের নিয়ম ও প্রচারণা পরিচালনা করুন",
     "addDiscount": "ছাড় যোগ করুন",
@@ -1942,6 +2281,7 @@
     "cardRefund": "রিফান্ড"
   },
   "purchaseReturns": {
+    "countLabel": "রিটার্ন",
     "title": "ক্রয় ফেরত",
     "messages": {
       "loadFailed": "ক্রয় ফেরত লোড করতে ব্যর্থ হয়েছে",
@@ -2564,8 +2904,22 @@
   },
   "paymentProviders": {
     "title": "পেমেন্ট প্রদানকারী",
+    "subtitle": "পেমেন্ট পদ্ধতি ও গেটওয়ে কনফিগারেশন পরিচালনা করুন",
     "addProvider": "প্রদানকারী যোগ করুন",
     "editProvider": "প্রদানকারী সম্পাদনা করুন",
+    "countLabel": "প্রদানকারী",
+    "searchPlaceholder": "প্রদানকারীর নাম দিয়ে অনুসন্ধান করুন...",
+    "empty": "কোনো পেমেন্ট প্রদানকারী পাওয়া যায়নি",
+    "emptyTitle": "কোনো পেমেন্ট প্রদানকারী নেই",
+    "emptyHint": "শুরু করতে একজন নতুন প্রদানকারী যোগ করুন",
+    "settlementDaysValue": "{{count}} দিন",
+    "table": {
+      "providerName": "প্রদানকারীর নাম",
+      "accountNumber": "অ্যাকাউন্ট/নম্বর",
+      "feeType": "ফি-র ধরন",
+      "settlementDays": "নিষ্পত্তির দিন",
+      "default": "ডিফল্ট"
+    },
     "messages": {
       "loadFailed": "পেমেন্ট প্রদানকারী লোড করতে ব্যর্থ হয়েছে",
       "deleteConfirm": "আপনি কি নিশ্চিত যে '{{name}}' মুছতে চান?",
@@ -2577,6 +2931,60 @@
       "testConnectionFailed": "সংযোগ পরীক্ষা ব্যর্থ হয়েছে",
       "setDefaultSuccess": "পেমেন্ট প্রদানকারী ডিফল্ট হিসেবে সেট হয়েছে",
       "setDefaultFailed": "ডিফল্ট প্রদানকারী সেট করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "paymentProviderForm": {
+    "editTitle": "পেমেন্ট প্রদানকারী সম্পাদনা করুন",
+    "createTitle": "পেমেন্ট প্রদানকারী তৈরি করুন",
+    "editSubtitle": "পেমেন্ট প্রদানকারীর বিবরণ ও সেটিংস আপডেট করুন",
+    "createSubtitle": "নতুন পেমেন্ট গেটওয়ে বা প্রদানকারী কনফিগার করুন",
+    "basicInfo": "মূল তথ্য",
+    "providerName": "প্রদানকারীর নাম",
+    "providerNameRequired": "প্রদানকারীর নাম প্রয়োজন।",
+    "providerType": "প্রদানকারীর ধরন",
+    "providerTypePlaceholder": "ধরন নির্বাচন করুন",
+    "providerTypeRequired": "প্রদানকারীর ধরন প্রয়োজন।",
+    "bankDetails": "ব্যাংকের বিবরণ",
+    "bankName": "ব্যাংকের নাম",
+    "accountNumber": "অ্যাকাউন্ট নম্বর",
+    "beneficiaryName": "বেনিফিশিয়ারির নাম",
+    "routingNumber": "রাউটিং নম্বর",
+    "iban": "IBAN",
+    "swiftCode": "SWIFT কোড",
+    "apiConfig": "API কনফিগারেশন",
+    "apiKey": "API কী",
+    "merchantId": "মার্চেন্ট আইডি",
+    "webhookUrl": "ওয়েবহুক URL",
+    "mobileWalletDetails": "মোবাইল ওয়ালেটের বিবরণ",
+    "mobileNumber": "মোবাইল নম্বর",
+    "accountHolderName": "অ্যাকাউন্ট হোল্ডারের নাম",
+    "agentMerchantNumber": "এজেন্ট/মার্চেন্ট নম্বর",
+    "feeConfig": "ফি কনফিগারেশন",
+    "feeType": "ফি-র ধরন",
+    "feeAmount": "ফি-র পরিমাণ",
+    "minimumAmount": "সর্বনিম্ন পরিমাণ",
+    "maximumAmount": "সর্বোচ্চ পরিমাণ",
+    "additionalSettings": "অতিরিক্ত সেটিংস",
+    "settlementDays": "নিষ্পত্তির দিন",
+    "supportedCurrencies": "সমর্থিত মুদ্রা",
+    "notes": "মন্তব্য",
+    "cancel": "বাতিল",
+    "saveProvider": "প্রদানকারী সংরক্ষণ করুন",
+    "feeTypes": {
+      "fixed": "নির্দিষ্ট",
+      "percentage": "শতাংশ",
+      "tiered": "স্তরভিত্তিক"
+    },
+    "messages": {
+      "validationError": "ভ্যালিডেশন ত্রুটি",
+      "fillRequired": "সব প্রয়োজনীয় ঘর পূরণ করুন",
+      "success": "সফল",
+      "updated": "পেমেন্ট প্রদানকারী সফলভাবে আপডেট হয়েছে",
+      "created": "পেমেন্ট প্রদানকারী সফলভাবে তৈরি হয়েছে",
+      "error": "ত্রুটি",
+      "updateFailed": "পেমেন্ট প্রদানকারী আপডেট করতে ব্যর্থ হয়েছে",
+      "createFailed": "পেমেন্ট প্রদানকারী তৈরি করতে ব্যর্থ হয়েছে",
+      "loadFailed": "পেমেন্ট প্রদানকারী লোড করতে ব্যর্থ হয়েছে"
     }
   },
   "conversions": {
@@ -2616,6 +3024,38 @@
   },
   "currencies": {
     "title": "মুদ্রা",
+    "subtitle": "সিস্টেমের মুদ্রা ও বিনিময় হার পরিচালনা করুন",
+    "addCurrency": "মুদ্রা যোগ করুন",
+    "countLabel": "মুদ্রা",
+    "table": {
+      "symbol": "প্রতীক",
+      "decimalPlaces": "দশমিক স্থান",
+      "baseCurrency": "বেস মুদ্রা",
+      "defaultCurrency": "ডিফল্ট মুদ্রা"
+    },
+    "badge": {
+      "base": "বেস",
+      "default": "ডিফল্ট"
+    },
+    "empty": "কোনো মুদ্রা পাওয়া যায়নি",
+    "dialog": {
+      "addTitle": "মুদ্রা যোগ করুন",
+      "editTitle": "মুদ্রা সম্পাদনা করুন"
+    },
+    "form": {
+      "codeLabel": "মুদ্রা কোড (ISO 4217)",
+      "codePlaceholder": "যেমন: USD, EUR, BDT",
+      "codeRequired": "৩ অক্ষরের মুদ্রা কোড প্রয়োজন",
+      "nameLabel": "মুদ্রার নাম",
+      "namePlaceholder": "যেমন: US Dollar, Euro",
+      "nameRequired": "মুদ্রার নাম প্রয়োজন",
+      "symbolLabel": "প্রতীক",
+      "symbolPlaceholder": "যেমন: $, €, ৳",
+      "symbolRequired": "মুদ্রার প্রতীক প্রয়োজন",
+      "displayOrder": "প্রদর্শনের ক্রম",
+      "active": "সক্রিয়",
+      "setAsBaseCurrency": "বেস মুদ্রা হিসেবে সেট করুন"
+    },
     "messages": {
       "loadFailed": "মুদ্রা লোড করতে ব্যর্থ হয়েছে",
       "deleteConfirm": "আপনি কি নিশ্চিত যে {{name}} ({{code}}) মুছতে চান?",
@@ -2634,6 +3074,38 @@
   },
   "exchangeRates": {
     "title": "বিনিময় হার",
+    "subtitle": "মুদ্রার বিনিময় হার পরিচালনা করুন",
+    "addRate": "বিনিময় হার যোগ করুন",
+    "countLabel": "হার",
+    "table": {
+      "fromCurrency": "উৎস মুদ্রা",
+      "toCurrency": "গন্তব্য মুদ্রা",
+      "rate": "হার",
+      "effectiveDate": "কার্যকর তারিখ",
+      "expiryDate": "মেয়াদোত্তীর্ণ তারিখ",
+      "source": "উৎস",
+      "noExpiry": "মেয়াদ নেই"
+    },
+    "empty": "কোনো বিনিময় হার পাওয়া যায়নি",
+    "dialog": {
+      "addTitle": "বিনিময় হার যোগ করুন",
+      "editTitle": "বিনিময় হার সম্পাদনা করুন"
+    },
+    "form": {
+      "fromCurrency": "উৎস মুদ্রা",
+      "toCurrency": "গন্তব্য মুদ্রা",
+      "selectCurrency": "মুদ্রা নির্বাচন করুন",
+      "fromRequired": "উৎস মুদ্রা প্রয়োজন",
+      "toRequired": "গন্তব্য মুদ্রা প্রয়োজন",
+      "rate": "বিনিময় হার",
+      "rateRequired": "বিনিময় হার প্রয়োজন এবং ০-এর বেশি হতে হবে",
+      "effectiveDate": "কার্যকর তারিখ",
+      "effectiveDateRequired": "কার্যকর তারিখ প্রয়োজন",
+      "expiryDateOptional": "মেয়াদোত্তীর্ণ তারিখ (ঐচ্ছিক)",
+      "selectDate": "তারিখ নির্বাচন করুন",
+      "active": "সক্রিয়",
+      "notesPlaceholder": "এই বিনিময় হার সম্পর্কে কোনো মন্তব্য লিখুন..."
+    },
     "messages": {
       "loadFailed": "বিনিময় হার লোড করতে ব্যর্থ হয়েছে",
       "loadCurrenciesFailed": "মুদ্রা লোড করতে ব্যর্থ হয়েছে",
@@ -2645,6 +3117,7 @@
     }
   },
   "supplierPaymentAccounts": {
+    "countLabel": "অ্যাকাউন্ট",
     "title": "পেমেন্ট অ্যাকাউন্ট",
     "addAccount": "অ্যাকাউন্ট যোগ করুন",
     "addPaymentAccount": "পেমেন্ট অ্যাকাউন্ট যোগ করুন",
@@ -5523,8 +5996,97 @@
       "CANCELLATION": "বাতিলকরণ"
     }
   },
+  "supplierAccountSummary": {
+    "title": "সরবরাহকারী অ্যাকাউন্ট সারসংক্ষেপ",
+    "subtitle": "লেজার এন্ট্রি ও বকেয়া পরিমাণ",
+    "downloadPdf": "PDF ডাউনলোড করুন",
+    "searchSupplierPlaceholder": "সরবরাহকারী অনুসন্ধান করুন...",
+    "startDatePlaceholder": "শুরুর তারিখ",
+    "endDatePlaceholder": "শেষ তারিখ",
+    "generate": "তৈরি করুন",
+    "transactions": "লেনদেন",
+    "last": "সর্বশেষ",
+    "noReport": "কোনো রিপোর্ট তৈরি হয়নি",
+    "noReportHint": "অ্যাকাউন্ট সারসংক্ষেপ দেখতে একজন সরবরাহকারী নির্বাচন করে Generate ক্লিক করুন",
+    "totalPurchases": "মোট ক্রয়",
+    "totalPayments": "মোট পেমেন্ট",
+    "currentBalance": "বর্তমান ব্যালেন্স",
+    "refunds": "রিফান্ড",
+    "advance": "অগ্রিম",
+    "allSettled": "সব পরিশোধিত!",
+    "ledgerEntries": "লেজার এন্ট্রি",
+    "entries": "এন্ট্রি",
+    "referenceNo": "রেফারেন্স #",
+    "debit": "ডেবিট",
+    "credit": "ক্রেডিট",
+    "balance": "ব্যালেন্স",
+    "noEntriesFiltered": "নির্বাচিত শর্ত অনুযায়ী কোনো লেজার এন্ট্রি পাওয়া যায়নি",
+    "noEntries": "কোনো লেজার এন্ট্রি পাওয়া যায়নি",
+    "reportDate": "রিপোর্টের তারিখ",
+    "outstandingBalance": "বকেয়া পরিমাণ",
+    "computerGenerated": "এটি একটি কম্পিউটার-নির্মিত নথি। তৈরির তারিখ",
+    "thankYou": "আপনার ব্যবসার জন্য ধন্যবাদ!",
+    "messages": {
+      "notFound": "পাওয়া যায়নি",
+      "supplierNotFound": "সরবরাহকারী পাওয়া যায়নি",
+      "selectSupplier": "অনুগ্রহ করে একজন সরবরাহকারী নির্বাচন করুন",
+      "loadFailed": "সরবরাহকারী অ্যাকাউন্ট সারসংক্ষেপ লোড করতে ব্যর্থ হয়েছে",
+      "loadErrorHint": "অ্যাকাউন্ট সারসংক্ষেপ লোড করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।",
+      "loadEntriesFailed": "প্রিন্টের জন্য সকল এন্ট্রি লোড করতে ব্যর্থ হয়েছে",
+      "pdfSuccess": "PDF সফলভাবে ডাউনলোড হয়েছে",
+      "pdfFailed": "PDF তৈরি করতে ব্যর্থ হয়েছে"
+    }
+  },
   "dailyExpenses": {
-    "countLabel": "খরচ"
+    "countLabel": "খরচ",
+    "title": "দৈনিক খরচ",
+    "subtitle": "দোকানের দৈনন্দিন খরচ ট্র্যাক ও ব্যবস্থাপনা করুন",
+    "addExpense": "খরচ যোগ করুন",
+    "recurringBadge": "পুনরাবৃত্ত",
+    "empty": "কোনো খরচ পাওয়া যায়নি",
+    "emptyTitle": "কোনো খরচ পাওয়া যায়নি",
+    "emptyHint": "শুরু করতে একটি নতুন খরচ যোগ করুন",
+    "table": {
+      "category": "বিভাগ",
+      "vendor": "বিক্রেতা",
+      "paymentMethod": "পেমেন্ট পদ্ধতি",
+      "recurring": "পুনরাবৃত্ত"
+    },
+    "patterns": {
+      "daily": "দৈনিক",
+      "weekly": "সাপ্তাহিক",
+      "monthly": "মাসিক",
+      "yearly": "বার্ষিক"
+    },
+    "form": {
+      "selectDate": "তারিখ নির্বাচন করুন",
+      "selectCategory": "বিভাগ নির্বাচন করুন",
+      "descriptionPlaceholder": "বিবরণ লিখুন",
+      "vendorPlaceholder": "বিক্রেতার নাম লিখুন",
+      "selectPaymentMethod": "পেমেন্ট পদ্ধতি নির্বাচন করুন",
+      "referencePlaceholder": "চেক নম্বর, ট্রান্সফার রেফ, ইত্যাদি।",
+      "recurringLabel": "পুনরাবৃত্ত খরচ",
+      "patternLabel": "পুনরাবৃত্তির ধরন",
+      "selectPattern": "ধরন নির্বাচন করুন",
+      "notesPlaceholder": "অতিরিক্ত নোট..."
+    },
+    "dialog": {
+      "addTitle": "নতুন খরচ যোগ করুন",
+      "editTitle": "খরচ সম্পাদনা করুন"
+    },
+    "messages": {
+      "loadFailed": "খরচ লোড করতে ব্যর্থ হয়েছে",
+      "validationError": "যাচাইকরণ ত্রুটি",
+      "fillRequired": "অনুগ্রহ করে সকল আবশ্যক ঘর পূরণ করুন",
+      "created": "খরচ সফলভাবে তৈরি হয়েছে",
+      "createFailed": "খরচ তৈরি করতে ব্যর্থ হয়েছে",
+      "updated": "খরচ সফলভাবে আপডেট হয়েছে",
+      "updateFailed": "খরচ আপডেট করতে ব্যর্থ হয়েছে",
+      "deleted": "খরচ সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteFailed": "খরচ মুছতে ব্যর্থ হয়েছে",
+      "deleteHeader": "মুছে ফেলা নিশ্চিত করুন",
+      "deleteConfirm": "আপনি কি নিশ্চিত যে এই খরচটি মুছতে চান ({{description}})?"
+    }
   },
   "supplierPerformance": {
     "countLabel": "সরবরাহকারী"

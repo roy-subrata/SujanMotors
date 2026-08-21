@@ -22,13 +22,15 @@ import { PaymentProviderService, PaymentProviderResponse } from '../services/pay
 import { PurchaseOrderResponse, PurchaseOrderService } from '../services/purchase-order.service';
 import { SupplierPaymentAccountService, SupplierPaymentAccountResponse } from '../../inventory/services/supplier-payment-account.service';
 import { CurrencyService, Currency } from '../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { SUPPLIER_PAYMENT_METHODS, PAYMENT_TYPES, PaymentMethodOption, PaymentTypeOption } from '../../../shared/constants/payment-methods.constants';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 
 @Component({
     selector: 'app-supplier-payment-form',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, ButtonModule, InputTextModule, TextareaModule, InputNumberModule, AutoCompleteModule, CardModule, ToastModule, RadioButtonModule, DatePickerModule, SelectModule, LazyAutocompleteComponent],
+    imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, ButtonModule, InputTextModule, TextareaModule, InputNumberModule, AutoCompleteModule, CardModule, ToastModule, RadioButtonModule, DatePickerModule, SelectModule, LazyAutocompleteComponent, TranslatePipe],
     providers: [MessageService],
     templateUrl: './supplier-payment-form.component.html',
     styleUrls: ['./supplier-payment-form.component.css']
@@ -44,6 +46,7 @@ export class SupplierPaymentFormComponent implements OnInit {
     private readonly poService = inject(PurchaseOrderService);
     private readonly supplierPaymentAccountService = inject(SupplierPaymentAccountService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
     @ViewChild('poAutoComplete') poAutoComplete?: LazyAutocompleteComponent<PurchaseOrderResponse>;
     form: FormGroup;
@@ -163,8 +166,8 @@ export class SupplierPaymentFormComponent implements OnInit {
                             console.error('Error loading purchase order:', error);
                             this.messageService.add({
                                 severity: 'error',
-                                summary: 'Error',
-                                detail: 'Failed to load purchase order details'
+                                summary: this.i18n.t('common.messages.error'),
+                                detail: this.i18n.t('supplierPaymentForm.messages.loadPoFailed')
                             });
                         }
                     });
@@ -245,8 +248,8 @@ export class SupplierPaymentFormComponent implements OnInit {
                 console.error('Error loading supplier:', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load supplier details'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('supplierPaymentForm.messages.loadSupplierFailed')
                 });
             }
         });
@@ -286,8 +289,8 @@ export class SupplierPaymentFormComponent implements OnInit {
                 console.error('Error loading purchase order:', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load purchase order details'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('supplierPaymentForm.messages.loadPoFailed')
                 });
             }
         });
@@ -440,8 +443,8 @@ export class SupplierPaymentFormComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load supplier payment'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('supplierPaymentForm.messages.loadFailed')
                 });
                 this.loading = false;
             }
@@ -453,8 +456,8 @@ export class SupplierPaymentFormComponent implements OnInit {
             this.form.markAllAsTouched();
             this.messageService.add({
                 severity: 'error',
-                summary: 'Validation Error',
-                detail: 'Please fill in all required fields'
+                summary: this.i18n.t('supplierPaymentForm.messages.validationError'),
+                detail: this.i18n.t('supplierPaymentForm.messages.fillRequired')
             });
             return;
         }
@@ -467,8 +470,8 @@ export class SupplierPaymentFormComponent implements OnInit {
             if (paymentType === 'REGULAR' && !purchaseOrderId) {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Validation Error',
-                    detail: 'Regular payments must be linked to a purchase order. Select a PO or choose Advance Payment type.'
+                    summary: this.i18n.t('supplierPaymentForm.messages.validationError'),
+                    detail: this.i18n.t('supplierPaymentForm.messages.regularRequiresPo')
                 });
                 return;
             }
@@ -488,16 +491,16 @@ export class SupplierPaymentFormComponent implements OnInit {
                 next: () => {
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Success',
-                        detail: 'Supplier payment updated successfully'
+                        summary: this.i18n.t('common.messages.success'),
+                        detail: this.i18n.t('supplierPaymentForm.messages.updated')
                     });
                     this.router.navigate(['/procurement/supplier-payments']);
                 },
                 error: (error) => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: error?.error?.message || 'Failed to update supplier payment'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: error?.error?.message || this.i18n.t('supplierPaymentForm.messages.updateFailed')
                     });
                     this.loading = false;
                 }
@@ -541,16 +544,16 @@ export class SupplierPaymentFormComponent implements OnInit {
                 next: () => {
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Success',
-                        detail: 'Supplier payment created successfully'
+                        summary: this.i18n.t('common.messages.success'),
+                        detail: this.i18n.t('supplierPaymentForm.messages.created')
                     });
                     this.router.navigate(['/procurement/supplier-payments']);
                 },
                 error: (error) => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: error?.error?.message || 'Failed to create supplier payment'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: error?.error?.message || this.i18n.t('supplierPaymentForm.messages.createFailed')
                     });
                     this.loading = false;
                 }

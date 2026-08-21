@@ -10,6 +10,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { RippleModule } from 'primeng/ripple';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PaymentProviderService, PaymentProviderResponse, PaginatedPaymentProviderResponse } from '../services/payment-provider.service';
 import { TagModule } from 'primeng/tag';
@@ -37,6 +38,7 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     DialogModule,
     ContextMenuModule,
     RippleModule,
+    TooltipModule,
     TagModule,
     AppCurrencyPipe,
     PageContainerComponent,

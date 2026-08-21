@@ -1,6 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-credit-info',
@@ -8,13 +10,13 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
   imports: [CommonModule],
   template: `
     <div *ngIf="summary">
-      <h3 class="text-lg font-bold mb-4">Credit Information</h3>
+      <h3 class="text-lg font-bold mb-4">{{ i18n.t('supplierPaymentSummary.creditInfo.title') }}</h3>
 
       <div class="space-y-4">
         <!-- Credit Limit -->
         <div class="info-row">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium text-gray-700">Credit Limit</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.creditInfo.creditLimit') }}</span>
             <span class="text-sm font-bold text-gray-900">{{ summary.creditLimit | currency }}</span>
           </div>
         </div>
@@ -22,7 +24,7 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
         <!-- Credit Utilized -->
         <div class="info-row">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium text-gray-700">Credit Utilized</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.creditInfo.creditUtilized') }}</span>
             <span class="text-sm font-bold text-gray-900">{{ getUtilizedCredit() | currency }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-3">
@@ -32,13 +34,13 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
               [style.width.%]="summary.creditUtilization">
             </div>
           </div>
-          <p class="text-xs text-gray-500 mt-1">{{ summary.creditUtilization.toFixed(1) }}% utilized</p>
+          <p class="text-xs text-gray-500 mt-1">{{ i18n.t('supplierPaymentSummary.creditInfo.utilizedPercent', { percent: summary.creditUtilization.toFixed(1) }) }}</p>
         </div>
 
         <!-- Credit Available -->
         <div class="info-row">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium text-gray-700">Credit Available</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.creditInfo.creditAvailable') }}</span>
             <span class="text-sm font-bold" [ngClass]="getAvailableTextColor()">
               {{ getAvailableCredit() | currency }}
             </span>
@@ -56,7 +58,7 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
         <!-- Additional Info -->
         <div class="mt-4 pt-4 border-t border-gray-200">
           <div>
-            <p class="text-xs text-gray-600">Supplier Code</p>
+            <p class="text-xs text-gray-600">{{ 'common.labels.supplierCode' | translate }}</p>
             <p class="text-sm font-semibold text-gray-900">{{ summary.supplierCode }}</p>
           </div>
         </div>
@@ -69,10 +71,13 @@ import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.s
       background: var(--surface-ground);
       border-radius: 0.375rem;
     }
-  `]
+  `  ],
+  imports: [CommonModule, TranslatePipe]
 })
 export class CreditInfoComponent {
   @Input() summary!: SupplierPaymentHistorySummary;
+
+  protected readonly i18n = inject(I18nService);
 
   getUtilizedCredit(): number {
     if (this.summary.creditLimit === 0) return 0;
@@ -128,11 +133,11 @@ export class CreditInfoComponent {
   getCreditStatus(): string {
     const percentage = this.summary.creditUtilization;
     if (percentage < 60) {
-      return 'Good standing - Credit available';
+      return this.i18n.t('supplierPaymentSummary.creditInfo.statusGood');
     } else if (percentage < 80) {
-      return 'Warning - Credit limit nearing';
+      return this.i18n.t('supplierPaymentSummary.creditInfo.statusWarning');
     } else {
-      return 'At risk - Credit limit exceeded or critical';
+      return this.i18n.t('supplierPaymentSummary.creditInfo.statusRisk');
     }
   }
 }

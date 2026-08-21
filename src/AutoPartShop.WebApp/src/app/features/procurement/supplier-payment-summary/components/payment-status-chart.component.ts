@@ -1,6 +1,7 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PaymentStatusBreakdown } from '../../services/supplier-payment.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-payment-status-chart',
@@ -8,13 +9,13 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
   imports: [CommonModule],
   template: `
     <div *ngIf="breakdown">
-      <h3 class="text-lg font-bold mb-4">Payment Status Breakdown</h3>
+      <h3 class="text-lg font-bold mb-4">{{ i18n.t('supplierPaymentSummary.statusChart.title') }}</h3>
 
       <div class="space-y-3">
         <!-- Completed -->
         <div class="status-item">
           <div class="flex justify-between mb-1">
-            <span class="text-sm font-medium text-gray-700">Completed</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.status.completed') }}</span>
             <span class="text-sm font-bold text-green-600">{{ breakdown.completed }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -25,7 +26,7 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
         <!-- Pending -->
         <div class="status-item">
           <div class="flex justify-between mb-1">
-            <span class="text-sm font-medium text-gray-700">Pending</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.status.pending') }}</span>
             <span class="text-sm font-bold text-orange-600">{{ breakdown.pending }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -36,7 +37,7 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
         <!-- Processing -->
         <div class="status-item">
           <div class="flex justify-between mb-1">
-            <span class="text-sm font-medium text-gray-700">Processing</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.status.processing') }}</span>
             <span class="text-sm font-bold text-blue-600">{{ breakdown.processing }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -47,7 +48,7 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
         <!-- Reconciled -->
         <div class="status-item">
           <div class="flex justify-between mb-1">
-            <span class="text-sm font-medium text-gray-700">Reconciled</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.status.reconciled') }}</span>
             <span class="text-sm font-bold text-purple-600">{{ breakdown.reconciled }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -58,7 +59,7 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
         <!-- Failed -->
         <div class="status-item">
           <div class="flex justify-between mb-1">
-            <span class="text-sm font-medium text-gray-700">Failed</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.status.failed') }}</span>
             <span class="text-sm font-bold text-red-600">{{ breakdown.failed }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -69,7 +70,7 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
         <!-- Cancelled -->
         <div class="status-item">
           <div class="flex justify-between mb-1">
-            <span class="text-sm font-medium text-gray-700">Cancelled</span>
+            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.status.cancelled') }}</span>
             <span class="text-sm font-bold text-gray-600">{{ breakdown.cancelled }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2">
@@ -80,7 +81,7 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
 
       <div class="mt-4 pt-4 border-t border-gray-200">
         <p class="text-xs text-gray-500">
-          Total: {{ getTotalPayments() }} payments
+          {{ i18n.t('supplierPaymentSummary.statusChart.totalPayments', { count: getTotalPayments() }) }}
         </p>
       </div>
     </div>
@@ -95,6 +96,8 @@ import { PaymentStatusBreakdown } from '../../services/supplier-payment.service'
 })
 export class PaymentStatusChartComponent {
   @Input() statusBreakdown!: PaymentStatusBreakdown | undefined;
+
+  protected readonly i18n = inject(I18nService);
 
   get breakdown(): PaymentStatusBreakdown | undefined {
     return this.statusBreakdown;

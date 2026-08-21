@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { SupplierPaymentHistorySummary } from '../../services/supplier-payment.service';
 import { SupplierLedgerSummaryDto } from '../../services/supplier-ledger.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-payment-metrics',
@@ -16,12 +17,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div class="metric-card bg-red-50 border-l-4 border-red-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Total Purchases</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierAccountSummary.totalPurchases') }}</p>
               <p class="text-2xl font-bold text-red-600">{{ formatCurrency(ledgerSummary.totalPurchases) }}</p>
             </div>
             <i class="pi pi-shopping-cart text-red-500 text-3xl"></i>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Confirmed purchase orders</p>
+          <p class="text-xs text-gray-500 mt-2">{{ i18n.t('supplierPaymentSummary.metrics.confirmedPos') }}</p>
         </div>
       </div>
 
@@ -30,12 +31,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div class="metric-card bg-green-50 border-l-4 border-green-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Total Payments</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierAccountSummary.totalPayments') }}</p>
               <p class="text-2xl font-bold text-green-600">{{ formatCurrency(ledgerSummary.totalPayments) }}</p>
             </div>
             <i class="pi pi-check-circle text-green-500 text-3xl"></i>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Completed payments</p>
+          <p class="text-xs text-gray-500 mt-2">{{ i18n.t('supplierPaymentSummary.metrics.completedPayments') }}</p>
         </div>
       </div>
 
@@ -44,12 +45,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div class="metric-card bg-purple-50 border-l-4 border-purple-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Purchase Returns</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierPaymentSummary.metrics.purchaseReturns') }}</p>
               <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(ledgerSummary.totalRefunds) }}</p>
             </div>
             <i class="pi pi-replay text-purple-500 text-3xl"></i>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Settled refunds</p>
+          <p class="text-xs text-gray-500 mt-2">{{ i18n.t('supplierPaymentSummary.metrics.settledRefunds') }}</p>
         </div>
       </div>
 
@@ -58,12 +59,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div class="metric-card bg-blue-50 border-l-4 border-blue-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Advance Credit</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierPaymentSummary.advanceCredit') }}</p>
               <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(ledgerSummary.availableAdvanceCredit) }}</p>
             </div>
             <i class="pi pi-wallet text-blue-500 text-3xl"></i>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Available to apply</p>
+          <p class="text-xs text-gray-500 mt-2">{{ i18n.t('supplierPaymentSummary.availableToApply') }}</p>
         </div>
       </div>
 
@@ -72,7 +73,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div [ngClass]="getLedgerBalanceCardClass()">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Current Balance</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierAccountSummary.currentBalance') }}</p>
               <p [ngClass]="getLedgerBalanceTextColor()" class="text-2xl font-bold">
                 {{ formatCurrency(ledgerSummary.currentBalance) }}
               </p>
@@ -80,7 +81,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
             <i [ngClass]="getLedgerBalanceIcon()" class="text-3xl"></i>
           </div>
           <p class="text-xs text-gray-500 mt-2">
-            {{ ledgerSummary.currentBalance > 0 ? 'Amount owed to supplier' : 'Overpaid / Credit' }}
+            {{ ledgerSummary.currentBalance > 0 ? i18n.t('supplierPaymentSummary.owedToSupplier') : i18n.t('supplierPaymentSummary.metrics.overpaidCredit') }}
           </p>
         </div>
       </div>
@@ -93,12 +94,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div class="metric-card bg-green-50 border-l-4 border-green-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Total Paid</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierPaymentSummary.totalPaid') }}</p>
               <p class="text-2xl font-bold text-green-600">{{ formatCurrency(summary.totalPaid) }}</p>
             </div>
             <i class="pi pi-check-circle text-green-500 text-3xl"></i>
           </div>
-          <p class="text-xs text-gray-500 mt-2">{{ summary.completedPayments }} completed payments</p>
+          <p class="text-xs text-gray-500 mt-2">{{ i18n.t('supplierPaymentSummary.metrics.completedCount', { count: summary.completedPayments }) }}</p>
         </div>
       </div>
 
@@ -107,12 +108,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div class="metric-card bg-orange-50 border-l-4 border-orange-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Total Due</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierPaymentSummary.totalDue') }}</p>
               <p class="text-2xl font-bold text-orange-600">{{ formatCurrency(summary.totalDue) }}</p>
             </div>
             <i class="pi pi-exclamation-circle text-orange-500 text-3xl"></i>
           </div>
-          <p class="text-xs text-gray-500 mt-2">{{ summary.outstandingInvoiceCount }} outstanding invoices</p>
+          <p class="text-xs text-gray-500 mt-2">{{ i18n.t('supplierPaymentSummary.metrics.outstandingInvoicesCount', { count: summary.outstandingInvoiceCount }) }}</p>
         </div>
       </div>
 
@@ -121,12 +122,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div class="metric-card bg-blue-50 border-l-4 border-blue-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Advance Amount</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierPaymentSummary.advanceAmount') }}</p>
               <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(summary.totalAdvanceAmount) }}</p>
             </div>
             <i class="pi pi-wallet text-blue-500 text-3xl"></i>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Prepayments on file</p>
+          <p class="text-xs text-gray-500 mt-2">{{ i18n.t('supplierPaymentSummary.prepaymentsOnFile') }}</p>
         </div>
       </div>
 
@@ -135,12 +136,12 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div class="metric-card bg-purple-50 border-l-4 border-purple-500">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Purchase Returns</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierPaymentSummary.metrics.purchaseReturns') }}</p>
               <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(summary.totalRefunds) }}</p>
             </div>
             <i class="pi pi-replay text-purple-500 text-3xl"></i>
           </div>
-          <p class="text-xs text-gray-500 mt-2">{{ summary.returnedPayments }} refunds processed</p>
+          <p class="text-xs text-gray-500 mt-2">{{ i18n.t('supplierPaymentSummary.metrics.refundsProcessed', { count: summary.returnedPayments }) }}</p>
         </div>
       </div>
 
@@ -149,7 +150,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
         <div [ngClass]="getBelanceCardClass()">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-600 text-sm font-medium">Outstanding Balance</p>
+              <p class="text-gray-600 text-sm font-medium">{{ i18n.t('supplierAccountSummary.outstandingBalance') }}</p>
               <p [ngClass]="getBalanceTextColor()" class="text-2xl font-bold">
                 {{ formatCurrency(summary.paymentBalance) }}
               </p>
@@ -157,7 +158,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
             <i [ngClass]="getBalanceIcon()" class="text-3xl"></i>
           </div>
           <p class="text-xs text-gray-500 mt-2">
-            {{ summary.paymentBalance > 0 ? 'Amount due' : 'Credit balance' }}
+            {{ summary.paymentBalance > 0 ? i18n.t('supplierPaymentSummary.amountDue') : i18n.t('supplierPaymentSummary.metrics.creditBalance') }}
           </p>
         </div>
       </div>
@@ -180,6 +181,7 @@ export class PaymentMetricsComponent {
   @Input() ledgerSummary?: SupplierLedgerSummaryDto;
 
   private readonly currencyService = inject(CurrencyService);
+  protected readonly i18n = inject(I18nService);
 
   formatCurrency(value: number): string {
     return this.currencyService.formatCurrency(value ?? 0, this.currencyService.selectedCurrency());

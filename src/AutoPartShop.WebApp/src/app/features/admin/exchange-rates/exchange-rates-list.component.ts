@@ -15,6 +15,7 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { CurrencyService, Currency, ExchangeRate } from '../../../shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
@@ -38,6 +39,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     ConfirmDialogModule,
     CheckboxModule,
     InputTextModule,
+    TooltipModule,
     PageContainerComponent,
     PageHeaderComponent,
     DataPaginationComponent,
@@ -50,12 +52,12 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 
     <app-page-container>
       <app-page-header
-        title="Exchange Rate Management"
-        subtitle="Manage currency exchange rates"
-        [count]="exchangeRates().length" countLabel="rates" countIcon="pi pi-sync">
+        [title]="i18n.t('exchangeRates.title')"
+        [subtitle]="i18n.t('exchangeRates.subtitle')"
+        [count]="exchangeRates().length" [countLabel]="i18n.t('exchangeRates.countLabel')" countIcon="pi pi-sync">
         <ng-container actions>
           <button class="btn-primary" (click)="openDialog()">
-            <i class="pi pi-plus"></i><span>Add Exchange Rate</span>
+            <i class="pi pi-plus"></i><span>{{ i18n.t('exchangeRates.addRate') }}</span>
           </button>
         </ng-container>
       </app-page-header>
@@ -71,14 +73,14 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 
         <ng-template pTemplate="header">
           <tr>
-            <th>From Currency</th>
-            <th>To Currency</th>
-            <th>Rate</th>
-            <th>Effective Date</th>
-            <th>Expiry Date</th>
-            <th>Source</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th>{{ i18n.t('exchangeRates.table.fromCurrency') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.toCurrency') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.rate') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.effectiveDate') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.expiryDate') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.source') }}</th>
+            <th>{{ i18n.t('common.labels.status') }}</th>
+            <th>{{ i18n.t('common.labels.actions') }}</th>
           </tr>
         </ng-template>
 
@@ -96,7 +98,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             <td>{{ rate.effectiveDate | date: 'mediumDate' }}</td>
             <td>
               <span *ngIf="rate.expiryDate">{{ rate.expiryDate | date: 'mediumDate' }}</span>
-              <span *ngIf="!rate.expiryDate" class="text-gray-400">No expiry</span>
+              <span *ngIf="!rate.expiryDate" class="text-gray-400">{{ i18n.t('exchangeRates.table.noExpiry') }}</span>
             </td>
             <td>
               <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">
@@ -115,7 +117,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                   type="button"
                   icon="pi pi-pencil"
                   class="p-button-rounded p-button-text p-button-sm"
-                  pTooltip="Edit"
+                  [pTooltip]="i18n.t('common.actions.edit')"
                   (click)="openDialog(rate)">
                 </button>
                 <button
@@ -123,7 +125,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                   type="button"
                   icon="pi pi-trash"
                   class="p-button-rounded p-button-text p-button-sm p-button-danger"
-                  pTooltip="Delete"
+                  [pTooltip]="i18n.t('common.actions.delete')"
                   (click)="confirmDelete(rate)">
                 </button>
               </div>
@@ -134,7 +136,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         <ng-template pTemplate="emptymessage">
           <tr>
             <td colspan="8" class="text-center py-8 text-gray-500">
-              No exchange rates found
+              {{ i18n.t('exchangeRates.empty') }}
             </td>
           </tr>
         </ng-template>
@@ -146,7 +148,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         [first]="first()"
         [pageSize]="pageSize()"
         [totalRecords]="exchangeRates().length"
-        itemLabel="exchange rates"
+        [itemLabel]="i18n.t('exchangeRates.countLabel')"
         (pageChange)="goToPage($event)"
         (pageSizeChange)="onPageSizeChange($event)">
       </app-data-pagination>
@@ -154,7 +156,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
       <!-- Exchange Rate Dialog -->
       <p-dialog
         [(visible)]="dialogVisible"
-        [header]="isEditing ? 'Edit Exchange Rate' : 'Add Exchange Rate'"
+        [header]="isEditing ? i18n.t('exchangeRates.dialog.editTitle') : i18n.t('exchangeRates.dialog.addTitle')"
         [modal]="true"
         [style]="{width: '600px'}"
         [closable]="true">
@@ -163,14 +165,14 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
           <div class="flex flex-col gap-4">
             <!-- From Currency -->
             <div class="flex flex-col gap-2">
-              <label htmlFor="fromCurrencyId">From Currency <span class="text-red-500">*</span></label>
+              <label htmlFor="fromCurrencyId">{{ i18n.t('exchangeRates.form.fromCurrency') }} <span class="text-red-500">*</span></label>
               <p-select
                 id="fromCurrencyId"
                 formControlName="fromCurrencyId"
                 [options]="currencies()"
                 optionLabel="code"
                 optionValue="id"
-                placeholder="Select currency"
+                [placeholder]="i18n.t('exchangeRates.form.selectCurrency')"
                 [filter]="true"
                 class="w-full">
                 <ng-template let-currency pTemplate="item">
@@ -182,20 +184,20 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                 </ng-template>
               </p-select>
               <small class="text-red-500" *ngIf="exchangeRateForm.get('fromCurrencyId')?.invalid && exchangeRateForm.get('fromCurrencyId')?.touched">
-                From currency is required
+                {{ i18n.t('exchangeRates.form.fromRequired') }}
               </small>
             </div>
 
             <!-- To Currency -->
             <div class="flex flex-col gap-2">
-              <label htmlFor="toCurrencyId">To Currency <span class="text-red-500">*</span></label>
+              <label htmlFor="toCurrencyId">{{ i18n.t('exchangeRates.form.toCurrency') }} <span class="text-red-500">*</span></label>
               <p-select
                 id="toCurrencyId"
                 formControlName="toCurrencyId"
                 [options]="currencies()"
                 optionLabel="code"
                 optionValue="id"
-                placeholder="Select currency"
+                [placeholder]="i18n.t('exchangeRates.form.selectCurrency')"
                 [filter]="true"
                 class="w-full">
                 <ng-template let-currency pTemplate="item">
@@ -207,13 +209,13 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                 </ng-template>
               </p-select>
               <small class="text-red-500" *ngIf="exchangeRateForm.get('toCurrencyId')?.invalid && exchangeRateForm.get('toCurrencyId')?.touched">
-                To currency is required
+                {{ i18n.t('exchangeRates.form.toRequired') }}
               </small>
             </div>
 
             <!-- Exchange Rate -->
             <div class="flex flex-col gap-2">
-              <label htmlFor="rate">Exchange Rate <span class="text-red-500">*</span></label>
+              <label htmlFor="rate">{{ i18n.t('exchangeRates.form.rate') }} <span class="text-red-500">*</span></label>
               <p-inputNumber
                 id="rate"
                 formControlName="rate"
@@ -224,35 +226,35 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                 class="w-full">
               </p-inputNumber>
               <small class="text-red-500" *ngIf="exchangeRateForm.get('rate')?.invalid && exchangeRateForm.get('rate')?.touched">
-                Exchange rate is required and must be greater than 0
+                {{ i18n.t('exchangeRates.form.rateRequired') }}
               </small>
             </div>
 
             <!-- Effective Date -->
             <div class="flex flex-col gap-2">
-              <label htmlFor="effectiveDate">Effective Date <span class="text-red-500">*</span></label>
+              <label htmlFor="effectiveDate">{{ i18n.t('exchangeRates.form.effectiveDate') }} <span class="text-red-500">*</span></label>
               <p-datepicker
                 id="effectiveDate"
                 formControlName="effectiveDate"
                 [showIcon]="true"
                 dateFormat="yy-mm-dd"
-                placeholder="Select date"
+                [placeholder]="i18n.t('exchangeRates.form.selectDate')"
                 styleClass="w-full">
               </p-datepicker>
               <small class="text-red-500" *ngIf="exchangeRateForm.get('effectiveDate')?.invalid && exchangeRateForm.get('effectiveDate')?.touched">
-                Effective date is required
+                {{ i18n.t('exchangeRates.form.effectiveDateRequired') }}
               </small>
             </div>
 
             <!-- Expiry Date -->
             <div class="flex flex-col gap-2">
-              <label htmlFor="expiryDate">Expiry Date (Optional)</label>
+              <label htmlFor="expiryDate">{{ i18n.t('exchangeRates.form.expiryDateOptional') }}</label>
               <p-datepicker
                 id="expiryDate"
                 formControlName="expiryDate"
                 [showIcon]="true"
                 dateFormat="yy-mm-dd"
-                placeholder="Select date"
+                [placeholder]="i18n.t('exchangeRates.form.selectDate')"
                 [showClear]="true"
                 styleClass="w-full">
               </p-datepicker>
@@ -265,18 +267,18 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
                 formControlName="isActive"
                 [binary]="true">
               </p-checkbox>
-              <label htmlFor="isActive">Active</label>
+              <label htmlFor="isActive">{{ i18n.t('exchangeRates.form.active') }}</label>
             </div>
 
             <!-- Notes -->
             <div class="flex flex-col gap-2">
-              <label htmlFor="notes">Notes</label>
+              <label htmlFor="notes">{{ i18n.t('common.labels.notes') }}</label>
               <textarea
                 pInputTextarea
                 id="notes"
                 formControlName="notes"
                 rows="3"
-                placeholder="Enter any notes about this exchange rate..."
+                [placeholder]="i18n.t('exchangeRates.form.notesPlaceholder')"
                 class="w-full">
               </textarea>
             </div>
@@ -286,14 +288,14 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
             <button
               pButton
               type="button"
-              label="Cancel"
+              [label]="i18n.t('common.actions.cancel')"
               class="p-button-text"
               (click)="dialogVisible = false">
             </button>
             <button
               pButton
               type="submit"
-              [label]="isEditing ? 'Update' : 'Create'"
+              [label]="isEditing ? i18n.t('common.actions.update') : i18n.t('common.actions.create')"
               [loading]="saving()"
               [disabled]="exchangeRateForm.invalid">
             </button>
@@ -325,7 +327,7 @@ export class ExchangeRatesListComponent implements OnInit {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private fb = inject(FormBuilder);
-  private readonly i18n = inject(I18nService);
+  readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
   exchangeRates = signal<ExchangeRate[]>([]);

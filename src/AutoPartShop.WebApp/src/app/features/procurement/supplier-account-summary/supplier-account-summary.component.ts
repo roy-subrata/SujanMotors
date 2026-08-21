@@ -26,6 +26,8 @@ import { InvoicePdfService } from '../../sales/services/invoice-pdf.service';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-supplier-account-summary',
@@ -42,7 +44,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         LazyAutocompleteComponent,
         PageHeaderComponent,
         PageContainerComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './supplier-account-summary.component.html',
@@ -58,6 +61,7 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
     private readonly route = inject(ActivatedRoute);
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly i18n = inject(I18nService);
     private readonly destroy$ = new Subject<void>();
 
     // Filter state
@@ -111,7 +115,7 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
                     }, 0);
                 },
                 error: () => {
-                    this.messageService.add({ severity: 'warn', summary: 'Not Found', detail: 'Supplier not found', life: 3000 });
+                    this.messageService.add({ severity: 'warn', summary: this.i18n.t('supplierAccountSummary.messages.notFound'), detail: this.i18n.t('supplierAccountSummary.messages.supplierNotFound'), life: 3000 });
                 }
             });
         }
@@ -134,8 +138,8 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
         if (!this.selectedSupplier) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Warning',
-                detail: 'Please select a supplier',
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('supplierAccountSummary.messages.selectSupplier'),
                 life: 3000
             });
             return;
@@ -177,12 +181,12 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
                 },
                 error: (err) => {
                     console.error('Error loading supplier account summary:', err);
-                    this.error.set('Failed to load account summary. Please try again.');
+                    this.error.set(this.i18n.t('supplierAccountSummary.messages.loadErrorHint'));
                     this.loading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load supplier account summary',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('supplierAccountSummary.messages.loadFailed'),
                         life: 5000
                     });
                 }
@@ -239,8 +243,8 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load all entries for print',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('supplierAccountSummary.messages.loadEntriesFailed'),
                         life: 5000
                     });
                 }
@@ -250,7 +254,7 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
     /** Server-rendered QuestPDF statement — the full ledger, not just the on-screen page of entries. */
     onDownloadPdf(): void {
         if (!this.selectedSupplier) {
-            this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Please select a supplier', life: 3000 });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('supplierAccountSummary.messages.selectSupplier'), life: 3000 });
             return;
         }
 
@@ -266,11 +270,11 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: () => {
                     this.pdfLoading.set(false);
-                    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'PDF downloaded successfully', life: 3000 });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('supplierAccountSummary.messages.pdfSuccess'), life: 3000 });
                 },
                 error: () => {
                     this.pdfLoading.set(false);
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to generate PDF', life: 5000 });
+                    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('supplierAccountSummary.messages.pdfFailed'), life: 5000 });
                 }
             });
     }
@@ -296,7 +300,7 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Supplier Account Summary</title>
+                <title>${this.i18n.t('supplierAccountSummary.title')}</title>
                 <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; }
                     body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; padding: 10mm; }
