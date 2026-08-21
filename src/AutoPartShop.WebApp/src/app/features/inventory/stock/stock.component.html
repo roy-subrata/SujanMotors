@@ -191,6 +191,9 @@
                   <button pButton type="button" icon="pi pi-sliders-h"
                     class="p-button-text p-button-rounded p-button-sm" pTooltip="{{ 'stock.adjustStock' | translate }}"
                     (click)="onAdjustStock(stock)"></button>
+                  <button pButton type="button" icon="pi pi-arrow-right-arrow-left"
+                    class="p-button-text p-button-rounded p-button-sm" pTooltip="{{ 'stockTransfer.title' | translate }}"
+                    (click)="onTransferStock(stock)"></button>
                   <button pButton type="button" icon="pi pi-history" class="p-button-text p-button-rounded p-button-sm"
                     pTooltip="{{ 'stock.columns.viewHistory' | translate }}" (click)="viewStockHistory(stock)"></button>
                 </div>
@@ -281,6 +284,10 @@
                 <button class="btn-card-action" (click)="onAdjustStock(stock)">
                   <i class="pi pi-sliders-h"></i>
                   {{ 'stock.adjustShort' | translate }}
+                </button>
+                <button class="btn-card-action" (click)="onTransferStock(stock)">
+                  <i class="pi pi-arrow-right-arrow-left"></i>
+                  {{ 'stock.transferShort' | translate }}
                 </button>
                 <button class="btn-card-action" (click)="viewStockHistory(stock)">
                   <i class="pi pi-history"></i>
@@ -483,7 +490,7 @@
 
       <!-- ==================== MOVEMENT HISTORY TAB ==================== -->
       <div class="tab-panel" *ngIf="activeTab === 2">
-        <app-stock-movement-history></app-stock-movement-history>
+        <app-stock-movement-history [partFilter]="movementPartFilter"></app-stock-movement-history>
       </div>
 
       <!-- ==================== BY WAREHOUSE TAB ==================== -->

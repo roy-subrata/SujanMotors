@@ -1424,6 +1424,7 @@
     "emptyTitleMobile": "কোনো স্টক আইটেম নেই",
     "emptyHintMobile": "আপনার ফিল্টার বা অনুসন্ধান সামঞ্জস্য করার চেষ্টা করুন",
     "adjustShort": "সমন্বয়",
+    "transferShort": "স্থানান্তর",
     "historyShort": "ইতিহাস",
     "itemsRequireAttentionCount": "{{count}}টি আইটেমে মনোযোগ প্রয়োজন",
     "itemsRequireAttentionHint": "এই আইটেমগুলো তাদের পুনঃক্রয় স্তরের নিচে রয়েছে এবং পুনঃপূরণের প্রয়োজন হতে পারে",
@@ -4364,6 +4365,7 @@
       "search": "অনুসন্ধান",
       "type": "ধরন",
       "status": "অবস্থা",
+      "part": "পার্ট",
       "from": "থেকে",
       "to": "পর্যন্ত"
     },

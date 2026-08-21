@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -111,6 +111,10 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
       <div *ngIf="hasActiveFilters()" class="active-filters">
         <span class="active-filters-label">{{ 'stockMovements.activeFilters' | translate }}</span>
+        <span *ngIf="partFilter" class="filter-chip">
+          {{ 'stockMovements.chips.part' | translate }}: "{{ partFilter.label }}"
+          <i class="pi pi-times" (click)="partFilter = null; onFilterChange()"></i>
+        </span>
         <span *ngIf="searchTerm" class="filter-chip">
           {{ 'stockMovements.chips.search' | translate }}: "{{ searchTerm }}"
           <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
@@ -521,6 +525,9 @@ export class StockMovementHistoryComponent implements OnInit {
   dateRange: Date[] = [];
   today = new Date();
 
+  /** Set by the parent stock page ("view history" on a stock row) to scope the list to one part. */
+  @Input() partFilter: { partId: string; label: string } | null = null;
+
   /** Getters, not fields: resolving t() once at construction would freeze the labels in whichever
    *  language happened to be active then, instead of following the language switcher. */
   get movementTypeOptions() {
@@ -601,6 +608,7 @@ export class StockMovementHistoryComponent implements OnInit {
       search: this.searchTerm,
       pageNumber: this.pageNumber,
       pageSize: this.pageSize,
+      partId: this.partFilter?.partId,
       type: this.filterType || undefined,
       status: this.filterStatus || undefined,
       fromDate: fromDate ? fromDate.toISOString() : undefined,
@@ -635,7 +643,7 @@ export class StockMovementHistoryComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.filterType || this.filterStatus || (this.dateRange && this.dateRange.length > 0));
+    return !!(this.searchTerm || this.filterType || this.filterStatus || this.partFilter || (this.dateRange && this.dateRange.length > 0));
   }
 
   onSearch(): void {
@@ -664,6 +672,7 @@ export class StockMovementHistoryComponent implements OnInit {
     this.filterType = '';
     this.filterStatus = '';
     this.dateRange = [];
+    this.partFilter = null;
     this.resetPagination();
     this.loadMovements();
   }

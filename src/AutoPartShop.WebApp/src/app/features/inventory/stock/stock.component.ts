@@ -18,6 +18,7 @@ import { PartService, PartResponse } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { DialogService } from 'primeng/dynamicdialog';
 import { StockAdjustmentDialogComponent } from './stock-adjustment-dialog.component';
+import { StockTransferDialogComponent } from './stock-transfer-dialog.component';
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
 import { StockLotsByWarehouseComponent } from './stock-lots-by-warehouse.component';
 import { StockPriceHistoryComponent } from './stock-price-history.component';
@@ -83,6 +84,9 @@ export class StockComponent implements OnInit {
   loading = false;
   searchTerm = '';
   activeTab = 0;
+
+  // Part scope for the movement-history tab, set via a row's "view history" action.
+  movementPartFilter: { partId: string; label: string } | null = null;
 
   // Per-tab filter states
   allStockFilters = {
@@ -549,8 +553,40 @@ export class StockComponent implements OnInit {
    * View stock history for an item
    */
   viewStockHistory(stock: StockLevelResponse): void {
-    // Switch to movement history tab with filter
+    // Scope the movement-history tab to this part, then switch to it.
+    this.movementPartFilter = {
+      partId: stock.partId,
+      label: stock.displayName || stock.partName || stock.partSku || stock.partId
+    };
     this.activeTab = 2;
+  }
+
+  /**
+   * Open the transfer dialog for a stock row (move on-hand quantity between warehouses).
+   */
+  onTransferStock(stock: StockLevelResponse): void {
+    const dialogRef = this.dialogService.open(StockTransferDialogComponent, {
+      header: this.i18n.t('stockTransfer.title'),
+      width: '640px',
+      breakpoints: {
+        '960px': '95vw',
+        '640px': '100vw'
+      },
+      modal: true,
+      data: { stock }
+    });
+
+    dialogRef!.onClose.subscribe((result: any) => {
+      if (result?.success) {
+        this.messageService.add({
+          severity: 'success',
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('stockTransfer.messages.success')
+        });
+        this.loadAllStock();
+        this.loadLowStock();
+      }
+    });
   }
 
   /**

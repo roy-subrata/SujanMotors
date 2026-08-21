@@ -1431,6 +1431,7 @@
     "emptyTitleMobile": "No Stock Items",
     "emptyHintMobile": "Try adjusting your filters or search",
     "adjustShort": "Adjust",
+    "transferShort": "Transfer",
     "historyShort": "History",
     "itemsRequireAttentionCount": "{{count}} items require attention",
     "itemsRequireAttentionHint": "These items are below their reorder levels and may need replenishment",
@@ -4383,6 +4384,7 @@
       "search": "Search",
       "type": "Type",
       "status": "Status",
+      "part": "Part",
       "from": "From",
       "to": "To"
     },
