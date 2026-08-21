@@ -133,7 +133,10 @@ public class ProductsController : ControllerBase
         if (part is null)
             return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
 
-        return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true)));
+        // Cost now lives in purchase lots; reuse the read repository's weighted-average so the
+        // details view shows the same inventory cost as the parts table.
+        var (lotCost, variantLotCosts) = await _productReadRepository.GetWeightedLotCostsAsync(part.Id, cancellationToken);
+        return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true, lotCost, variantLotCosts)));
     }
 
     // â”€â”€ Code lookup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -630,7 +633,21 @@ public class ProductsController : ControllerBase
 
     // â”€â”€ Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    private static ProductResponse MapToProductResponse(Product part, bool isAdmin)
+    /// <summary>
+    /// Picks the variant's lot-based weighted-average cost when available, falling back to the
+    /// variant's stored catalog cost (e.g. variant with no on-hand lots yet).
+    /// </summary>
+    private static decimal ResolveVariantLotCost(
+        Guid variantId,
+        IReadOnlyDictionary<Guid, decimal> variantLotCosts,
+        decimal fallback) =>
+        variantLotCosts.TryGetValue(variantId, out var cost) ? cost : fallback;
+
+    private static ProductResponse MapToProductResponse(
+        Product part,
+        bool isAdmin,
+        decimal? lotCost = null,
+        IReadOnlyDictionary<Guid, decimal>? variantLotCosts = null)
     {
         var hasDimensions = part.WeightKg.HasValue;
         var hasWarrantyData = part.HasWarranty || part.WarrantyPeriodMonths.HasValue;
@@ -638,13 +655,13 @@ public class ProductsController : ControllerBase
         var explicitVariants = part.Variants?
             .Where(v => !v.Isdeleted)
             .OrderBy(v => v.Name)
-            .Select(v => MapVariantSummary(v, isAdmin))
+            .Select(v => MapVariantSummary(v, isAdmin, variantLotCosts))
             .ToList() ?? [];
 
         // Synthesize a default variant when the product has none
         var variants = explicitVariants.Count > 0
             ? explicitVariants
-            : [SynthesizeDefaultVariant(part, isAdmin)];
+            : [SynthesizeDefaultVariant(part, isAdmin, lotCost)];
 
         return new ProductResponse
         {
@@ -687,7 +704,7 @@ public class ProductsController : ControllerBase
             } : null,
             Pricing = new ProductPricingSummary
             {
-                CostPrice = isAdmin ? part.CostPrice : null,
+                CostPrice = isAdmin ? (lotCost ?? part.CostPrice) : null,
                 SellingPrice = part.SellingPrice,
                 Currency = part.SellingPriceCurrency ?? "BDT"
             },
@@ -711,7 +728,7 @@ public class ProductsController : ControllerBase
         };
     }
 
-    private static ProductVariantSummary SynthesizeDefaultVariant(Product part, bool isAdmin) => new()
+    private static ProductVariantSummary SynthesizeDefaultVariant(Product part, bool isAdmin, decimal? lotCost = null) => new()
     {
         Id = null,
         Name = "Default",
@@ -724,14 +741,17 @@ public class ProductsController : ControllerBase
         IsActive = part.IsActive,
         Pricing = new ProductPricingSummary
         {
-            CostPrice = isAdmin ? part.CostPrice : null,
+            CostPrice = isAdmin ? (lotCost ?? part.CostPrice) : null,
             SellingPrice = part.SellingPrice,
             Currency = part.SellingPriceCurrency ?? "BDT"
         },
         Attributes = []
     };
 
-    private static ProductVariantSummary MapVariantSummary(ProductVariant v, bool isAdmin) => new()
+    private static ProductVariantSummary MapVariantSummary(
+        ProductVariant v,
+        bool isAdmin,
+        IReadOnlyDictionary<Guid, decimal>? variantLotCosts = null) => new()
     {
         Id = v.Id,
         Name = v.Name,
@@ -744,7 +764,9 @@ public class ProductsController : ControllerBase
         IsActive = v.IsActive,
         Pricing = new ProductPricingSummary
         {
-            CostPrice = isAdmin ? v.CostPrice : null,
+            CostPrice = isAdmin && variantLotCosts != null
+                ? ResolveVariantLotCost(v.Id, variantLotCosts, v.CostPrice)
+                : v.CostPrice,
             SellingPrice = v.SellingPrice,
             Currency = v.Currency ?? "BDT"
         },

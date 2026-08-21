@@ -77,6 +77,10 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
+        // Same enrichment as FindAllAsync so search results carry the real inventory cost
+        // and vehicle-fit summary instead of the stale catalog columns.
+        await ApplyLotCostAsync(items, cancellationToken);
+        await ApplyVehicleFitAsync(items, cancellationToken);
         var stockMapSem = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
         foreach (var it in items) it.TotalStock = stockMapSem.TryGetValue(it.Id, out var ss) ? ss : 0;
         return (items, totalCount);
@@ -197,13 +201,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             return;
         }
 
-        static decimal WeightedAvg(IEnumerable<(int Qty, decimal Cost)> rows)
-        {
-            long qty = 0; decimal value = 0;
-            foreach (var r in rows) { qty += r.Qty; value += r.Qty * r.Cost; }
-            return qty > 0 ? value / qty : 0;
-        }
-
         var byPart = lots
             .GroupBy(l => l.PartId)
             .ToDictionary(g => g.Key, g => WeightedAvg(g.Select(x => (x.QuantityAvailable, x.CostPrice))));
@@ -220,6 +217,30 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             it.CostPrice = cost;
             it.EffectiveCostPrice = cost;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<(decimal PartCost, IReadOnlyDictionary<Guid, decimal> VariantCosts)> GetWeightedLotCostsAsync(
+        Guid partId, CancellationToken cancellationToken = default)
+    {
+        var lots = await _db.StockLots
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.PartId == partId)
+            .Select(l => new { l.VariantId, l.QuantityAvailable, l.CostPrice })
+            .ToListAsync(cancellationToken);
+
+        var variantCosts = lots
+            .Where(l => l.VariantId != null)
+            .GroupBy(l => l.VariantId!.Value)
+            .ToDictionary(g => g.Key, g => WeightedAvg(g.Select(x => (x.QuantityAvailable, x.CostPrice))));
+
+        return (WeightedAvg(lots.Select(x => (x.QuantityAvailable, x.CostPrice))), variantCosts);
+    }
+
+    private static decimal WeightedAvg(IEnumerable<(int Qty, decimal Cost)> rows)
+    {
+        long qty = 0; decimal value = 0;
+        foreach (var r in rows) { qty += r.Qty; value += r.Qty * r.Cost; }
+        return qty > 0 ? value / qty : 0;
     }
 
     // Flattened view for transactional documents (PO, SO, GRN, POS):
@@ -283,31 +304,20 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
-        // EF Core cannot translate this Include(v => v.Part)-then-filter-on-Part combination when
-        // the optional (query.IsActive/CategoryId == null || ...) filters and the multi-field
-        // search OR-chain are applied together — it throws "could not be translated" regardless of
-        // whether the predicate is one combined Where() or several chained ones (tried both). So:
-        // fetch with only the always-true-shape, safely-translatable filter (active/not-deleted),
-        // then apply the optional query filters and the search-term match in memory. The catalog
-        // size here doesn't warrant fighting the translator further — this method already
-        // concatenates + paginates baseItems/variantItems in memory below.
-        var candidateVariants = await _db.ProductVariants
-            .Include(v => v.Part).ThenInclude(p => p!.Category)
-            .Include(v => v.Part).ThenInclude(p => p!.Brand)
-            .Include(v => v.Part).ThenInclude(p => p!.Unit)
-            .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
+        // Variant branch — everything (search term, IsActive, CategoryId) is filtered in SQL and
+        // the projection is composed inline, so only matching rows are materialized. Navigations
+        // referenced by the projection become joins automatically; no Includes needed.
+        var variantItems = await _db.ProductVariants
             .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
-            .ToListAsync(cancellationToken);
-
-        var variantItems = candidateVariants
             .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
             .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId)
-            .Where(v => v.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || (v.SKU != null && v.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || (v.PartNumber != null && v.PartNumber.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || (v.OemNumber != null && v.OemNumber.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || v.Part!.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || v.Part.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
+            .Where(v =>
+                EF.Functions.Like(v.Name.ToLower(), $"%{term}%") ||
+                (v.SKU != null && EF.Functions.Like(v.SKU.ToLower(), $"%{term}%")) ||
+                (v.PartNumber != null && EF.Functions.Like(v.PartNumber.Value.ToLower(), $"%{term}%")) ||
+                (v.OemNumber != null && EF.Functions.Like(v.OemNumber.ToLower(), $"%{term}%")) ||
+                EF.Functions.Like(v.Part!.Name.ToLower(), $"%{term}%") ||
+                EF.Functions.Like(v.Part.SKU.ToLower(), $"%{term}%"))
             .Select(v => new ProductResponse
             {
                 Id = v.PartId,
@@ -356,11 +366,23 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 CreatedBy = v.Part.CreatedBy,
                 ModifiedBy = v.Part.ModifiedBy
             })
-            .ToList();
+            .ToListAsync(cancellationToken);
 
-        var allItems = baseItems.Concat(variantItems)
-            .OrderBy(x => x.Name).ThenBy(x => x.VariantName)
-            .ToList();
+        var allItems = baseItems.Concat(variantItems).ToList();
+
+        // Honor the caller's sort when one is supplied (same fields as the non-flattened path);
+        // default ordering keeps name/variant grouping for pickers that don't request a sort.
+        var sort = query.Sorts?.FirstOrDefault();
+        allItems = sort?.Field?.ToLowerInvariant() switch
+        {
+            "sellingprice" => sort.Direction == "desc"
+                ? allItems.OrderByDescending(x => x.EffectiveSellingPrice).ThenBy(x => x.VariantName).ToList()
+                : allItems.OrderBy(x => x.EffectiveSellingPrice).ThenBy(x => x.VariantName).ToList(),
+            "name" => sort.Direction == "desc"
+                ? allItems.OrderByDescending(x => x.Name).ThenByDescending(x => x.VariantName).ToList()
+                : allItems.OrderBy(x => x.Name).ThenBy(x => x.VariantName).ToList(),
+            _ => allItems.OrderBy(x => x.Name).ThenBy(x => x.VariantName).ToList()
+        };
 
         var totalCount = allItems.Count;
         var paged = allItems
