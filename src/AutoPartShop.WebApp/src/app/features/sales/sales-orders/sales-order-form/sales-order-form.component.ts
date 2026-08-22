@@ -620,10 +620,15 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     this.lines.clear();
                     this.linePricingErrors.clear();
                     order.lines.forEach((line) => {
-                        // Create a minimal part object for the form control
+                        // Create a minimal part object for the form control.
+                        // displayName is REQUIRED: the per-line lazy-autocomplete uses
+                        // optionLabel="displayName" and PrimeNG renders [object Object]
+                        // when that key is missing on the prefilled value.
                         const partObj = {
                             id: line.partId,
                             name: line.partName || '',
+                            displayName: line.displayName || line.partName || '',
+                            localName: line.partLocalName || null,
                             partNumber: line.partSku || '',
                             sku: line.partSku || '',
                             unitName: line.unitName || ''

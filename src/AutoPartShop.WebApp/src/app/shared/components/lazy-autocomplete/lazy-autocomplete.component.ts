@@ -98,7 +98,26 @@ export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor,
 
     /* ================= ControlValueAccessor ================= */
     writeValue(value: T | null): void {
-        this.value = value;
+        this.value = this.ensureOptionLabel(value);
+    }
+
+    /**
+     * PrimeNG renders "[object Object]" in the input when the model value is an
+     * object that lacks the configured optionLabel key (e.g. a minimal object
+     * patched in during form prefill). Synthesize the label from common
+     * fallbacks so any such value still displays sensibly.
+     */
+    private ensureOptionLabel(value: T | null): T | null {
+        if (!value || typeof value !== 'object' || !this.optionLabel) return value;
+        if ((value as any)[this.optionLabel] != null) return value;
+        const fallback =
+            (value as any).displayName ??
+            (value as any).name ??
+            (value as any).fullName ??
+            (value as any).poNumber ??
+            (value as any).code;
+        if (fallback == null || fallback === '') return value;
+        return { ...(value as any), [this.optionLabel]: fallback };
     }
 
     registerOnChange(fn: (value: T | null) => void): void {
