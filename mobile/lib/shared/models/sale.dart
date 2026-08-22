@@ -68,6 +68,7 @@ class QuickSaleResult {
     this.paidAmount = 0,
     this.dueAmount = 0,
     this.vehicleLabel,
+    this.appliedPromoCode,
   });
 
   final String invoiceNumber;
@@ -76,6 +77,10 @@ class QuickSaleResult {
   final double paidAmount;
   final double dueAmount;
   final String? vehicleLabel;
+
+  /// Promo code the sale was actually charged with (server-normalised),
+  /// null when no cart-level promo rule applied.
+  final String? appliedPromoCode;
 
   bool get hasDue => dueAmount > 0;
 
@@ -86,5 +91,6 @@ class QuickSaleResult {
         paidAmount: asDouble(json['paidAmount']),
         dueAmount: asDouble(json['dueAmount']),
         vehicleLabel: asStringOrNull(json['vehicleLabel']),
+        appliedPromoCode: asStringOrNull(json['appliedPromoCode']),
       );
 }

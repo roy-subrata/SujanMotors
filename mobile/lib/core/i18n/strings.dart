@@ -236,6 +236,13 @@ class S {
   String get confirmSale => _t('Confirm Sale', 'বিক্রয় নিশ্চিত করুন');
   String get cartTotal => _t('Cart Total', 'কার্ট মোট');
   String get grandTotalLabel => _t('Grand Total', 'সর্বমোট');
+  String get promoCode => _t('Promo code', 'প্রোমো কোড');
+  String get itemDiscounts => _t('Item discounts', 'আইটেম ডিসকাউন্ট');
+  String get storeDiscount => _t('Store discount', 'স্টোর ডিসকাউন্ট');
+  String promoRowLabel(String code) =>
+      _t('Promo · $code', 'প্রোমো · $code');
+  String get invalidPromoCode => _t(
+      'Invalid or expired promo code', 'প্রোমো কোডটি অবৈধ বা মেয়াদোত্তীর্ণ');
   String get customer => _t('Customer', 'গ্রাহক');
   String get walkInSelectCustomer =>
       _t('Walk-in / Select customer', 'ওয়াক-ইন / গ্রাহক নির্বাচন');
