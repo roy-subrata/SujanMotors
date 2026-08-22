@@ -992,7 +992,7 @@
       "priorityRequired": "অগ্রাধিকার",
       "currencyRequired": "মুদ্রা",
       "addProducts": "পণ্য যোগ করুন",
-      "skuPrefix": "এসকেইউ:",
+      "skuPrefix": "আইটেম কোড:",
       "pnPrefix": "পিএন:",
       "unitPrefix": "একক:",
       "deltaBadge": "+ডেল্টা",
@@ -1272,7 +1272,7 @@
       "partPlaceholder": "নাম বা কোড দিয়ে পার্ট খুঁজুন...",
       "partRequired": "পার্ট আবশ্যক",
       "codePrefix": "কোড:",
-      "skuPrefix": "এসকেইউ:",
+      "skuPrefix": "আইটেম কোড:",
       "unit": "একক",
       "qty": "পরিমাণ",
       "minOne": "সর্বনিম্ন ১",
@@ -5746,7 +5746,7 @@
       "refund": "ফেরত"
     },
     "unknownPart": "অজানা পার্ট",
-    "skuPrefix": "এসকেইউ:",
+    "skuPrefix": "আইটেম কোড:",
     "conditions": {
       "UNOPENED": "অখোলা",
       "OPENED": "খোলা",

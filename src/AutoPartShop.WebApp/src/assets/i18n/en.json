@@ -992,7 +992,7 @@
       "priorityRequired": "Priority",
       "currencyRequired": "Currency",
       "addProducts": "Add Products",
-      "skuPrefix": "SKU:",
+      "skuPrefix": "Item Code:",
       "pnPrefix": "PN:",
       "unitPrefix": "Unit:",
       "deltaBadge": "+delta",
@@ -1272,7 +1272,7 @@
       "partPlaceholder": "Search part by name or code...",
       "partRequired": "Part is required",
       "codePrefix": "Code:",
-      "skuPrefix": "SKU:",
+      "skuPrefix": "Item Code:",
       "unit": "Unit",
       "qty": "Qty",
       "minOne": "Min 1",
@@ -5787,7 +5787,7 @@
       "refund": "Refund"
     },
     "unknownPart": "Unknown Part",
-    "skuPrefix": "SKU:",
+    "skuPrefix": "Item Code:",
     "conditions": {
       "UNOPENED": "Unopened",
       "OPENED": "Opened",
