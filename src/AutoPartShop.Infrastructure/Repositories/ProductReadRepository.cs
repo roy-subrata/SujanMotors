@@ -103,7 +103,9 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
             .Where(x => EF.Functions.Like(x.Name, $"%{term}%") ||
              EF.Functions.Like(x.SKU, $"%{term}%") ||
-             (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%")));
+             (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%")) ||
+             (x.PartNumber != null && EF.Functions.Like(x.PartNumber.Value, $"%{term}%")) ||
+             (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{term}%")));
 
         if (query.LowStockOnly)
         {
@@ -259,7 +261,10 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
             .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
             .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted))
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"))
+            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%") ||
+                (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%")) ||
+                (x.PartNumber != null && EF.Functions.Like(x.PartNumber.Value, $"%{term}%")) ||
+                (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{term}%")))
             .Select(part => new ProductResponse
             {
                 Id = part.Id,

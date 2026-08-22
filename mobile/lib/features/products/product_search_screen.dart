@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -28,6 +30,7 @@ class ProductSearchScreen extends ConsumerStatefulWidget {
 class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -40,9 +43,18 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  // One request per settled query instead of one per keystroke.
+  void _onSearchChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      ref.read(productSearchControllerProvider.notifier).search(v.trim());
+    });
   }
 
   void _onScroll() {
@@ -106,7 +118,7 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
             child: SearchInput(
               controller: _searchCtrl,
               hintText: S.of(context).searchProductsHint,
-              onChanged: controller.search,
+              onChanged: _onSearchChanged,
               onScan: () => context.push('/scan'),
             ),
           ),
