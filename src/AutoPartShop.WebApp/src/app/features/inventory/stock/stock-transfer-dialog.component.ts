@@ -166,6 +166,14 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
       min-width: 550px;
     }
 
+    @media (max-width: 767px) {
+      .transfer-dialog {
+        width: 100%;
+        min-width: 0;
+        padding: 1rem;
+      }
+    }
+
     .dialog-title {
       margin-bottom: 1.5rem;
       font-size: 1.25rem;

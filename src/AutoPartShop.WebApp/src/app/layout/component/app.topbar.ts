@@ -103,7 +103,7 @@ interface StaffNotification {
                 }
             </div>
 
-            <p-popover #notifPanel [style]="{'width': '380px'}">
+            <p-popover #notifPanel [style]="{ 'width': '380px', 'max-width': 'calc(100vw - 0.5rem)' }">
                 <div class="notif-panel">
                     <div class="notif-panel-header">
                         <span class="notif-panel-title">Notifications</span>

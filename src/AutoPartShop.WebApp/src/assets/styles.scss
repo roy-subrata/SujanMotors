@@ -962,6 +962,12 @@ app-root {
     }
 }
 
+/* Dialog viewport cap — keeps fixed-width dialogs (700-780px) inside
+   tablets/narrow windows before the mobile clamps below take over. */
+.p-dialog {
+    max-width: calc(100vw - 1rem);
+}
+
 /* PrimeNG Dialog Mobile */
 @media (max-width: 767px) {
     .p-dialog {
