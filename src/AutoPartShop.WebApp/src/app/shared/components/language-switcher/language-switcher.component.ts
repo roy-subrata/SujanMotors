@@ -57,6 +57,21 @@ import { TooltipModule } from 'primeng/tooltip';
             background: var(--text);
             color: var(--surface);
         }
+
+        /* Narrow phones: this pill is the widest item in the topbar action row, and
+           nothing else shrinks it — at full width it pushed the trailing icons
+           (theme, notifications, avatar) past the right edge. Match the 32px
+           control height the topbar drops to at this breakpoint. */
+        @media (max-width: 575px) {
+            .lang-pill {
+                height: 32px;
+            }
+
+            .lang-tab {
+                padding: 0 7px;
+                font-size: 0.6875rem;
+            }
+        }
     `]
 })
 export class LanguageSwitcherComponent {

@@ -324,6 +324,8 @@ export class EmployeeFormComponent implements OnInit {
                         },
                         error: (err: any) => {
                             this.photoUploading.set(false);
+                            // Nothing references the blob now — drop it rather than orphan it in storage.
+                            this.fileUploadService.delete(stored.id).subscribe({ error: () => undefined });
                             this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to save photo' });
                         }
                     });

@@ -72,6 +72,7 @@ services:
       - Seq__Url=http://seq
     volumes:
       - ./backups:/app/backups                  # Same host folder as the DB container's backup mount
+      - ./uploads:/app/App_Data/uploads         # Uploaded media — survives container rebuilds
     ports:
       - "5292:8080"                             # Open for Swagger / Postman
     depends_on:

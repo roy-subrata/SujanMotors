@@ -47,3 +47,5 @@ deployment/backups/
 
 # Uploaded file blobs (local FileStorage root — never commit user uploads)
 src/AutoPartShop.Api/App_Data/
+deployment/uploads/
+deployment/uploads-test/

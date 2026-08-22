@@ -167,8 +167,10 @@ export class ProductMediaManagerComponent implements OnInit {
             }
             this.saving = true;
             // Two steps: upload the blob, then attach the returned URL as a media row.
+            // If the attach fails the blob is deleted again — otherwise it would sit in
+            // storage forever with nothing referencing it.
             this.fileUploadService.upload(this.selectedFile, 'PRODUCT', this.partId).subscribe({
-                next: (stored) => this.addMediaRow(stored.url, stored.fileName),
+                next: (stored) => this.addMediaRow(stored.url, stored.fileName, stored.id),
                 error: (err) => {
                     this.saving = false;
                     this.toastError(err, this.i18n.t('parts.mediaManager.messages.uploadFailed'));
@@ -185,7 +187,8 @@ export class ProductMediaManagerComponent implements OnInit {
         }
     }
 
-    private addMediaRow(url: string, fileName: string | null): void {
+    /** @param uploadedFileId set when the URL came from an upload — deleted again if attaching fails. */
+    private addMediaRow(url: string, fileName: string | null, uploadedFileId?: string): void {
         this.mediaService
             .add(this.partId, {
                 url,
@@ -202,6 +205,10 @@ export class ProductMediaManagerComponent implements OnInit {
                 },
                 error: (err) => {
                     this.saving = false;
+                    // Nothing references the blob now — drop it rather than orphan it in storage.
+                    if (uploadedFileId) {
+                        this.fileUploadService.delete(uploadedFileId).subscribe({ error: () => undefined });
+                    }
                     this.toastError(err, this.i18n.t('parts.mediaManager.messages.addFailed'));
                 }
             });

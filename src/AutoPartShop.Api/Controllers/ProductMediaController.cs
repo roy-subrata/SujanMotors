@@ -52,6 +52,10 @@ public class ProductMediaController(
         if (part is null)
             return NotFound(ApiError.NotFound("Part not found.", instance: Request.Path));
 
+        var variantError = await ValidateVariantAsync(partId, request.VariantId, cancellationToken);
+        if (variantError is not null)
+            return BadRequest(variantError);
+
         var existing = (await _mediaRepository.GetByPartAsync(partId, cancellationToken)).ToList();
         var sortOrder = existing.Count == 0 ? 0 : existing.Max(x => x.SortOrder) + 1;
         // First media of a part becomes primary automatically so listings always have a thumbnail.
@@ -89,6 +93,10 @@ public class ProductMediaController(
         var media = await _mediaRepository.GetByIdAsync(mediaId, cancellationToken);
         if (media is null || media.PartId != partId)
             return NotFound(ApiError.NotFound("Media item not found.", instance: Request.Path));
+
+        var variantError = await ValidateVariantAsync(partId, request.VariantId, cancellationToken);
+        if (variantError is not null)
+            return BadRequest(variantError);
 
         media.Update(request.Url, request.MediaType, media.SortOrder, request.IsPrimary, request.VariantId, request.AltText, request.FileName);
 
@@ -130,15 +138,25 @@ public class ProductMediaController(
 
         var media = (await _mediaRepository.GetByPartAsync(partId, cancellationToken)).ToList();
 
-        for (var index = 0; index < request.OrderedIds.Count; index++)
+        // Resolve every id before mutating anything: a bad id used to return 400 with the
+        // earlier items already written, leaving the gallery half-reordered.
+        var ordered = new List<ProductMedia>(request.OrderedIds.Count);
+        foreach (var id in request.OrderedIds)
         {
-            var item = media.FirstOrDefault(x => x.Id == request.OrderedIds[index]);
+            var item = media.FirstOrDefault(x => x.Id == id);
             if (item is null)
-                return BadRequest(ApiError.Validation($"Media item {request.OrderedIds[index]} does not belong to this part.", instance: Request.Path));
+                return BadRequest(ApiError.Validation($"Media item {id} does not belong to this part.", instance: Request.Path));
 
-            item.Update(item.Url, item.MediaType, index, item.IsPrimary, item.VariantId, item.AltText, item.FileName);
-            await _mediaRepository.UpdateAsync(item, cancellationToken);
+            ordered.Add(item);
         }
+
+        for (var index = 0; index < ordered.Count; index++)
+        {
+            var item = ordered[index];
+            item.Update(item.Url, item.MediaType, index, item.IsPrimary, item.VariantId, item.AltText, item.FileName);
+        }
+
+        await _mediaRepository.UpdateRangeAsync(ordered, cancellationToken);
 
         var reordered = await _mediaRepository.GetByPartAsync(partId, cancellationToken);
         return Ok(ApiResponse<IEnumerable<ProductMediaDto>>.Ok(reordered.Select(MapToDto)));
@@ -156,6 +174,22 @@ public class ProductMediaController(
             return NotFound(ApiError.NotFound("Media item not found.", instance: Request.Path));
 
         await _mediaRepository.DeleteAsync(mediaId, cancellationToken);
+
+        // Add auto-promotes the first item, so "a part with media has a primary" is an
+        // invariant — keep it true on the way out by promoting the next item in display order.
+        if (media.IsPrimary)
+        {
+            var remaining = (await _mediaRepository.GetByPartAsync(partId, cancellationToken)).ToList();
+            var successor = remaining.FirstOrDefault();
+            if (successor is not null)
+            {
+                successor.Update(successor.Url, successor.MediaType, successor.SortOrder,
+                    isPrimary: true, successor.VariantId, successor.AltText, successor.FileName);
+                await _mediaRepository.UpdateAsync(successor, cancellationToken);
+                _logger.LogInformation("Promoted media {MediaId} to primary for part {PartId} after the primary was deleted",
+                    successor.Id, partId);
+            }
+        }
 
         if (TryParseStoredFileId(media.Url, out var fileId))
         {
@@ -181,6 +215,22 @@ public class ProductMediaController(
             return ApiError.Validation("MediaType must be 'image' or 'video'.", instance: Request.Path);
 
         return null;
+    }
+
+    /// <summary>
+    /// Media may be scoped to one variant, but only a variant of this part — without the
+    /// check a photo could be attached to another product's variant (the FK is NoAction,
+    /// so the database does not catch it either).
+    /// </summary>
+    private async Task<ApiError?> ValidateVariantAsync(Guid partId, Guid? variantId, CancellationToken cancellationToken)
+    {
+        if (!variantId.HasValue || variantId.Value == Guid.Empty)
+            return null;
+
+        var belongs = await _productRepository.VariantBelongsToPartAsync(partId, variantId.Value, cancellationToken);
+        return belongs
+            ? null
+            : ApiError.Validation("The variant does not belong to this part.", instance: Request.Path);
     }
 
     private static bool TryParseStoredFileId(string url, out Guid fileId)

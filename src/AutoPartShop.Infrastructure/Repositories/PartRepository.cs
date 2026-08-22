@@ -162,6 +162,11 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
         if (variant?.Part is null) return null;
         return (variant.Part, variant);
     }
+
+    public async Task<bool> VariantBelongsToPartAsync(Guid partId, Guid variantId, CancellationToken cancellationToken = default)
+    {
+        return await _db.ProductVariants.AnyAsync(v => v.Id == variantId && v.PartId == partId && !v.Isdeleted, cancellationToken);
+    }
 }
 
 public class VehicleRepository(AutoPartDbContext _db) : IVehicleRepository

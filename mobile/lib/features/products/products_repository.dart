@@ -283,11 +283,22 @@ class ProductsRepository {
       final uploadRes = await _dio.post('/files', data: form);
       final stored =
           (uploadRes.data as Map<String, dynamic>)['data'] as Map;
-      await _dio.post('/products/$productId/media', data: {
-        'url': stored['url'],
-        'mediaType': 'image',
-        'fileName': stored['fileName'],
-      });
+      try {
+        await _dio.post('/products/$productId/media', data: {
+          'url': stored['url'],
+          'mediaType': 'image',
+          'fileName': stored['fileName'],
+        });
+      } catch (_) {
+        // Attach failed, so nothing references the blob — delete it rather than
+        // leave it orphaned in storage. Best-effort: the original error still wins.
+        try {
+          await _dio.delete('/files/${stored['id']}');
+        } catch (_) {
+          // ignored
+        }
+        rethrow;
+      }
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }

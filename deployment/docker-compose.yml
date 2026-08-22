@@ -105,6 +105,7 @@ services:
       - RateLimiting__AuthPermitLimit=${RATE_LIMIT_AUTH:-10}
       - RateLimiting__SessionPermitLimit=${RATE_LIMIT_SESSION:-60}
       - RateLimiting__PublicPermitLimit=${RATE_LIMIT_PUBLIC:-60}
+      - RateLimiting__UploadPermitLimit=${RATE_LIMIT_UPLOAD:-30}
       - RateLimiting__GlobalPermitLimit=${RATE_LIMIT_GLOBAL:-600}
       # Real client IP recovery, which the per-IP limits above depend on.
       # FORWARDED_HOP_COUNT: nginx alone = 1; Cloudflare/LB in front of nginx = 2.
@@ -118,6 +119,10 @@ services:
       - Seq__ApiKey=${SEQ_API_KEY:-}
     volumes:
       - ./backups:/app/backups                # Same host folder as the DB container's backup mount
+      # Uploaded product images/videos and employee photos. WITHOUT this mount they live
+      # inside the container and are destroyed by every rebuild/recreate, leaving the
+      # ProductMedia/StoredFiles rows pointing at 404s. Back this folder up with the DB.
+      - ./uploads:/app/App_Data/uploads
     ports:
       - "5000:8080"                           # Expose API for direct access (testing/debugging)
     # No ports exposed to host — browser reaches API through nginx reverse proxy

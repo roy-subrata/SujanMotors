@@ -46,6 +46,19 @@ public class ProductMediaRepository : IProductMediaRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task UpdateRangeAsync(IEnumerable<ProductMedia> entities, CancellationToken cancellationToken = default)
+    {
+        if (entities == null)
+            throw new ArgumentNullException(nameof(entities));
+
+        var list = entities.ToList();
+        if (list.Count == 0)
+            return;
+
+        _dbContext.ProductMedias.UpdateRange(list);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await _dbContext.ProductMedias

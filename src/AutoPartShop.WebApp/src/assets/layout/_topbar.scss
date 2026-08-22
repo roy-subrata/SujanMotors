@@ -408,8 +408,20 @@
             display: none;
         }
 
+        // Label is hidden above, so drop the padding that was sizing the pill around
+        // it — otherwise the button keeps ~28px of dead space and shoves the icons right.
+        .quick-sale-btn {
+            width: 34px;
+            padding: 0;
+            justify-content: center;
+        }
+
         .topbar-actions {
             gap: 0.375rem;
+            // Must be able to give way: with flex-shrink:0 the row overflowed the
+            // viewport instead of tightening, clipping the trailing icons.
+            flex-shrink: 1;
+            min-width: 0;
         }
     }
 }
@@ -445,9 +457,20 @@
             }
         }
 
+        .quick-sale-btn {
+            width: 32px;
+            height: 32px;
+
+            i {
+                font-size: 1rem;
+            }
+        }
+
         .topbar-actions {
             gap: 0.25rem;
             height: 56px !important;
+            flex-shrink: 1;
+            min-width: 0;
         }
 
         .notification-container,

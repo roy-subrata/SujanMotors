@@ -106,10 +106,13 @@ services:
       - RateLimiting__AuthPermitLimit=${RATE_LIMIT_AUTH:-10}
       - RateLimiting__SessionPermitLimit=${RATE_LIMIT_SESSION:-60}
       - RateLimiting__PublicPermitLimit=${RATE_LIMIT_PUBLIC:-60}
+      - RateLimiting__UploadPermitLimit=${RATE_LIMIT_UPLOAD:-30}
       - RateLimiting__GlobalPermitLimit=${RATE_LIMIT_GLOBAL:-600}
       # Real client IP recovery (see docker-compose.yml for the full explanation).
       - ForwardedHeaders__ForwardLimit=${FORWARDED_HOP_COUNT:-1}
       - ForwardedHeaders__KnownNetworks__0=${FORWARDED_KNOWN_NETWORK:-172.16.0.0/12}
+    volumes:
+      - ./uploads-test:/app/App_Data/uploads   # Uploaded media — survives container rebuilds
     ports:
       - "5001:8080"                           # Exposed for debugging (Swagger/Postman)
     depends_on:

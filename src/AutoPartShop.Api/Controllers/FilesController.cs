@@ -34,6 +34,7 @@ public class FilesController(
     /// </summary>
     [HttpPost]
     [Authorize]
+    [EnableRateLimiting(RateLimiting.UploadPolicy)]   // large bodies — not the generous global bucket
     [RequestSizeLimit(UploadRules.MaxRequestBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = UploadRules.MaxRequestBytes)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -162,16 +163,29 @@ public class FilesController(
         return Ok(ApiResponse<IEnumerable<StoredFileDto>>.Ok(files.Select(MapToDto)));
     }
 
-    /// <summary>Delete a file (record + blob).</summary>
+    /// <summary>
+    /// Delete a file (record + blob). Admin/Manager can delete any file; anyone else may
+    /// delete only what they uploaded themselves — which is what lets a client clean up
+    /// after itself when the follow-up "attach" call fails and would otherwise orphan the blob.
+    /// </summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var storedFile = await _fileRepository.GetByIdAsync(id, cancellationToken);
         if (storedFile is null)
             return NotFound(ApiError.NotFound("File not found.", instance: Request.Path));
+
+        var isPrivileged = User.IsInRole("Admin") || User.IsInRole("Manager");
+        var isUploader = !string.IsNullOrEmpty(storedFile.CreatedBy)
+            && string.Equals(storedFile.CreatedBy, User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
+
+        if (!isPrivileged && !isUploader)
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiError.Forbidden("You can only delete files you uploaded.", instance: Request.Path));
 
         await _storage.DeleteAsync(storedFile.StorageKey, cancellationToken);
         await _fileRepository.DeleteAsync(id, cancellationToken);
