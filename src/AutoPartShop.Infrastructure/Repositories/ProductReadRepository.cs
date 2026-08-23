@@ -316,13 +316,19 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
             .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
             .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId)
+            // NOTE: intentionally not matching on v.PartNumber here. Member access on the PartNumber
+            // value-converted type (v.PartNumber.Value) cannot be translated by EF Core once this
+            // query's Join between ProductVariant and Product is in scope — every shape tried (direct
+            // access, EF.Property, a correlated subquery) throws server-side. The equivalent access on
+            // the root Parts query below works fine, so this is scoped specifically to the variant/Join
+            // path. Until that's resolved upstream, variant part numbers are excluded from search;
+            // product name/SKU/OEM and the parent product's name/SKU still match.
             .Where(v =>
-                EF.Functions.Like(v.Name.ToLower(), $"%{term}%") ||
-                (v.SKU != null && EF.Functions.Like(v.SKU.ToLower(), $"%{term}%")) ||
-                (v.PartNumber != null && EF.Functions.Like(v.PartNumber.Value.ToLower(), $"%{term}%")) ||
-                (v.OemNumber != null && EF.Functions.Like(v.OemNumber.ToLower(), $"%{term}%")) ||
-                EF.Functions.Like(v.Part!.Name.ToLower(), $"%{term}%") ||
-                EF.Functions.Like(v.Part.SKU.ToLower(), $"%{term}%"))
+                EF.Functions.Like(v.Name, $"%{term}%") ||
+                (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%")) ||
+                (v.OemNumber != null && EF.Functions.Like(v.OemNumber, $"%{term}%")) ||
+                EF.Functions.Like(v.Part!.Name, $"%{term}%") ||
+                EF.Functions.Like(v.Part.SKU, $"%{term}%"))
             .Select(v => new ProductResponse
             {
                 Id = v.PartId,

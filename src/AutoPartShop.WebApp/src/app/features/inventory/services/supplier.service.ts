@@ -27,7 +27,8 @@ export interface SupplierResponse {
 
 export interface CreateSupplierRequest {
   name: string;
-  code: string;
+  /** Omit on create — the backend generates it atomically. Required (and unchanged) on update. */
+  code?: string;
   contactPerson: string;
   email: string;
   phone: string;

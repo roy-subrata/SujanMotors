@@ -184,7 +184,11 @@ export class SupplierFormComponent implements OnInit {
   private createSupplier(formValue: any): void {
     const request: CreateSupplierRequest = {
       name: formValue.name,
-      code: formValue.code,
+      // `code` here is only a *preview* of the next code (see CodeGenerateController's
+      // peek endpoints) — it hasn't reserved that number. Submitting it made every
+      // supplier creation after the first race the same unconsumed code and 409/500.
+      // Omit it so the backend always takes its atomic generate-on-create path.
+      code: undefined,
       contactPerson: formValue.contactPerson,
       email: formValue.email,
       phone: formValue.phone,

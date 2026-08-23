@@ -225,8 +225,13 @@ export class CustomerFormComponent implements OnInit {
         // Use getRawValue() to include disabled fields like customerCode
         const formValue = this.customerForm.getRawValue();
 
+        const isEdit = this.mode() === 'edit' && this.customerId();
         const request: CreateCustomerRequest = {
-            customerCode: formValue.customerCode,
+            // customerCode is a *preview* of the next code (see CodeGenerateController), not a
+            // reserved one — submitting it on create raced every other creation of this entity
+            // type against the same unconsumed number and 409'd/500'd from the second one on.
+            // Only send it back unchanged when editing an existing customer.
+            customerCode: isEdit ? formValue.customerCode : undefined,
             firstName: formValue.firstName,
             lastName: formValue.lastName,
             companyName: formValue.companyName,

@@ -177,7 +177,7 @@ export class AdminSettingsComponent implements OnInit {
     if (user) {
       this.editingUser.set(user);
       this.userForm.patchValue({
-        username: user.username,
+        username: user.userName,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,

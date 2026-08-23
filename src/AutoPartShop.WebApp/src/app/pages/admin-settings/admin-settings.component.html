@@ -82,10 +82,10 @@
                   <tr>
                     <td>
                       <div class="user-cell">
-                        <div class="user-avatar">{{ (user.firstName || user.username)[0].toUpperCase() }}</div>
+                        <div class="user-avatar">{{ (user.firstName || user.userName)[0].toUpperCase() }}</div>
                         <div class="user-info">
                           <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>
-                          <span class="user-username">&#64;{{ user.username }}</span>
+                          <span class="user-username">&#64;{{ user.userName }}</span>
                         </div>
                       </div>
                     </td>
@@ -663,7 +663,7 @@
       <div class="dialog-form">
         <div class="assign-info">
           <i class="pi pi-user"></i>
-          <span>{{ 'adminSettings.messages.assignRolesTo' | translate:{ username: user.username } }}</span>
+          <span>{{ 'adminSettings.messages.assignRolesTo' | translate:{ username: user.userName } }}</span>
         </div>
 
         <div class="form-field">

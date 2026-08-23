@@ -5,7 +5,8 @@ import { environment } from 'src/environments/environment';
 import { CustomerStatus } from '@/shared/models/status.types';
 
 export interface CreateCustomerRequest {
-    customerCode: string;
+    /** Omit on create — the backend generates it atomically. Required (and unchanged) on update. */
+    customerCode?: string;
     firstName: string;
     lastName: string;
     companyName: string;

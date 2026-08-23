@@ -88,7 +88,7 @@ export interface UpdateExchangeRateRequest {
 })
 export class CurrencyService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl =`${environment.apiUrl}`; 
+  private readonly apiUrl = `${environment.apiUrl}/v1`;
 
   // State management for currencies
   private currenciesSubject = new BehaviorSubject<Currency[]>([]);
