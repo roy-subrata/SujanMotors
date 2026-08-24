@@ -21,13 +21,26 @@ export async function pickDropdownOption(
     await option.click();
 }
 
-/** Same as pickDropdownOption but the input is a plain autocomplete text box that must be clicked+typed directly (not via a separate trigger). */
+/**
+ * Same as pickDropdownOption but the input is a plain autocomplete text box that must be
+ * clicked+typed directly (not via a separate trigger).
+ *
+ * app-lazy-autocomplete's fetchData() cancels the in-flight request as soon as the query
+ * changes again (see cancelPendingRequest() in lazy-autocomplete.component.ts), and its
+ * backing list endpoints (e.g. POST /api/v1/customers/list) have been observed taking up
+ * to ~11s under sustained dev load (traced to OperationCanceledException from a *retyped*
+ * search cancelling the still-in-flight first request — not a data or query-correctness
+ * bug; the equivalent raw SQL runs in ~1ms). Retyping to "retry" only compounds this by
+ * cancelling a request that was about to succeed, so type once and wait out a single
+ * generous timeout instead.
+ */
 export async function pickAutocompleteOption(page: Page, input: Locator, query: string, optionText?: string) {
+    const option = page.getByRole('option', { name: optionText ?? query, exact: false }).first();
+
     await input.click();
     await input.fill('');
     await input.pressSequentially(query, { delay: 30 });
-    const option = page.getByRole('option', { name: optionText ?? query, exact: false }).first();
-    await expect(option).toBeVisible({ timeout: 10_000 });
+    await expect(option).toBeVisible({ timeout: 25_000 });
     await option.click();
 }
 

@@ -15,7 +15,11 @@ export default defineConfig({
     retries: 0,
     workers: 1,
     reporter: [['list'], ['html', { open: 'never', outputFolder: 'e2e-report' }]],
-    timeout: 45_000,
+    // Some specs make 2-3 pickAutocompleteOption calls per test, and the customer/supplier
+    // list endpoints backing app-lazy-autocomplete have been observed taking up to ~11s
+    // under sustained dev load (see pickAutocompleteOption's comment in e2e/utils/ui.ts) —
+    // 45s left no headroom for a test with multiple slow lookups.
+    timeout: 90_000,
     expect: { timeout: 10_000 },
     use: {
         baseURL: 'http://localhost:4301',

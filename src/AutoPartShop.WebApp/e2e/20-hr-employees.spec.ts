@@ -13,8 +13,14 @@ test.describe('HR — Employees', () => {
         await pickDropdownOption(page, page.getByText('Select department', { exact: false }), 'Sales');
         await page.locator('p-inputnumber input').first().fill('25000');
 
-        await page.getByRole('button', { name: 'Create Employee' }).click();
+        // The employees list isn't sorted newest-first and paginates — with many employees
+        // accumulated from repeated runs, checking list visibility gets flaky. The create
+        // response status is what this test actually cares about.
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/employees') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Create Employee' }).click()
+        ]);
+        expect(response.ok()).toBe(true);
         await expect(page).toHaveURL(/\/hr\/employees$/);
-        await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
     });
 });

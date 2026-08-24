@@ -8,6 +8,12 @@ import { pickDropdownOption } from './utils/ui';
  * forms with one clearly required field, so each test just creates a record and confirms
  * it shows up in its list — the create flow itself is the thing worth verifying, not every
  * optional field.
+ *
+ * These lists aren't sorted newest-first and their search boxes only filter on Enter, so
+ * asserting "visible in the default list view" gets flaky once enough records have piled
+ * up from repeated runs (the new record lands on page 2+). Asserting on the create
+ * response status is what these tests actually care about (the record persisted) and
+ * isn't sensitive to list pagination/sorting.
  */
 test.describe('Catalog master-data CRUD', () => {
     test('create a category', async ({ page }) => {
@@ -18,8 +24,11 @@ test.describe('Catalog master-data CRUD', () => {
         // finishes — filling immediately after the click races that reset and gets wiped.
         await page.waitForTimeout(800);
         await page.locator('#c-name').fill(name);
-        await page.getByRole('button', { name: 'Add Category' }).last().click();
-        await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/categories') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Add Category' }).last().click()
+        ]);
+        expect(response.ok()).toBe(true);
     });
 
     test('create a brand', async ({ page }) => {
@@ -28,8 +37,11 @@ test.describe('Catalog master-data CRUD', () => {
         await page.getByRole('button', { name: 'Add Brand' }).click();
         await page.waitForTimeout(800);
         await page.locator('#c-name').fill(name);
-        await page.getByRole('button', { name: 'Add Brand' }).last().click();
-        await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/brands') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Add Brand' }).last().click()
+        ]);
+        expect(response.ok()).toBe(true);
     });
 
     test('create a unit', async ({ page }) => {
@@ -39,9 +51,14 @@ test.describe('Catalog master-data CRUD', () => {
         await page.getByRole('button', { name: 'Add Unit' }).click();
         await page.waitForTimeout(800);
         await page.locator('#create-name').fill(name);
-        await page.locator('#create-symbol').fill(suffix.slice(0, 5));
-        await page.getByRole('button', { name: 'Create', exact: true }).click();
-        await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
+        // uniqueSuffix() is timestamp-prefixed; slice(0, N) barely varies between
+        // close-together runs, so take the actual random tail instead.
+        await page.locator('#create-symbol').fill(suffix.slice(-5));
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/units') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Create', exact: true }).click()
+        ]);
+        expect(response.ok()).toBe(true);
     });
 
     test('create a cart-level discount', async ({ page }) => {
@@ -63,8 +80,11 @@ test.describe('Catalog master-data CRUD', () => {
         await startDate.click();
         await page.getByRole('gridcell', { name: '23', exact: true }).click();
 
-        await page.getByRole('button', { name: 'Create Discount' }).click();
-        await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/discounts') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Create Discount' }).click()
+        ]);
+        expect(response.ok()).toBe(true);
     });
 
     test('create a warehouse', async ({ page }) => {
@@ -73,8 +93,11 @@ test.describe('Catalog master-data CRUD', () => {
         await page.locator('#name').fill(name);
         await page.locator('#location').fill('456 E2E Storage Rd, Dhaka');
 
-        await page.getByRole('button', { name: 'Create Warehouse' }).click();
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/warehouses') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Create Warehouse' }).click()
+        ]);
+        expect(response.ok()).toBe(true);
         await expect(page).toHaveURL(/\/inventory\/warehouses$/);
-        await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
     });
 });

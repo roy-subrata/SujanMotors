@@ -12,9 +12,15 @@ test.describe('Vehicles & Technicians', () => {
         await page.locator('#year').fill('2024');
         await pickDropdownOption(page, page.locator('#engineType'), 'Petrol', { typeToFilter: true });
 
-        await page.getByRole('button', { name: 'Create', exact: true }).click();
+        // The vehicles list isn't sorted newest-first and paginates — with many vehicles
+        // accumulated from repeated runs, list-visibility checks get flaky. The create
+        // response status is what this test actually cares about.
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/vehicles') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Create', exact: true }).click()
+        ]);
+        expect(response.ok()).toBe(true);
         await expect(page).toHaveURL(/\/inventory\/vehicles$/);
-        await expect(page.getByText(model, { exact: false }).first()).toBeVisible({ timeout: 10_000 });
     });
 
     test('create a technician', async ({ page }) => {

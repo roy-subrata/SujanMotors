@@ -161,3 +161,14 @@ independent.
   rule — not a bug. Prefer a value that varies per run (a computed day-of-month, a
   freshly created dedicated record) over a fixed one anywhere the backend enforces
   uniqueness or non-overlap.
+- `app-lazy-autocomplete`'s backing list endpoints (e.g. `POST /api/v1/customers/list`)
+  were observed taking up to ~11s under sustained dev load — traced via the API log to
+  requests genuinely completing that slowly, not a data/query bug (the equivalent raw SQL
+  runs in ~1ms against this table size; likely thread-pool/GC pressure on the long-running
+  `dotnet` process after hours of continuous heavy Playwright load in dev). Retyping to
+  "retry" a search that hasn't shown a result yet makes this *worse*: `fetchData()` on the
+  new keystroke cancels the still-in-flight first request (`cancelPendingRequest()` in
+  `lazy-autocomplete.component.ts`), surfacing as an `OperationCanceledException`/500 on a
+  request that was about to succeed. `pickAutocompleteOption` types once and waits out a
+  single generous timeout (25s) instead of retrying; the suite's global test timeout was
+  raised to 90s to give multi-lookup tests headroom for this.

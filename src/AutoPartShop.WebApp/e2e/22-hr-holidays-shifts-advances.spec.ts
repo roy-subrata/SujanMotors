@@ -17,8 +17,14 @@ test.describe('HR — Holidays, Shifts & Salary Advances', () => {
         await page.getByRole('gridcell', { name: day, exact: true }).first().click();
 
         await page.getByPlaceholder(/Eid-ul-Fitr/i).fill(name);
-        await page.getByRole('button', { name: 'Save', exact: true }).click();
-        await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
+        // These lists aren't sorted newest-first and paginate — with many records
+        // accumulated from repeated runs, list-visibility checks get flaky. The create
+        // response status is what this test actually cares about.
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/holidays') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Save', exact: true }).click()
+        ]);
+        expect(response.ok()).toBe(true);
     });
 
     test('add a shift', async ({ page }) => {
@@ -31,8 +37,11 @@ test.describe('HR — Holidays, Shifts & Salary Advances', () => {
         await timeInputs.first().fill('09:00');
         await timeInputs.last().fill('18:00');
 
-        await page.getByRole('button', { name: 'Save', exact: true }).click();
-        await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
+        const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/shifts') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.getByRole('button', { name: 'Save', exact: true }).click()
+        ]);
+        expect(response.ok()).toBe(true);
     });
 
     test('give a salary advance', async ({ page }) => {
