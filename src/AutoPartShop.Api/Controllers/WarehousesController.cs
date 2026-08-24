@@ -1,6 +1,7 @@
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.WarehouseDtos;
+using AutoPartShop.Application.Services;
 using AutoPartShop.Application.Warehouse;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -17,6 +18,7 @@ public class WarehousesController(
     IWarehouseRepository _warehouseRepository,
     IWarehouseReadRepository _warehouseReadRepository,
     ICurrentUserService _currentUserService,
+    ICodeGenerateService _codeGenerateService,
     ILogger<WarehousesController> _logger
 ) : ControllerBase
 {
@@ -82,12 +84,19 @@ public class WarehousesController(
                 string.IsNullOrWhiteSpace(request.Location))
                 return BadRequest(new { message = "Name, Code, and Location are required" });
 
-            if (await _warehouseRepository.CodeExistsAsync(request.Code, null, cancellationToken))
-                return Conflict(new { message = "Warehouse code already exists" });
+            var code = request.Code.Trim().ToUpper();
+            if (await _warehouseRepository.CodeExistsAsync(code, null, cancellationToken))
+            {
+                // The client only ever previews a code via the non-reserving PeekAsync
+                // endpoint (see CodeGenerateController), so a collision here just means
+                // another warehouse was created since that preview — atomically reserve a
+                // fresh one instead of failing the whole submission.
+                code = await _codeGenerateService.GenerateAsync("WH", cancellationToken);
+            }
 
             var warehouse = Warehouse.Create(
                 request.Name,
-                request.Code,
+                code,
                 request.Location,
                 request.City,
                 request.State,
@@ -211,7 +220,7 @@ public class WarehousesController(
         }
         catch (InvalidOperationException ex)
         {
-            // Warehouse is still referenced by stock or transactions � surface a clean 409.
+            // Warehouse is still referenced by stock or transactions — surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)

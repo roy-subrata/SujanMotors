@@ -67,7 +67,7 @@ public class PurchaseOrderController : ControllerBase
     }
 
     /// <summary>
-    /// Configurable document-number prefix (Company Profile &gt; Document Numbering) —
+    /// Configurable document-number prefix (Company Profile &gt; Document Numbering) â€”
     /// falls back to the historical hardcoded prefix if no setting has been configured yet.
     /// </summary>
     private async Task<string> GetPrefixAsync(string settingKey, string fallback, CancellationToken cancellationToken)
@@ -160,8 +160,8 @@ public class PurchaseOrderController : ControllerBase
 
         // Deliver-To is our receiving warehouse; fall back to the shop identity when unset.
         var deliverToName = string.IsNullOrWhiteSpace(po.Warehouse?.Name)
-            ? $"{shop.Name} — Store"
-            : $"{shop.Name} — {po.Warehouse!.Name}";
+            ? $"{shop.Name} â€” Store"
+            : $"{shop.Name} â€” {po.Warehouse!.Name}";
         var deliverToAddress = string.IsNullOrWhiteSpace(po.Warehouse?.Location)
             ? shop.Address
             : po.Warehouse!.Location;
@@ -288,7 +288,7 @@ public class PurchaseOrderController : ControllerBase
 
             // Every line is resolved and validated BEFORE a PO number is allocated. This method has
             // no transaction, so allocating first meant a rejected create burned the number for
-            // good — three rejected attempts left the next real order at PO005.
+            // good â€” three rejected attempts left the next real order at PO005.
             var resolvedLines = new List<(Guid PartId, int Quantity, decimal UnitPrice, Guid? UnitId, int QuantityInBaseUnit, Guid? VariantId)>();
 
             if (request.LineItems?.Any() == true)
@@ -336,7 +336,7 @@ public class PurchaseOrderController : ControllerBase
                     // Enforce variant selection when product has active variants
                     var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                     if (hasVariants && !lineRequest.VariantId.HasValue)
-                        return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
+                        return BadRequest(new { message = $"Product '{part.Name}' has variants â€” please select a specific variant" });
 
                     resolvedLines.Add((lineRequest.PartId, lineRequest.Quantity, lineRequest.UnitPrice,
                         unitId, quantityInBaseUnit, lineRequest.VariantId));
@@ -845,7 +845,9 @@ public class PurchaseOrderController : ControllerBase
             {
                 allGRNs = allGRNs.Where(g =>
                     g.GRNNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    g.PurchaseOrderId.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+
+                    (g.PurchaseOrder != null && g.PurchaseOrder.PONumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (g.Warehouse != null && g.Warehouse.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                 );
             }
 
@@ -1062,7 +1064,7 @@ public class PurchaseOrderController : ControllerBase
             if (poForVerify is null || poForVerify.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
                 return BadRequest(new { message = $"Cannot verify a goods receipt for a {(poForVerify is null ? "missing" : poForVerify.Status.ToString())} purchase order." });
 
-            // Record the actual authenticated user as the verifier — never a client-supplied name,
+            // Record the actual authenticated user as the verifier â€” never a client-supplied name,
             // so the "who verified this receipt" audit trail can't be spoofed.
             var verifier = _currentUserService.GetCurrentUsername();
             grn.Verify(string.IsNullOrWhiteSpace(verifier) ? verifiedBy : verifier);
@@ -1114,7 +1116,7 @@ public class PurchaseOrderController : ControllerBase
                     if (poForAccept.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
                         throw new InvalidOperationException($"Cannot accept a goods receipt for a {poForAccept.Status} purchase order.");
 
-                    // Cost is lot-driven and permanent once posted. Refuse to create zero-cost stock —
+                    // Cost is lot-driven and permanent once posted. Refuse to create zero-cost stock â€”
                     // require a unit cost on every line first (set it via Update Pricing before accepting).
                     var uncostedLine = grn.LineItems.FirstOrDefault(l => l.UnitCost <= 0);
                     if (uncostedLine is not null)
