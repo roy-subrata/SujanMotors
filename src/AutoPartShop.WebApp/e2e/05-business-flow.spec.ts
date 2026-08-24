@@ -126,7 +126,9 @@ test.describe.serial('Purchase -> stock +10 -> sale -> stock 7 -> refresh -> DB 
         // The list isn't sorted newest-first, and other GRNs (from earlier manual testing)
         // already exist — filter by this flow's own PO number and wait for that exact row
         // (not just "a row exists") so a slow debounce can't race us into the old one.
-        await page.getByPlaceholder(/search by grn number, po number/i).fill(poNumber);
+        const grnSearch = page.getByPlaceholder(/search by grn number, po number/i);
+        await grnSearch.fill(poNumber);
+        await grnSearch.press('Enter');
         const grnRow = page.locator('tr', { hasText: poNumber }).locator('a', { hasText: /^GRN\d+$/ });
         await expect(grnRow).toBeVisible({ timeout: 10_000 });
         await grnRow.click();
