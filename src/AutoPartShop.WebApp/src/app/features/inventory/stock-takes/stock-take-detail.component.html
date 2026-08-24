@@ -116,7 +116,7 @@
           [value]="filteredLines"
           [paginator]="false"
           [scrollable]="true"
-          scrollHeight="flex"
+          [scrollHeight]="filteredLines.length > 100 ? '600px' : 'flex'"
           [loading]="loading"
           [rowHover]="true"
           styleClass="app-table"

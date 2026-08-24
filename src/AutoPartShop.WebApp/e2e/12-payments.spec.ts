@@ -43,6 +43,13 @@ test.describe.serial('Customer & Supplier Payments', () => {
         const amountInput = page.getByText('Amount *', { exact: true }).locator('xpath=following::input[1]');
         await amountInput.click();
         await amountInput.fill('500');
+        // Under heavy load a fill can land before Angular finishes settling the field from
+        // the autocomplete picks above and silently get dropped — verify it stuck (same
+        // reasoning as the payment-method retry below) before relying on it for submit.
+        if (!(await amountInput.inputValue().catch(() => '')).includes('500')) {
+            await amountInput.click();
+            await amountInput.fill('500');
+        }
 
         await pickDropdownOption(page, page.getByText('Select payment method', { exact: false }).first(), 'Cash on Delivery');
         // The dropdown selection occasionally didn't stick under heavier page load —
@@ -52,10 +59,17 @@ test.describe.serial('Customer & Supplier Payments', () => {
             await pickDropdownOption(page, page.getByText('Select payment method', { exact: false }).first(), 'Cash on Delivery');
         }
 
-        await page.getByLabel(/record as advance credit/i).check();
+        const advanceCreditCheckbox = page.getByLabel(/record as advance credit/i);
+        await advanceCreditCheckbox.check();
+        if (!(await advanceCreditCheckbox.isChecked().catch(() => false))) {
+            await advanceCreditCheckbox.check();
+        }
 
+        // The endpoint has occasionally been slow under sustained dev load (same class of
+        // issue documented for the customer/provider search endpoints in ui.ts) — give it
+        // more margin than the default action timeout.
         const [response] = await Promise.all([
-            page.waitForResponse((r) => r.url().endsWith('/api/v1/customer-payments') && r.request().method() === 'POST', { timeout: 15_000 }),
+            page.waitForResponse((r) => r.url().endsWith('/api/v1/customer-payments') && r.request().method() === 'POST', { timeout: 25_000 }),
             page.getByRole('button', { name: 'Save Payment' }).click()
         ]);
         expect(response.ok()).toBe(true);

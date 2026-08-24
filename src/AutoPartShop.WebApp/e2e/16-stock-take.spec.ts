@@ -17,6 +17,16 @@ test.describe('Stock Take', () => {
         await page.goto('/inventory/stock-takes');
         await page.waitForTimeout(500);
 
+        // Reused open stock takes accumulate a line per part created by every other spec run
+        // against this warehouse (100+ lines after enough runs) — the detail GET and the
+        // table render of that many rows can take longer than the default 15s action
+        // timeout under load, so wait for the fetch itself (attached before the navigating
+        // click, not after, so a fast response isn't missed) rather than just the URL change.
+        const detailFetch = page.waitForResponse(
+            (r) => /\/api\/v1\/stocktake\/[0-9a-f-]+$/i.test(r.url()) && r.request().method() === 'GET',
+            { timeout: 30_000 }
+        );
+
         const openRow = page.locator('tr', { hasText: /Counting|Review/ }).first();
         if ((await openRow.count()) > 0) {
             await openRow.click();
@@ -27,9 +37,11 @@ test.describe('Stock Take', () => {
         }
 
         await expect(page).toHaveURL(/\/inventory\/stock-takes\/[0-9a-f-]+$/i, { timeout: 10_000 });
+        await detailFetch;
 
         if (await page.getByText('Counting', { exact: true }).first().isVisible().catch(() => false)) {
             const firstCountInput = page.locator('table tbody tr').first().locator('input[type="number"], .p-inputnumber input').first();
+            await expect(firstCountInput).toBeVisible({ timeout: 20_000 });
             await firstCountInput.fill('1');
             await expect(firstCountInput).toHaveValue('1');
 
