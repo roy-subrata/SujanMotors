@@ -168,7 +168,12 @@ test.describe.serial('Purchase -> stock +10 -> sale -> stock 7 -> refresh -> DB 
         const customerSearch = page.getByPlaceholder(/search customer/i);
         await customerSearch.click();
         await customerSearch.fill('Walk');
-        await page.getByText('Walk-in Customer', { exact: false }).first().click();
+        // The customer search backend has been observed taking up to ~11s under sustained
+        // dev load (see pickAutocompleteOption's comment in e2e/utils/ui.ts) — the default
+        // 15s action timeout on a bare .click() doesn't leave enough margin after the fill.
+        const walkInOption = page.getByText('Walk-in Customer', { exact: false }).first();
+        await expect(walkInOption).toBeVisible({ timeout: 25_000 });
+        await walkInOption.click();
 
         // Same PrimeNG keystroke-parsing gotcha as the date field — .fill() leaves the
         // "add payment line" button disabled; simulate real typing instead.

@@ -5,26 +5,30 @@ import { pickDropdownOption } from './utils/ui';
 test.describe('HR — Holidays, Shifts & Salary Advances', () => {
     test('add a holiday', async ({ page }) => {
         const name = `E2E Holiday ${uniqueSuffix()}`;
-        // A holiday date collides (silently rejected) with one already seeded on the same
-        // date by an earlier run, so pick a day-of-month that varies per run rather than a
-        // fixed one.
-        const day = String((Date.now() % 25) + 1);
         await page.goto('/hr/holidays');
         await page.getByRole('button', { name: 'Add Holiday' }).click();
 
         const dateInput = page.locator('p-datepicker input').first();
-        await dateInput.click();
-        await page.getByRole('gridcell', { name: day, exact: true }).first().click();
-
         await page.getByPlaceholder(/Eid-ul-Fitr/i).fill(name);
-        // These lists aren't sorted newest-first and paginate — with many records
-        // accumulated from repeated runs, list-visibility checks get flaky. The create
-        // response status is what this test actually cares about.
-        const [response] = await Promise.all([
-            page.waitForResponse((r) => r.url().endsWith('/api/v1/holidays') && r.request().method() === 'POST', { timeout: 15_000 }),
-            page.getByRole('button', { name: 'Save', exact: true }).click()
-        ]);
-        expect(response.ok()).toBe(true);
+
+        // A holiday date collides (rejected) with one already seeded on the same date by an
+        // earlier run. With this suite run many times against the same dev DB, a large
+        // fraction of the 1-25 day range can end up taken — including in contiguous runs
+        // (e.g. 21-25 all at once), which defeats a deterministic +1 walk starting nearby.
+        // Re-roll an independent random day each attempt instead, and retry generously.
+        let response;
+        for (let attempt = 0; attempt < 8; attempt++) {
+            const day = Math.floor(Math.random() * 25) + 1;
+            await dateInput.click();
+            await page.getByRole('gridcell', { name: String(day), exact: true }).first().click();
+
+            [response] = await Promise.all([
+                page.waitForResponse((r) => r.url().endsWith('/api/v1/holidays') && r.request().method() === 'POST', { timeout: 15_000 }),
+                page.getByRole('button', { name: 'Save', exact: true }).click()
+            ]);
+            if (response.ok()) break;
+        }
+        expect(response!.ok()).toBe(true);
     });
 
     test('add a shift', async ({ page }) => {

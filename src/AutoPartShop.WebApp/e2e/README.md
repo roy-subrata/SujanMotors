@@ -9,8 +9,11 @@ master-data CRUD (categories/brands/units/discounts/warehouses), vehicles & tech
 a full stock-take lifecycle (snapshot → count → review → approve), a full sales-order
 lifecycle via the standalone form (create → confirm → generate proforma → ready for
 delivery → generate challan → deliver), debit notes, finance/audit/notifications smoke
-coverage, and HR (employees, attendance, leave requests, holidays, shifts, salary
-advances, payroll smoke).
+coverage, HR (employees, attendance, leave requests, holidays, shifts, salary
+advances, payroll smoke), quotations, warehouse locations, customer/supplier account
+statements, the config-driven reports module (a generic report's filter→load→export
+path plus the bespoke Profit & Loss/VAT/Daily Z-report pages), daily expenses, and
+supplier performance/company profile/backups smoke coverage.
 
 ## Prerequisites
 
