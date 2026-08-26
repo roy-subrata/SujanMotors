@@ -2,7 +2,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { ApplicationConfig, provideAppInitializer, inject, isDevMode } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScrolling } from '@angular/router';
-import { provideServiceWorker } from '@angular/service-worker';
+import { provideServiceWorker, SwUpdate } from '@angular/service-worker';
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
 import { providePrimeNG } from 'primeng/config';
@@ -66,6 +66,26 @@ export const appConfig: ApplicationConfig = {
         provideServiceWorker('ngsw-worker.js', {
             enabled: !isDevMode(),
             registrationStrategy: 'registerWhenStable:30000'
+        }),
+        // Service-worker update handling: without this, clients keep running the
+        // previously-installed app version until every tab is closed. Poll for new
+        // versions; when one is ready, ask before reloading so an in-progress sale
+        // is never interrupted mid-entry.
+        provideAppInitializer(() => {
+            const updates = inject(SwUpdate);
+            if (!updates.isEnabled) return;
+
+            updates.versionUpdates.subscribe(evt => {
+                if (evt.type === 'VERSION_READY') {
+                    const activate = window.confirm(
+                        'A new version of the app is available. Reload to update?\n\n' +
+                        'অ্যাপের নতুন সংস্করণ এসেছে। আপডেট করতে রিলোড করবেন?'
+                    );
+                    if (activate) document.location.reload();
+                }
+            });
+
+            setInterval(() => { updates.checkForUpdate().catch(() => { /* offline: retry next tick */ }); }, 5 * 60 * 1000);
         })
     ]
 };

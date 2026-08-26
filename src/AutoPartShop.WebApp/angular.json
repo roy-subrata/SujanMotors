@@ -42,6 +42,8 @@
                     },
                     "configurations": {
                         "production": {
+                            "optimization": true,
+                            "sourceMap": false,
                             "outputHashing": "all",
                             "serviceWorker": "ngsw-config.json",
                             "fileReplacements": [
@@ -49,9 +51,25 @@
                                     "replace": "src/environments/environment.ts",
                                     "with": "src/environments/environment.prod.ts"
                                 }
+                            ],
+                            "budgets": [
+                                {
+                                    "type": "initial",
+                                    "maximumWarning": "2.5MB",
+                                    "maximumError": "4MB"
+                                },
+                                {
+                                    "type": "anyComponentStyle",
+                                    "maximumWarning": "24kB",
+                                    "maximumError": "48kB"
+                                }
                             ]
                         },
                         "staging": {
+                            // Explicit optimization: without it only a config literally named
+                            // "production" gets minified, so staging shipped readable code.
+                            // sourceMap stays ON for debugging the staging deployment.
+                            "optimization": true,
                             "outputHashing": "all",
                             "sourceMap": true,
                             "fileReplacements": [

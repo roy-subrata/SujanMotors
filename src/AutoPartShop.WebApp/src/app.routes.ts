@@ -3,6 +3,7 @@ import { AppLayout } from './app/layout/component/app.layout';
 import { DashboardComponent } from './app/features/dashboard/dashboard.component';
 import { QuickSaleShortcutComponent } from './app/features/sales/quick-sale-shortcut/quick-sale-shortcut.component';
 import { UnifiedLoginComponent } from './app/pages/login/unified-login.component';
+import { UnauthorizedComponent } from './app/pages/unauthorized/unauthorized.component';
 import { AdminSettingsComponent } from './app/pages/admin-settings/admin-settings.component';
 import { authGuard } from './app/shared/guards/auth.guard';
 import { roleGuard } from './app/shared/guards/role.guard';
@@ -11,6 +12,9 @@ import { permissionGuard } from './app/shared/guards/permission.guard';
 export const appRoutes: Routes = [
     // Login - standalone (no layout) — staff sign in
     { path: 'login', component: UnifiedLoginComponent },
+
+    // Access denied - standalone (no layout) — guard/403 landing page
+    { path: 'unauthorized', component: UnauthorizedComponent },
 
     // Quick Sale (POS) - standalone layout (no sidebar/header) — auth required
     { path: 'quick-sale-shortcut', component: QuickSaleShortcutComponent, canActivate: [authGuard] },
@@ -21,8 +25,9 @@ export const appRoutes: Routes = [
         component: AppLayout,
         canActivate: [authGuard],
         children: [
-            { path: '', component: DashboardComponent },
-            { path: 'financial-dashboard', component: DashboardComponent },
+            // Financial KPIs — restricted like reports (product decision 2026-08-25).
+            { path: '', component: DashboardComponent, canActivate: [permissionGuard], data: { permissions: ['reports.view'] } },
+            { path: 'financial-dashboard', component: DashboardComponent, canActivate: [permissionGuard], data: { permissions: ['reports.view'] } },
             {
                 path: 'notifications',
                 loadChildren: () => import('./app/features/notifications/notifications.routes').then(m => m.notificationsRoutes)

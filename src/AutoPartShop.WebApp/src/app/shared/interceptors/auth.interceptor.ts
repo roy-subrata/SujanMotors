@@ -9,6 +9,14 @@ import { ConfirmationService } from 'primeng/api';
 // the authentication failure, and retrying would recurse.
 const AUTH_ENDPOINTS = ['/auth/login', '/auth/refresh-token', '/auth/logout'];
 
+/**
+ * Sends every HTTP request with `withCredentials: true` so the browser attaches the
+ * httpOnly auth cookies (`ap_access`, `ap_refresh`) on cross-origin requests to the API.
+ *
+ * Tokens are NEVER read from JavaScript or attached as an Authorization header —
+ * that flow is reserved for the Flutter mobile app. The browser manages the cookies
+ * entirely; this interceptor only orchestrates the silent refresh-and-retry on 401.
+ */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
@@ -18,28 +26,32 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const isAuthEndpoint = AUTH_ENDPOINTS.some(path => req.url.includes(path));
 
-  const withToken = (request: HttpRequest<unknown>, token: string | null) =>
-    token && !isAssetRequest
-      ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
-      : request;
-
-  const authReq = withToken(req, authService.getToken());
+  // Attach withCredentials so the browser sends httpOnly cookies (ap_access, ap_refresh).
+  // Assets do not need credentials and may be served from a different origin.
+  const authReq = isAssetRequest
+    ? req
+    : req.clone({ withCredentials: true });
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
-        if (isAuthEndpoint || !authService.getRefreshToken()) {
+        if (isAuthEndpoint) {
+          // A 401 from /login or /refresh-token is the terminal auth failure — retrying
+          // would recurse. The refresh cookie is gone; clear the session and redirect.
           authService.logout();
           router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
           return throwError(() => error);
         }
 
-        // The access token has most likely just expired. Rotate it and replay the request
-        // once; concurrent 401s share a single rotation inside AuthService.
+        // The access cookie has most likely just expired. Rotate it via the httpOnly
+        // refresh cookie and replay the request once. Concurrent 401s share a single
+        // rotation inside AuthService.
         return authService.refreshToken().pipe(
           switchMap(result => {
             if (result.status === 'renewed') {
-              return next(withToken(req, result.token));
+              // Cookies have been rotated by the server. Retry the original request —
+              // the new access cookie will be attached automatically by the browser.
+              return next(authReq);
             }
 
             // Throttled or unreachable — the session is probably fine, we just could not

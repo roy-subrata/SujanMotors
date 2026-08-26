@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AutoPartShop.Api.Auth;
 using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Services;
@@ -54,8 +55,14 @@ public class AuthController : ControllerBase
         _refreshTokens = refreshTokens;
     }
 
+    private bool IsDev => HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
+
     /// <summary>Best-effort client IP for the refresh-token audit trail.</summary>
     private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
+
+    /// <summary>Access token expiry from JwtSettings (minutes), used for cookie MaxAge.</summary>
+    private int AccessExpiryMinutes =>
+        int.Parse(_configuration.GetSection("JwtSettings")["ExpiryInMinutes"] ?? "60");
 
     /// <summary>
     /// User login endpoint
@@ -113,7 +120,7 @@ public class AuthController : ControllerBase
             var roles = await _userManager.GetRolesAsync(user);
             var permissions = await GetUserPermissionsAsync(roles.ToList());
 
-            return Ok(new LoginResponse
+            var loginResponse = new LoginResponse
             {
                 Token = token,
                 RefreshToken = refreshToken,
@@ -123,7 +130,13 @@ public class AuthController : ControllerBase
                 FullName = user.FullName,
                 Roles = roles.ToList(),
                 Permissions = permissions
-            });
+            };
+
+            // Web SPA picks up tokens via httpOnly cookies (SameSite=Lax, HttpOnly).
+            // Mobile continues using the body — cookies are invisible to non-browser clients.
+            AuthCookie.SetAuthCookies(Response, token, AccessExpiryMinutes, refreshToken, refreshExpiresAt, IsDev);
+
+            return Ok(loginResponse);
         }
         catch (Exception ex)
         {
@@ -212,11 +225,20 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("refresh-token")]
     [EnableRateLimiting(RateLimiting.SessionPolicy)]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? bodyRequest, CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _refreshTokens.RotateAsync(request.RefreshToken, ClientIp, cancellationToken);
+            // Accept from body (mobile) OR httpOnly cookie (web SPA).
+            // Cookie takes priority when present since the SPA never sends a body.
+            var rawToken = !string.IsNullOrEmpty(bodyRequest?.RefreshToken)
+                ? bodyRequest.RefreshToken
+                : Request.Cookies[AuthCookie.RefreshName];
+
+            if (string.IsNullOrEmpty(rawToken))
+                return Unauthorized(ApiError.Unauthorized("No refresh token provided", Request.Path));
+
+            var result = await _refreshTokens.RotateAsync(rawToken, ClientIp, cancellationToken);
 
             if (!result.Succeeded)
             {
@@ -231,14 +253,18 @@ public class AuthController : ControllerBase
             var roles = await _userManager.GetRolesAsync(user);
             var permissions = await GetUserPermissionsAsync(roles.ToList());
 
-            return Ok(new RefreshTokenResponse
+            var refreshResponse = new RefreshTokenResponse
             {
                 Token = newToken,
                 RefreshToken = result.RefreshToken!,
                 RefreshTokenExpiresAt = result.ExpiresAt!.Value,
                 Roles = roles.ToList(),
                 Permissions = permissions
-            });
+            };
+
+            AuthCookie.SetAuthCookies(Response, newToken, AccessExpiryMinutes, result.RefreshToken!, result.ExpiresAt!.Value, IsDev);
+
+            return Ok(refreshResponse);
         }
         catch (Exception ex)
         {
@@ -256,11 +282,21 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("logout")]
     [EnableRateLimiting(RateLimiting.SessionPolicy)]
-    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest? bodyRequest, CancellationToken cancellationToken)
     {
         try
         {
-            await _refreshTokens.RevokeAsync(request.RefreshToken, "logout", cancellationToken);
+            // Accept from body (mobile) OR httpOnly cookie (web SPA).
+            var rawToken = !string.IsNullOrEmpty(bodyRequest?.RefreshToken)
+                ? bodyRequest.RefreshToken
+                : Request.Cookies[AuthCookie.RefreshName];
+
+            if (!string.IsNullOrEmpty(rawToken))
+                await _refreshTokens.RevokeAsync(rawToken, "logout", cancellationToken);
+
+            // Expire both cookies so the browser stops sending them immediately.
+            AuthCookie.ClearAuthCookies(Response, IsDev);
+
             return Ok(new { message = "Logged out" });
         }
         catch (Exception ex)
@@ -304,6 +340,9 @@ public class AuthController : ControllerBase
             // access token stays valid until it expires (at most JwtSettings:ExpiryInMinutes),
             // but it can no longer be renewed, so all sessions die within that window.
             await _refreshTokens.RevokeAllForUserAsync(user.Id, "password-change");
+
+            // Expire the caller's cookies so the browser stops presenting them immediately.
+            AuthCookie.ClearAuthCookies(Response, IsDev);
 
             return Ok(new { message = "Password changed successfully. Please sign in again on your other devices." });
         }

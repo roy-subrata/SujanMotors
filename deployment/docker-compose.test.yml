@@ -25,9 +25,9 @@
 #   Deployed automatically when code is merged to the "test" branch.
 #
 # PORTS:
-#   4201 - Web (Angular + nginx)  → http://<VPS_IP>:4201
-#   5001 - API (.NET)             → http://<VPS_IP>:5001 (debug access)
-#   1434 - SQL Server             → http://<VPS_IP>:1434 (external access)
+#   4201 - Web (Angular + nginx)  → public at http://<VPS_IP>:4201
+#   5001 - API (.NET)             → loopback-only; SSH tunnel to reach
+#   1434 - SQL Server             → loopback-only; SSH tunnel to reach
 #
 # =============================================================================
 
@@ -46,7 +46,7 @@ services:
       - SA_PASSWORD=${DB_PASSWORD:-Test!Passw0rd2024}  # SA password from .env or default
       - MSSQL_PID=Developer                   # Free Developer license (full feature set)
     ports:
-      - "1434:1433"                           # Expose DB for external access (different port than prod)
+      - "127.0.0.1:1434:1433"                           # Loopback-only: SSH tunnel for SSMS, not internet
     volumes:
       - autopart_mssql_test_data:/var/opt/mssql  # Persistent data (survives container restarts)
     restart: unless-stopped                   # Auto-restart on crash, but stop when manually stopped
@@ -114,7 +114,7 @@ services:
     volumes:
       - ./uploads-test:/app/App_Data/uploads   # Uploaded media — survives container rebuilds
     ports:
-      - "5001:8080"                           # Exposed for debugging (Swagger/Postman)
+      - "127.0.0.1:5001:8080"                           # Loopback-only: SSH tunnel for Swagger/Postman
     depends_on:
       autopartshop.db:
         condition: service_healthy            # Wait for DB health check before starting
@@ -135,7 +135,7 @@ services:
     image: smweb:test                         # Local image tag
     container_name: autopartshop.web.test     # ".test" suffix
     ports:
-      - "4201:80"                             # Web UI accessible at http://<VPS_IP>:4201
+      - "4201:80"                             # Web UI accessible at public at http://<VPS_IP>:4201
     depends_on:
       - autopartshop.api                      # API must be running before web starts
     restart: unless-stopped

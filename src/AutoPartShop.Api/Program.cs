@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using AutoPartShop.Api.Auth;
 using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Hubs;
 using AutoPartShop.Api.Services;
@@ -124,7 +125,9 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     options.SaveToken = true;
-    options.RequireHttpsMetadata = false;
+    // Production must fetch metadata / accept tokens over TLS only. Development is exempt
+    // because local Kestrel runs plain HTTP behind the SPA dev proxy.
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -248,12 +251,21 @@ builder.Services.Configure<JwtBearerOptions>(
         options.Events = existing;
         options.Events.OnMessageReceived = ctx =>
         {
+            // SignalR WebSocket/SSE cannot send Authorization headers; the Angular client
+            // passes the access token as a query-string parameter (negotiate + reconnect).
             var token = ctx.Request.Query["access_token"];
             if (!string.IsNullOrEmpty(token) &&
                 ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
             {
                 ctx.Token = token;
+                return Task.CompletedTask;
             }
+
+            // Fallback: web SPA sends httpOnly cookies with every request. The cookie
+            // value is preferred over the header when no Authorization header is present,
+            // so the SignalR hub works transparently with cookie-based auth.
+            ctx.Token ??= ctx.Request.Cookies[AuthCookie.AccessName];
+
             return Task.CompletedTask;
         };
     });

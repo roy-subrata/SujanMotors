@@ -11,16 +11,18 @@
 # ENVIRONMENT VARIABLES:
 #   All secrets are read from a .env file in this directory (deployment/.env).
 #   Copy .env.prod.example to .env and fill in real values.
-#   Falls back to safe defaults if .env is missing (NOT recommended for real prod).
+#   REQUIRED secrets (compose fails fast without them): DB_PASSWORD, JWT_SECRET,
+#   SEED_ADMIN_PASSWORD. There are NO insecure fallbacks.
 #
 # ON THE VPS:
-#   This stack lives in /opt/sujanmotors/ on the Hostinger VPS.
+#   This stack lives in /opt/sujanmotors-prod/ on the Hostinger VPS.
 #   Deployed automatically when code is merged to the "main" branch.
 #
 # ARCHITECTURE:
-#   Browser → nginx (port 4200) → API container (port 8080)
-#                                  ↳ DB container (port 1433)
-#   Web (4200), API (5000), DB (1433) are all exposed for access.
+#   Internet → nginx TLS :443 (web container) → API container (:8080 internal)
+#                                              ↳ DB container (:1433 internal)
+#   Public ports: 443 only. DB/API/Seq host bindings are loopback (127.0.0.1) so
+#   they stay reachable for local debugging via SSH but not from the internet.
 #
 # =============================================================================
 
@@ -35,10 +37,13 @@ services:
     container_name: autopartshop.db            # Stable name for container-to-container networking
     environment:
       - ACCEPT_EULA=Y                         # Required: accept SQL Server license agreement
-      - SA_PASSWORD=${DB_PASSWORD:-YourStrong!Passw0rd}  # SA password from .env file
+      # Fail-fast: no insecure default. Copy deployment/.env.example to .env first.
+      - SA_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in deployment/.env}
       - MSSQL_PID=Developer                   # Free Developer license (full feature set)
     ports:
-      - "1433:1433"                           # Expose DB for external connections (VS Code, SSMS)
+      # Loopback-only: SSMS / local API reach it via localhost on the HOST, but the
+      # internet cannot. Container-to-container traffic uses the internal network.
+      - "127.0.0.1:1433:1433"
     volumes:
       - autopart_mssql_data:/var/opt/mssql    # Persistent data (survives container restarts)
       # Shared backup folder (also mounted into the API container). The API writes .bak files
@@ -48,7 +53,7 @@ services:
     restart: always                           # Always restart in prod (even after server reboot)
     healthcheck:
       # Health check: verify SQL Server is ready before allowing API to start
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD:-YourStrong!Passw0rd}' -Q 'SELECT 1' -No || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD:?set DB_PASSWORD in deployment/.env}' -Q 'SELECT 1' -No || exit 1"]
       interval: 10s                           # Check every 10 seconds
       timeout: 5s                             # Fail if no response within 5 seconds
       retries: 10                             # Mark unhealthy after 10 consecutive failures
@@ -69,9 +74,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production     # Disables Swagger, detailed errors
       - ASPNETCORE_HTTP_PORTS=8080            # API listens on port 8080 inside container
       # Database connection: uses service name "autopartshop.db" for DNS resolution
-      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopProdDb};User=sa;Password=${DB_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True;
-      # JWT authentication settings
-      - JwtSettings__SecretKey=${JWT_SECRET:-YourSuperSecretKeyForJWTTokenGenerationMustBe32CharsLong!@#}
+      - ConnectionStrings__AutoPartDb=Server=autopartshop.db,1433;Database=${DB_NAME:-AutoPartShopProdDb};User=sa;Password=${DB_PASSWORD:?set DB_PASSWORD in deployment/.env};TrustServerCertificate=True;
+      # JWT authentication settings — the signing key is REQUIRED, no insecure default
+      - JwtSettings__SecretKey=${JWT_SECRET:?set JWT_SECRET in deployment/.env (openssl rand -base64 64)}
       - JwtSettings__Issuer=AutoPartShopAPI
       - JwtSettings__Audience=AutoPartShopClient
       - JwtSettings__ExpiryInMinutes=${JWT_EXPIRY_MINUTES:-60}
@@ -89,7 +94,9 @@ services:
       - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
       - Smtp__FromName=${SMTP_FROM_NAME:-SujanMotors}
       # Seed settings — auto-create admin user on first run
-      - Seed__AdminPassword=${SEED_ADMIN_PASSWORD:-Admin@1990}
+      # Fail-fast: REQUIRED so a first-run stack never lands on the old
+      # publicly-known default admin password.
+      - Seed__AdminPassword=${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD in deployment/.env}
       # Database backups: shared folder as seen by this container / by SQL Server,
       # plus the Google service-account key JSON for Drive uploads (leave blank to skip upload)
       - Backup__Directory=/app/backups
@@ -123,9 +130,10 @@ services:
       # inside the container and are destroyed by every rebuild/recreate, leaving the
       # ProductMedia/StoredFiles rows pointing at 404s. Back this folder up with the DB.
       - ./uploads:/app/App_Data/uploads
+    # Loopback-only: host-side curl / SSH debugging only, not internet-reachable.
+    # Browsers and the mobile app must go through nginx TLS.
     ports:
-      - "5000:8080"                           # Expose API for direct access (testing/debugging)
-    # No ports exposed to host — browser reaches API through nginx reverse proxy
+      - "127.0.0.1:5000:8080"
     depends_on:
       autopartshop.db:
         condition: service_healthy            # Wait for DB health check before starting
@@ -155,8 +163,9 @@ services:
   # Seq — structured log server + UI
   # ---------------------------------------------------------------------------
   # The only observability component: the API's Serilog sink ships logs here
-  # (Seq__Url). Browse/search them at http://<host>:5341.
-  # SEQ_ADMIN_PASSWORD_HASH (optional) enables the built-in login; generate with:
+  # (Seq__Url). UI binding is loopback-only - reach it via SSH tunnel:
+  #   ssh -L 5341:localhost:5341 <vps>  (then browse http://localhost:5341).
+  # Set SEQ_ADMIN_PASSWORD_HASH in .env to require login (strongly recommended); generate with:
   #   docker run --rm datalust/seq config hash '<password>'
   seq:
     image: datalust/seq:2024.3
@@ -167,7 +176,8 @@ services:
     volumes:
       - autopart_seq_data:/data                # Persistent log storage
     ports:
-      - "5341:80"                              # http://<host>:5341 — UI and ingestion
+      # Loopback-only: structured logs must not be publicly readable.
+      - "127.0.0.1:5341:80"
     restart: always
 
 # Named volumes: persistent storage that survives container restarts

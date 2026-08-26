@@ -173,7 +173,7 @@ export class PurchaseOrderFormComponent implements OnInit {
                     }
                 },
                 error: (error) => {
-                    console.log(error);
+                    console.error('Failed to load purchase order:', error);
                 }
             }),
         ).subscribe();

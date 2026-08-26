@@ -28,3 +28,14 @@ README.md
 !.git/config
 !.git/packed-refs
 !.git/refs/heads/**
+# Repo-only folders not needed by any Docker build context
+deployment/
+mobile/
+docs/
+team/
+learning/
+e2e/
+.github/
+.claude/
+.opencode/
+.vscode/
