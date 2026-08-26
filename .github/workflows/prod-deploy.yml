@@ -23,6 +23,8 @@
 #   VPS_SSH_KEY  - PRIVATE key whose PUBLIC half is in the VPS user's
 #                  authorized_keys (key-based auth; password auth removed).
 #                  Generate: ssh-keygen -t ed25519 -f deploy_key -N ""
+#   VPS_SSH_PASSPHRASE - Passphrase for VPS_SSH_KEY, if the key was created
+#                  with one (leave the secret empty/unset if the key has none).
 #
 # CI TEST GATE:
 #   The "test" job runs the backend integration suite (Testcontainers) BEFORE
@@ -83,6 +85,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}        # VPS IP address
           username: ${{ secrets.VPS_USER }}    # SSH username
           key: ${{ secrets.VPS_SSH_KEY }}      # Private key (password auth removed)
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }} # Passphrase for VPS_SSH_KEY (blank if key has none)
           port: 22                              # Default SSH port
           timeout: 30s                          # SSH connection timeout
           command_timeout: 10m                  # Max time for the entire script
