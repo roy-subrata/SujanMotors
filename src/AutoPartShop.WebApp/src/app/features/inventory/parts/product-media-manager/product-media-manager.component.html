@@ -37,10 +37,7 @@
                         [src]="displayUrl(item.url)"
                         [alt]="item.altText || ('parts.mediaManager.altFallbackImage' | translate)"
                         class="mm-img"
-                        onerror="
-                            this.style.display = 'none';
-                            this.nextElementSibling.style.display = 'flex';
-                        "
+                        (error)="onImagePreviewError($event)"
                     />
                     <div class="mm-img-fallback" style="display: none">
                         <i class="pi pi-image"></i>
@@ -162,10 +159,7 @@
                     [src]="displayUrl(formUrl)"
                     alt="Preview"
                     class="mm-form-img"
-                    onerror="
-                        this.style.display = 'none';
-                        this.nextElementSibling.style.display = 'flex';
-                    "
+                    (error)="onImagePreviewError($event)"
                 />
                 <div class="mm-img-fallback mm-form-fallback" style="display: none"><i class="pi pi-image"></i> <span>{{ 'parts.mediaManager.couldNotLoadPreview' | translate }}</span></div>
             </ng-container>

@@ -1205,14 +1205,16 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     </div>
 
     <div class="no-print">
-        <button class="btn-print" onclick="window.print()">Print Invoice</button>
-        <button class="btn-close" onclick="window.close()">Close</button>
+        <button id="printBtn" class="btn-print">Print Invoice</button>
+        <button id="closeBtn" class="btn-close">Close</button>
     </div>
 </body>
 </html>`;
 
         printWindow.document.write(htmlContent);
         printWindow.document.close();
+        printWindow.document.getElementById('printBtn')?.addEventListener('click', () => printWindow.print());
+        printWindow.document.getElementById('closeBtn')?.addEventListener('click', () => printWindow.close());
 
         this.messageService.add({
             severity: 'success',

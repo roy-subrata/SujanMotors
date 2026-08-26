@@ -311,6 +311,13 @@ export class ProductMediaManagerComponent implements OnInit {
         return url.includes('youtube.com') || url.includes('youtu.be');
     }
 
+    /** Hides a broken image preview and reveals its fallback sibling. */
+    onImagePreviewError(event: Event): void {
+        const img = event.target as HTMLImageElement;
+        img.style.display = 'none';
+        (img.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex');
+    }
+
     youTubeThumbnail(url: string): string {
         const match = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
         const id = match?.[1] ?? '';
