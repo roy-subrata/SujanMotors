@@ -42,7 +42,12 @@
                     },
                     "configurations": {
                         "production": {
-                            "optimization": true,
+                            // inlineCritical defers the rest of styles.css behind a
+                            // <link media="print" onload="this.media='all'">, an inline
+                            // event handler that the strict prod CSP (script-src 'self',
+                            // no unsafe-inline) blocks — the stylesheet then stays stuck
+                            // in print-only media and never renders on screen.
+                            "optimization": { "scripts": true, "styles": { "minify": true, "inlineCritical": false }, "fonts": true },
                             "sourceMap": false,
                             "outputHashing": "all",
                             "serviceWorker": "ngsw-config.json",
@@ -69,7 +74,8 @@
                             // Explicit optimization: without it only a config literally named
                             // "production" gets minified, so staging shipped readable code.
                             // sourceMap stays ON for debugging the staging deployment.
-                            "optimization": true,
+                            // inlineCritical off for the same reason as the production config above.
+                            "optimization": { "scripts": true, "styles": { "minify": true, "inlineCritical": false }, "fonts": true },
                             "outputHashing": "all",
                             "sourceMap": true,
                             "fileReplacements": [
