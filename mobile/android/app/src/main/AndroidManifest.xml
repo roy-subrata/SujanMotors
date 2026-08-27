@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for all network access. Debug/profile manifests also grant it for
+         hot reload, but release builds merge only this manifest, so it MUST live here
+         or the release APK has no connectivity at all. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Barcode scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
