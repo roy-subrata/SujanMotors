@@ -260,14 +260,13 @@ export class InvoicePdfService {
       </head>
       <body>
         ${printContent.innerHTML}
-        <script>
-          // Wait for stylesheets to load before printing so the layout isn't captured bare.
-          window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 300); }
-        </script>
       </body>
       </html>
     `);
     printWindow.document.close();
+
+    // Wait for stylesheets to load before printing so the layout isn't captured bare.
+    printWindow.onload = () => setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
   }
 
   getInvoiceByNumber(invoiceNumber: string): Observable<{ id: string; invoiceNumber: string }> {

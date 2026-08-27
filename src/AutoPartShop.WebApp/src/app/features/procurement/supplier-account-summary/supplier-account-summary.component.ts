@@ -338,13 +338,11 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
             </head>
             <body>
                 ${printContent.innerHTML}
-                <script>
-                    window.onload = function() { window.print(); window.close(); }
-                </script>
             </body>
             </html>
         `);
         printWindow.document.close();
+        printWindow.onload = () => { printWindow.print(); printWindow.close(); };
         this.pdfLoading.set(false);
     }
 

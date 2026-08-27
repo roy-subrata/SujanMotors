@@ -186,13 +186,13 @@ export class LocationLabelDialogComponent implements OnInit {
     <div class="wl-sheet">
         ${Array.from({ length: this.quantity }, () => `<div class="wl-label-slot">${labelHtml}</div>`).join('')}
     </div>
-    <script>window.onload = function () { setTimeout(function () { window.print(); }, 200); };</script>
 </body>
 </html>`;
 
             printWindow.document.open();
             printWindow.document.write(htmlContent);
             printWindow.document.close();
+            setTimeout(() => printWindow.print(), 200);
 
             this.messageService.add({
                 severity: 'success',
