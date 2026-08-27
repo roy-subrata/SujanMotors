@@ -20,6 +20,12 @@ name: Build Android APK
 #   STORE_PASSWORD        keystore store password
 #   KEY_ALIAS             key alias (e.g. "upload")
 #   KEY_PASSWORD          key password
+#
+# API base URL:
+#   Compiled in via --dart-define (see mobile/lib/core/config/api_config.dart).
+#   Defaults to https://76.13.218.241 (prod). Override by setting the repo/org
+#   Actions VARIABLE (not secret — it's not sensitive) API_BASE_URL, e.g. to
+#   point a manual build at the test VPS.
 
 on:
   push:
@@ -86,9 +92,11 @@ jobs:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'https://76.13.218.241' }}
         run: |
           flutter build apk --release \
-            --build-number=${{ github.run_number }}
+            --build-number=${{ github.run_number }} \
+            --dart-define=API_BASE_URL=$API_BASE_URL
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
