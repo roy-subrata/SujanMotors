@@ -5,7 +5,14 @@ import '../../features/auth/auth_controller.dart';
 import '../../features/auth/auth_repository.dart';
 import '../config/api_config.dart';
 import '../storage/token_storage.dart';
+import 'secure_http_adapter.dart';
 import 'token_refresher.dart';
+
+/// The pinned TLS adapter, built in `main()` before runApp and overridden in
+/// the [ProviderScope]. It must not be null at request time, so a throw here
+/// means the app was started without initialising it.
+final secureHttpAdapterProvider = Provider<SecureHttpAdapter>((_) =>
+    throw StateError('SecureHttpAdapter must be provided in main().'));
 
 /// Marks a request that has already been replayed after a token refresh, so a
 /// second 401 ends the session instead of looping.
@@ -27,6 +34,8 @@ final dioProvider = Provider<Dio>((ref) {
   ));
 
   final storage = ref.read(tokenStorageProvider);
+
+  dio.httpClientAdapter = ref.watch(secureHttpAdapterProvider).adapter;
 
   dio.interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {

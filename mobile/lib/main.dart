@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/i18n/app_language_controller.dart';
 import 'core/i18n/strings.dart';
+import 'core/network/dio_provider.dart';
+import 'core/network/secure_http_adapter.dart';
 import 'core/notifications/local_notifications.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -12,7 +14,15 @@ import 'core/theme/theme_mode_controller.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalNotifications.instance.init();
-  runApp(const ProviderScope(child: AutoPartShopApp()));
+  // Wire the pinned TLS trust into every Dio client before the UI boots; the
+  // API uses a self-signed cert that Dart's HTTP stack would otherwise reject.
+  final secureHttpAdapter = await SecureHttpAdapter.build();
+  runApp(ProviderScope(
+    overrides: [
+      secureHttpAdapterProvider.overrideWithValue(secureHttpAdapter),
+    ],
+    child: const AutoPartShopApp(),
+  ));
 }
 
 class AutoPartShopApp extends ConsumerWidget {
