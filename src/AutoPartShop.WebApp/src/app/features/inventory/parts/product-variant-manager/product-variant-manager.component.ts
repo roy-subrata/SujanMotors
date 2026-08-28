@@ -133,9 +133,9 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
     this.attributeService.getAllGroups().subscribe({
       next: (groups) => {
         this.attributeGroups = groups.filter(g => g.isActive);
-        // Only variant-scoped attributes can be attached to a variant — product-scoped
-        // attributes belong on <app-product-attribute-values-manager> instead.
-        this.allAttributes = groups.flatMap(g => g.attributes.filter(a => a.isActive && a.scope === 'variant'));
+        // Any active attribute can be attached to a variant — the backend rejects one already
+        // set directly on the parent product (a product can't have a value both ways at once).
+        this.allAttributes = groups.flatMap(g => g.attributes.filter(a => a.isActive));
       }
     });
   }

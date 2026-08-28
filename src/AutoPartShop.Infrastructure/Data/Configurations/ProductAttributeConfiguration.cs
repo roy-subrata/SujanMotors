@@ -26,11 +26,6 @@ public class ProductAttributeConfiguration : IEntityTypeConfiguration<ProductAtt
             .HasMaxLength(30)
             .IsRequired(false);
 
-        builder.Property(x => x.Scope)
-            .HasMaxLength(20)
-            .IsRequired()
-            .HasDefaultValue("variant");
-
         builder.HasOne(x => x.AttributeGroup)
             .WithMany(g => g.Attributes)
             .HasForeignKey(x => x.AttributeGroupId)

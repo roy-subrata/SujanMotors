@@ -33,11 +33,12 @@ interface AttrRow {
 }
 
 /**
- * Inline editor for a product's own (scope === 'product') attribute values —
- * e.g. Material/Brand-style attributes that apply to the whole product, as
- * opposed to per-variant attributes (see product-variant-manager). Saving is
- * a full replace via PUT /products/{id}/attribute-values, independent from
- * the surrounding part-form's own submit.
+ * Inline editor for a product's own attribute values — e.g. Material/Brand-style attributes set
+ * directly on the whole product, as opposed to per-variant values (see product-variant-manager).
+ * Any active attribute may be used here; the backend rejects one already assigned to one of this
+ * product's variants (a product can't have a value both directly and per-variant at once). Saving
+ * is a full replace via PUT /products/{id}/attribute-values, independent from the surrounding
+ * part-form's own submit.
  */
 @Component({
   selector: 'app-product-attribute-values-manager',
@@ -104,7 +105,7 @@ export class ProductAttributeValuesManagerComponent implements OnInit, OnChanges
     return this.form.get('attributeValues') as FormArray;
   }
 
-  /** Product-scoped attributes NOT yet added to this form */
+  /** Attributes NOT yet added to this form */
   get availableAttributes(): { label: string; value: string }[] {
     const alreadyAdded = new Set(this.selectedAttrRows.map(r => r.attributeId));
     return this.allAttributes
@@ -121,9 +122,9 @@ export class ProductAttributeValuesManagerComponent implements OnInit, OnChanges
     this.attributeService.getAllGroups().subscribe({
       next: (groups) => {
         this.attributeGroups = groups.filter(g => g.isActive);
-        // Only product-scoped attributes can be attached here — variant-scoped attributes
-        // belong on <app-product-variant-manager> instead.
-        this.allAttributes = groups.flatMap(g => g.attributes.filter(a => a.isActive && a.scope === 'product'));
+        // Any active attribute can be attached here — the backend rejects one already assigned
+        // to one of this product's variants (a product can't have a value both ways at once).
+        this.allAttributes = groups.flatMap(g => g.attributes.filter(a => a.isActive));
         this.isLoadingAttrs = false;
         this.populateFromValues(this.initialAttributeValues ?? []);
       },

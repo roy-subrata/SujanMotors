@@ -268,9 +268,9 @@ public class ProductsController : ControllerBase
 
     /// <summary>
     /// Replaces a product's attribute values with the supplied list (full replace, mirroring
-    /// <see cref="ProductVariantController.SaveAttributeValues"/>). Only attributes whose
-    /// Scope is "product" may be assigned here — variant-scoped attributes are rejected and
-    /// belong on <see cref="ProductVariantController"/> instead.
+    /// <see cref="ProductVariantController.SaveAttributeValues"/>). An attribute already assigned to
+    /// one of this product's variants is rejected here — the same attribute can't be set directly
+    /// on the product AND per-variant at once, to avoid a value conflict.
     /// </summary>
     [HttpPut("{id:guid}/attribute-values")]
     [HasPermission(Permissions.InventoryEdit)]
@@ -282,9 +282,9 @@ public class ProductsController : ControllerBase
         if (!await _productRepository.ExistsAsync(id, cancellationToken))
             return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
 
-        var scopeError = await ValidateAttributeScopeAsync(request.AttributeValues, cancellationToken);
-        if (scopeError is not null)
-            return BadRequest(scopeError);
+        var validationError = await ValidateAttributeAssignmentAsync(id, request.AttributeValues, cancellationToken);
+        if (validationError is not null)
+            return BadRequest(validationError);
 
         var existing = await _dbContext.ProductAttributeValues
             .Where(v => v.ProductId == id)
@@ -325,10 +325,11 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Rejects attribute values whose Scope is not "product" (or that reference an unknown
-    /// attribute id). Returns an ApiError to surface, or null when every submitted attribute checks out.
+    /// Rejects duplicate/unknown attribute ids, and any attribute already assigned to one of this
+    /// product's own variants (a product can't have a value both directly and per-variant at once).
+    /// Returns an ApiError to surface, or null when every submitted attribute checks out.
     /// </summary>
-    private async Task<ApiError?> ValidateAttributeScopeAsync(List<ProductAttributeValueRequest>? values, CancellationToken ct)
+    private async Task<ApiError?> ValidateAttributeAssignmentAsync(Guid productId, List<ProductAttributeValueRequest>? values, CancellationToken ct)
     {
         if (values is null || values.Count == 0) return null;
 
@@ -337,19 +338,24 @@ public class ProductsController : ControllerBase
             return ApiError.Validation($"Attribute id(s) listed more than once: {string.Join(", ", duplicates)}", instance: Request.Path);
 
         var ids = values.Select(v => v.AttributeId).Distinct().ToList();
-        var attrs = await _dbContext.ProductAttributes
+        var knownIds = await _dbContext.ProductAttributes
             .Where(a => ids.Contains(a.Id))
-            .Select(a => new { a.Id, a.Scope })
+            .Select(a => a.Id)
             .ToListAsync(ct);
 
-        var missing = ids.Except(attrs.Select(a => a.Id)).ToList();
+        var missing = ids.Except(knownIds).ToList();
         if (missing.Count > 0)
             return ApiError.Validation($"Unknown attribute id(s): {string.Join(", ", missing)}", instance: Request.Path);
 
-        var wrongScope = attrs.Where(a => a.Scope != "product").Select(a => a.Id).ToList();
-        if (wrongScope.Count > 0)
+        var claimedByVariants = await _dbContext.VariantAttributeValues
+            .Where(v => !v.Isdeleted && v.Variant != null && !v.Variant.Isdeleted
+                && v.Variant.PartId == productId && ids.Contains(v.AttributeId))
+            .Select(v => v.AttributeId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (claimedByVariants.Count > 0)
             return ApiError.Validation(
-                $"Attribute(s) {string.Join(", ", wrongScope)} are scoped to 'variant' and cannot be assigned to a product",
+                $"Attribute(s) {string.Join(", ", claimedByVariants)} are already set on this product's variants — remove them there first",
                 instance: Request.Path);
 
         return null;

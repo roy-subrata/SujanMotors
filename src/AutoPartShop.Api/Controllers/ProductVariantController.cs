@@ -76,9 +76,9 @@ public class ProductVariantController : ControllerBase
         if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
             return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
-        var scopeError = await ValidateAttributeScopeAsync(req.AttributeValues, ct);
-        if (scopeError is not null)
-            return BadRequest(scopeError);
+        var validationError = await ValidateAttributeAssignmentAsync(productId, req.AttributeValues, ct);
+        if (validationError is not null)
+            return BadRequest(validationError);
 
         // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
         if (string.IsNullOrWhiteSpace(req.SKU))
@@ -131,9 +131,9 @@ public class ProductVariantController : ControllerBase
         if (variant is null)
             return NotFound(ApiError.NotFound($"Variant '{id}' not found on product '{productId}'", Request.Path));
 
-        var scopeError = await ValidateAttributeScopeAsync(req.AttributeValues, ct);
-        if (scopeError is not null)
-            return BadRequest(scopeError);
+        var validationError = await ValidateAttributeAssignmentAsync(productId, req.AttributeValues, ct);
+        if (validationError is not null)
+            return BadRequest(validationError);
 
         // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
         if (string.IsNullOrWhiteSpace(req.SKU))
@@ -287,11 +287,10 @@ public class ProductVariantController : ControllerBase
     }
 
     /// <summary>
-    /// Rejects attribute values whose <see cref="ProductAttribute.Scope"/> is not "variant" (or that
-    /// reference an unknown attribute id), so a product-scoped attribute can never be assigned to a
-    /// variant. Returns an ApiError to surface, or null when every submitted attribute checks out.
+    /// Rejects duplicate/unknown attribute ids, and any attribute already assigned directly to the
+    /// parent product (a product can't have a value both directly and per-variant at once).
     /// </summary>
-    private async Task<ApiError?> ValidateAttributeScopeAsync(List<VariantAttributeValueRequest>? values, CancellationToken ct)
+    private async Task<ApiError?> ValidateAttributeAssignmentAsync(Guid productId, List<VariantAttributeValueRequest>? values, CancellationToken ct)
     {
         if (values is null || values.Count == 0) return null;
 
@@ -300,19 +299,23 @@ public class ProductVariantController : ControllerBase
             return ApiError.Validation($"Attribute id(s) listed more than once: {string.Join(", ", duplicates)}", instance: Request.Path);
 
         var ids = values.Select(v => v.AttributeId).Distinct().ToList();
-        var attrs = await _db.ProductAttributes
+        var knownIds = await _db.ProductAttributes
             .Where(a => ids.Contains(a.Id))
-            .Select(a => new { a.Id, a.Scope })
+            .Select(a => a.Id)
             .ToListAsync(ct);
 
-        var missing = ids.Except(attrs.Select(a => a.Id)).ToList();
+        var missing = ids.Except(knownIds).ToList();
         if (missing.Count > 0)
             return ApiError.Validation($"Unknown attribute id(s): {string.Join(", ", missing)}", instance: Request.Path);
 
-        var wrongScope = attrs.Where(a => a.Scope != "variant").Select(a => a.Id).ToList();
-        if (wrongScope.Count > 0)
+        var claimedByProduct = await _db.ProductAttributeValues
+            .Where(v => !v.Isdeleted && v.ProductId == productId && ids.Contains(v.AttributeId))
+            .Select(v => v.AttributeId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (claimedByProduct.Count > 0)
             return ApiError.Validation(
-                $"Attribute(s) {string.Join(", ", wrongScope)} are scoped to 'product' and cannot be assigned to a variant",
+                $"Attribute(s) {string.Join(", ", claimedByProduct)} are already set directly on this product — remove them there first",
                 instance: Request.Path);
 
         return null;

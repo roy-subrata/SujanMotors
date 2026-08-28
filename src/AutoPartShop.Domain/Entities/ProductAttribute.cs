@@ -2,7 +2,11 @@
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
-/// Defines a product attribute (e.g., RAM, Processor, Storage).
+/// Defines a product attribute (e.g., RAM, Processor, Storage). Assignable at either the
+/// product level (<see cref="ProductAttributeValue"/>) or the variant level
+/// (<see cref="VariantAttributeValue"/>) — not locked to one or the other. The one rule enforced
+/// at assignment time (see the controllers) is per-product: a given attribute can't be set both
+/// directly on a product and on that same product's variants at once, to avoid a value conflict.
 /// </summary>
 public class ProductAttribute : AuditableEntity
 {
@@ -12,13 +16,6 @@ public class ProductAttribute : AuditableEntity
     public string DataType { get; private set; } = "text"; // text, number, boolean, option
     public string Unit { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
-
-    /// <summary>
-    /// Which entity level this attribute attaches to: "product" (e.g. Material) or
-    /// "variant" (e.g. Side, Color). Defaults to "variant" for backward compatibility with
-    /// attributes created before this flag existed.
-    /// </summary>
-    public string Scope { get; private set; } = "variant"; // product, variant
 
     public ProductAttributeGroup? AttributeGroup { get; set; }
     public ICollection<ProductAttributeOption> Options { get; set; } = new List<ProductAttributeOption>();
@@ -31,8 +28,7 @@ public class ProductAttribute : AuditableEntity
         string code,
         string dataType = "text",
         string unit = "",
-        bool isActive = true,
-        string scope = "variant")
+        bool isActive = true)
     {
         if (attributeGroupId == Guid.Empty)
             throw new ArgumentException("AttributeGroupId cannot be empty", nameof(attributeGroupId));
@@ -43,8 +39,6 @@ public class ProductAttribute : AuditableEntity
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code cannot be empty", nameof(code));
 
-        var resolvedScope = NormalizeScope(scope);
-
         return new ProductAttribute
         {
             AttributeGroupId = attributeGroupId,
@@ -52,12 +46,11 @@ public class ProductAttribute : AuditableEntity
             Code = code.Trim().ToUpperInvariant(),
             DataType = string.IsNullOrWhiteSpace(dataType) ? "text" : dataType.Trim().ToLowerInvariant(),
             Unit = unit?.Trim() ?? string.Empty,
-            IsActive = isActive,
-            Scope = resolvedScope
+            IsActive = isActive
         };
     }
 
-    public void Update(string name, string code, string dataType, string unit, bool isActive, string scope = "variant")
+    public void Update(string name, string code, string dataType, string unit, bool isActive)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be empty", nameof(name));
@@ -65,21 +58,10 @@ public class ProductAttribute : AuditableEntity
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code cannot be empty", nameof(code));
 
-        var resolvedScope = NormalizeScope(scope);
-
         Name = name.Trim();
         Code = code.Trim().ToUpperInvariant();
         DataType = string.IsNullOrWhiteSpace(dataType) ? "text" : dataType.Trim().ToLowerInvariant();
         Unit = unit?.Trim() ?? string.Empty;
         IsActive = isActive;
-        Scope = resolvedScope;
-    }
-
-    private static string NormalizeScope(string scope)
-    {
-        var normalized = string.IsNullOrWhiteSpace(scope) ? "variant" : scope.Trim().ToLowerInvariant();
-        if (normalized != "product" && normalized != "variant")
-            throw new ArgumentException("Scope must be 'product' or 'variant'", nameof(scope));
-        return normalized;
     }
 }

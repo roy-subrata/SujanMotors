@@ -156,7 +156,7 @@ public class ProductAttributeGroupController : ControllerBase
             if (await _db.ProductAttributes.AnyAsync(a => a.Code == req.Code.Trim().ToUpperInvariant(), ct))
                 return Conflict(new { message = $"Attribute code '{req.Code}' already exists" });
 
-            var attr = ProductAttribute.Create(groupId, req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive, req.Scope);
+            var attr = ProductAttribute.Create(groupId, req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive);
             _db.ProductAttributes.Add(attr);
             await _db.SaveChangesAsync(ct);
             return Ok(MapAttribute(attr));
@@ -180,12 +180,7 @@ public class ProductAttributeGroupController : ControllerBase
                 .FirstOrDefaultAsync(a => a.Id == attrId && a.AttributeGroupId == groupId, ct);
             if (attr is null) return NotFound();
 
-            // Changing Scope after values already exist under the old scope would silently orphan
-            // them (still in the DB, but invisible to both the product- and variant-scoped editors).
-            if (!string.Equals(attr.Scope, req.Scope, StringComparison.Ordinal) && await AttributeHasValuesAsync(attrId, ct))
-                return BadRequest(new { message = "Cannot change scope: this attribute already has values assigned. Remove them first." });
-
-            attr.Update(req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive, req.Scope);
+            attr.Update(req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive);
             await _db.SaveChangesAsync(ct);
             return Ok(MapAttribute(attr));
         }
@@ -306,12 +301,11 @@ public class ProductAttributeGroupController : ControllerBase
         a.DataType,
         a.Unit,
         a.IsActive,
-        a.Scope,
         options = a.Options.OrderBy(o => o.SortOrder).Select(o => new { o.Id, o.AttributeId, o.Value, o.SortOrder })
     };
 }
 
 public record CreateAttributeGroupRequest(string Name, int SortOrder = 0, bool IsActive = true);
-public record CreateAttributeRequest(string Name, string Code, string DataType = "option", string? Unit = null, bool IsActive = true, string Scope = "variant");
+public record CreateAttributeRequest(string Name, string Code, string DataType = "option", string? Unit = null, bool IsActive = true);
 public record CreateOptionRequest(string Value, int SortOrder = 0);
 public record AttributeGroupQuery(string Search = "", bool? IsActive = null, int PageNumber = 1, int PageSize = 10);

@@ -2,8 +2,10 @@ namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
 /// Attribute values assigned to a product (base-level, not a specific variant). Mirrors
-/// <see cref="VariantAttributeValue"/> exactly, keyed by ProductId instead of VariantId, and is
-/// only ever populated for attributes whose <see cref="ProductAttribute.Scope"/> is "product".
+/// <see cref="VariantAttributeValue"/> exactly, keyed by ProductId instead of VariantId. A given
+/// attribute may have a row here AND rows in <see cref="VariantAttributeValue"/> for different
+/// products — the controllers enforce only that the SAME product can't use an attribute both ways
+/// at once (see ProductsController/ProductVariantController).
 /// </summary>
 public class ProductAttributeValue : AuditableEntity
 {
