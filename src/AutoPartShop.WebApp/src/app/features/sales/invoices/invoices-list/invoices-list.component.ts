@@ -495,7 +495,7 @@ export class InvoicesListComponent implements OnInit {
             this.messageService.add({
                 severity: 'info',
                 summary: this.i18n.t('common.messages.info'),
-                detail: `Payment exceeds outstanding by ${this.formatCurrency(creditAmount)}. This will create a credit balance.`,
+                detail: this.i18n.t('invoices.messages.paymentExceedsOutstanding', { amount: this.formatCurrency(creditAmount) }),
                 life: 5000
             });
         }

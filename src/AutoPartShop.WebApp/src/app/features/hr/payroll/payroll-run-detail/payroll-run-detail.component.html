@@ -74,6 +74,7 @@
             <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.taxDeduction' | translate }}</th>
             <th class="col-input">{{ 'hr.payroll.detail.payslipColumns.otherDeduction' | translate }}</th>
             <th class="col-amount">{{ 'hr.payroll.detail.payslipColumns.netPay' | translate }}</th>
+            <th class="col-pdf"></th>
             <th class="col-save" *ngIf="isDraft"></th>
           </tr>
         </ng-template>
@@ -125,6 +126,12 @@
               <span *ngIf="!isDraft">{{ payslip.otherDeduction | number: '1.2-2' }}</span>
             </td>
             <td class="col-amount"><span class="cell-primary">{{ payslip.netPay | number: '1.2-2' }}</span></td>
+            <td class="col-pdf">
+              <button class="btn-action" [pTooltip]="'hr.payroll.detail.payslipColumns.downloadTooltip' | translate" (click)="downloadPayslipPdf(payslip)"
+                [disabled]="downloadingPayslipId === payslip.id">
+                <i class="pi" [ngClass]="downloadingPayslipId === payslip.id ? 'pi-spin pi-spinner' : 'pi-file-pdf'"></i>
+              </button>
+            </td>
             <td class="col-save" *ngIf="isDraft">
               <button class="btn-action" [pTooltip]="'hr.payroll.detail.payslipColumns.saveTooltip' | translate" (click)="savePayslip(payslip)"
                 [disabled]="savingPayslipId === payslip.id">
@@ -136,7 +143,7 @@
 
         <ng-template #emptymessage>
           <tr>
-            <td colspan="13">
+            <td colspan="14">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-wallet"></i></div>
                 <h3>{{ 'hr.payroll.detail.emptyTitle' | translate }}</h3>
@@ -238,8 +245,12 @@
           </div>
         </div>
 
-        <div class="card-footer" *ngIf="isDraft">
-          <button class="btn-card-action" [pTooltip]="'hr.payroll.detail.payslipColumns.saveTooltip' | translate" (click)="savePayslip(payslip)"
+        <div class="card-footer">
+          <button class="btn-card-action" [pTooltip]="'hr.payroll.detail.payslipColumns.downloadTooltip' | translate" (click)="downloadPayslipPdf(payslip)"
+            [disabled]="downloadingPayslipId === payslip.id">
+            <i class="pi" [ngClass]="downloadingPayslipId === payslip.id ? 'pi-spin pi-spinner' : 'pi-file-pdf'"></i>
+          </button>
+          <button *ngIf="isDraft" class="btn-card-action" [pTooltip]="'hr.payroll.detail.payslipColumns.saveTooltip' | translate" (click)="savePayslip(payslip)"
             [disabled]="savingPayslipId === payslip.id">
             <i class="pi" [ngClass]="savingPayslipId === payslip.id ? 'pi-spin pi-spinner' : 'pi-save'"></i>
           </button>

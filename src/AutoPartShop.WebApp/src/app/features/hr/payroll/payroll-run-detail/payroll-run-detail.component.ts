@@ -17,6 +17,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-payroll-run-detail',
@@ -34,10 +35,12 @@ export class PayrollRunDetailComponent implements OnInit {
     private readonly route = inject(ActivatedRoute);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly i18n = inject(I18nService);
 
     run: PayrollRunResponse | null = null;
     loading = false;
     savingPayslipId: string | null = null;
+    downloadingPayslipId: string | null = null;
     approving = false;
     paying = false;
     sending = false;
@@ -219,6 +222,26 @@ export class PayrollRunDetailComponent implements OnInit {
 
     print(): void {
         window.print();
+    }
+
+    downloadPayslipPdf(payslip: PayslipResponse): void {
+        if (!this.run) return;
+
+        this.downloadingPayslipId = payslip.id;
+        this.payrollService.downloadPayslipPdf(this.run.id, payslip.id, payslip.employeeCode).subscribe({
+            next: () => {
+                this.downloadingPayslipId = null;
+            },
+            error: (err) => {
+                this.downloadingPayslipId = null;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: err?.error?.message || this.i18n.t('hr.payroll.detail.downloadFailed')
+                });
+                console.error('Error downloading payslip PDF:', err);
+            }
+        });
     }
 
     back(): void {

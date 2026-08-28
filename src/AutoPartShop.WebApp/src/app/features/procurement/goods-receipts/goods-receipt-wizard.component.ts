@@ -1,12 +1,17 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PurchaseOrderService, PurchaseOrderResponse } from '../services/purchase-order.service';
 import { WarehouseService, WarehouseResponse } from '../../inventory/services/warehouse.service';
 import { GoodsReceiptService } from '../services/goods-receipt.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 
 @Component({
     selector: 'app-goods-receipt-wizard',
+    standalone: true,
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslatePipe, MoneyFormatPipe],
     templateUrl: './goods-receipt-wizard.component.html',
     styleUrls: ['./goods-receipt-wizard.component.css']
 })

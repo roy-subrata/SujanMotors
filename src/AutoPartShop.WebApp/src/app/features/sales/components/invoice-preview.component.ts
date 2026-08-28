@@ -732,8 +732,30 @@ export class InvoicePreviewComponent implements OnInit {
   }
 
   printInvoice(): void {
-    this.pdfService.printInvoice('invoice-print-area');
-    this.onPrint.emit();
+    if (!this.invoiceData) return;
+
+    if (!this.invoiceId) {
+      // Should not happen on the one path that opens this dialog (quick-sale-shortcut always
+      // sets currentInvoiceId before showing the preview), but fail loudly rather than silently
+      // do nothing if that ever changes.
+      this.messageService.add({
+        severity: 'error',
+        summary: this.i18n.t('invoicePreview.downloadFailed'),
+        detail: this.i18n.t('invoicePreview.notSavedYet')
+      });
+      return;
+    }
+
+    this.pdfService.downloadServerPdf(this.invoiceId, this.invoiceData.invoiceNumber).subscribe({
+      next: () => this.onPrint.emit(),
+      error: (err) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: this.i18n.t('invoicePreview.downloadFailed'),
+          detail: err?.error?.message || this.i18n.t('invoicePreview.notSavedYet')
+        });
+      }
+    });
   }
 
   printThermal(): void {

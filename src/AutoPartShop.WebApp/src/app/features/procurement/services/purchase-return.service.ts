@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { PdfDownloadService } from '@/shared/services/pdf-download.service';
 import { PurchaseReturnStatus, StockLotStatus } from '@/shared/models/status.types';
 
 export interface PurchaseReturnLineResponse {
@@ -133,6 +134,7 @@ export interface PaginatedPurchaseReturnResponse {
 })
 export class PurchaseReturnService {
   private readonly http = inject(HttpClient);
+  private readonly pdfDownload = inject(PdfDownloadService);
   private readonly apiUrl = `${environment.apiUrl}/v1/purchasereturn`;
 
   /**
@@ -291,5 +293,10 @@ export class PurchaseReturnService {
    */
   getReturnPrefillFromGrn(goodsReceiptId: string): Observable<ReturnPrefillFromGrn> {
     return this.http.get<ReturnPrefillFromGrn>(`${this.apiUrl}/from-goods-receipt/${goodsReceiptId}`);
+  }
+
+  /** Download the server-rendered Purchase Return PDF and trigger the browser save dialog. */
+  downloadPdf(id: string, returnNumber: string): Observable<void> {
+    return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `purchase-return-${returnNumber}.pdf`);
   }
 }

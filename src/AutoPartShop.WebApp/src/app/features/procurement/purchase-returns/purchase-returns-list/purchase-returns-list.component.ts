@@ -21,6 +21,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-purchase-returns-list',
@@ -39,7 +40,8 @@ import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-d
     InputGroupModule,
     InputGroupAddonModule,
     InputTextModule,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   templateUrl: './purchase-returns-list.component.html',
   styleUrls: ['./purchase-returns-list.component.css']

@@ -1,4 +1,5 @@
 using System.Text;
+using AutoPartShop.Api.Pdf;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.Interfaces;
@@ -9,6 +10,7 @@ using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers.HR;
 
@@ -371,6 +373,56 @@ public class PayrollController : ControllerBase
             _logger.LogError(ex, "Error sending payslips");
             return StatusCode(500, "An error occurred");
         }
+    }
+
+    /// <summary>Download one employee's payslip from a run as a PDF.</summary>
+    [HttpGet("{id:guid}/payslips/{payslipId:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPayslipPdf(
+        Guid id,
+        Guid payslipId,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        var run = await _payrollRepository.GetByIdAsync(id, includePayslips: true, cancellationToken);
+        if (run is null) return NotFound();
+
+        var payslip = run.Payslips.FirstOrDefault(p => p.Id == payslipId && !p.Isdeleted);
+        if (payslip is null) return NotFound(new { message = "Payslip not found in this run" });
+
+        var monthName = new DateTime(run.Year, run.Month, 1).ToString("MMMM yyyy");
+        var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+        var data = new PayslipDocumentData(
+            EmployeeCode: payslip.EmployeeCode,
+            EmployeeName: payslip.EmployeeName,
+            Designation: payslip.Designation,
+            Department: payslip.Department,
+            MonthName: monthName,
+            RunCode: run.RunCode,
+            Currency: run.Currency,
+            MonthlySalary: payslip.MonthlySalary,
+            OvertimeAmount: payslip.OvertimeAmount,
+            BonusAmount: payslip.BonusAmount,
+            OtherAllowance: payslip.OtherAllowance,
+            CommissionAmount: payslip.CommissionAmount,
+            GrossPay: payslip.GrossPay,
+            AbsenceDeduction: payslip.AbsenceDeduction,
+            AbsentDays: payslip.AbsentDays,
+            HalfDays: payslip.HalfDays,
+            AdvanceDeduction: payslip.AdvanceDeduction,
+            TaxDeduction: payslip.TaxDeduction,
+            OtherDeduction: payslip.OtherDeduction,
+            TotalDeduction: payslip.TotalDeduction,
+            NetPay: payslip.NetPay,
+            PresentDays: payslip.PresentDays,
+            LateDays: payslip.LateDays,
+            LeaveDays: payslip.LeaveDays);
+
+        var pdfBytes = new PayslipDocument(data, shop).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"payslip-{payslip.EmployeeCode}-{monthName.Replace(' ', '-')}.pdf");
     }
 
     private static string BuildPayslipHtml(Payslip p, PayrollRun run, string monthName)

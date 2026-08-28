@@ -227,48 +227,6 @@ export class InvoicePdfService {
     }
   }
 
-  /**
-   * Print invoice using browser print
-   */
-  printInvoice(printContainerId: string): void {
-    const printContent = document.getElementById(printContainerId);
-    if (!printContent) return;
-
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) return;
-
-    // Carry the app's stylesheets across so Angular's emulated-scoped styles still apply in the
-    // print window (innerHTML keeps the _ngcontent-* attributes the scoped rules match on).
-    const headStyles = Array.from(
-      document.querySelectorAll('style, link[rel="stylesheet"]')
-    ).map(el => el.outerHTML).join('\n');
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Invoice Print</title>
-        ${headStyles}
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; background: #fff; }
-          @page { size: A4; margin: 10mm; }
-          @media print {
-            body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          }
-        </style>
-      </head>
-      <body>
-        ${printContent.innerHTML}
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
-
-    // Wait for stylesheets to load before printing so the layout isn't captured bare.
-    printWindow.onload = () => setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
-  }
-
   getInvoiceByNumber(invoiceNumber: string): Observable<{ id: string; invoiceNumber: string }> {
     return this.http.get<{ id: string; invoiceNumber: string }>(
       `${environment.apiUrl}/v1/salesorder/invoices/number/${encodeURIComponent(invoiceNumber)}`

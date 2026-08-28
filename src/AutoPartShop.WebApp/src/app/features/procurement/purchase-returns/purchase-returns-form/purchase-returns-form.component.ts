@@ -23,9 +23,9 @@ import { PurchaseOrderService, PurchaseOrderResponse } from '../../services/purc
 import { PartService } from '../../../inventory/services/part.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
-import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-purchase-returns-form',
@@ -49,7 +49,8 @@ import { I18nService } from '@/shared/services/i18n.service';
     CheckboxModule,
     TagModule,
     ConfirmDialogModule,
-    AppCurrencyPipe
+    AppCurrencyPipe,
+    TranslatePipe
   ],
   templateUrl: './purchase-returns-form.component.html',
   styleUrls: ['./purchase-returns-form.component.css'],
@@ -80,30 +81,37 @@ export class PurchaseReturnsFormComponent implements OnInit {
   availableLotsMap: Map<string, AvailableLotForReturn[]> = new Map();
   loadingLotsMap: Map<string, boolean> = new Map();
 
-  conditionOptions = [
-    { label: 'Unopened', value: 'UNOPENED' },
-    { label: 'Opened', value: 'OPENED' },
-    { label: 'Damaged', value: 'DAMAGED' },
-    { label: 'Defective', value: 'DEFECTIVE' }
-  ];
+  /** Getters, not fields: a field freezes the labels in the language active at construction. */
+  get conditionOptions() {
+    return [
+      { label: this.i18n.t('purchaseReturns.form.conditions.unopened'), value: 'UNOPENED' },
+      { label: this.i18n.t('purchaseReturns.form.conditions.opened'), value: 'OPENED' },
+      { label: this.i18n.t('purchaseReturns.form.conditions.damaged'), value: 'DAMAGED' },
+      { label: this.i18n.t('purchaseReturns.form.conditions.defective'), value: 'DEFECTIVE' }
+    ];
+  }
 
   // Which inventory bucket the returned units come from. Filters the lot picker; the actual bucket
   // is derived server-side from the chosen lot's status (Damaged/Quarantine require a specific lot).
-  bucketOptions = [
-    { label: 'Available', value: 'AVAILABLE' },
-    { label: 'Damaged', value: 'DAMAGED' },
-    { label: 'Quarantine (Wrong)', value: 'QUARANTINE' }
-  ];
+  get bucketOptions() {
+    return [
+      { label: this.i18n.t('purchaseReturns.form.buckets.available'), value: 'AVAILABLE' },
+      { label: this.i18n.t('purchaseReturns.form.buckets.damaged'), value: 'DAMAGED' },
+      { label: this.i18n.t('purchaseReturns.form.buckets.quarantine'), value: 'QUARANTINE' }
+    ];
+  }
 
-  reasonOptions = [
-    { label: 'Defective', value: 'Defective' },
-    { label: 'Damaged', value: 'Damaged' },
-    { label: 'Wrong Item', value: 'Wrong Item' },
-    { label: 'Quality Issue', value: 'Quality Issue' },
-    { label: 'Not Needed', value: 'Not Needed' },
-    { label: 'Overstock', value: 'Overstock' },
-    { label: 'Other', value: 'Other' }
-  ];
+  get reasonOptions() {
+    return [
+      { label: this.i18n.t('purchaseReturns.form.reasons.defective'), value: 'Defective' },
+      { label: this.i18n.t('purchaseReturns.form.reasons.damaged'), value: 'Damaged' },
+      { label: this.i18n.t('purchaseReturns.form.reasons.wrongItem'), value: 'Wrong Item' },
+      { label: this.i18n.t('purchaseReturns.form.reasons.qualityIssue'), value: 'Quality Issue' },
+      { label: this.i18n.t('purchaseReturns.form.reasons.notNeeded'), value: 'Not Needed' },
+      { label: this.i18n.t('purchaseReturns.form.reasons.overstock'), value: 'Overstock' },
+      { label: this.i18n.t('purchaseReturns.form.reasons.other'), value: 'Other' }
+    ];
+  }
 
   private readonly prService = inject(PurchaseReturnService);
   private readonly poService = inject(PurchaseOrderService);
@@ -114,7 +122,6 @@ export class PurchaseReturnsFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly branding = inject(AppBrandingService);
   private readonly statusDisplay = inject(StatusDisplayService);
   private readonly i18n = inject(I18nService);
 
@@ -174,8 +181,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
         console.error('Error loading purchase orders:', error);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load purchase orders'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('purchaseReturns.form.loadPOsFailed')
         });
       }
     });
@@ -276,8 +283,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
         console.error('Error loading purchase return:', error);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load purchase return'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('purchaseReturns.form.loadReturnFailed')
         });
       }
     });
@@ -296,8 +303,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to load return draft from goods receipt'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('purchaseReturns.form.loadReturnDraftFailed')
         });
       }
     });
@@ -310,8 +317,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!prefill.lines || prefill.lines.length === 0) {
       this.messageService.add({
         severity: 'info',
-        summary: 'Nothing to return',
-        detail: `Goods receipt ${prefill.grnNumber} has no remaining damaged/wrong units to return.`
+        summary: this.i18n.t('purchaseReturns.form.nothingToReturnSummary'),
+        detail: this.i18n.t('purchaseReturns.form.nothingToReturnDetail', { grn: prefill.grnNumber })
       });
       return;
     }
@@ -327,7 +334,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
         this.form.patchValue({
           purchaseOrderId: po,
           reason: prefill.reason === 'WRONG_ITEM' ? 'Wrong Item' : 'Damaged',
-          notes: `Created from GRN ${prefill.grnNumber}`
+          notes: this.i18n.t('purchaseReturns.form.createdFromGrnNote', { grn: prefill.grnNumber })
         });
 
         this.lineItemsArray.clear();
@@ -347,16 +354,16 @@ export class PurchaseReturnsFormComponent implements OnInit {
 
         this.messageService.add({
           severity: 'info',
-          summary: 'Draft from Goods Receipt',
-          detail: `${prefill.lines.length} damaged/wrong line(s) loaded from GRN ${prefill.grnNumber}.`,
+          summary: this.i18n.t('purchaseReturns.form.draftFromGrnSummary'),
+          detail: this.i18n.t('purchaseReturns.form.draftFromGrnDetail', { count: prefill.lines.length, grn: prefill.grnNumber }),
           life: 5000
         });
       },
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load purchase order for the return draft'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('purchaseReturns.form.loadPOForDraftFailed')
         });
       }
     });
@@ -467,8 +474,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     } else {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Warning',
-        detail: 'Purchase return must have at least one line item'
+        summary: this.i18n.t('common.messages.warning'),
+        detail: this.i18n.t('purchaseReturns.form.atLeastOneLineWarning')
       });
     }
   }
@@ -518,13 +525,13 @@ export class PurchaseReturnsFormComponent implements OnInit {
 
           this.messageService.add({
             severity: 'info',
-            summary: 'Purchase Order Loaded',
-            detail: `${this.availablePOItems.length} items available from ${po.supplierName || 'supplier'}. Use "Add Items" or "Add All Items" to continue.`,
+            summary: this.i18n.t('purchaseReturns.form.poLoadedSummary'),
+            detail: this.i18n.t('purchaseReturns.form.poLoadedDetail', { count: this.availablePOItems.length, supplier: po.supplierName || this.i18n.t('purchaseReturns.form.supplierLabel') }),
             life: 5000
           });
         },
         error: (_error) => {
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load PO details' });
+          this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('purchaseReturns.form.loadPODetailsFailed') });
         }
       });
     }
@@ -538,8 +545,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!poId || !this.availablePOItems.length) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'No Purchase Order',
-        detail: 'Please select a purchase order first'
+        summary: this.i18n.t('purchaseReturns.form.noPOSummary'),
+        detail: this.i18n.t('purchaseReturns.form.noPODetail')
       });
       return;
     }
@@ -551,8 +558,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
 
     this.messageService.add({
       severity: 'success',
-      summary: 'Items Added',
-      detail: `${this.availablePOItems.length} items added to return`
+      summary: this.i18n.t('purchaseReturns.form.itemsAddedSummary'),
+      detail: this.i18n.t('purchaseReturns.form.itemsAddedDetail', { count: this.availablePOItems.length })
     });
   }
 
@@ -564,8 +571,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!poId || !this.availablePOItems.length) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'No Purchase Order',
-        detail: 'Please select a purchase order first'
+        summary: this.i18n.t('purchaseReturns.form.noPOSummary'),
+        detail: this.i18n.t('purchaseReturns.form.noPODetail')
       });
       return;
     }
@@ -581,8 +588,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (this.selectedPOItems.length === 0) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'No Items Selected',
-        detail: 'Please select at least one item'
+        summary: this.i18n.t('purchaseReturns.form.noItemsSelectedSummary'),
+        detail: this.i18n.t('purchaseReturns.form.noItemsSelectedDetail')
       });
       return;
     }
@@ -595,8 +602,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     this.showItemSelectionDialog = false;
     this.messageService.add({
       severity: 'success',
-      summary: 'Items Added',
-      detail: `${this.selectedPOItems.length} items added to return`
+      summary: this.i18n.t('purchaseReturns.form.itemsAddedSummary'),
+      detail: this.i18n.t('purchaseReturns.form.itemsAddedDetail', { count: this.selectedPOItems.length })
     });
   }
 
@@ -644,8 +651,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (this.form.invalid) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please fill all required fields'
+        summary: this.i18n.t('common.messages.validationError'),
+        detail: this.i18n.t('common.messages.fillRequiredFields')
       });
       return;
     }
@@ -660,8 +667,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!poId || !supplierId) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Invalid purchase order selected'
+        summary: this.i18n.t('common.messages.error'),
+        detail: this.i18n.t('purchaseReturns.form.invalidPOSelected')
       });
       this.isSubmitting = false;
       return;
@@ -690,8 +697,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Purchase return updated successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('purchaseReturns.form.updateSuccessDetail')
           });
           this.router.navigate(['/procurement/purchase-returns']);
           this.isSubmitting = false;
@@ -699,8 +706,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error?.error?.message || 'Failed to update purchase return'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error?.error?.message || this.i18n.t('purchaseReturns.form.updateFailedDetail')
           });
           console.error('Error updating purchase return:', error);
           this.isSubmitting = false;
@@ -711,8 +718,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Purchase return created successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('purchaseReturns.form.createSuccessDetail')
           });
           this.router.navigate(['/procurement/purchase-returns']);
           this.isSubmitting = false;
@@ -720,8 +727,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error?.error?.message || 'Failed to create purchase return'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error?.error?.message || this.i18n.t('purchaseReturns.form.createFailedDetail')
           });
           console.error('Error creating purchase return:', error);
           this.isSubmitting = false;
@@ -786,8 +793,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!this.currentReturn) return;
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to approve return #${this.currentReturn.returnNumber}?`,
-      header: 'Confirm Approval',
+      message: this.i18n.t('purchaseReturns.form.approveConfirmMessage', { number: this.currentReturn.returnNumber }),
+      header: this.i18n.t('purchaseReturns.form.approveConfirmHeader'),
       icon: 'pi pi-check',
       accept: () => {
         this.prService.approvePurchaseReturn(this.currentReturn!.id).subscribe({
@@ -795,15 +802,15 @@ export class PurchaseReturnsFormComponent implements OnInit {
             this.currentReturn = updated;
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Purchase Return #${updated.returnNumber} approved successfully`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('purchaseReturns.form.approveSuccessDetail', { number: updated.returnNumber })
             });
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to approve purchase return'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('purchaseReturns.messages.approveFailed')
             });
           }
         });
@@ -818,8 +825,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!this.currentReturn) return;
 
     this.confirmationService.confirm({
-      message: `Mark return #${this.currentReturn.returnNumber} as returned to supplier?`,
-      header: 'Confirm',
+      message: this.i18n.t('purchaseReturns.form.markReturnedConfirmMessage', { number: this.currentReturn.returnNumber }),
+      header: this.i18n.t('purchaseReturns.form.confirmHeader'),
       icon: 'pi pi-send',
       accept: () => {
         this.prService.markAsReturned(this.currentReturn!.id).subscribe({
@@ -827,15 +834,15 @@ export class PurchaseReturnsFormComponent implements OnInit {
             this.currentReturn = updated;
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Purchase Return #${updated.returnNumber} marked as returned`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('purchaseReturns.form.markReturnedSuccessDetail', { number: updated.returnNumber })
             });
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to mark as returned'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('purchaseReturns.form.markReturnedFailedDetail')
             });
           }
         });
@@ -850,8 +857,8 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!this.currentReturn) return;
 
     this.confirmationService.confirm({
-      message: `Mark return #${this.currentReturn.returnNumber} as received by supplier?`,
-      header: 'Confirm',
+      message: this.i18n.t('purchaseReturns.form.markReceivedConfirmMessage', { number: this.currentReturn.returnNumber }),
+      header: this.i18n.t('purchaseReturns.form.confirmHeader'),
       icon: 'pi pi-inbox',
       accept: () => {
         this.prService.markAsReceived(this.currentReturn!.id).subscribe({
@@ -859,15 +866,15 @@ export class PurchaseReturnsFormComponent implements OnInit {
             this.currentReturn = updated;
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Purchase Return #${updated.returnNumber} marked as received`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('purchaseReturns.form.markReceivedSuccessDetail', { number: updated.returnNumber })
             });
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to mark as received'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('purchaseReturns.form.markReceivedFailedDetail')
             });
           }
         });
@@ -882,8 +889,11 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!this.currentReturn) return;
 
     this.confirmationService.confirm({
-      message: `Issue credit note of ${this.currencyService.formatCurrency(this.currentReturn.refundAmount, this.currencyCode)} for return #${this.currentReturn.returnNumber}?`,
-      header: 'Issue Credit Note',
+      message: this.i18n.t('purchaseReturns.form.issueCreditNoteConfirmMessage', {
+        amount: this.currencyService.formatCurrency(this.currentReturn.refundAmount, this.currencyCode),
+        number: this.currentReturn.returnNumber
+      }),
+      header: this.i18n.t('purchaseReturns.form.issueCreditNote'),
       icon: 'pi pi-file',
       accept: () => {
         this.prService.issueCreditNote(this.currentReturn!.id, this.currentReturn!.refundAmount).subscribe({
@@ -891,15 +901,15 @@ export class PurchaseReturnsFormComponent implements OnInit {
             this.currentReturn = updated;
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Credit note issued for return #${updated.returnNumber}`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('purchaseReturns.form.issueCreditNoteSuccessDetail', { number: updated.returnNumber })
             });
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to issue credit note'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('purchaseReturns.form.issueCreditNoteFailedDetail')
             });
           }
         });
@@ -914,25 +924,25 @@ export class PurchaseReturnsFormComponent implements OnInit {
     if (!this.currentReturn) return;
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to reject return #${this.currentReturn.returnNumber}?`,
-      header: 'Confirm Rejection',
+      message: this.i18n.t('purchaseReturns.form.rejectConfirmMessage', { number: this.currentReturn.returnNumber }),
+      header: this.i18n.t('purchaseReturns.form.rejectConfirmHeader'),
       icon: 'pi pi-times',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.prService.rejectPurchaseReturn(this.currentReturn!.id, 'Rejected by user').subscribe({
+        this.prService.rejectPurchaseReturn(this.currentReturn!.id, this.i18n.t('purchaseReturns.form.rejectedByUserReason')).subscribe({
           next: (updated) => {
             this.currentReturn = updated;
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Purchase Return #${updated.returnNumber} rejected`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('purchaseReturns.form.rejectSuccessDetail', { number: updated.returnNumber })
             });
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to reject purchase return'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('purchaseReturns.form.rejectFailedDetail')
             });
           }
         });
@@ -941,203 +951,27 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
-   * Print the purchase return
+   * Download the server-rendered Purchase Return PDF and trigger the browser save dialog.
    */
   printReturn(): void {
     if (!this.currentReturn) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Warning',
-        detail: 'No purchase return data available to print'
+        summary: this.i18n.t('common.messages.warning'),
+        detail: this.i18n.t('purchaseReturns.form.noPrintData')
       });
       return;
     }
 
-    const printContent = this.generatePrintContent();
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 250);
-    }
-  }
-
-  /**
-   * Generate print content HTML
-   */
-  private generatePrintContent(): string {
-    const pr = this.currentReturn!;
-    const returnDate = pr.returnDate ? new Date(pr.returnDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-
-    // Company identity from the configured business profile (SHOP_* settings).
-    const shop = this.branding.profile();
-    const shopName = shop?.name || 'Your Company';
-    const shopTagline = shop?.tagline || '';
-    const shopAddress = shop?.address || '';
-    const shopInitials = shopName.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-    const lineItemsHtml = (pr.lines || []).map(line => `
-      <tr>
-        <td class="desc-cell">
-          <div class="item-name">${line.displayName || line.partName || line.partSku || 'N/A'}</div>
-          <div class="item-desc">${line.condition || '-'}</div>
-        </td>
-        <td class="num-cell">${line.quantity}</td>
-        <td class="num-cell">${line.rejectedQuantity}</td>
-        <td class="num-cell">${this.currencyService.formatCurrency(line.unitPrice, this.currencyCode)}</td>
-        <td class="num-cell">${this.currencyService.formatCurrency(line.refundAmount, this.currencyCode)}</td>
-      </tr>
-    `).join('');
-
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Purchase Return - ${pr.returnNumber}</title>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; padding: 20px; max-width: 800px; margin: 0 auto; }
-
-          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-          .logo-section { display: flex; align-items: center; gap: 10px; }
-          .logo { width: 60px; height: 60px; background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
-          .company-name { font-size: 22px; font-weight: 700; color: #1976d2; }
-          .title-section { text-align: right; }
-          .title-section h1 { font-size: 28px; color: #1976d2; font-weight: 300; margin-bottom: 8px; }
-          .invoice-meta { font-size: 11px; color: #666; }
-          .invoice-meta span { display: inline-block; min-width: 90px; }
-          .invoice-meta .value { color: #333; font-weight: 500; }
-          .status-pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 10px; background: #e0e7ff; color: #1e40af; margin-top: 6px; }
-
-          .address-section { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; }
-          .address-block { flex: 1; }
-          .address-block.right { text-align: right; }
-          .address-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-          .address-name { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px; }
-          .address-detail { font-size: 11px; color: #666; line-height: 1.5; }
-
-          .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          .items-table th { background: #1976d2; color: white; padding: 10px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
-          .items-table th:first-child { text-align: left; border-radius: 4px 0 0 0; }
-          .items-table th:last-child { border-radius: 0 4px 0 0; }
-          .items-table th.num-col { text-align: right; }
-          .items-table td { padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
-          .desc-cell { width: 40%; }
-          .num-cell { text-align: right; width: 15%; }
-          .item-name { font-weight: 500; color: #333; }
-          .item-desc { font-size: 10px; color: #999; margin-top: 2px; }
-
-          .summary-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
-          .payment-info { flex: 1; padding-right: 40px; }
-          .payment-info h4 { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-          .payment-info p { font-size: 11px; color: #666; line-height: 1.6; }
-          .totals-box { width: 250px; }
-          .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11px; }
-          .totals-row.total { border-top: 2px solid #1976d2; margin-top: 8px; padding-top: 10px; font-size: 14px; font-weight: 600; color: #1976d2; }
-          .totals-label { color: #666; }
-          .totals-value { font-weight: 500; }
-
-          .footer { text-align: center; color: #999; font-size: 10px; padding-top: 10px; border-top: 1px solid #eee; }
-          .signature-section { display: flex; justify-content: space-between; margin-top: 50px; }
-          .signature-box { width: 200px; text-align: center; }
-          .signature-line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; font-size: 11px; color: #666; }
-          @media print { body { padding: 10px; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="logo-section">
-            <div class="logo">${shopInitials}</div>
-            <div>
-              <div class="company-name">${shopName}</div>
-              ${shopTagline ? `<div class="address-detail">${shopTagline}</div>` : ''}
-              ${shopAddress ? `<div class="address-detail">${shopAddress}</div>` : ''}
-            </div>
-          </div>
-          <div class="title-section">
-            <h1>Purchase Return</h1>
-            <div class="invoice-meta">
-              <div><span>Return no.:</span> <span class="value">${pr.returnNumber}</span></div>
-              <div><span>Return date:</span> <span class="value">${returnDate}</span></div>
-              <div><span>PO no.:</span> <span class="value">${pr.purchaseOrderNumber || '-'}</span></div>
-              <div><span>Reason:</span> <span class="value">${pr.reason || '-'}</span></div>
-            </div>
-            <div class="status-pill">${pr.status}</div>
-          </div>
-        </div>
-
-        <div class="address-section">
-          <div class="address-block">
-            <div class="address-label">From</div>
-            <div class="address-name">${shopName}</div>
-            <div class="address-detail">
-              ${shopTagline ? shopTagline + '<br>' : ''}
-              ${shopAddress}
-            </div>
-          </div>
-          <div class="address-block right">
-            <div class="address-label">Supplier</div>
-            <div class="address-name">${pr.supplierName || 'N/A'}</div>
-            <div class="address-detail">
-              ${pr.supplierCode ? `Supplier Code: ${pr.supplierCode}<br>` : ''}
-              PO Ref: ${pr.purchaseOrderNumber || '-'}
-            </div>
-          </div>
-        </div>
-
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th class="num-col">Qty</th>
-              <th class="num-col">Rejected</th>
-              <th class="num-col">Unit Price</th>
-              <th class="num-col">Refund</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${lineItemsHtml || `<tr><td colspan="5" style="padding: 10px; text-align: center;">No items</td></tr>`}
-          </tbody>
-        </table>
-
-        <div class="summary-section">
-          <div class="payment-info">
-            ${pr.notes ? `<h4>Notes</h4><p>${pr.notes}</p>` : ''}
-          </div>
-          <div class="totals-box">
-            <div class="totals-row total">
-              <span class="totals-label">Total Refund:</span>
-              <span class="totals-value">${this.currencyService.formatCurrency(pr.refundAmount, this.currencyCode)}</span>
-            </div>
-            ${pr.creditNoteAmount > 0 ? `
-            <div class="totals-row">
-              <span class="totals-label">Credit Note:</span>
-              <span class="totals-value">${this.currencyService.formatCurrency(pr.creditNoteAmount, this.currencyCode)}</span>
-            </div>
-            ` : ''}
-          </div>
-        </div>
-
-        <div class="signature-section">
-          <div class="signature-box">
-            <div class="signature-line">Prepared By</div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-line">Approved By</div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-line">Received By Supplier</div>
-          </div>
-        </div>
-
-        <div class="footer">
-          <p>Thank you for choosing ${shopName} | Printed on ${new Date().toLocaleString()}</p>
-        </div>
-      </body>
-      </html>
-    `;
+    this.prService.downloadPdf(this.currentReturn.id, this.currentReturn.returnNumber).subscribe({
+      error: (error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('purchaseReturns.form.printFailed')
+        });
+        console.error('Error downloading purchase return PDF:', error);
+      }
+    });
   }
 }

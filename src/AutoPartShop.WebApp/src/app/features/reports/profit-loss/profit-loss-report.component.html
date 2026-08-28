@@ -23,20 +23,22 @@
     </ng-container>
   </app-page-header>
 
-  <div class="pnl-filter">
-    <label class="filter-label">{{ 'reports.filters.period' | translate }}</label>
-    <p-datepicker
-      [(ngModel)]="dateRange"
-      selectionMode="range"
-      [placeholder]="'reports.filters.selectDateRange' | translate"
-      dateFormat="dd M yy"
-      [showIcon]="true"
-      [showButtonBar]="true"
-      (onSelect)="onDateRangeSelect()"
-      appendTo="body"
-      styleClass="filter-datepicker">
-    </p-datepicker>
-  </div>
+  <app-filter-bar>
+    <div filters class="filter-group">
+      <label class="filter-label">{{ 'reports.filters.period' | translate }}</label>
+      <p-datepicker
+        [(ngModel)]="dateRange"
+        selectionMode="range"
+        [placeholder]="'reports.filters.selectDateRange' | translate"
+        dateFormat="dd M yy"
+        [showIcon]="true"
+        [showButtonBar]="true"
+        (onSelect)="onDateRangeSelect()"
+        appendTo="body"
+        styleClass="filter-datepicker">
+      </p-datepicker>
+    </div>
+  </app-filter-bar>
 
   @if (loading) {
     <div class="pnl-skeleton">

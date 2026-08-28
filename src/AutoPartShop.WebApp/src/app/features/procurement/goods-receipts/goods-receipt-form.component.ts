@@ -33,6 +33,7 @@ import { BarcodeDialogComponent } from '../../inventory/parts/barcode-dialog/bar
 import { labelFromGrnLine } from '../../inventory/parts/barcode-dialog/label-data';
 import { StatusDisplayService } from '@/shared/services/status-display.service';
 import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { I18nService } from '@/shared/services/i18n.service';
 
 type WorkflowStatus = 'PENDING' | 'VERIFIED' | 'ACCEPTED';
@@ -61,7 +62,8 @@ interface SubmitValidationResult {
     LazyAutocompleteComponent,
     TextareaModule,
     CheckboxModule,
-    MoneyFormatPipe
+    MoneyFormatPipe,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService, DialogService],
   templateUrl: './goods-receipt-form.component.html',

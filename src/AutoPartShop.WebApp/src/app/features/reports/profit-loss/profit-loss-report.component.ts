@@ -10,6 +10,7 @@ import { environment } from 'src/environments/environment';
 
 import { PageContainerComponent } from '../../../shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '../../../shared/components/filter-bar/filter-bar.component';
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { I18nService } from '@/shared/services/i18n.service';
@@ -52,7 +53,7 @@ interface FinancialSummaryResponse {
     standalone: true,
     imports: [
         CommonModule, FormsModule, DatePickerModule, ToastModule, TooltipModule,
-        PageContainerComponent, PageHeaderComponent, HasPermissionDirective, TranslatePipe,
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, HasPermissionDirective, TranslatePipe,
         MoneyFormatPipe, AmountSignPipe
     ],
     providers: [MessageService],

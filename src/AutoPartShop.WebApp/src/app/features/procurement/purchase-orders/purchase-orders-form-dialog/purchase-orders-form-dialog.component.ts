@@ -12,6 +12,7 @@ import { PurchaseOrderService, PurchaseOrderResponse, CreatePurchaseOrderRequest
 import { SupplierService, SupplierResponse } from '../../../inventory/services/supplier.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-purchase-orders-form-dialog',
@@ -24,7 +25,8 @@ import { I18nService } from '@/shared/services/i18n.service';
     InputNumberModule,
     AutoCompleteModule,
     ButtonModule,
-    TableModule
+    TableModule,
+    TranslatePipe
   ],
   templateUrl: './purchase-orders-form-dialog.component.html',
   styleUrls: ['./purchase-orders-form-dialog.component.css']
@@ -302,10 +304,10 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
     const errors = control.errors;
 
     if (errors['required']) {
-      return `${this.formatFieldName(fieldName)} is required`;
+      return this.i18n.t('purchaseOrder.dialog.fieldRequired', { field: this.formatFieldName(fieldName) });
     }
 
-    return 'Invalid input';
+    return this.i18n.t('purchaseOrder.dialog.invalidInput');
   }
 
   /**

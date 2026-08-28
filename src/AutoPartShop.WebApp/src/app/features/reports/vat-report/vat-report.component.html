@@ -19,8 +19,8 @@
     </ng-container>
   </app-page-header>
 
-  <div class="report-filter">
-    <div class="filter-item">
+  <app-filter-bar>
+    <div filters class="filter-group">
       <label class="filter-label">{{ 'reports.filters.period' | translate }}</label>
       <p-datepicker
         [(ngModel)]="dateRange"
@@ -34,7 +34,7 @@
         styleClass="filter-datepicker">
       </p-datepicker>
     </div>
-    <div class="filter-item">
+    <div filters class="filter-group">
       <label class="filter-label">{{ 'reports.vat.vatRatePercent' | translate }}</label>
       <p-inputNumber
         [(ngModel)]="vatRatePercent"
@@ -47,7 +47,7 @@
         styleClass="filter-input-number">
       </p-inputNumber>
     </div>
-  </div>
+  </app-filter-bar>
 
   @if (loading) {
     <div class="report-skeleton">

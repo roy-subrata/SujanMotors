@@ -3,6 +3,7 @@
 .col-att      { min-width: 150px; text-align: center; }
 .col-amount   { min-width: 110px; text-align: right; }
 .col-input    { min-width: 120px; }
+.col-pdf      { width: 60px; text-align: center; }
 .col-save     { width: 60px; text-align: center; }
 
 .code-sub {
@@ -96,7 +97,7 @@
 
 /* Print: hide chrome, show the table */
 @media print {
-  .btn-icon, .btn-primary, .col-save {
+  .btn-icon, .btn-primary, .col-save, .col-pdf {
     display: none !important;
   }
 }

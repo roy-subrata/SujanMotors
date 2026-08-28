@@ -17,12 +17,12 @@
 
       <ng-template #header>
         <tr>
-          <th class="col-po">Return Number</th>
-          <th class="col-supplier">Supplier</th>
-          <th class="col-date">Return Date</th>
-          <th class="col-status">Status</th>
-          <th class="col-amount">Refund Amount</th>
-          <th class="col-actions">Actions</th>
+          <th class="col-po">{{ 'purchaseReturns.columns.returnNumber' | translate }}</th>
+          <th class="col-supplier">{{ 'purchaseReturns.columns.supplier' | translate }}</th>
+          <th class="col-date">{{ 'purchaseReturns.columns.returnDate' | translate }}</th>
+          <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+          <th class="col-amount">{{ 'purchaseReturns.columns.refundAmount' | translate }}</th>
+          <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -54,7 +54,7 @@
           </td>
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, pr)">
+              <button class="btn-action" [pTooltip]="'purchaseReturns.moreOptions' | translate" (click)="showContextMenu($event, pr)">
                 <i class="pi pi-ellipsis-v"></i>
               </button>
             </div>
@@ -69,8 +69,8 @@
               <div class="empty-icon">
                 <i class="pi pi-replay"></i>
               </div>
-              <h3>No Purchase Returns Found</h3>
-              <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase return' }}</p>
+              <h3>{{ 'purchaseReturns.emptyTitle' | translate }}</h3>
+              <p>{{ (searchTerm ? 'purchaseReturns.emptyHintSearch' : 'purchaseReturns.emptyHintCreate') | translate }}</p>
             </div>
           </td>
         </tr>
@@ -84,7 +84,7 @@
   [first]="(currentPage - 1) * rows"
   [pageSize]="rows"
   [totalRecords]="totalRecords"
-  itemLabel="returns"
+  [itemLabel]="'purchaseReturns.countLabel' | translate"
   (pageChange)="goToPage($event)"
   (pageSizeChange)="onPageSizeChange($event)">
 </app-data-pagination>
@@ -112,8 +112,8 @@
     <div class="empty-icon">
       <i class="pi pi-replay"></i>
     </div>
-    <h3>No Purchase Returns</h3>
-    <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a new purchase return' }}</p>
+    <h3>{{ 'purchaseReturns.emptyTitleMobile' | translate }}</h3>
+    <p>{{ (searchTerm ? 'purchaseReturns.emptyHintSearch' : 'purchaseReturns.emptyHintCreate') | translate }}</p>
   </div>
 
   <div *ngIf="!loading && purchaseReturns.length > 0" class="cards-grid">
@@ -135,7 +135,7 @@
       </div>
       <div class="card-footer">
         <div class="card-amount">
-          <span class="amount-label">Refund</span>
+          <span class="amount-label">{{ 'purchaseReturns.columns.refundAmount' | translate }}</span>
           <span class="amount-value">{{ formatCurrency(pr.refundAmount) }}</span>
         </div>
         <button class="btn-card-action" (click)="showContextMenu($event, pr); $event.stopPropagation()">

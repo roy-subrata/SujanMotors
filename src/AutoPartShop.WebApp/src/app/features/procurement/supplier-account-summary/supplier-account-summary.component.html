@@ -14,10 +14,6 @@
                     [disabled]="pdfLoading()" (click)="onDownloadPdf()">
                     <i class="pi" [ngClass]="pdfLoading() ? 'pi-spin pi-spinner' : 'pi-file-pdf'"></i>
                 </button>
-                <button class="btn-icon" [pTooltip]="'common.actions.print' | translate" tooltipPosition="bottom"
-                    [disabled]="pdfLoading()" (click)="onPrint()">
-                    <i class="pi pi-print"></i>
-                </button>
             }
         </ng-container>
     </app-page-header>
@@ -239,81 +235,3 @@
         </div>
     </div>
 </app-page-container>
-
-<!-- ==================== HIDDEN PRINT-OPTIMIZED SECTION ==================== -->
-@if (allEntriesLoaded() && summary()) {
-    <div id="supplier-account-summary-print" class="print-container">
-        <div class="print-header">
-            <div class="print-company-name">{{ companyConfig.companyName }}</div>
-            <div class="print-company-info">
-                {{ companyConfig.companyAddress }} | {{ companyConfig.companyPhone }} | {{ companyConfig.companyEmail }}
-            </div>
-            <div class="print-title">{{ 'supplierAccountSummary.title' | translate }}</div>
-        </div>
-        <div class="print-supplier-info">
-            <div>
-                <div class="print-supplier-name">{{ summary()!.supplierName }}</div>
-                <div>{{ 'common.labels.code' | translate }}: {{ summary()!.supplierCode }}</div>
-                <div>{{ 'supplierAccountSummary.transactions' | translate }}: {{ summary()!.transactionCount }}</div>
-            </div>
-            <div style="text-align: right;">
-                <div>{{ 'supplierAccountSummary.reportDate' | translate }}: {{ formatDate(today) }}</div>
-                <div *ngIf="fromDate">{{ 'common.labels.from' | translate }}: {{ formatDate(fromDate.toISOString()) }}</div>
-                <div *ngIf="toDate">{{ 'common.labels.to' | translate }}: {{ formatDate(toDate.toISOString()) }}</div>
-            </div>
-        </div>
-        <div class="print-metrics">
-            <div class="print-metric">
-                <div class="print-metric-label">{{ 'supplierAccountSummary.totalPurchases' | translate }}</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPurchases) }}</div>
-            </div>
-            <div class="print-metric paid">
-                <div class="print-metric-label">{{ 'supplierAccountSummary.totalPayments' | translate }}</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPayments) }}</div>
-            </div>
-            <div class="print-metric" [class.due]="summary()!.currentBalance > 0">
-                <div class="print-metric-label">{{ 'supplierAccountSummary.currentBalance' | translate }}</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.currentBalance) }}</div>
-            </div>
-        </div>
-        <div class="print-table-title">{{ 'supplierAccountSummary.ledgerEntries' | translate }} ({{ allEntries().length }} {{ 'supplierAccountSummary.entries' | translate }})</div>
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 12%;">{{ 'common.labels.date' | translate }}</th>
-                    <th style="width: 12%;">{{ 'common.labels.type' | translate }}</th>
-                    <th style="width: 12%;">{{ 'supplierAccountSummary.referenceNo' | translate }}</th>
-                    <th>{{ 'common.labels.description' | translate }}</th>
-                    <th class="text-right" style="width: 12%;">{{ 'supplierAccountSummary.debit' | translate }}</th>
-                    <th class="text-right" style="width: 12%;">{{ 'supplierAccountSummary.credit' | translate }}</th>
-                    <th class="text-right" style="width: 12%;">{{ 'supplierAccountSummary.balance' | translate }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (entry of allEntries(); track entry.id; let i = $index) {
-                    <tr>
-                        <td>{{ i + 1 }}</td>
-                        <td>{{ formatDate(entry.transactionDate) }}</td>
-                        <td>{{ getTransactionTypeLabel(entry.transactionType) }}</td>
-                        <td>{{ entry.referenceNumber || '-' }}</td>
-                        <td>{{ entry.description || '-' }}</td>
-                        <td class="text-right" [class.text-debit]="entry.debitAmount > 0">{{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}</td>
-                        <td class="text-right" [class.text-credit]="entry.creditAmount > 0">{{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}</td>
-                        <td class="text-right font-bold">{{ formatCurrency(entry.runningBalance) }}</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        @if (summary()!.currentBalance > 0) {
-            <div class="print-due-box">
-                <span class="label">{{ 'supplierAccountSummary.outstandingBalance' | translate }}: </span>
-                <span class="value">{{ formatCurrency(summary()!.currentBalance) }}</span>
-            </div>
-        }
-        <div class="print-footer">
-            <p>{{ 'supplierAccountSummary.computerGenerated' | translate }} {{ formatDate(today) }} — {{ companyConfig.companyName }}</p>
-            <p style="margin-top: 4px;">{{ 'supplierAccountSummary.thankYou' | translate }}</p>
-        </div>
-    </div>
-}

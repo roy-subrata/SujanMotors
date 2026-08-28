@@ -9,35 +9,35 @@
         <div class="breadcrumb">
           <a (click)="onCancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Purchase Returns
+            {{ 'purchaseReturns.title' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ isViewMode ? 'View' : (isEditing ? 'Edit' : 'New') }}</span>
+          <span class="breadcrumb-current">{{ (isViewMode ? 'common.actions.view' : (isEditing ? 'common.actions.edit' : 'purchaseReturns.form.breadcrumbNew')) | translate }}</span>
         </div>
         <h1 class="form-title">
-          {{ isViewMode ? 'View Purchase Return' : (isEditing ? 'Edit Purchase Return' : 'Create Purchase Return') }}
+          {{ (isViewMode ? 'purchaseReturns.form.viewTitle' : (isEditing ? 'purchaseReturns.form.editTitle' : 'purchaseReturns.form.createTitle')) | translate }}
           <span *ngIf="isViewMode && currentReturn" class="return-number">- {{ currentReturn.returnNumber }}</span>
         </h1>
         <p class="form-subtitle">
-          {{ isViewMode ? 'View purchase return details' : (isEditing ? 'Update the purchase return details' : 'Create a new purchase return for a supplier') }}
+          {{ (isViewMode ? 'purchaseReturns.form.viewSubtitle' : (isEditing ? 'purchaseReturns.form.editSubtitle' : 'purchaseReturns.form.createSubtitle')) | translate }}
         </p>
       </div>
       <div *ngIf="isViewMode && currentReturn" class="header-actions">
         <p-tag [value]="currentReturn.status" [severity]="getStatusSeverity(currentReturn.status)"></p-tag>
 
         <!-- Status Change Actions -->
-        <button *ngIf="currentReturn.status === 'PENDING'" pButton type="button" label="Approve" icon="pi pi-check"
+        <button *ngIf="currentReturn.status === 'PENDING'" pButton type="button" [label]="'common.actions.approve' | translate" icon="pi pi-check"
           class="p-button-success p-button-sm" (click)="approveReturn()"></button>
-        <button *ngIf="currentReturn.status === 'APPROVED'" pButton type="button" label="Mark Returned" icon="pi pi-send"
+        <button *ngIf="currentReturn.status === 'APPROVED'" pButton type="button" [label]="'purchaseReturns.form.markReturned' | translate" icon="pi pi-send"
           class="p-button-info p-button-sm" (click)="markAsReturned()"></button>
-        <button *ngIf="currentReturn.status === 'RETURNED'" pButton type="button" label="Mark Received" icon="pi pi-inbox"
+        <button *ngIf="currentReturn.status === 'RETURNED'" pButton type="button" [label]="'purchaseReturns.form.markReceived' | translate" icon="pi pi-inbox"
           class="p-button-success p-button-sm" (click)="markAsReceived()"></button>
-        <button *ngIf="currentReturn.status === 'RETURNED' || currentReturn.status === 'RECEIVED'" pButton type="button" label="Issue Credit Note" icon="pi pi-file"
+        <button *ngIf="currentReturn.status === 'RETURNED' || currentReturn.status === 'RECEIVED'" pButton type="button" [label]="'purchaseReturns.form.issueCreditNote' | translate" icon="pi pi-file"
           class="p-button-help p-button-sm" (click)="issueCreditNote()"></button>
-        <button *ngIf="currentReturn.status === 'PENDING'" pButton type="button" label="Reject" icon="pi pi-times"
+        <button *ngIf="currentReturn.status === 'PENDING'" pButton type="button" [label]="'common.actions.reject' | translate" icon="pi pi-times"
           class="p-button-danger p-button-sm" (click)="rejectReturn()"></button>
 
-        <button pButton type="button" label="Print" icon="pi pi-print" class="p-button-outlined p-button-sm" (click)="printReturn()"></button>
+        <button pButton type="button" [label]="'purchaseReturns.form.downloadPdf' | translate" icon="pi pi-file-pdf" class="p-button-outlined p-button-sm" (click)="printReturn()"></button>
       </div>
     </div>
   </div>
@@ -45,7 +45,7 @@
   <!-- Loading State -->
   <div *ngIf="isSubmitting" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-    <p>Processing...</p>
+    <p>{{ 'common.messages.processingRequest' | translate }}</p>
   </div>
 
   <!-- Form -->
@@ -56,22 +56,22 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-file section-icon"></i>
-          Purchase Order Information
+          {{ 'purchaseReturns.form.poInfoTitle' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Purchase Order *</label>
+            <label>{{ 'purchaseReturns.form.poLabel' | translate }} *</label>
             <p-autoComplete
               formControlName="purchaseOrderId"
               [suggestions]="filteredPurchaseOrders"
               (completeMethod)="filterPurchaseOrders($event)"
               [forceSelection]="true"
               [showEmptyMessage]="true"
-              emptyMessage="No POs found"
+              [emptyMessage]="'purchaseReturns.form.noPOsFound' | translate"
               field="poNumber"
               optionLabel="poNumber"
-              placeholder="Select or search PO..."
+              [placeholder]="'purchaseReturns.form.poPlaceholder' | translate"
               [dropdown]="true"
               (onSelect)="onPurchaseOrderSelected($event.value)"
               [disabled]="isViewMode"
@@ -85,42 +85,42 @@
               </ng-template>
             </p-autoComplete>
             <small *ngIf="form.get('purchaseOrderId')?.hasError('required') && form.get('purchaseOrderId')?.touched" class="p-error">
-              Purchase order is required
+              {{ 'purchaseReturns.form.poRequiredError' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Return Date *</label>
+            <label>{{ 'purchaseReturns.form.returnDateLabel' | translate }} *</label>
             <p-datepicker
               formControlName="returnDate"
               [showIcon]="true"
               [showButtonBar]="true"
               dateFormat="yy-mm-dd"
-              placeholder="Select date..."
+              [placeholder]="'purchaseReturns.form.selectDatePlaceholder' | translate"
               [disabled]="isViewMode"
               appendTo="body"
               [style]="{ width: '100%' }">
             </p-datepicker>
             <small *ngIf="form.get('returnDate')?.hasError('required') && form.get('returnDate')?.touched" class="p-error">
-              Return date is required
+              {{ 'purchaseReturns.form.returnDateRequiredError' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Reason *</label>
+            <label>{{ 'purchaseReturns.form.reasonLabel' | translate }} *</label>
             <p-select
               formControlName="reason"
               [options]="reasonOptions"
               optionLabel="label"
               optionValue="value"
-              placeholder="Select reason..."
+              [placeholder]="'purchaseReturns.form.reasonPlaceholder' | translate"
               [disabled]="isViewMode"
               appendTo="body"
               [style]="{ width: '100%' }">
             </p-select>
             <small *ngIf="form.get('reason')?.hasError('required') && form.get('reason')?.touched" class="p-error">
-              Reason is required
+              {{ 'purchaseReturns.form.reasonRequiredError' | translate }}
             </small>
           </div>
           <div class="form-group">
@@ -130,19 +130,19 @@
 
         <!-- PO and Supplier Information -->
         <div *ngIf="selectedPurchaseOrder" class="info-box">
-          <h4 class="info-box-title">Selected Purchase Order Details</h4>
+          <h4 class="info-box-title">{{ 'purchaseReturns.form.selectedPODetailsTitle' | translate }}</h4>
           <div class="info-grid">
             <div class="info-item">
-              <span class="info-label">PO Number</span>
+              <span class="info-label">{{ 'purchaseReturns.form.poNumberLabel' | translate }}</span>
               <span class="info-value">{{ selectedPurchaseOrder.poNumber }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Supplier</span>
+              <span class="info-label">{{ 'purchaseReturns.form.supplierLabel' | translate }}</span>
               <span class="info-value">{{ selectedPurchaseOrder.supplierName || 'N/A' }}</span>
-              <span *ngIf="selectedPurchaseOrder.supplierCode" class="info-sub">Code: {{ selectedPurchaseOrder.supplierCode }}</span>
+              <span *ngIf="selectedPurchaseOrder.supplierCode" class="info-sub">{{ 'purchaseReturns.form.codePrefix' | translate }} {{ selectedPurchaseOrder.supplierCode }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">PO Status</span>
+              <span class="info-label">{{ 'purchaseReturns.form.poStatusLabel' | translate }}</span>
               <span class="info-value">{{ selectedPurchaseOrder.status }}</span>
             </div>
           </div>
@@ -153,7 +153,7 @@
       <div class="form-section" *ngIf="!isViewMode && availablePOItems.length > 0">
         <h3 class="section-title">
           <i class="pi pi-search section-icon"></i>
-          Add Return Items
+          {{ 'purchaseReturns.form.addReturnItemsTitle' | translate }}
         </h3>
 
         <!-- PO-based add (all items, or pick specific items) -->
@@ -163,27 +163,27 @@
               <button
                 type="button"
                 pButton
-                label="Add All Items"
+                [label]="'purchaseReturns.form.addAllItems' | translate"
                 icon="pi pi-copy"
                 class="p-button-sm p-button-success"
                 (click)="addAllItemsFromPO()"
                 [disabled]="!availablePOItems.length"
-                pTooltip="Add all items from selected PO">
+                [pTooltip]="'purchaseReturns.form.addAllItemsTooltip' | translate">
               </button>
               <button
                 type="button"
                 pButton
-                label="Select Items"
+                [label]="'purchaseReturns.form.selectItems' | translate"
                 icon="pi pi-list"
                 class="p-button-sm p-button-info"
                 (click)="showSelectItemsDialog()"
                 [disabled]="!availablePOItems.length"
-                pTooltip="Choose specific items to return">
+                [pTooltip]="'purchaseReturns.form.selectItemsTooltip' | translate">
               </button>
             </div>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              {{ availablePOItems.length }} items available from this purchase order
+              {{ 'purchaseReturns.form.itemsAvailableFromPO' | translate: { count: availablePOItems.length } }}
             </small>
           </div>
         </div>
@@ -194,7 +194,7 @@
         <div class="section-header">
           <h3 class="section-title">
             <i class="pi pi-list section-icon"></i>
-            Return Items
+            {{ 'purchaseReturns.form.returnItemsTitle' | translate }}
             <span class="items-count" *ngIf="lineItemsArray.length > 0">({{ lineItemsArray.length }})</span>
           </h3>
         </div>
@@ -204,26 +204,26 @@
           <table class="line-items-table">
             <thead>
               <tr>
-                <th class="col-name">Product</th>
-                <th class="col-source">Source</th>
-                <th class="col-lot">Stock Lot</th>
-                <th class="col-qty">Quantity</th>
-                <th class="col-price">Unit Price</th>
-                <th class="col-rejected">Rejected</th>
-                <th class="col-condition">Condition</th>
-                <th class="col-total">Refund</th>
-                <th class="col-actions" *ngIf="!isViewMode">Actions</th>
+                <th class="col-name">{{ 'purchaseReturns.form.colProduct' | translate }}</th>
+                <th class="col-source">{{ 'purchaseReturns.form.colSource' | translate }}</th>
+                <th class="col-lot">{{ 'purchaseReturns.form.colStockLot' | translate }}</th>
+                <th class="col-qty">{{ 'common.labels.quantity' | translate }}</th>
+                <th class="col-price">{{ 'common.labels.unitPrice' | translate }}</th>
+                <th class="col-rejected">{{ 'purchaseReturns.form.colRejected' | translate }}</th>
+                <th class="col-condition">{{ 'purchaseReturns.form.colCondition' | translate }}</th>
+                <th class="col-total">{{ 'purchaseReturns.form.colRefund' | translate }}</th>
+                <th class="col-actions" *ngIf="!isViewMode">{{ 'common.labels.actions' | translate }}</th>
               </tr>
             </thead>
             <tbody formArrayName="lineItems">
               <tr *ngFor="let item of lineItemsArray.controls; let i = index" [formGroupName]="i" class="line-item-row">
-                <td class="part-name-cell" data-label="Product">
+                <td class="part-name-cell" [attr.data-label]="'purchaseReturns.form.colProduct' | translate">
                   <div class="part-name-wrapper">
                     <span class="part-name-value">{{ item.get('displayName')?.value || item.get('part')?.value?.name || 'N/A' }}</span>
                     <small *ngIf="item.get('partLocalName')?.value" class="part-row-local d-block">{{ item.get('partLocalName')?.value }}</small>
                   </div>
                 </td>
-                <td class="source-cell" data-label="Source">
+                <td class="source-cell" [attr.data-label]="'purchaseReturns.form.colSource' | translate">
                   <p-select
                     *ngIf="!isViewMode"
                     formControlName="sourceBucket"
@@ -232,24 +232,24 @@
                     optionValue="value"
                     appendTo="body"
                     (onChange)="onSourceBucketChange(i)"
-                    pTooltip="Which stock bucket to return from. Damaged/Quarantine require selecting a lot."
+                    [pTooltip]="'purchaseReturns.form.sourceBucketTooltip' | translate"
                     tooltipPosition="top"
                     [style]="{ width: '100%' }">
                   </p-select>
                   <span *ngIf="isViewMode" class="source-display">{{ item.get('sourceBucket')?.value }}</span>
                 </td>
-                <td class="lot-cell" data-label="Stock Lot">
+                <td class="lot-cell" [attr.data-label]="'purchaseReturns.form.colStockLot' | translate">
                   <p-select
                     *ngIf="!isViewMode"
                     formControlName="stockLotId"
                     [options]="getLotsForLine(item.get('partId')?.value, item.get('sourceBucket')?.value)"
                     optionLabel="lotNumber"
                     optionValue="lotId"
-                    [placeholder]="item.get('sourceBucket')?.value === 'AVAILABLE' ? 'Auto (FIFO)' : 'Select lot *'"
+                    [placeholder]="(item.get('sourceBucket')?.value === 'AVAILABLE' ? 'purchaseReturns.form.autoFifo' : 'purchaseReturns.form.selectLotRequired') | translate"
                     [showClear]="true"
                     appendTo="body"
                     [loading]="isLoadingLots(item.get('partId')?.value)"
-                    [pTooltip]="item.get('sourceBucket')?.value === 'AVAILABLE' ? 'Leave empty for automatic FIFO selection' : 'Damaged/Quarantine returns must reference a specific lot'"
+                    [pTooltip]="(item.get('sourceBucket')?.value === 'AVAILABLE' ? 'purchaseReturns.form.autoFifoTooltip' : 'purchaseReturns.form.selectLotTooltip') | translate"
                     tooltipPosition="top"
                     [style]="{ width: '100%' }">
                     <ng-template let-lot pTemplate="item">
@@ -257,16 +257,16 @@
                         <div class="lot-main">
                           <span class="lot-number">{{ lot.lotNumber }}</span>
                           <span class="lot-supplier" [class.same-supplier]="lot.isFromSameSupplier === true">
-                            {{ lot.isFromSameSupplier === null ? '—' : (lot.isFromSameSupplier ? '✓ Same Supplier' : 'Other') }}
+                            {{ lot.isFromSameSupplier === null ? '—' : (lot.isFromSameSupplier ? ('purchaseReturns.form.sameSupplier' | translate) : ('purchaseReturns.form.otherSupplier' | translate)) }}
                           </span>
                         </div>
-                        <span class="lot-qty">Qty: {{ lot.quantityAvailable }}</span>
+                        <span class="lot-qty">{{ 'purchaseReturns.form.qtyPrefix' | translate }} {{ lot.quantityAvailable }}</span>
                       </div>
                     </ng-template>
                   </p-select>
-                  <span *ngIf="isViewMode" class="lot-display">{{ item.get('stockLotId')?.value ? 'Selected' : 'Auto' }}</span>
+                  <span *ngIf="isViewMode" class="lot-display">{{ (item.get('stockLotId')?.value ? 'purchaseReturns.form.selected' : 'purchaseReturns.form.auto') | translate }}</span>
                 </td>
-                <td class="qty-cell" data-label="Quantity">
+                <td class="qty-cell" [attr.data-label]="'common.labels.quantity' | translate">
                   <p-inputNumber
                     *ngIf="!isViewMode"
                     formControlName="quantity"
@@ -277,7 +277,7 @@
                   </p-inputNumber>
                   <span *ngIf="isViewMode" class="qty-display">{{ item.get('quantity')?.value }}</span>
                 </td>
-                <td class="price-cell" data-label="Unit Price">
+                <td class="price-cell" [attr.data-label]="'common.labels.unitPrice' | translate">
                   <p-inputNumber
                     *ngIf="!isViewMode"
                     formControlName="unitPrice"
@@ -289,7 +289,7 @@
                   </p-inputNumber>
                   <span *ngIf="isViewMode" class="price-display">{{ item.get('unitPrice')?.value | appCurrency:currencyCode }}</span>
                 </td>
-                <td class="rejected-cell" data-label="Rejected">
+                <td class="rejected-cell" [attr.data-label]="'purchaseReturns.form.colRejected' | translate">
                   <p-inputNumber
                     *ngIf="!isViewMode"
                     formControlName="rejectedQuantity"
@@ -299,30 +299,30 @@
                   </p-inputNumber>
                   <span *ngIf="isViewMode" class="rejected-display">{{ item.get('rejectedQuantity')?.value || 0 }}</span>
                 </td>
-                <td class="condition-cell" data-label="Condition">
+                <td class="condition-cell" [attr.data-label]="'purchaseReturns.form.colCondition' | translate">
                   <p-select
                     *ngIf="!isViewMode"
                     formControlName="condition"
                     [options]="conditionOptions"
                     optionLabel="label"
                     optionValue="value"
-                    placeholder="Select"
+                    [placeholder]="'goodsReceipt.selectPlaceholder' | translate"
                     appendTo="body"
                     [style]="{ width: '100%' }">
                   </p-select>
                   <span *ngIf="isViewMode" class="condition-display">{{ item.get('condition')?.value }}</span>
                 </td>
-                <td class="line-total-cell" data-label="Refund">
+                <td class="line-total-cell" [attr.data-label]="'purchaseReturns.form.colRefund' | translate">
                   <span class="line-total">{{ ((item.get('quantity')?.value - item.get('rejectedQuantity')?.value) * item.get('unitPrice')?.value) | appCurrency:currencyCode }}</span>
                 </td>
-                <td class="action-cell" *ngIf="!isViewMode" data-label="Actions">
+                <td class="action-cell" *ngIf="!isViewMode" [attr.data-label]="'common.labels.actions' | translate">
                   <button
                     pButton
                     type="button"
                     icon="pi pi-trash"
                     class="p-button-rounded p-button-text p-button-sm p-button-danger"
                     (click)="removeLineItem(i)"
-                    pTooltip="Remove item"
+                    [pTooltip]="'purchaseReturns.form.removeItemTooltip' | translate"
                     tooltipPosition="top">
                   </button>
                 </td>
@@ -334,9 +334,9 @@
         <!-- Empty State -->
         <div class="empty-lines" *ngIf="lineItemsArray.length === 0">
           <i class="pi pi-undo"></i>
-          <p>No items added yet</p>
-          <small *ngIf="!isViewMode">Select a purchase order and add items to return</small>
-          <small *ngIf="isViewMode">This return has no items</small>
+          <p>{{ 'purchaseReturns.form.noItemsAddedYet' | translate }}</p>
+          <small *ngIf="!isViewMode">{{ 'purchaseReturns.form.noItemsHintEdit' | translate }}</small>
+          <small *ngIf="isViewMode">{{ 'purchaseReturns.form.noItemsHintView' | translate }}</small>
         </div>
       </div>
 
@@ -344,19 +344,19 @@
       <div class="form-section" *ngIf="lineItemsArray.length > 0">
         <h3 class="section-title">
           <i class="pi pi-calculator section-icon"></i>
-          Return Summary
+          {{ 'purchaseReturns.form.returnSummaryTitle' | translate }}
         </h3>
         <div class="order-summary">
           <div class="summary-row">
-            <span class="summary-label">Total Items:</span>
+            <span class="summary-label">{{ 'purchaseReturns.form.totalItems' | translate }}</span>
             <span class="summary-value">{{ lineItemsArray.length }}</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Total Quantity:</span>
+            <span class="summary-label">{{ 'purchaseReturns.form.totalQuantity' | translate }}</span>
             <span class="summary-value">{{ getTotalQuantity() }}</span>
           </div>
           <div class="summary-row grand-total">
-            <span class="summary-label">Total Refund Amount:</span>
+            <span class="summary-label">{{ 'purchaseReturns.form.totalRefundAmount' | translate }}</span>
             <span class="summary-value">{{ getTotalRefundAmount() | appCurrency:currencyCode }}</span>
           </div>
         </div>
@@ -366,16 +366,16 @@
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-file-edit section-icon"></i>
-          Additional Notes
+          {{ 'purchaseReturns.form.additionalNotesTitle' | translate }}
         </h3>
         <div class="form-row">
           <div class="form-group full">
-            <label>Notes</label>
+            <label>{{ 'common.labels.notes' | translate }}</label>
             <textarea
               pInputTextarea
               formControlName="notes"
               rows="3"
-              placeholder="Add any additional notes or instructions for this return..."
+              [placeholder]="'purchaseReturns.form.notesPlaceholder' | translate"
               [disabled]="isViewMode">
             </textarea>
           </div>
@@ -387,7 +387,7 @@
         <button
           pButton
           type="button"
-          [label]="isViewMode ? 'Back' : 'Cancel'"
+          [label]="(isViewMode ? 'common.actions.back' : 'common.actions.cancel') | translate"
           icon="pi pi-times"
           class="p-button-outlined"
           (click)="onCancel()">
@@ -396,7 +396,7 @@
           *ngIf="!isViewMode"
           pButton
           type="button"
-          [label]="isEditing ? 'Update Return' : 'Create Return'"
+          [label]="(isEditing ? 'purchaseReturns.form.updateReturn' : 'purchaseReturns.form.createReturn') | translate"
           icon="pi pi-check"
           class="p-button-primary"
           (click)="onSubmit()"
@@ -409,7 +409,7 @@
 
   <!-- Item Selection Dialog -->
   <p-dialog
-    header="Select Items to Return"
+    [header]="'purchaseReturns.form.selectItemsDialogTitle' | translate"
     [(visible)]="showItemSelectionDialog"
     [modal]="true"
     [style]="{width: '700px', maxWidth: '95vw'}"
@@ -417,11 +417,11 @@
     [resizable]="false"
     [contentStyle]="{'overflow': 'visible'}">
     <div class="dialog-content">
-      <p class="dialog-description">Select the items you want to return from this purchase order:</p>
+      <p class="dialog-description">{{ 'purchaseReturns.form.selectItemsDialogDescription' | translate }}</p>
 
       <div *ngIf="availablePOItems.length === 0" class="empty-dialog">
         <i class="pi pi-inbox"></i>
-        <p>No items available</p>
+        <p>{{ 'goodsReceipt.noItemsAvailable' | translate }}</p>
       </div>
 
       <div *ngIf="availablePOItems.length > 0" class="items-list">
@@ -435,7 +435,7 @@
             <div class="item-info">
               <span class="item-name">{{ item.displayName || getPartName(item.partId) }}</span>
               <small *ngIf="item.partLocalName" class="part-row-local d-block">{{ item.partLocalName }}</small>
-              <span class="item-details">Qty: {{ item.quantity }} | Price: {{ item.unitPrice | appCurrency:currencyCode }}</span>
+              <span class="item-details">{{ 'purchaseReturns.form.qtyPrefix' | translate }} {{ item.quantity }} | {{ 'purchaseReturns.form.pricePrefix' | translate }} {{ item.unitPrice | appCurrency:currencyCode }}</span>
             </div>
             <span class="item-total">{{ (item.quantity * item.unitPrice) | appCurrency:currencyCode }}</span>
           </label>
@@ -447,14 +447,14 @@
       <div class="dialog-footer">
         <button
           pButton
-          label="Cancel"
+          [label]="'common.actions.cancel' | translate"
           icon="pi pi-times"
           class="p-button-outlined"
           (click)="cancelItemSelection()">
         </button>
         <button
           pButton
-          label="Add Selected ({{ selectedPOItems.length }})"
+          [label]="('purchaseReturns.form.addSelected' | translate) + ' (' + selectedPOItems.length + ')'"
           icon="pi pi-check"
           class="p-button-primary"
           (click)="confirmItemSelection()"

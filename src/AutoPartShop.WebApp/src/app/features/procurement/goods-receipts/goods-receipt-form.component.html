@@ -6,27 +6,27 @@
     <div class="header-content">
       <div class="header-title-section">
         <div class="breadcrumb">
-          <a (click)="goBack()" class="breadcrumb-link" aria-label="Back to goods receipt list">
+          <a (click)="goBack()" class="breadcrumb-link" [attr.aria-label]="'goodsReceipt.backToListAria' | translate">
             <i class="pi pi-arrow-left"></i>
-            Goods Receipts
+            {{ 'goodsReceipts.listTitle' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode === 'create' ? 'Create' : mode === 'edit' ? 'Edit' : 'View' }}</span>
+          <span class="breadcrumb-current">{{ (mode === 'create' ? 'common.actions.create' : mode === 'edit' ? 'common.actions.edit' : 'common.actions.view') | translate }}</span>
         </div>
         <h1 class="form-title">{{ getPageTitle() }}</h1>
         <p class="form-subtitle">
           {{
-            mode === 'create'
-              ? 'Complete all three steps to create a goods receipt.'
+            (mode === 'create'
+              ? 'goodsReceipt.subtitleCreate'
               : mode === 'edit'
-                ? 'Update pending receipt details before verification.'
-                : 'Track status, review receipt details, and perform workflow actions.'
+                ? 'goodsReceipt.subtitleEdit'
+                : 'goodsReceipt.subtitleView') | translate
           }}
         </p>
       </div>
 
       <div class="header-status" *ngIf="currentGRN">
-        <span class="status-label">Current Status</span>
+        <span class="status-label">{{ 'goodsReceipt.currentStatusLabel' | translate }}</span>
         <p-tag [value]="currentGRN.status" [severity]="getStatusSeverity(currentGRN.status)"></p-tag>
       </div>
     </div>
@@ -43,17 +43,17 @@
         <span class="workflow-label">{{ formatWorkflowStatus(step) }}</span>
       </div>
     </div>
-    <small class="workflow-hint" *ngIf="currentGRN.status === 'REJECTED'">This receipt is rejected and cannot continue in the normal flow.</small>
+    <small class="workflow-hint" *ngIf="currentGRN.status === 'REJECTED'">{{ 'goodsReceipt.rejectedHint' | translate }}</small>
   </div>
 
   <div *ngIf="isSubmitting" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-    <p>Processing goods receipt...</p>
+    <p>{{ 'goodsReceipt.processingText' | translate }}</p>
   </div>
 
   <p-card class="form-card">
     <form [formGroup]="form" class="form-content" *ngIf="isCreateMode; else nonCreateTemplate">
-      <div class="wizard-stepper" role="tablist" aria-label="Goods receipt creation steps">
+      <div class="wizard-stepper" role="tablist" [attr.aria-label]="'goodsReceipts.wizard.step1' | translate">
         <button
           type="button"
           class="wizard-step"
@@ -69,19 +69,19 @@
       <section class="form-section" *ngIf="createStep === 1">
         <h3 class="section-title">
           <i class="pi pi-file section-icon"></i>
-          Step 1: Purchase Order & Warehouse
+          {{ 'goodsReceipt.step1Title' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group full">
-            <label for="po">Purchase Order *</label>
+            <label for="po">{{ 'goodsReceipt.poFieldLabel' | translate }} *</label>
             <app-lazy-autocomplete
               id="po"
               [(ngModel)]="selectedPO"
               [ngModelOptions]="{ standalone: true }"
               [fetchFn]="fetchPurchaseOrdersLazy"
               optionLabel="poNumber"
-              placeholder="Select a purchase order..."
+              [placeholder]="'goodsReceipt.poPlaceholder' | translate"
               [minLength]="0"
               [showClear]="true"
               (onItemSelect)="onPOSelected($event)"
@@ -89,31 +89,31 @@
               <ng-template let-po>
                 <div class="autocomplete-item">
                   <span class="item-name">{{ po.poNumber }}</span>
-                  <span class="item-code">Supplier: {{ po.supplierName }} | Total: {{ formatCurrency(po.grandTotal) }}</span>
+                  <span class="item-code">{{ 'goodsReceipt.supplierPrefix' | translate }} {{ po.supplierName }} | {{ 'goodsReceipt.totalPrefix' | translate }} {{ formatCurrency(po.grandTotal) }}</span>
                 </div>
               </ng-template>
             </app-lazy-autocomplete>
-            <small class="p-error" *ngIf="!selectedPO && createStep === 1">Purchase Order is required.</small>
+            <small class="p-error" *ngIf="!selectedPO && createStep === 1">{{ 'goodsReceipt.poRequiredError' | translate }}</small>
           </div>
         </div>
 
         <div class="po-summary" *ngIf="selectedPO">
-          <div class="summary-chip"><span>Supplier</span><strong>{{ selectedPO.supplierName }}</strong></div>
-          <div class="summary-chip"><span>PO</span><strong>{{ selectedPO.poNumber }}</strong></div>
-          <div class="summary-chip"><span>Total</span><strong>{{ formatCurrency(selectedPO.grandTotal) }}</strong></div>
-          <div class="summary-chip"><span>Status</span><strong>{{ selectedPO.status }}</strong></div>
+          <div class="summary-chip"><span>{{ 'goodsReceipt.poSummarySupplier' | translate }}</span><strong>{{ selectedPO.supplierName }}</strong></div>
+          <div class="summary-chip"><span>{{ 'goodsReceipt.poSummaryPo' | translate }}</span><strong>{{ selectedPO.poNumber }}</strong></div>
+          <div class="summary-chip"><span>{{ 'goodsReceipt.poSummaryTotal' | translate }}</span><strong>{{ formatCurrency(selectedPO.grandTotal) }}</strong></div>
+          <div class="summary-chip"><span>{{ 'common.labels.status' | translate }}</span><strong>{{ selectedPO.status }}</strong></div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="warehouse">Warehouse *</label>
+            <label for="warehouse">{{ 'goodsReceipt.warehouseFieldLabel' | translate }} *</label>
             <app-lazy-autocomplete
               id="warehouse"
               [(ngModel)]="selectedWarehouse"
               [ngModelOptions]="{ standalone: true }"
               [fetchFn]="fetchWarehousesLazy"
               optionLabel="name"
-              placeholder="Select warehouse..."
+              [placeholder]="'goodsReceipt.warehousePlaceholder' | translate"
               [minLength]="0"
               [showClear]="true"
               (onItemSelect)="onWarehouseSelected($event)"
@@ -125,11 +125,11 @@
                 </div>
               </ng-template>
             </app-lazy-autocomplete>
-            <small class="p-error" *ngIf="!selectedWarehouse && createStep === 1">Warehouse is required.</small>
+            <small class="p-error" *ngIf="!selectedWarehouse && createStep === 1">{{ 'goodsReceipt.warehouseRequiredError' | translate }}</small>
           </div>
 
           <div class="form-group">
-            <label for="receivedDate">Received Date *</label>
+            <label for="receivedDate">{{ 'goodsReceipt.receivedDateFieldLabel' | translate }} *</label>
             <input id="receivedDate" pInputText type="date" formControlName="receivedDate" [style]="{ width: '100%' }" />
             <small *ngIf="hasError('receivedDate')" class="p-error">{{ getErrorMessage('receivedDate') }}</small>
           </div>
@@ -138,76 +138,76 @@
         <!-- Supplier Invoice section -->
         <div class="invoice-section">
           <h4 class="invoice-section-title">
-            <i class="pi pi-receipt"></i> Supplier Invoice
+            <i class="pi pi-receipt"></i> {{ 'goodsReceipt.supplierInvoiceTitle' | translate }}
           </h4>
 
           <div class="invoice-no-invoice-row">
             <p-checkbox formControlName="invoiceNotProvided" [binary]="true" inputId="invoiceNotProvided"></p-checkbox>
             <label for="invoiceNotProvided" class="invoice-no-label">
-              No invoice provided by supplier
-              <small class="invoice-hint">(walk-in purchase, cash receipt, or supplier omitted invoice)</small>
+              {{ 'goodsReceipt.noInvoiceLabel' | translate }}
+              <small class="invoice-hint">{{ 'goodsReceipt.noInvoiceHint' | translate }}</small>
             </label>
           </div>
 
           <div class="form-row" *ngIf="!form.get('invoiceNotProvided')?.value">
             <div class="form-group">
-              <label>Invoice Number *</label>
+              <label>{{ 'goodsReceipt.invoiceNumberLabel' | translate }} *</label>
               <input pInputText type="text" formControlName="supplierInvoiceNumber"
-                placeholder="e.g. INV-2026-00123"
+                [placeholder]="'goodsReceipt.invoiceNumberPlaceholder' | translate"
                 [style]="{ width: '100%' }" />
-              <small class="field-hint"><i class="pi pi-info-circle"></i> The number printed on the supplier's bill/invoice</small>
+              <small class="field-hint"><i class="pi pi-info-circle"></i> {{ 'goodsReceipt.invoiceNumberHint' | translate }}</small>
             </div>
             <div class="form-group">
-              <label>Invoice Date</label>
+              <label>{{ 'goodsReceipt.invoiceDateLabel' | translate }}</label>
               <input type="date" formControlName="supplierInvoiceDate" class="p-inputtext" [style]="{ width: '100%' }" />
-              <small class="field-hint"><i class="pi pi-info-circle"></i> Date printed on the supplier invoice</small>
+              <small class="field-hint"><i class="pi pi-info-circle"></i> {{ 'goodsReceipt.invoiceDateHint' | translate }}</small>
             </div>
           </div>
 
           <div *ngIf="form.get('invoiceNotProvided')?.value" class="no-invoice-note">
             <i class="pi pi-info-circle"></i>
-            The GRN number <strong>{{ '(auto-generated)' }}</strong> will be used as the reference for this receipt.
+            {{ 'goodsReceipt.noInvoiceNoteAutoGen' | translate }}
           </div>
         </div>
 
         <div class="delivery-toggle">
-          <button type="button" pButton class="p-button-text" [label]="showDeliverySection ? 'Hide Delivery Information' : 'Add Delivery Information'" [icon]="showDeliverySection ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" (click)="toggleDeliverySection()"></button>
+          <button type="button" pButton class="p-button-text" [label]="(showDeliverySection ? 'goodsReceipt.hideDeliveryInfo' : 'goodsReceipt.addDeliveryInfo') | translate" [icon]="showDeliverySection ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" (click)="toggleDeliverySection()"></button>
         </div>
 
         <div class="delivery-panel" *ngIf="showDeliverySection">
           <div class="form-row">
             <div class="form-group">
-              <label for="deliveryDate">Delivery Date</label>
+              <label for="deliveryDate">{{ 'goodsReceipts.delivery.date' | translate }}</label>
               <input id="deliveryDate" pInputText type="date" formControlName="deliveryDate" [style]="{ width: '100%' }" />
             </div>
             <div class="form-group">
-              <label for="deliveryRef">Delivery Reference</label>
+              <label for="deliveryRef">{{ 'goodsReceipts.delivery.reference' | translate }}</label>
               <input id="deliveryRef" pInputText type="text" formControlName="deliveryReference" placeholder="Waybill, shipment ID, etc." [style]="{ width: '100%' }" />
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="carrier">Carrier Name</label>
+              <label for="carrier">{{ 'goodsReceipts.delivery.carrier' | translate }}</label>
               <input id="carrier" pInputText type="text" formControlName="carrierName" placeholder="Transport/courier company" [style]="{ width: '100%' }" />
             </div>
             <div class="form-group">
-              <label for="driver">Driver Name</label>
+              <label for="driver">{{ 'goodsReceipts.delivery.driver' | translate }}</label>
               <input id="driver" pInputText type="text" formControlName="driverName" placeholder="Driver or contact person" [style]="{ width: '100%' }" />
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group full">
-              <label for="deliveryNotes">Delivery Notes</label>
+              <label for="deliveryNotes">{{ 'goodsReceipts.delivery.notes' | translate }}</label>
               <input id="deliveryNotes" pInputText type="text" formControlName="deliveryNotes" placeholder="Any delivery notes" [style]="{ width: '100%' }" />
             </div>
           </div>
         </div>
 
         <div class="form-actions">
-          <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="goBack()"></button>
-          <button pButton type="button" label="Next: Items" icon="pi pi-arrow-right" iconPos="right" (click)="nextCreateStep()"></button>
+          <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="goBack()"></button>
+          <button pButton type="button" [label]="'goodsReceipt.nextItemsBtn' | translate" icon="pi pi-arrow-right" iconPos="right" (click)="nextCreateStep()"></button>
         </div>
       </section>
 
@@ -215,20 +215,20 @@
         <div class="section-header-row">
           <h3 class="section-title">
             <i class="pi pi-list section-icon"></i>
-            Step 2: Receipt Items
+            {{ 'goodsReceipt.step2Title' | translate }}
             <span class="items-count" *ngIf="lineItemsArray.length > 0">({{ lineItemsArray.length }})</span>
           </h3>
           <div class="section-header-actions">
-            <span class="section-hint">Receiving quantities are pre-filled with remaining quantities.</span>
+            <span class="section-hint">{{ 'goodsReceipt.receivingHint' | translate }}</span>
             <button
               *ngIf="lineItemsArray.length > 0"
               pButton
               type="button"
-              label="Accept All"
+              [label]="'goodsReceipt.acceptAllBtn' | translate"
               icon="pi pi-check-circle"
               class="p-button-sm p-button-outlined p-button-success"
               (click)="acceptAll()"
-              pTooltip="Receive every line in full, with no damaged or wrong items."
+              [pTooltip]="'goodsReceipt.acceptAllTooltip' | translate"
               tooltipPosition="top">
             </button>
           </div>
@@ -238,12 +238,12 @@
           <table class="line-items-table grn-line-items-table" formArrayName="lineItems">
             <thead>
               <tr>
-                <th class="col-item">Item</th>
-                <th class="col-qtys">Ordered / Received / Remaining</th>
-                <th class="col-receiving">Receiving Now *</th>
-                <th class="col-condition">Damaged / Wrong → Good</th>
-                <th class="col-cost">Unit Cost *</th>
-                <th class="col-details">Details</th>
+                <th class="col-item">{{ 'goodsReceipt.colItem' | translate }}</th>
+                <th class="col-qtys">{{ 'goodsReceipt.colQtys' | translate }}</th>
+                <th class="col-receiving">{{ 'goodsReceipt.colReceivingNowRequired' | translate }}</th>
+                <th class="col-condition">{{ 'goodsReceipt.colCondition' | translate }}</th>
+                <th class="col-cost">{{ 'goodsReceipt.colUnitCostRequired' | translate }}</th>
+                <th class="col-details">{{ 'goodsReceipt.colDetails' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -251,7 +251,7 @@
                 <tr class="line-item-row" [class.line-fully-received]="isFullyReceived(line)">
 
                   <!-- Item name + unit sub-text -->
-                  <td class="item-cell" data-label="Item">
+                  <td class="item-cell" [attr.data-label]="'goodsReceipt.colItem' | translate">
                     <div class="item-cell-inner">
                       <span class="part-name-value">{{ line.get('displayName')?.value || line.get('partName')?.value }}</span>
                       <small *ngIf="line.get('partLocalName')?.value" class="part-row-local d-block">{{ line.get('partLocalName')?.value }}</small>
@@ -259,61 +259,61 @@
                         {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
                       </span>
                       <span *ngIf="isFullyReceived(line)" class="fully-received-badge">
-                        <i class="pi pi-check-circle"></i> Fully Received
+                        <i class="pi pi-check-circle"></i> {{ 'goodsReceipt.fullyReceivedBadge' | translate }}
                       </span>
                       <span *ngIf="line.get('hasDiscrepancy')?.value" class="discrepancy-badge">
-                        <i class="pi pi-exclamation-triangle"></i> Discrepancy
+                        <i class="pi pi-exclamation-triangle"></i> {{ 'goodsReceipt.discrepancyBadge' | translate }}
                       </span>
                     </div>
                   </td>
 
                   <!-- Qty summary (ordered / received / remaining) -->
-                  <td class="qtys-cell" data-label="Quantities">
+                  <td class="qtys-cell" [attr.data-label]="'goodsReceipt.colQtys' | translate">
                     <div class="qty-stack">
-                      <div class="qty-row"><span class="qty-lbl">Ordered</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
-                      <div class="qty-row"><span class="qty-lbl">Received</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
-                      <div class="qty-row"><span class="qty-lbl">Remaining</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
+                      <div class="qty-row"><span class="qty-lbl">{{ 'goodsReceipts.itemColumns.ordered' | translate }}</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
+                      <div class="qty-row"><span class="qty-lbl">{{ 'goodsReceipts.itemColumns.received' | translate }}</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
+                      <div class="qty-row"><span class="qty-lbl">{{ 'goodsReceipts.itemColumns.remaining' | translate }}</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
                     </div>
                   </td>
 
                   <!-- Receiving Now -->
-                  <td class="receiving-cell" data-label="Receiving Now">
+                  <td class="receiving-cell" [attr.data-label]="'goodsReceipt.colReceivingNow' | translate">
                     <p-inputNumber formControlName="receivingQuantity" [min]="0" [max]="line.get('maxReceivableQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }"></p-inputNumber>
-                    <small class="p-error" *ngIf="line.get('receivingQuantity')?.hasError('max')">Cannot exceed {{ line.get('maxReceivableQuantity')?.value }}.</small>
+                    <small class="p-error" *ngIf="line.get('receivingQuantity')?.hasError('max')">{{ 'goodsReceipt.receivingMaxError' | translate: { max: line.get('maxReceivableQuantity')?.value } }}</small>
                   </td>
 
                   <!-- Condition split — Damaged / Wrong, Good auto-calculated -->
-                  <td class="condition-cell" data-label="Damaged / Wrong">
+                  <td class="condition-cell" [attr.data-label]="'goodsReceipt.colCondition' | translate">
                     <div class="condition-stack">
                       <div class="split-row">
-                        <span class="split-lbl">Damaged</span>
+                        <span class="split-lbl">{{ 'goodsReceipt.damagedLabel' | translate }}</span>
                         <p-inputNumber formControlName="damagedQuantity" [min]="0" [max]="line.get('receivingQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }" inputStyleClass="split-input"></p-inputNumber>
                       </div>
                       <div class="split-row">
-                        <span class="split-lbl">Wrong</span>
+                        <span class="split-lbl">{{ 'goodsReceipt.wrongLabel' | translate }}</span>
                         <p-inputNumber formControlName="wrongQuantity" [min]="0" [max]="line.get('receivingQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }" inputStyleClass="split-input"></p-inputNumber>
                       </div>
-                      <div class="split-good"><i class="pi pi-check-circle"></i> Good: <strong>{{ getGoodQuantity(line) }}</strong></div>
-                      <input *ngIf="line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0" pInputText type="text" formControlName="rejectionReason" placeholder="Reason for damaged / wrong *" [style]="{ width: '100%' }" />
-                      <small class="p-error" *ngIf="(line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0) && !line.get('rejectionReason')?.value">Reason required.</small>
+                      <div class="split-good"><i class="pi pi-check-circle"></i> {{ 'goodsReceipt.goodPrefix' | translate }} <strong>{{ getGoodQuantity(line) }}</strong></div>
+                      <input *ngIf="line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0" pInputText type="text" formControlName="rejectionReason" [placeholder]="'goodsReceipt.rejectReasonPlaceholder' | translate" [style]="{ width: '100%' }" />
+                      <small class="p-error" *ngIf="(line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0) && !line.get('rejectionReason')?.value">{{ 'goodsReceipt.reasonRequiredError' | translate }}</small>
                     </div>
                   </td>
 
                   <!-- Unit Cost (batch / package no. live in the Details panel) -->
-                  <td class="cost-cell" data-label="Unit Cost">
+                  <td class="cost-cell" [attr.data-label]="'goodsReceipt.colUnitCost' | translate">
                     <p-inputNumber formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }" (onInput)="onUnitCostChanged(i)"></p-inputNumber>
                   </td>
 
                   <!-- Details toggle -->
-                  <td class="details-cell" data-label="Details">
+                  <td class="details-cell" [attr.data-label]="'goodsReceipt.colDetails' | translate">
                     <button
                       type="button"
                       class="details-toggle-btn"
                       [class.details-has-data]="hasDetails(line)"
                       (click)="toggleDetails(i)"
-                      [title]="isDetailOpen(i) ? 'Close details' : 'Set sell price, warranty, expiry, notes'">
+                      [title]="(isDetailOpen(i) ? 'goodsReceipt.detailsCloseTitle' : 'goodsReceipt.detailsOpenTitle') | translate">
                       <i class="pi" [class.pi-sliders-h]="!isDetailOpen(i)" [class.pi-chevron-up]="isDetailOpen(i)"></i>
-                      <span>{{ isDetailOpen(i) ? 'Close' : 'Details' }}</span>
+                      <span>{{ (isDetailOpen(i) ? 'goodsReceipt.detailsCloseLabel' : 'goodsReceipt.detailsLabel') | translate }}</span>
                       <span *ngIf="hasDetails(line) && !isDetailOpen(i)" class="details-dot"></span>
                     </button>
                   </td>
@@ -328,16 +328,16 @@
                 <!-- Supplier Batch No. (package-level identifier) | Currency -->
                 <div class="details-field">
                   <div class="dl-label-wrap">
-                    <span class="dl-title"><i class="pi pi-box"></i> Supplier Batch No.</span>
-                    <span class="dl-hint">From packaging label → saved as Manufacturer Lot No. in stock</span>
+                    <span class="dl-title"><i class="pi pi-box"></i> {{ 'goodsReceipt.batchNoTitle' | translate }}</span>
+                    <span class="dl-hint">{{ 'goodsReceipt.batchNoHint' | translate }}</span>
                   </div>
-                  <input pInputText type="text" formControlName="batchNumber" placeholder="From packaging label / delivery note" [style]="{ width: '100%' }" />
+                  <input pInputText type="text" formControlName="batchNumber" [placeholder]="'goodsReceipt.batchNoPlaceholder' | translate" [style]="{ width: '100%' }" />
                 </div>
 
                 <div class="details-field">
                   <div class="dl-label-wrap">
-                    <span class="dl-title"><i class="pi pi-globe"></i> Currency</span>
-                    <span class="dl-hint">for this lot's cost &amp; sell price</span>
+                    <span class="dl-title"><i class="pi pi-globe"></i> {{ 'goodsReceipt.currencyTitle' | translate }}</span>
+                    <span class="dl-hint">{{ 'goodsReceipt.currencyHint' | translate }}</span>
                   </div>
                   <p-select formControlName="currency" [options]="(activeCurrencies$ | async) ?? []"
                     optionLabel="code" optionValue="code" appendTo="body" [style]="{ width: '100%' }">
@@ -348,51 +348,51 @@
                 <!-- Row 2: Expiry Date | Warranty (months) -->
                 <div class="details-field">
                   <div class="dl-label-wrap">
-                    <span class="dl-title"><i class="pi pi-calendar"></i> Expiry Date</span>
-                    <span class="dl-hint">grocery, pharmacy, dated items</span>
+                    <span class="dl-title"><i class="pi pi-calendar"></i> {{ 'goodsReceipt.expiryDateTitle' | translate }}</span>
+                    <span class="dl-hint">{{ 'goodsReceipt.expiryDateHint' | translate }}</span>
                   </div>
                   <input type="date" formControlName="expiryDate" class="p-inputtext w-full" />
                 </div>
 
                 <div class="details-field">
                   <div class="dl-label-wrap">
-                    <span class="dl-title"><i class="pi pi-shield"></i> Warranty (months)</span>
-                    <span class="dl-hint">0 = no warranty for this lot</span>
+                    <span class="dl-title"><i class="pi pi-shield"></i> {{ 'goodsReceipt.warrantyMonthsTitle' | translate }}</span>
+                    <span class="dl-hint">{{ 'goodsReceipt.warrantyMonthsHint' | translate }}</span>
                   </div>
                   <p-inputNumber formControlName="warrantyPeriodMonths" [min]="0"
-                    [step]="1" mode="decimal" placeholder="e.g. 12" [style]="{ width: '100%' }">
+                    [step]="1" mode="decimal" [placeholder]="'goodsReceipt.warrantyMonthsPlaceholder' | translate" [style]="{ width: '100%' }">
                   </p-inputNumber>
                 </div>
 
                 <!-- Row 3: Warranty Type | (spacer) -->
                 <div class="details-field">
                   <div class="dl-label-wrap">
-                    <span class="dl-title"><i class="pi pi-info-circle"></i> Warranty Type</span>
+                    <span class="dl-title"><i class="pi pi-info-circle"></i> {{ 'goodsReceipt.warrantyTypeTitle' | translate }}</span>
                     <span class="dl-hint">&nbsp;</span>
                   </div>
                   <p-select formControlName="warrantyType" [options]="warrantyTypeOptions"
-                    optionLabel="label" optionValue="value" placeholder="Select..."
+                    optionLabel="label" optionValue="value" [placeholder]="'goodsReceipt.selectPlaceholder' | translate"
                     [showClear]="true" appendTo="body" [style]="{ width: '100%' }">
                   </p-select>
                 </div>
 
                 <div class="details-field" *ngIf="line.get('warrantyPeriodMonths')?.value > 0">
                   <div class="dl-label-wrap">
-                    <span class="dl-title"><i class="pi pi-file-edit"></i> Warranty Terms</span>
+                    <span class="dl-title"><i class="pi pi-file-edit"></i> {{ 'goodsReceipt.warrantyTermsTitle' | translate }}</span>
                     <span class="dl-hint">&nbsp;</span>
                   </div>
                   <textarea pTextarea formControlName="warrantyTerms" rows="2"
-                    placeholder="Terms & conditions..." class="w-full"></textarea>
+                    [placeholder]="'goodsReceipt.warrantyTermsPlaceholder' | translate" class="w-full"></textarea>
                 </div>
 
                 <!-- Notes: full width -->
                 <div class="details-field details-field-full">
                   <div class="dl-label-wrap">
-                    <span class="dl-title"><i class="pi pi-pencil"></i> Notes</span>
-                    <span class="dl-hint">condition notes, damage, special handling</span>
+                    <span class="dl-title"><i class="pi pi-pencil"></i> {{ 'goodsReceipt.notesTitle' | translate }}</span>
+                    <span class="dl-hint">{{ 'goodsReceipt.notesHint' | translate }}</span>
                   </div>
                   <textarea pTextarea formControlName="notes" rows="2"
-                    placeholder="Enter any notes about this lot..." class="w-full"></textarea>
+                    [placeholder]="'goodsReceipt.notesPlaceholder' | translate" class="w-full"></textarea>
                 </div>
 
                       </div>
@@ -407,8 +407,8 @@
 
         <div class="empty-lines" *ngIf="lineItemsArray.length === 0">
           <i class="pi pi-inbox"></i>
-          <p>No items available</p>
-          <small>Select a purchase order first.</small>
+          <p>{{ 'goodsReceipt.noItemsAvailable' | translate }}</p>
+          <small>{{ 'goodsReceipt.selectPOFirst' | translate }}</small>
         </div>
 
         <div class="warning-list" *ngIf="lineItemWarnings.length > 0">
@@ -419,32 +419,32 @@
         </div>
 
         <div class="form-actions">
-          <button pButton type="button" label="Back" icon="pi pi-arrow-left" class="p-button-outlined" (click)="previousCreateStep()"></button>
-          <button pButton type="button" label="Next: Review" icon="pi pi-arrow-right" iconPos="right" (click)="nextCreateStep()" [disabled]="lineItemsArray.length === 0"></button>
+          <button pButton type="button" [label]="'common.actions.back' | translate" icon="pi pi-arrow-left" class="p-button-outlined" (click)="previousCreateStep()"></button>
+          <button pButton type="button" [label]="'goodsReceipt.nextReviewBtn' | translate" icon="pi pi-arrow-right" iconPos="right" (click)="nextCreateStep()" [disabled]="lineItemsArray.length === 0"></button>
         </div>
       </section>
 
       <section class="form-section" *ngIf="createStep === 3">
         <h3 class="section-title">
           <i class="pi pi-check-square section-icon"></i>
-          Step 3: Review & Create
+          {{ 'goodsReceipt.step3Title' | translate }}
         </h3>
 
         <div class="combined-summary-card">
           <div class="summary-grid">
-            <div class="summary-row"><span>Purchase Order</span><strong>{{ selectedPO?.poNumber }}</strong></div>
-            <div class="summary-row"><span>Warehouse</span><strong>{{ selectedWarehouse?.name }}</strong></div>
-            <div class="summary-row"><span>Total Ordered</span><strong>{{ getTotalOrderedQuantity() }}</strong></div>
-            <div class="summary-row"><span>Already Received</span><strong>{{ getTotalReceivedQuantity() }}</strong></div>
-            <div class="summary-row"><span>Receiving Now</span><strong>{{ getTotalReceivingQuantity() }}</strong></div>
-            <div class="summary-row"><span>Good Items</span><strong class="text-green">{{ getTotalGoodQuantity() }}</strong></div>
-            <div class="summary-row"><span>Damaged Items</span><strong [class.text-danger]="getTotalDamagedQuantity() > 0">{{ getTotalDamagedQuantity() }}</strong></div>
-            <div class="summary-row"><span>Wrong Items</span><strong [class.text-danger]="getTotalWrongQuantity() > 0">{{ getTotalWrongQuantity() }}</strong></div>
-            <div class="summary-row"><span>Potential Returns</span><strong [class.text-orange]="getPotentialReturns() > 0">{{ getPotentialReturns() }}</strong></div>
-            <div class="summary-row"><span>Items Being Received</span><strong>{{ totalLinesWithReceivingQty }}</strong></div>
-            <div class="summary-row"><span>Discrepancies</span><strong [class.text-danger]="getDiscrepancyCount() > 0">{{ getDiscrepancyCount() }}</strong></div>
-            <div class="summary-row"><span>Total Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getTotalCostAllItems()) !== null">{{ formatCostPrice(getTotalCostAllItems()) }}</strong></div>
-            <div class="summary-row"><span>Average Unit Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getAverageUnitCost()) !== null">{{ formatCostPrice(getAverageUnitCost()) }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipts.wizard.purchaseOrder' | translate }}</span><strong>{{ selectedPO?.poNumber }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipts.wizard.warehouse' | translate }}</span><strong>{{ selectedWarehouse?.name }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryTotalOrdered' | translate }}</span><strong>{{ getTotalOrderedQuantity() }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryAlreadyReceived' | translate }}</span><strong>{{ getTotalReceivedQuantity() }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryReceivingNow' | translate }}</span><strong>{{ getTotalReceivingQuantity() }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryGoodItems' | translate }}</span><strong class="text-green">{{ getTotalGoodQuantity() }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryDamagedItems' | translate }}</span><strong [class.text-danger]="getTotalDamagedQuantity() > 0">{{ getTotalDamagedQuantity() }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryWrongItems' | translate }}</span><strong [class.text-danger]="getTotalWrongQuantity() > 0">{{ getTotalWrongQuantity() }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryPotentialReturns' | translate }}</span><strong [class.text-orange]="getPotentialReturns() > 0">{{ getPotentialReturns() }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryItemsBeingReceived' | translate }}</span><strong>{{ totalLinesWithReceivingQty }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryDiscrepancies' | translate }}</span><strong [class.text-danger]="getDiscrepancyCount() > 0">{{ getDiscrepancyCount() }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryTotalCost' | translate }}</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getTotalCostAllItems()) !== null">{{ formatCostPrice(getTotalCostAllItems()) }}</strong></div>
+            <div class="summary-row"><span>{{ 'goodsReceipt.summaryAvgUnitCost' | translate }}</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getAverageUnitCost()) !== null">{{ formatCostPrice(getAverageUnitCost()) }}</strong></div>
           </div>
         </div>
 
@@ -452,15 +452,15 @@
           <table class="review-table">
             <thead>
               <tr>
-                <th>Item</th>
-                <th class="text-right">Received</th>
-                <th class="text-right">Good</th>
-                <th class="text-right">Damaged</th>
-                <th class="text-right">Wrong</th>
-                <th>Supplier Batch No.</th>
-                <th>Expiry</th>
-                <th>Unit Cost</th>
-                <th>Discrepancy</th>
+                <th>{{ 'goodsReceipt.colItem' | translate }}</th>
+                <th class="text-right">{{ 'goodsReceipt.reviewColReceived' | translate }}</th>
+                <th class="text-right">{{ 'goodsReceipt.reviewColGood' | translate }}</th>
+                <th class="text-right">{{ 'goodsReceipt.reviewColDamaged' | translate }}</th>
+                <th class="text-right">{{ 'goodsReceipt.reviewColWrong' | translate }}</th>
+                <th>{{ 'goodsReceipt.reviewColBatch' | translate }}</th>
+                <th>{{ 'goodsReceipt.reviewColExpiry' | translate }}</th>
+                <th>{{ 'goodsReceipt.colUnitCost' | translate }}</th>
+                <th>{{ 'goodsReceipt.reviewColDiscrepancy' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -484,7 +484,7 @@
                 <td>{{ line.get('unitCost')?.value | number: '1.2-2' }}</td>
                 <td>
                   <span [class.text-danger]="line.get('hasDiscrepancy')?.value">
-                    {{ line.get('hasDiscrepancy')?.value ? '⚠ Yes' : 'No' }}
+                    {{ (line.get('hasDiscrepancy')?.value ? 'goodsReceipt.discrepancyYes' : 'goodsReceipt.discrepancyNo') | translate }}
                   </span>
                 </td>
               </tr>
@@ -500,8 +500,8 @@
         </div>
 
         <div class="form-actions">
-          <button pButton type="button" label="Back" icon="pi pi-arrow-left" class="p-button-outlined" (click)="previousCreateStep()"></button>
-          <button *ngIf="canManage" pButton type="button" label="Create Goods Receipt" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
+          <button pButton type="button" [label]="'common.actions.back' | translate" icon="pi pi-arrow-left" class="p-button-outlined" (click)="previousCreateStep()"></button>
+          <button *ngIf="canManage" pButton type="button" [label]="'goodsReceipt.createGRNBtn' | translate" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
         </div>
       </section>
     </form>
@@ -511,18 +511,18 @@
         <div class="form-section">
           <h3 class="section-title">
             <i class="pi pi-file section-icon"></i>
-            Purchase Order
+            {{ 'goodsReceipt.purchaseOrderSectionTitle' | translate }}
           </h3>
 
           <div class="form-row">
             <div class="form-group full">
-              <label>Purchase Order *</label>
+              <label>{{ 'goodsReceipt.poFieldLabel' | translate }} *</label>
               <app-lazy-autocomplete
                 [(ngModel)]="selectedPO"
                 [ngModelOptions]="{ standalone: true }"
                 [fetchFn]="fetchPurchaseOrdersLazy"
                 optionLabel="poNumber"
-                placeholder="Select a purchase order..."
+                [placeholder]="'goodsReceipt.poPlaceholder' | translate"
                 [disabled]="mode === 'view'"
                 [minLength]="0"
                 [showClear]="true"
@@ -531,11 +531,11 @@
                 <ng-template let-po>
                   <div class="autocomplete-item">
                     <span class="item-name">{{ po.poNumber }}</span>
-                    <span class="item-code">Supplier: {{ po.supplierName }} | Total: {{ formatCurrency(po.grandTotal) }}</span>
+                    <span class="item-code">{{ 'goodsReceipt.supplierPrefix' | translate }} {{ po.supplierName }} | {{ 'goodsReceipt.totalPrefix' | translate }} {{ formatCurrency(po.grandTotal) }}</span>
                   </div>
                 </ng-template>
               </app-lazy-autocomplete>
-              <small *ngIf="mode !== 'view' && !selectedPO" class="p-error">Purchase Order is required.</small>
+              <small *ngIf="mode !== 'view' && !selectedPO" class="p-error">{{ 'goodsReceipt.poRequiredError' | translate }}</small>
             </div>
           </div>
         </div>
@@ -543,18 +543,18 @@
         <div class="form-section">
           <h3 class="section-title">
             <i class="pi pi-warehouse section-icon"></i>
-            Receipt Information
+            {{ 'goodsReceipt.receiptInfoTitle' | translate }}
           </h3>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Warehouse *</label>
+              <label>{{ 'goodsReceipt.warehouseFieldLabel' | translate }} *</label>
               <app-lazy-autocomplete
                 [(ngModel)]="selectedWarehouse"
                 [ngModelOptions]="{ standalone: true }"
                 [fetchFn]="fetchWarehousesLazy"
                 optionLabel="name"
-                placeholder="Select warehouse..."
+                [placeholder]="'goodsReceipt.warehousePlaceholder' | translate"
                 [disabled]="mode === 'view'"
                 [minLength]="0"
                 [showClear]="true"
@@ -567,11 +567,11 @@
                   </div>
                 </ng-template>
               </app-lazy-autocomplete>
-              <small *ngIf="mode !== 'view' && !selectedWarehouse" class="p-error">Warehouse is required.</small>
+              <small *ngIf="mode !== 'view' && !selectedWarehouse" class="p-error">{{ 'goodsReceipt.warehouseRequiredError' | translate }}</small>
             </div>
 
             <div class="form-group">
-              <label>Received Date *</label>
+              <label>{{ 'goodsReceipt.receivedDateFieldLabel' | translate }} *</label>
               <input pInputText type="date" formControlName="receivedDate" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
               <small *ngIf="mode !== 'view' && hasError('receivedDate')" class="p-error">{{ getErrorMessage('receivedDate') }}</small>
             </div>
@@ -579,66 +579,66 @@
 
           <!-- Supplier Invoice (edit/view mode) -->
           <div class="invoice-section">
-            <h4 class="invoice-section-title"><i class="pi pi-receipt"></i> Supplier Invoice</h4>
+            <h4 class="invoice-section-title"><i class="pi pi-receipt"></i> {{ 'goodsReceipt.supplierInvoiceTitle' | translate }}</h4>
 
             <div class="invoice-no-invoice-row" *ngIf="mode !== 'view'">
               <p-checkbox formControlName="invoiceNotProvided" [binary]="true" inputId="invoiceNotProvidedEdit"></p-checkbox>
               <label for="invoiceNotProvidedEdit" class="invoice-no-label">
-                No invoice provided
-                <small class="invoice-hint">(walk-in / cash / no invoice)</small>
+                {{ 'goodsReceipt.noInvoiceProvidedShort' | translate }}
+                <small class="invoice-hint">{{ 'goodsReceipt.noInvoiceHintShort' | translate }}</small>
               </label>
             </div>
 
             <div class="form-row" *ngIf="!form.get('invoiceNotProvided')?.value || mode === 'view'">
               <div class="form-group">
-                <label>Invoice Number</label>
-                <input *ngIf="mode !== 'view'" pInputText type="text" formControlName="supplierInvoiceNumber" placeholder="e.g. INV-2026-00123" [style]="{ width: '100%' }" />
+                <label>{{ 'goodsReceipt.invoiceNumberLabel' | translate }}</label>
+                <input *ngIf="mode !== 'view'" pInputText type="text" formControlName="supplierInvoiceNumber" [placeholder]="'goodsReceipt.invoiceNumberPlaceholder' | translate" [style]="{ width: '100%' }" />
                 <span *ngIf="mode === 'view'" class="view-text font-semibold">
-                  {{ form.get('invoiceNotProvided')?.value ? '— Not provided' : (form.get('supplierInvoiceNumber')?.value || '—') }}
+                  {{ form.get('invoiceNotProvided')?.value ? ('goodsReceipt.notProvidedText' | translate) : (form.get('supplierInvoiceNumber')?.value || '—') }}
                 </span>
               </div>
               <div class="form-group">
-                <label>Invoice Date</label>
+                <label>{{ 'goodsReceipt.invoiceDateLabel' | translate }}</label>
                 <input *ngIf="mode !== 'view'" type="date" formControlName="supplierInvoiceDate" class="p-inputtext" [style]="{ width: '100%' }" />
                 <span *ngIf="mode === 'view'" class="view-text">{{ form.get('supplierInvoiceDate')?.value || '—' }}</span>
               </div>
             </div>
 
             <div *ngIf="form.get('invoiceNotProvided')?.value && mode !== 'view'" class="no-invoice-note">
-              <i class="pi pi-info-circle"></i> GRN number will be used as reference for this receipt.
+              <i class="pi pi-info-circle"></i> {{ 'goodsReceipt.grnNumberRefNote' | translate }}
             </div>
           </div>
 
           <div class="delivery-toggle" *ngIf="mode !== 'view'">
-            <button type="button" pButton class="p-button-text" [label]="showDeliverySection ? 'Hide Delivery Information' : 'Add Delivery Information'" [icon]="showDeliverySection ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" (click)="toggleDeliverySection()"></button>
+            <button type="button" pButton class="p-button-text" [label]="(showDeliverySection ? 'goodsReceipt.hideDeliveryInfo' : 'goodsReceipt.addDeliveryInfo') | translate" [icon]="showDeliverySection ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" (click)="toggleDeliverySection()"></button>
           </div>
 
           <div class="delivery-panel" *ngIf="showDeliverySection || mode === 'view'">
             <div class="form-row">
               <div class="form-group">
-                <label>Delivery Date</label>
+                <label>{{ 'goodsReceipts.delivery.date' | translate }}</label>
                 <input pInputText type="date" formControlName="deliveryDate" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
               </div>
               <div class="form-group">
-                <label>Delivery Reference</label>
+                <label>{{ 'goodsReceipts.delivery.reference' | translate }}</label>
                 <input pInputText type="text" formControlName="deliveryReference" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label>Carrier Name</label>
+                <label>{{ 'goodsReceipts.delivery.carrier' | translate }}</label>
                 <input pInputText type="text" formControlName="carrierName" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
               </div>
               <div class="form-group">
-                <label>Driver Name</label>
+                <label>{{ 'goodsReceipts.delivery.driver' | translate }}</label>
                 <input pInputText type="text" formControlName="driverName" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group full">
-                <label>Delivery Notes</label>
+                <label>{{ 'goodsReceipts.delivery.notes' | translate }}</label>
                 <input pInputText type="text" formControlName="deliveryNotes" [disabled]="mode === 'view'" [style]="{ width: '100%' }" />
               </div>
             </div>
@@ -649,7 +649,7 @@
           <div class="section-header-row">
             <h3 class="section-title">
               <i class="pi pi-list section-icon"></i>
-              Receipt Items
+              {{ 'goodsReceipt.receiptItemsTitle' | translate }}
               <span class="items-count" *ngIf="lineItemsArray.length > 0">({{ lineItemsArray.length }})</span>
             </h3>
           </div>
@@ -658,12 +658,12 @@
             <table class="line-items-table grn-line-items-table" formArrayName="lineItems">
               <thead>
                 <tr>
-                  <th class="col-item">Item</th>
-                  <th class="col-qtys">Ordered / Received / Remaining</th>
-                  <th class="col-receiving">Receiving Now</th>
-                  <th class="col-condition">Damaged / Wrong → Good</th>
-                  <th class="col-cost">Unit Cost</th>
-                  <th class="col-details" *ngIf="mode !== 'view'">Details</th>
+                  <th class="col-item">{{ 'goodsReceipt.colItem' | translate }}</th>
+                  <th class="col-qtys">{{ 'goodsReceipt.colQtys' | translate }}</th>
+                  <th class="col-receiving">{{ 'goodsReceipt.colReceivingNow' | translate }}</th>
+                  <th class="col-condition">{{ 'goodsReceipt.colCondition' | translate }}</th>
+                  <th class="col-cost">{{ 'goodsReceipt.colUnitCost' | translate }}</th>
+                  <th class="col-details" *ngIf="mode !== 'view'">{{ 'goodsReceipt.colDetails' | translate }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -671,7 +671,7 @@
                   <tr class="line-item-row">
 
                     <!-- Item + unit sub-text -->
-                    <td class="item-cell" data-label="Item">
+                    <td class="item-cell" [attr.data-label]="'goodsReceipt.colItem' | translate">
                       <div class="item-cell-inner">
                         <span class="part-name-value">{{ line.get('displayName')?.value || line.get('partName')?.value }}</span>
                         <small *ngIf="line.get('partLocalName')?.value" class="part-row-local d-block">{{ line.get('partLocalName')?.value }}</small>
@@ -679,49 +679,49 @@
                           {{ line.get('unitName')?.value }}<span *ngIf="line.get('unitSymbol')?.value"> ({{ line.get('unitSymbol')?.value }})</span>
                         </span>
                         <span *ngIf="line.get('hasDiscrepancy')?.value" class="discrepancy-badge">
-                          <i class="pi pi-exclamation-triangle"></i> Discrepancy
+                          <i class="pi pi-exclamation-triangle"></i> {{ 'goodsReceipt.discrepancyBadge' | translate }}
                         </span>
                       </div>
                     </td>
 
                     <!-- Qty summary -->
-                    <td class="qtys-cell" data-label="Quantities">
+                    <td class="qtys-cell" [attr.data-label]="'goodsReceipt.colQtys' | translate">
                       <div class="qty-stack">
-                        <div class="qty-row"><span class="qty-lbl">Ordered</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
-                        <div class="qty-row"><span class="qty-lbl">Received</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
-                        <div class="qty-row"><span class="qty-lbl">Remaining</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
+                        <div class="qty-row"><span class="qty-lbl">{{ 'goodsReceipts.itemColumns.ordered' | translate }}</span><span class="qty-val">{{ line.get('orderedQuantity')?.value }}</span></div>
+                        <div class="qty-row"><span class="qty-lbl">{{ 'goodsReceipts.itemColumns.received' | translate }}</span><span class="qty-val text-blue">{{ line.get('receivedQuantity')?.value || 0 }}</span></div>
+                        <div class="qty-row"><span class="qty-lbl">{{ 'goodsReceipts.itemColumns.remaining' | translate }}</span><span class="qty-val text-orange font-semibold">{{ line.get('remainingQuantity')?.value || 0 }}</span></div>
                       </div>
                     </td>
 
                     <!-- Receiving Now / qty display -->
-                    <td class="receiving-cell" data-label="Receiving Now">
+                    <td class="receiving-cell" [attr.data-label]="'goodsReceipt.colReceivingNow' | translate">
                       <p-inputNumber *ngIf="mode !== 'view'" formControlName="receivingQuantity" [min]="0" [max]="line.get('maxReceivableQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }"></p-inputNumber>
                       <span *ngIf="mode === 'view'" class="qty-display font-semibold">{{ line.get('receivingQuantity')?.value }}</span>
                     </td>
 
                     <!-- Condition split — Damaged / Wrong, Good auto-calculated -->
-                    <td class="condition-cell" data-label="Damaged / Wrong">
+                    <td class="condition-cell" [attr.data-label]="'goodsReceipt.colCondition' | translate">
                       <div class="condition-stack" *ngIf="mode !== 'view'">
                         <div class="split-row">
-                          <span class="split-lbl">Damaged</span>
+                          <span class="split-lbl">{{ 'goodsReceipt.damagedLabel' | translate }}</span>
                           <p-inputNumber formControlName="damagedQuantity" [min]="0" [max]="line.get('receivingQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }" inputStyleClass="split-input"></p-inputNumber>
                         </div>
                         <div class="split-row">
-                          <span class="split-lbl">Wrong</span>
+                          <span class="split-lbl">{{ 'goodsReceipt.wrongLabel' | translate }}</span>
                           <p-inputNumber formControlName="wrongQuantity" [min]="0" [max]="line.get('receivingQuantity')?.value" (onInput)="onReceivingQuantityChanged(i)" [style]="{ width: '100%' }" inputStyleClass="split-input"></p-inputNumber>
                         </div>
-                        <div class="split-good"><i class="pi pi-check-circle"></i> Good: <strong>{{ getGoodQuantity(line) }}</strong></div>
-                        <input *ngIf="line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0" pInputText type="text" formControlName="rejectionReason" placeholder="Reason for damaged / wrong *" [style]="{ width: '100%' }" />
+                        <div class="split-good"><i class="pi pi-check-circle"></i> {{ 'goodsReceipt.goodPrefix' | translate }} <strong>{{ getGoodQuantity(line) }}</strong></div>
+                        <input *ngIf="line.get('damagedQuantity')?.value > 0 || line.get('wrongQuantity')?.value > 0" pInputText type="text" formControlName="rejectionReason" [placeholder]="'goodsReceipt.rejectReasonPlaceholder' | translate" [style]="{ width: '100%' }" />
                       </div>
                       <div *ngIf="mode === 'view'" class="split-view">
-                        <span class="split-view-item"><span class="split-lbl">Good</span><strong class="text-green">{{ getGoodQuantity(line) }}</strong></span>
-                        <span class="split-view-item"><span class="split-lbl">Damaged</span><strong [class.text-danger]="line.get('damagedQuantity')?.value > 0">{{ line.get('damagedQuantity')?.value || 0 }}</strong></span>
-                        <span class="split-view-item"><span class="split-lbl">Wrong</span><strong [class.text-danger]="line.get('wrongQuantity')?.value > 0">{{ line.get('wrongQuantity')?.value || 0 }}</strong></span>
+                        <span class="split-view-item"><span class="split-lbl">{{ 'goodsReceipt.reviewColGood' | translate }}</span><strong class="text-green">{{ getGoodQuantity(line) }}</strong></span>
+                        <span class="split-view-item"><span class="split-lbl">{{ 'goodsReceipt.damagedLabel' | translate }}</span><strong [class.text-danger]="line.get('damagedQuantity')?.value > 0">{{ line.get('damagedQuantity')?.value || 0 }}</strong></span>
+                        <span class="split-view-item"><span class="split-lbl">{{ 'goodsReceipt.wrongLabel' | translate }}</span><strong [class.text-danger]="line.get('wrongQuantity')?.value > 0">{{ line.get('wrongQuantity')?.value || 0 }}</strong></span>
                       </div>
                     </td>
 
                     <!-- Unit Cost -->
-                    <td class="cost-cell" data-label="Unit Cost">
+                    <td class="cost-cell" [attr.data-label]="'goodsReceipt.colUnitCost' | translate">
                       <p-inputNumber *ngIf="mode !== 'view'" formControlName="unitCost" [min]="0" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" [style]="{ width: '100%' }"></p-inputNumber>
                       <span *ngIf="mode === 'view'" class="view-text font-semibold">
                         {{ line.get('unitCost')?.value | moneyFormat }}
@@ -730,15 +730,15 @@
                     </td>
 
                     <!-- Details toggle (edit only) -->
-                    <td class="details-cell" data-label="Details" *ngIf="mode !== 'view'">
+                    <td class="details-cell" [attr.data-label]="'goodsReceipt.colDetails' | translate" *ngIf="mode !== 'view'">
                       <button
                         type="button"
                         class="details-toggle-btn"
                         [class.details-has-data]="hasDetails(line)"
                         (click)="toggleDetails(i)"
-                        [title]="isDetailOpen(i) ? 'Close details' : 'Set sell price, warranty, expiry, notes'">
+                        [title]="(isDetailOpen(i) ? 'goodsReceipt.detailsCloseTitle' : 'goodsReceipt.detailsOpenTitle') | translate">
                         <i class="pi" [class.pi-sliders-h]="!isDetailOpen(i)" [class.pi-chevron-up]="isDetailOpen(i)"></i>
-                        <span>{{ isDetailOpen(i) ? 'Close' : 'Details' }}</span>
+                        <span>{{ (isDetailOpen(i) ? 'goodsReceipt.detailsCloseLabel' : 'goodsReceipt.detailsLabel') | translate }}</span>
                         <span *ngIf="hasDetails(line) && !isDetailOpen(i)" class="details-dot"></span>
                       </button>
                     </td>
@@ -752,16 +752,16 @@
 
                   <div class="details-field">
                     <div class="dl-label-wrap">
-                      <span class="dl-title"><i class="pi pi-box"></i> Supplier Batch No.</span>
-                      <span class="dl-hint">From packaging label → saved as Manufacturer Lot No. in stock</span>
+                      <span class="dl-title"><i class="pi pi-box"></i> {{ 'goodsReceipt.batchNoTitle' | translate }}</span>
+                      <span class="dl-hint">{{ 'goodsReceipt.batchNoHint' | translate }}</span>
                     </div>
-                    <input pInputText type="text" formControlName="batchNumber" placeholder="From packaging label / delivery note" [style]="{ width: '100%' }" />
+                    <input pInputText type="text" formControlName="batchNumber" [placeholder]="'goodsReceipt.batchNoPlaceholder' | translate" [style]="{ width: '100%' }" />
                   </div>
 
                   <div class="details-field">
                     <div class="dl-label-wrap">
-                      <span class="dl-title"><i class="pi pi-globe"></i> Currency</span>
-                      <span class="dl-hint">for this lot's cost &amp; sell price</span>
+                      <span class="dl-title"><i class="pi pi-globe"></i> {{ 'goodsReceipt.currencyTitle' | translate }}</span>
+                      <span class="dl-hint">{{ 'goodsReceipt.currencyHint' | translate }}</span>
                     </div>
                     <p-select formControlName="currency" [options]="(activeCurrencies$ | async) ?? []"
                       optionLabel="code" optionValue="code" appendTo="body" [style]="{ width: '100%' }"></p-select>
@@ -769,34 +769,34 @@
 
                   <div class="details-field">
                     <div class="dl-label-wrap">
-                      <span class="dl-title"><i class="pi pi-calendar"></i> Expiry Date</span>
-                      <span class="dl-hint">grocery, pharmacy, dated items</span>
+                      <span class="dl-title"><i class="pi pi-calendar"></i> {{ 'goodsReceipt.expiryDateTitle' | translate }}</span>
+                      <span class="dl-hint">{{ 'goodsReceipt.expiryDateHint' | translate }}</span>
                     </div>
                     <input type="date" formControlName="expiryDate" class="p-inputtext w-full" />
                   </div>
 
                   <div class="details-field">
                     <div class="dl-label-wrap">
-                      <span class="dl-title"><i class="pi pi-shield"></i> Warranty (months)</span>
-                      <span class="dl-hint">0 = no warranty for this lot</span>
+                      <span class="dl-title"><i class="pi pi-shield"></i> {{ 'goodsReceipt.warrantyMonthsTitle' | translate }}</span>
+                      <span class="dl-hint">{{ 'goodsReceipt.warrantyMonthsHint' | translate }}</span>
                     </div>
-                    <p-inputNumber formControlName="warrantyPeriodMonths" [min]="0" [step]="1" mode="decimal" placeholder="e.g. 12" [style]="{ width: '100%' }"></p-inputNumber>
+                    <p-inputNumber formControlName="warrantyPeriodMonths" [min]="0" [step]="1" mode="decimal" [placeholder]="'goodsReceipt.warrantyMonthsPlaceholder' | translate" [style]="{ width: '100%' }"></p-inputNumber>
                   </div>
 
                   <div class="details-field">
                     <div class="dl-label-wrap">
-                      <span class="dl-title"><i class="pi pi-info-circle"></i> Warranty Type</span>
+                      <span class="dl-title"><i class="pi pi-info-circle"></i> {{ 'goodsReceipt.warrantyTypeTitle' | translate }}</span>
                       <span class="dl-hint">&nbsp;</span>
                     </div>
-                    <p-select formControlName="warrantyType" [options]="warrantyTypeOptions" optionLabel="label" optionValue="value" placeholder="Select..." [showClear]="true" appendTo="body" [style]="{ width: '100%' }"></p-select>
+                    <p-select formControlName="warrantyType" [options]="warrantyTypeOptions" optionLabel="label" optionValue="value" [placeholder]="'goodsReceipt.selectPlaceholder' | translate" [showClear]="true" appendTo="body" [style]="{ width: '100%' }"></p-select>
                   </div>
 
                   <div class="details-field details-field-full">
                     <div class="dl-label-wrap">
-                      <span class="dl-title"><i class="pi pi-pencil"></i> Notes</span>
-                      <span class="dl-hint">condition notes, damage, special handling</span>
+                      <span class="dl-title"><i class="pi pi-pencil"></i> {{ 'goodsReceipt.notesTitle' | translate }}</span>
+                      <span class="dl-hint">{{ 'goodsReceipt.notesHint' | translate }}</span>
                     </div>
-                    <textarea pTextarea formControlName="notes" rows="2" placeholder="Enter any notes about this lot..." class="w-full"></textarea>
+                    <textarea pTextarea formControlName="notes" rows="2" [placeholder]="'goodsReceipt.notesPlaceholder' | translate" class="w-full"></textarea>
                   </div>
 
                         </div>
@@ -810,13 +810,13 @@
                     <td colspan="5">
                       <div class="line-view-details">
                         <span *ngIf="line.get('batchNumber')?.value" class="view-detail-chip">
-                          <i class="pi pi-box"></i> Batch: {{ line.get('batchNumber')?.value }}
+                          <i class="pi pi-box"></i> {{ 'goodsReceipt.viewDetailBatchPrefix' | translate }} {{ line.get('batchNumber')?.value }}
                         </span>
                         <span *ngIf="line.get('warrantyPeriodMonths')?.value > 0" class="view-detail-chip warranty-chip">
                           <i class="pi pi-shield"></i> {{ line.get('warrantyPeriodMonths')?.value }}m {{ line.get('warrantyType')?.value }}
                         </span>
                         <span *ngIf="line.get('expiryDate')?.value" class="view-detail-chip expiry-chip">
-                          <i class="pi pi-calendar"></i> Exp: {{ line.get('expiryDate')?.value }}
+                          <i class="pi pi-calendar"></i> {{ 'goodsReceipt.viewDetailExpiryPrefix' | translate }} {{ line.get('expiryDate')?.value }}
                         </span>
                         <span *ngIf="line.get('notes')?.value" class="view-detail-chip notes-chip">
                           <i class="pi pi-pencil"></i> {{ line.get('notes')?.value }}
@@ -831,8 +831,8 @@
 
           <div class="empty-lines" *ngIf="lineItemsArray.length === 0">
             <i class="pi pi-inbox"></i>
-            <p>No items to receive</p>
-            <small>Select a purchase order to load items.</small>
+            <p>{{ 'goodsReceipt.noItemsToReceive' | translate }}</p>
+            <small>{{ 'goodsReceipt.selectPOToLoad' | translate }}</small>
           </div>
 
           <div class="warning-list" *ngIf="lineItemWarnings.length > 0">
@@ -846,42 +846,42 @@
         <div class="form-section" *ngIf="selectedPO && lineItemsArray.length > 0">
           <h3 class="section-title">
             <i class="pi pi-chart-bar section-icon"></i>
-            Receipt & Cost Summary
+            {{ 'goodsReceipt.receiptCostSummaryTitle' | translate }}
           </h3>
 
           <div class="combined-summary-card">
             <div class="summary-grid">
-              <div class="summary-row"><span>Total Ordered</span><strong>{{ getTotalOrderedQuantity() }}</strong></div>
-              <div class="summary-row"><span>Already Received</span><strong>{{ getTotalReceivedQuantity() }}</strong></div>
-              <div class="summary-row"><span>Receiving Now</span><strong>{{ getTotalReceivingQuantity() }}</strong></div>
-              <div class="summary-row"><span>Good Items</span><strong class="text-green">{{ currentGRN?.goodItems ?? getTotalGoodQuantity() }}</strong></div>
-              <div class="summary-row"><span>Damaged Items</span><strong [class.text-danger]="(currentGRN?.damagedItems ?? getTotalDamagedQuantity()) > 0">{{ currentGRN?.damagedItems ?? getTotalDamagedQuantity() }}</strong></div>
-              <div class="summary-row"><span>Wrong Items</span><strong [class.text-danger]="(currentGRN?.wrongItems ?? getTotalWrongQuantity()) > 0">{{ currentGRN?.wrongItems ?? getTotalWrongQuantity() }}</strong></div>
-              <div class="summary-row"><span>Potential Returns</span><strong [class.text-orange]="(currentGRN?.potentialReturns ?? getPotentialReturns()) > 0">{{ currentGRN?.potentialReturns ?? getPotentialReturns() }}</strong></div>
-              <div class="summary-row"><span>Discrepancies</span><strong [class.text-danger]="getDiscrepancyCount() > 0">{{ getDiscrepancyCount() }}</strong></div>
-              <div class="summary-row"><span>Total Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getTotalCostAllItems()) !== null">{{ formatCostPrice(getTotalCostAllItems()) }}</strong></div>
-              <div class="summary-row"><span>Average Unit Cost</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getAverageUnitCost()) !== null">{{ formatCostPrice(getAverageUnitCost()) }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryTotalOrdered' | translate }}</span><strong>{{ getTotalOrderedQuantity() }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryAlreadyReceived' | translate }}</span><strong>{{ getTotalReceivedQuantity() }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryReceivingNow' | translate }}</span><strong>{{ getTotalReceivingQuantity() }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryGoodItems' | translate }}</span><strong class="text-green">{{ currentGRN?.goodItems ?? getTotalGoodQuantity() }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryDamagedItems' | translate }}</span><strong [class.text-danger]="(currentGRN?.damagedItems ?? getTotalDamagedQuantity()) > 0">{{ currentGRN?.damagedItems ?? getTotalDamagedQuantity() }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryWrongItems' | translate }}</span><strong [class.text-danger]="(currentGRN?.wrongItems ?? getTotalWrongQuantity()) > 0">{{ currentGRN?.wrongItems ?? getTotalWrongQuantity() }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryPotentialReturns' | translate }}</span><strong [class.text-orange]="(currentGRN?.potentialReturns ?? getPotentialReturns()) > 0">{{ currentGRN?.potentialReturns ?? getPotentialReturns() }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryDiscrepancies' | translate }}</span><strong [class.text-danger]="getDiscrepancyCount() > 0">{{ getDiscrepancyCount() }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryTotalCost' | translate }}</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getTotalCostAllItems()) !== null">{{ formatCostPrice(getTotalCostAllItems()) }}</strong></div>
+              <div class="summary-row"><span>{{ 'goodsReceipt.summaryAvgUnitCost' | translate }}</span><strong [class.coded-price]="priceCodeService.getDisplayPrice(getAverageUnitCost()) !== null">{{ formatCostPrice(getAverageUnitCost()) }}</strong></div>
             </div>
           </div>
         </div>
 
         <div class="form-actions">
-          <button pButton type="button" [label]="mode === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times" class="p-button-outlined" (click)="goBack()"></button>
-          <button *ngIf="mode !== 'view' && canManage" pButton type="button" [label]="mode === 'edit' ? 'Update Goods Receipt' : 'Create Goods Receipt'" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
+          <button pButton type="button" [label]="(mode === 'view' ? 'common.actions.back' : 'common.actions.cancel') | translate" icon="pi pi-times" class="p-button-outlined" (click)="goBack()"></button>
+          <button *ngIf="mode !== 'view' && canManage" pButton type="button" [label]="(mode === 'edit' ? 'goodsReceipt.updateGRNBtn' : 'goodsReceipt.createGRNBtn') | translate" icon="pi pi-check" class="p-button-success" (click)="onSubmit()" [loading]="isSubmitting" [disabled]="isSubmitting"></button>
         </div>
 
         <div class="workflow-actions" *ngIf="mode === 'view' && currentGRN && canManage">
-          <h4 class="workflow-actions-title">Workflow Actions</h4>
+          <h4 class="workflow-actions-title">{{ 'goodsReceipt.workflowActionsTitle' | translate }}</h4>
           <div class="workflow-actions-row">
             <button
               *ngIf="currentGRN.status === 'PENDING'"
               pButton
               type="button"
-              label="Verify Receipt"
+              [label]="'goodsReceipt.verifyReceiptBtn' | translate"
               icon="pi pi-check"
               class="p-button-info"
               (click)="verifyGoodsReceipt()"
-              pTooltip="Mark this receipt as verified after quantity and condition checks."
+              [pTooltip]="'goodsReceipt.verifyReceiptTooltip' | translate"
               tooltipPosition="top">
             </button>
 
@@ -889,11 +889,11 @@
               *ngIf="currentGRN.status === 'VERIFIED'"
               pButton
               type="button"
-              label="Accept & Update Stock"
+              [label]="'goodsReceipt.acceptUpdateStockBtn' | translate"
               icon="pi pi-check-circle"
               class="p-button-success"
               (click)="acceptGoodsReceipt(false)"
-              pTooltip="Accept this receipt and update inventory stock."
+              [pTooltip]="'goodsReceipt.acceptUpdateStockTooltip' | translate"
               tooltipPosition="top">
             </button>
 
@@ -901,11 +901,11 @@
               *ngIf="currentGRN.status === 'VERIFIED' && hasReturnableItems"
               pButton
               type="button"
-              label="Accept & Create Return"
+              [label]="'goodsReceipt.acceptCreateReturnBtn' | translate"
               icon="pi pi-replay"
               class="p-button-warning"
               (click)="acceptGoodsReceipt(true)"
-              pTooltip="Accept this receipt, update stock, and raise a draft Purchase Return for damaged/wrong items."
+              [pTooltip]="'goodsReceipt.acceptCreateReturnTooltip' | translate"
               tooltipPosition="top">
             </button>
 
@@ -913,11 +913,11 @@
               *ngIf="currentGRN.status === 'ACCEPTED' && hasReturnableItems"
               pButton
               type="button"
-              label="Create Return"
+              [label]="'goodsReceipt.createReturnBtn' | translate"
               icon="pi pi-replay"
               class="p-button-warning"
               (click)="createReturnFromGrn()"
-              pTooltip="Raise a Purchase Return for the damaged/wrong items received on this receipt."
+              [pTooltip]="'goodsReceipt.createReturnTooltip' | translate"
               tooltipPosition="top">
             </button>
 
@@ -925,11 +925,11 @@
               *ngIf="currentGRN.status === 'PENDING' || currentGRN.status === 'VERIFIED'"
               pButton
               type="button"
-              label="Reject Receipt"
+              [label]="'goodsReceipt.rejectReceiptBtn' | translate"
               icon="pi pi-times-circle"
               class="p-button-danger"
               (click)="rejectGoodsReceipt()"
-              pTooltip="Reject this receipt when issues cannot be resolved."
+              [pTooltip]="'goodsReceipt.rejectReceiptTooltip' | translate"
               tooltipPosition="top">
             </button>
           </div>
@@ -937,19 +937,19 @@
 
         <!-- Barcode / Label printing — available once stock has been accepted -->
         <div class="workflow-actions" *ngIf="mode === 'view' && currentGRN?.status === 'ACCEPTED' && printableLines.length > 0">
-          <h4 class="workflow-actions-title"><i class="pi pi-print"></i> Print Labels</h4>
-          <p class="text-secondary" style="margin: 0 0 0.5rem;">Print barcode labels for the accepted items. Quantity defaults to the received quantity.</p>
+          <h4 class="workflow-actions-title"><i class="pi pi-print"></i> {{ 'goodsReceipt.printLabelsTitle' | translate }}</h4>
+          <p class="text-secondary" style="margin: 0 0 0.5rem;">{{ 'goodsReceipt.printLabelsHint' | translate }}</p>
           <div class="grn-label-list">
             <div class="grn-label-row" *ngFor="let line of printableLines">
               <div class="grn-label-info">
                 <span class="grn-label-name">{{ line.displayName || line.partName }}</span>
                 <small *ngIf="line.partLocalName" class="part-row-local d-block">{{ line.partLocalName }}</small>
-                <span class="grn-label-sub">{{ line.variantSKU || line.partSKU }} · {{ line.acceptedQuantity }} pcs</span>
+                <span class="grn-label-sub">{{ line.variantSKU || line.partSKU }} · {{ line.acceptedQuantity }} {{ 'goodsReceipt.pcsSuffix' | translate }}</span>
               </div>
-              <button pButton type="button" label="Print Labels" icon="pi pi-print"
+              <button pButton type="button" [label]="'goodsReceipt.printLabelsBtn' | translate" icon="pi pi-print"
                 class="p-button-sm p-button-outlined"
                 (click)="printLineLabel(line)"
-                pTooltip="Open the label dialog for this item" tooltipPosition="left">
+                [pTooltip]="'goodsReceipt.printLabelsTooltip' | translate" tooltipPosition="left">
               </button>
             </div>
           </div>

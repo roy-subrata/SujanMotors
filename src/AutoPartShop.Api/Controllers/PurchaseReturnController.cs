@@ -8,8 +8,10 @@ using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using AutoPartShop.Api.Pdf;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
@@ -117,6 +119,58 @@ public class PurchaseReturnController : ControllerBase
             _logger.LogError(ex, "Error getting purchase return by ID: {ReturnId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the purchase return");
         }
+    }
+
+    /// <summary>Download the Purchase Return as a PDF (cost pricing).</summary>
+    [HttpGet("{id:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPdf(
+        Guid id,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
+        if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
+
+        var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+        var supplier = purchaseReturn.Supplier;
+        var supplierAddress = supplier is null
+            ? string.Empty
+            : string.Join(", ", new[] { supplier.Address, supplier.City, supplier.PostalCode }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        var data = new PurchaseReturnDocumentData(
+            ReturnNumber: purchaseReturn.ReturnNumber,
+            ReturnDate: purchaseReturn.ReturnDate,
+            PONumber: purchaseReturn.PurchaseOrder?.PONumber ?? string.Empty,
+            Reason: purchaseReturn.Reason,
+            Status: purchaseReturn.Status.ToString(),
+            SupplierName: supplier?.Name ?? string.Empty,
+            SupplierAddress: supplierAddress,
+            SupplierPhone: supplier?.Phone ?? string.Empty,
+            Lines: purchaseReturn.LineItems
+                .Select((l, i) =>
+                {
+                    var variantName = purchaseReturn.PurchaseOrder?.LineItems
+                        .FirstOrDefault(pol => pol.Id == l.PurchaseOrderLineId)?.Variant?.Name;
+                    return new PurchaseReturnDocumentLine(
+                        SlNo: i + 1,
+                        PartNumber: l.Part?.PartNumber?.Value ?? l.Part?.SKU ?? string.Empty,
+                        DisplayName: VariantNaming.Compose(l.Part?.Name ?? string.Empty, variantName),
+                        LocalName: l.Part?.LocalName,
+                        Quantity: l.Quantity - l.RejectedQuantity,
+                        UnitPrice: l.UnitPrice,
+                        RefundAmount: l.RefundAmount);
+                })
+                .ToList(),
+            RefundAmount: purchaseReturn.RefundAmount,
+            Notes: purchaseReturn.Notes);
+
+        var pdfBytes = new PurchaseReturnDocument(data, shop).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"purchase-return-{purchaseReturn.ReturnNumber}.pdf");
     }
 
     [HttpGet("number/{returnNumber}")]

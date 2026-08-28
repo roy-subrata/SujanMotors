@@ -19,7 +19,6 @@ import { PartService, PartResponse, PartsQuery } from '../../../inventory/servic
 import { UnitService, UnitResponse } from '../../../inventory/services/unit.service';
 import { UnitConversionService } from '../../../inventory/services/unit-conversion.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
-import { AppBrandingService } from '../../../../shared/services/app-branding.service';
 import { CurrencySelectorComponent } from '../../../../shared/components/currency-selector/currency-selector.component';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../../shared/components/lazy-autocomplete';
 import { DatePicker } from 'primeng/datepicker';
@@ -143,7 +142,6 @@ export class PurchaseOrderFormComponent implements OnInit {
     private readonly fb = inject(FormBuilder);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
-    private readonly branding = inject(AppBrandingService);
 
     constructor() {
         this.form = this.createForm();
@@ -856,189 +854,15 @@ export class PurchaseOrderFormComponent implements OnInit {
             return;
         }
 
-        const printContent = this.generatePrintContent();
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        if (printWindow) {
-            printWindow.document.write(printContent);
-            printWindow.document.close();
-            printWindow.document.getElementById('printBtn')?.addEventListener('click', () => printWindow.print());
-            printWindow.document.getElementById('closeBtn')?.addEventListener('click', () => printWindow.close());
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 250);
-        }
-    }
-
-    private generatePrintContent(): string {
-        const po = this.currentPO!;
-        const orderDate = po.orderDate ? new Date(po.orderDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-        const deliveryDate = po.deliveryDate ? new Date(po.deliveryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-        const currencyCode = this.form.get('currency')?.value || this.currencyService.selectedCurrency();
-
-        // Company identity from the configured business profile (SHOP_* settings).
-        const shop = this.branding.profile();
-        const shopName = shop?.name || 'Your Company';
-        const shopTagline = shop?.tagline || '';
-        const shopAddress = shop?.address || '';
-        const shopInitials = shopName.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-
-        const lineItemsHtml = (po.lines || []).map((line) => `
-            <tr>
-                <td class="desc-cell">
-                    <div class="item-name">${line.displayName || line.partName || 'N/A'}</div>
-                    <div class="item-desc">${line.unitName ? `Unit: ${line.unitName}` : '-'}${line.unitSymbol ? ` (${line.unitSymbol})` : ''}</div>
-                </td>
-                <td class="num-cell">${this.currencyService.formatCurrency(line.unitPrice, currencyCode)}</td>
-                <td class="num-cell">${line.quantity}</td>
-                <td class="num-cell">${this.currencyService.formatCurrency(line.lineTotal || (line.quantity * line.unitPrice), currencyCode)}</td>
-            </tr>
-        `).join('');
-
-        return `<!DOCTYPE html>
-<html>
-<head>
-    <title>Purchase Order - ${po.poNumber}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; padding: 20px; max-width: 800px; margin: 0 auto; }
-
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-        .logo-section { display: flex; align-items: center; gap: 10px; }
-        .logo { width: 60px; height: 60px; background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
-        .company-name { font-size: 22px; font-weight: 700; color: #1976d2; }
-        .title-section { text-align: right; }
-        .title-section h1 { font-size: 28px; color: #1976d2; font-weight: 300; margin-bottom: 8px; }
-        .invoice-meta { font-size: 11px; color: #666; }
-        .invoice-meta span { display: inline-block; min-width: 90px; }
-        .invoice-meta .value { color: #333; font-weight: 500; }
-
-        .address-section { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; }
-        .address-block { flex: 1; }
-        .address-block.right { text-align: right; }
-        .address-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .address-name { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px; }
-        .address-detail { font-size: 11px; color: #666; line-height: 1.5; }
-
-        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .items-table th { background: #1976d2; color: white; padding: 10px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
-        .items-table th:first-child { text-align: left; border-radius: 4px 0 0 0; }
-        .items-table th:last-child { border-radius: 0 4px 0 0; }
-        .items-table th.num-col { text-align: right; }
-        .items-table td { padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
-        .desc-cell { width: 45%; }
-        .num-cell { text-align: right; width: 18%; }
-        .item-name { font-weight: 500; color: #333; }
-        .item-desc { font-size: 10px; color: #999; margin-top: 2px; }
-
-        .summary-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .payment-info { flex: 1; padding-right: 40px; }
-        .payment-info h4 { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-        .payment-info p { font-size: 11px; color: #666; line-height: 1.6; }
-        .totals-box { width: 250px; }
-        .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11px; }
-        .totals-row.total { border-top: 2px solid #1976d2; margin-top: 8px; padding-top: 10px; font-size: 14px; font-weight: 600; color: #1976d2; }
-        .totals-label { color: #666; }
-        .totals-value { font-weight: 500; }
-
-        .footer { text-align: center; color: #999; font-size: 10px; padding-top: 10px; border-top: 1px solid #eee; }
-
-        .no-print { margin-top: 20px; text-align: center; }
-        .no-print button { padding: 10px 30px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin: 0 5px; }
-        .btn-print { background: #1976d2; color: white; }
-        .btn-close { background: #666; color: white; }
-        @media print { body { padding: 10px; } .no-print { display: none; } }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="logo-section">
-            <div class="logo">${shopInitials}</div>
-            <div>
-                <div class="company-name">${shopName}</div>
-                ${shopTagline ? `<div class="address-detail">${shopTagline}</div>` : ''}
-                ${shopAddress ? `<div class="address-detail">${shopAddress}</div>` : ''}
-            </div>
-        </div>
-        <div class="title-section">
-            <h1>Purchase Order</h1>
-            <div class="invoice-meta">
-                <div><span>PO no.:</span> <span class="value">${po.poNumber}</span></div>
-                <div><span>Order date:</span> <span class="value">${orderDate}</span></div>
-                <div><span>Delivery:</span> <span class="value">${deliveryDate}</span></div>
-                <div><span>Status:</span> <span class="value">${po.status}</span></div>
-                <div><span>Terms:</span> <span class="value">${po.paymentTerms || '-'}</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="address-section">
-        <div class="address-block">
-            <div class="address-label">From</div>
-            <div class="address-name">${shopName}</div>
-            <div class="address-detail">
-                ${shopTagline ? shopTagline + '<br>' : ''}
-                ${shopAddress}
-            </div>
-        </div>
-        <div class="address-block right">
-            <div class="address-label">Supplier</div>
-            <div class="address-name">${po.supplierName || 'N/A'}</div>
-            <div class="address-detail">
-                ${po.supplierCode ? `Supplier Code: ${po.supplierCode}<br>` : ''}
-                PO Ref: ${po.poNumber}
-            </div>
-        </div>
-    </div>
-
-    <table class="items-table">
-        <thead>
-            <tr>
-                <th>Description</th>
-                <th class="num-col">Unit Price</th>
-                <th class="num-col">Qty</th>
-                <th class="num-col">Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${lineItemsHtml || `<tr><td colspan="4" style="padding: 10px; text-align: center;">No items</td></tr>`}
-        </tbody>
-    </table>
-
-    <div class="summary-section">
-        <div class="payment-info">
-            ${po.notes ? `<h4>Notes</h4><p>${po.notes}</p>` : ''}
-        </div>
-        <div class="totals-box">
-            <div class="totals-row">
-                <span class="totals-label">Subtotal:</span>
-                <span class="totals-value">${this.currencyService.formatCurrency(po.subTotal || 0, currencyCode)}</span>
-            </div>
-            <div class="totals-row">
-                <span class="totals-label">Tax (${po.taxPercentage || 0}%):</span>
-                <span class="totals-value">${this.currencyService.formatCurrency(po.taxAmount || 0, currencyCode)}</span>
-            </div>
-            <div class="totals-row">
-                <span class="totals-label">Discount (${po.discountPercentage || 0}%):</span>
-                <span class="totals-value">-${this.currencyService.formatCurrency(po.discount || 0, currencyCode)}</span>
-            </div>
-            <div class="totals-row total">
-                <span class="totals-label">Total:</span>
-                <span class="totals-value">${this.currencyService.formatCurrency(po.grandTotal || 0, currencyCode)}</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>Thank you for choosing ${shopName} | For inquiries, please contact us</p>
-    </div>
-
-    <div class="no-print">
-        <button id="printBtn" class="btn-print">Print</button>
-        <button id="closeBtn" class="btn-close">Close</button>
-    </div>
-</body>
-</html>`;
+        this.poService.downloadPdf(this.currentPO.id, this.currentPO.poNumber).subscribe({
+            error: (error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('purchaseOrders.form.formMessages.printFailed')
+                });
+                console.error('Error downloading purchase order PDF:', error);
+            }
+        });
     }
 }

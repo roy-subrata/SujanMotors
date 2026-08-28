@@ -11,6 +11,7 @@ import { environment } from 'src/environments/environment';
 
 import { PageContainerComponent } from '../../../shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '../../../shared/components/filter-bar/filter-bar.component';
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { PdfDownloadService } from '../../../shared/services/pdf-download.service';
@@ -43,7 +44,7 @@ interface VatReportResponse {
     standalone: true,
     imports: [
         CommonModule, FormsModule, DatePickerModule, InputNumberModule, ToastModule, TooltipModule,
-        PageContainerComponent, PageHeaderComponent, HasPermissionDirective, TranslatePipe,
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, HasPermissionDirective, TranslatePipe,
         MoneyFormatPipe, AmountSignPipe
     ],
     providers: [MessageService],
