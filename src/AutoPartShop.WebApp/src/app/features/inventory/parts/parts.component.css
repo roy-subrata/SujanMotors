@@ -28,3 +28,17 @@
 }
 
 .warranty-meta { font-size: 11px; color: var(--color-success); }
+
+/* Search-match hint (shown only when the row matched via an attribute value) */
+.cell-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-hint .pi { font-size: 10px; }

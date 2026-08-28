@@ -77,6 +77,9 @@ class S {
       _t('Search name, SKU, brand...', 'নাম, SKU, ব্র্যান্ড খুঁজুন...');
   String get noProductsFound =>
       _t('No products found.', 'কোনো পণ্য পাওয়া যায়নি।');
+  String get matchedHint => _t('Matched', 'মিলেছে');
+  String get variantsMatchedSuffix =>
+      _t('variants matched', 'টি ভ্যারিয়েন্ট মিলেছে');
   String get all => _t('All', 'সব');
   String get more => _t('More', 'আরও');
   String get lowStock => _t('Low stock', 'কম স্টক');
@@ -137,8 +140,6 @@ class S {
   String get type => _t('Type', 'ধরন');
   String get variants => _t('Variants', 'ভ্যারিয়েন্ট');
   String get notes => _t('Notes', 'নোট');
-  String get noSpecificationsYet =>
-      _t('No specifications yet.', 'এখনও কোনো স্পেসিফিকেশন নেই।');
   String get technicalSpecification =>
       _t('Technical specification', 'টেকনিক্যাল স্পেসিফিকেশন');
   String get compatibleVehicles =>
@@ -976,16 +977,6 @@ class S {
   String get oemNumber => _t('OEM number', 'OEM নম্বর');
   String get descriptionLabel => _t('Description', 'বিবরণ');
   String get activeLabel => _t('Active', 'সক্রিয়');
-
-  // ── Product specs edit ────────────────────────────────────────────────
-  String get specificationsSaved =>
-      _t('Specifications saved', 'স্পেসিফিকেশন সংরক্ষিত');
-  String get addSpecification =>
-      _t('Add specification', 'স্পেসিফিকেশন যোগ করুন');
-  String get saveSpecifications =>
-      _t('Save specifications', 'স্পেসিফিকেশন সংরক্ষণ');
-  String get labelLabel => _t('Label', 'লেবেল');
-  String get valueLabel => _t('Value', 'মান');
 
   // ── Product compatibility edit ────────────────────────────────────────
   String get noVehiclesFound =>

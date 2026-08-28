@@ -81,6 +81,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
         // and vehicle-fit summary instead of the stale catalog columns.
         await ApplyLotCostAsync(items, cancellationToken);
         await ApplyVehicleFitAsync(items, cancellationToken);
+        await ApplyAttributeValuesAsync(items, cancellationToken);
         var stockMapSem = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
         foreach (var it in items) it.TotalStock = stockMapSem.TryGetValue(it.Id, out var ss) ? ss : 0;
         return (items, totalCount);
@@ -100,12 +101,24 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted)
             .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") ||
-             EF.Functions.Like(x.SKU, $"%{term}%") ||
-             (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%")) ||
-             (x.PartNumber != null && EF.Functions.Like(x.PartNumber.Value, $"%{term}%")) ||
-             (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{term}%")));
+            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId);
+
+        // Each word must match SOMEWHERE (name/sku/attribute, etc.) — a different field per word is
+        // fine, so "battery white" finds a product named "Battery" with a White variant.
+        foreach (var raw in SplitTerms(term))
+        {
+            var t = EscapeLikeTerm(raw);
+            parts = parts.Where(x =>
+                EF.Functions.Like(x.Name, $"%{t}%") ||
+                EF.Functions.Like(x.SKU, $"%{t}%") ||
+                (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{t}%")) ||
+                (x.PartNumber != null && EF.Functions.Like(x.PartNumber.Value, $"%{t}%")) ||
+                (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{t}%")) ||
+                x.AttributeValues.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                   (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))) ||
+                x.Variants.Any(v => v.Attributes.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                   (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%")))));
+        }
 
         if (query.LowStockOnly)
         {
@@ -176,6 +189,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
 
         await ApplyLotCostAsync(items, cancellationToken);
         await ApplyVehicleFitAsync(items, cancellationToken);
+        await ApplyAttributeValuesAsync(items, cancellationToken);
+        await ApplyMatchedAttributeHintAsync(items, term, cancellationToken);
         var stockMapAll = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
         foreach (var it in items) it.TotalStock = stockMapAll.TryGetValue(it.Id, out var sa) ? sa : 0;
         return (items, totalCount);
@@ -252,7 +267,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
     private async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllFlattenedAsync(
         ProductQuery query, string term, CancellationToken cancellationToken)
     {
-        var baseItems = await _db.Parts
+        var baseQuery = _db.Parts
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Unit)
@@ -260,11 +275,21 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Where(x => !x.Isdeleted)
             .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
             .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
-            .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted))
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%") ||
-                (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%")) ||
-                (x.PartNumber != null && EF.Functions.Like(x.PartNumber.Value, $"%{term}%")) ||
-                (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{term}%")))
+            .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted));
+
+        // Each word must match SOMEWHERE (name/sku/attribute) — see FindAllAsync for the same pattern.
+        foreach (var raw in SplitTerms(term))
+        {
+            var t = EscapeLikeTerm(raw);
+            baseQuery = baseQuery.Where(x => EF.Functions.Like(x.Name, $"%{t}%") || EF.Functions.Like(x.SKU, $"%{t}%") ||
+                (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{t}%")) ||
+                (x.PartNumber != null && EF.Functions.Like(x.PartNumber.Value, $"%{t}%")) ||
+                (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{t}%")) ||
+                x.AttributeValues.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                    (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))));
+        }
+
+        var baseItems = await baseQuery
             .Select(part => new ProductResponse
             {
                 Id = part.Id,
@@ -312,23 +337,35 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
         // Variant branch — everything (search term, IsActive, CategoryId) is filtered in SQL and
         // the projection is composed inline, so only matching rows are materialized. Navigations
         // referenced by the projection become joins automatically; no Includes needed.
-        var variantItems = await _db.ProductVariants
+        var variantQuery = _db.ProductVariants
             .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
             .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
-            .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId)
-            // NOTE: intentionally not matching on v.PartNumber here. Member access on the PartNumber
-            // value-converted type (v.PartNumber.Value) cannot be translated by EF Core once this
-            // query's Join between ProductVariant and Product is in scope — every shape tried (direct
-            // access, EF.Property, a correlated subquery) throws server-side. The equivalent access on
-            // the root Parts query below works fine, so this is scoped specifically to the variant/Join
-            // path. Until that's resolved upstream, variant part numbers are excluded from search;
-            // product name/SKU/OEM and the parent product's name/SKU still match.
-            .Where(v =>
-                EF.Functions.Like(v.Name, $"%{term}%") ||
-                (v.SKU != null && EF.Functions.Like(v.SKU, $"%{term}%")) ||
-                (v.OemNumber != null && EF.Functions.Like(v.OemNumber, $"%{term}%")) ||
-                EF.Functions.Like(v.Part!.Name, $"%{term}%") ||
-                EF.Functions.Like(v.Part.SKU, $"%{term}%"))
+            .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId);
+
+        // NOTE: intentionally not matching on v.PartNumber here. Member access on the PartNumber
+        // value-converted type (v.PartNumber.Value) cannot be translated by EF Core once this
+        // query's Join between ProductVariant and Product is in scope — every shape tried (direct
+        // access, EF.Property, a correlated subquery) throws server-side. The equivalent access on
+        // the root Parts query below works fine, so this is scoped specifically to the variant/Join
+        // path. Until that's resolved upstream, variant part numbers are excluded from search;
+        // product name/SKU/OEM and the parent product's name/SKU still match.
+        // Each word must match SOMEWHERE — see FindAllAsync for the same pattern.
+        foreach (var raw in SplitTerms(term))
+        {
+            var t = EscapeLikeTerm(raw);
+            variantQuery = variantQuery.Where(v =>
+                EF.Functions.Like(v.Name, $"%{t}%") ||
+                (v.SKU != null && EF.Functions.Like(v.SKU, $"%{t}%")) ||
+                (v.OemNumber != null && EF.Functions.Like(v.OemNumber, $"%{t}%")) ||
+                EF.Functions.Like(v.Part!.Name, $"%{t}%") ||
+                EF.Functions.Like(v.Part.SKU, $"%{t}%") ||
+                v.Attributes.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                    (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))) ||
+                v.Part.AttributeValues.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                    (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))));
+        }
+
+        var variantItems = await variantQuery
             .Select(v => new ProductResponse
             {
                 Id = v.PartId,
@@ -403,6 +440,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
 
         await ApplyLotCostAsync(paged, cancellationToken);
         await ApplyVehicleFitAsync(paged, cancellationToken);
+        await ApplyAttributeValuesAsync(paged, cancellationToken);
+        await ApplyMatchedAttributeHintAsync(paged, term, cancellationToken);
         var stockMapFlat = await GetStockTotalsAsync(paged.Select(i => i.Id), cancellationToken);
         foreach (var it in paged) it.TotalStock = stockMapFlat.TryGetValue(it.Id, out var sf) ? sf : 0;
         return (paged, totalCount);
@@ -435,6 +474,138 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             item.VehicleFit = summary;
         }
     }
+
+    /// <summary>
+    /// Populates each item's <c>AttributeValues</c> with the product's product-scoped EAV attribute
+    /// values (e.g. Material). Batched by product id, same enrichment pattern as
+    /// <see cref="ApplyLotCostAsync"/>/<see cref="ApplyVehicleFitAsync"/>.
+    /// </summary>
+    private async Task ApplyAttributeValuesAsync(List<ProductResponse> items, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0) return;
+
+        var partIds = items.Select(i => i.Id).Distinct().ToList();
+        var values = await _db.ProductAttributeValues
+            .Where(v => !v.Isdeleted && partIds.Contains(v.ProductId))
+            .Include(v => v.Attribute)
+            .Include(v => v.Option)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        if (values.Count == 0) return;
+
+        var byPart = values.GroupBy(v => v.ProductId).ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var item in items)
+        {
+            if (!byPart.TryGetValue(item.Id, out var av)) continue;
+            item.AttributeValues = av.Select(a => new ProductAttributeValueSummary
+            {
+                AttributeId = a.AttributeId,
+                AttributeName = a.Attribute?.Name ?? string.Empty,
+                DataType = a.Attribute?.DataType,
+                OptionId = a.OptionId,
+                OptionValue = a.Option?.Value,
+                ValueText = a.ValueText,
+                ValueNumber = a.ValueNumber,
+                ValueBool = a.ValueBool
+            }).ToList();
+        }
+    }
+
+    /// <summary>
+    /// Populates <c>MatchedAttributeLabel</c>/<c>MatchedVariantCount</c> for rows whose search-term
+    /// match came from an attribute value rather than a visible field. Rows that already match on
+    /// Name/SKU/LocalName/PartNumber/OemNumber are left alone (the match is self-explanatory).
+    /// Checks the already-populated product-scope <c>AttributeValues</c> first, then falls back to a
+    /// single batched variant-level query, same enrichment pattern as <see cref="ApplyLotCostAsync"/>/
+    /// <see cref="ApplyVehicleFitAsync"/>. Must run after <see cref="ApplyAttributeValuesAsync"/>.
+    /// </summary>
+    private async Task ApplyMatchedAttributeHintAsync(List<ProductResponse> items, string term, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0 || string.IsNullOrWhiteSpace(term)) return;
+
+        var words = SplitTerms(term);
+        if (words.Length == 0) return;
+
+        // Per item, only the words NOT already explained by a visible field (Name/SKU/etc.) need an
+        // attribute-driven hint — e.g. for "battery white" on a product named "Battery", "battery" is
+        // already obvious from the name, so only "white" needs explaining.
+        var missingByItem = new Dictionary<ProductResponse, List<string>>();
+        foreach (var item in items)
+        {
+            var missing = words.Where(w => !MatchesVisibleFields(item, w)).ToList();
+            if (missing.Count > 0) missingByItem[item] = missing;
+        }
+        if (missingByItem.Count == 0) return;
+
+        var stillUnmatched = new List<ProductResponse>();
+        foreach (var (item, missingWords) in missingByItem)
+        {
+            var hit = item.AttributeValues.FirstOrDefault(a =>
+                missingWords.Any(w => Contains(a.ValueText, w) || Contains(a.OptionValue, w)));
+
+            if (hit != null)
+                item.MatchedAttributeLabel = $"{hit.AttributeName}: {hit.OptionValue ?? hit.ValueText}";
+            else
+                stillUnmatched.Add(item);
+        }
+
+        if (stillUnmatched.Count == 0) return;
+
+        var partIds = stillUnmatched.Select(i => i.Id).Distinct().ToList();
+        var variantValues = await _db.VariantAttributeValues
+            .Where(av => !av.Isdeleted && av.Variant != null && !av.Variant.Isdeleted
+                && partIds.Contains(av.Variant.PartId))
+            .Include(av => av.Attribute)
+            .Include(av => av.Option)
+            .Include(av => av.Variant)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        if (variantValues.Count == 0) return;
+
+        var byPart = variantValues.GroupBy(av => av.Variant!.PartId).ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var item in stillUnmatched)
+        {
+            if (!byPart.TryGetValue(item.Id, out var candidates)) continue;
+            var missingWords = missingByItem[item];
+
+            var matches = candidates
+                .Where(av => missingWords.Any(w => Contains(av.ValueText, w) || (av.Option != null && Contains(av.Option.Value, w))))
+                .ToList();
+            if (matches.Count == 0) continue;
+
+            var first = matches[0];
+            item.MatchedAttributeLabel = $"{first.Attribute?.Name}: {first.Option?.Value ?? first.ValueText}";
+
+            var distinctVariantCount = matches.Select(m => m.VariantId).Distinct().Count();
+            if (distinctVariantCount > 1)
+                item.MatchedVariantCount = distinctVariantCount;
+        }
+    }
+
+    private static bool MatchesVisibleFields(ProductResponse item, string term) =>
+        Contains(item.Name, term) || Contains(item.SKU, term) || Contains(item.LocalName, term) ||
+        Contains(item.PartNumber, term) || Contains(item.OemNumber, term);
+
+    private static bool Contains(string? value, string term) =>
+        !string.IsNullOrEmpty(value) && value.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Splits a search box value into lowercased words — each word must match SOMEWHERE
+    /// (a possibly different field per word), rather than the whole phrase matching one field.</summary>
+    private static string[] SplitTerms(string term) =>
+        term.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(t => t.ToLowerInvariant())
+            .ToArray();
+
+    /// <summary>Escapes SQL Server LIKE wildcard metacharacters (%, _, [) so a search word containing
+    /// one of them (e.g. a SKU like "50%-OFF" or "A_1") is matched literally, not as a wildcard.
+    /// Bracket-style escaping needs no ESCAPE clause in T-SQL. Order matters: '[' must be escaped
+    /// first, or the brackets introduced while escaping '%'/'_' would themselves get re-escaped.</summary>
+    private static string EscapeLikeTerm(string term) =>
+        term.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]");
 
     private async Task<Dictionary<Guid, int>> GetStockTotalsAsync(
         IEnumerable<Guid> partIds, CancellationToken cancellationToken)

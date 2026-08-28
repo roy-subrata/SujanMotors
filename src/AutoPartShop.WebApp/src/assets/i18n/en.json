@@ -3460,6 +3460,8 @@
         "variantPriceTooltip": "Variant price",
         "showBarcode": "Show Barcode",
         "reset": "Reset",
+        "matchedHint": "Matched",
+        "variantsMatchedSuffix": "variants matched",
         "header": {
             "title": "Parts Management",
             "subtitle": "Manage your inventory parts and products",
@@ -3785,6 +3787,7 @@
             "ownPrice": "Own Price",
             "inheritsBaseWithPrice": "Inherits base ({{price}} BDT)",
             "noActiveVariantsHint": "No active variants. Add variants from the <strong>Variants</strong> tab.",
+            "noAttributeValuesHint": "No product attribute values set. Add them from Edit Part.",
             "linkCompatibleVehicle": "Link Compatible Vehicle",
             "selectVehiclePlaceholder": "Select a vehicle...",
             "addVehicle": "Add Vehicle",
@@ -3869,6 +3872,7 @@
                 "loadBrandsFailed": "Failed to load brands",
                 "createSuccess": "Part '{{name}}' created successfully",
                 "createFailed": "Failed to create part",
+                "attributeValuesSaveFailedAfterCreate": "Part created, but the attribute values you entered could not be saved. Open the part and add them again.",
                 "updateSuccess": "Part '{{name}}' updated successfully",
                 "updateFailed": "Failed to update part"
             }
@@ -3994,6 +3998,30 @@
                 "deleteFailed": "Failed to delete"
             }
         },
+        "productAttributeValuesManager": {
+            "title": "Product Attributes",
+            "hintPart1": "Set product-wide attribute values that apply to the whole product — e.g.",
+            "hintExamples": "Material, Brand Origin",
+            "hintPart2": ". Per-variant differences (Color, Size) belong under",
+            "hintManageAttributesLink": "Manage Attributes",
+            "hintPart3": "; only attributes scoped to Product show up here.",
+            "willSaveWithProductHint": "These attribute values will be saved automatically when you create the product.",
+            "selectPlaceholder": "Select...",
+            "enterValuePlaceholder": "Enter value",
+            "removeAttributeTooltip": "Remove attribute",
+            "noValuesYet": "No attribute values added yet.",
+            "pickAttributePlaceholder": "Pick an attribute to add...",
+            "addButton": "Add",
+            "noAttributesDefinedHint": "No product-scoped attributes defined yet.",
+            "setUpAttributeGroups": "Set up Attribute Groups",
+            "allAttributesAdded": "All available product attributes are added.",
+            "unsavedChanges": "Unsaved changes",
+            "saveButton": "Save Attributes",
+            "messages": {
+                "savedDetail": "Product attributes saved",
+                "saveFailed": "Failed to save product attributes"
+            }
+        },
         "attributeGroupManager": {
             "pageTitle": "Attribute Groups",
             "subtitle": "Define reusable attribute groups used across all product variants",
@@ -4020,6 +4048,9 @@
             "codePlaceholder": "e.g. COLOR",
             "codeRequiredError": "Code is required",
             "dataTypeLabel": "Data Type",
+            "scopeLabel": "Scope",
+            "scopeProduct": "Product",
+            "scopeVariant": "Variant",
             "unitLabel": "Unit",
             "unitPlaceholder": "e.g. GB, cm",
             "saveAttributeButton": "Save Attribute",
@@ -4041,6 +4072,7 @@
             "columnAttribute": "Attribute",
             "columnCode": "Code",
             "columnType": "Type",
+            "columnScope": "Scope",
             "columnUnit": "Unit",
             "columnOptions": "Options",
             "notApplicable": "N/A",

@@ -124,6 +124,7 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
   showOptionInput = false;
 
   dataTypeOptions: { label: string; value: string }[] = [];
+  scopeOptions: { label: string; value: string }[] = [];
 
   starterTemplates: StarterTemplate[] = [];
 
@@ -143,6 +144,13 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
       { label: this.i18n.t('parts.attributeGroupManager.dataTypeText'), value: 'text' },
       { label: this.i18n.t('parts.attributeGroupManager.dataTypeNumber'), value: 'number' },
       { label: this.i18n.t('parts.attributeGroupManager.dataTypeBoolean'), value: 'boolean' }
+    ];
+  }
+
+  private buildScopeOptions(): void {
+    this.scopeOptions = [
+      { label: this.i18n.t('parts.attributeGroupManager.scopeProduct'), value: 'product' },
+      { label: this.i18n.t('parts.attributeGroupManager.scopeVariant'), value: 'variant' }
     ];
   }
 
@@ -191,10 +199,12 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
     this.initForms();
     this.buildStatusOptions();
     this.buildDataTypeOptions();
+    this.buildScopeOptions();
     this.buildStarterTemplates();
     this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.buildStatusOptions();
       this.buildDataTypeOptions();
+      this.buildScopeOptions();
       this.buildStarterTemplates();
     });
     // Debounce search input — fires API call 400ms after user stops typing
@@ -354,14 +364,14 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
   startAddAttr(groupId: string): void {
     this.editingAttrId = null;
     this.attrTargetGroupId = groupId;
-    this.attrForm.reset({ name: '', code: '', dataType: 'option', unit: '', isActive: true });
+    this.attrForm.reset({ name: '', code: '', dataType: 'option', unit: '', isActive: true, scope: 'variant' });
     this.showAttrForm = true;
   }
 
   startEditAttr(groupId: string, attr: ProductAttribute): void {
     this.editingAttrId = attr.id;
     this.attrTargetGroupId = groupId;
-    this.attrForm.patchValue({ name: attr.name, code: attr.code, dataType: attr.dataType, unit: attr.unit, isActive: attr.isActive });
+    this.attrForm.patchValue({ name: attr.name, code: attr.code, dataType: attr.dataType, unit: attr.unit, isActive: attr.isActive, scope: attr.scope || 'variant' });
     this.showAttrForm = true;
   }
 
@@ -449,7 +459,8 @@ export class AttributeGroupManagerComponent implements OnInit, OnDestroy {
       code: ['', [Validators.required, Validators.maxLength(50)]],
       dataType: ['option', Validators.required],
       unit: [''],
-      isActive: [true]
+      isActive: [true],
+      scope: ['variant', Validators.required]
     });
   }
 

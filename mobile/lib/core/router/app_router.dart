@@ -23,7 +23,6 @@ import '../../features/products/product_compatibility_edit_screen.dart';
 import '../../features/products/product_detail_screen.dart';
 import '../../features/products/product_edit_screen.dart';
 import '../../features/products/product_search_screen.dart';
-import '../../features/products/product_specs_edit_screen.dart';
 import '../../features/sales/quick_sale_screen.dart';
 import '../../features/sales/sale_return_screen.dart';
 import '../../features/sales/sales_screen.dart';
@@ -81,11 +80,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/product/:id/edit',
         builder: (_, state) =>
             ProductEditScreen(productId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/product/:id/specs',
-        builder: (_, state) =>
-            ProductSpecsEditScreen(productId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/product/:id/compatibility',

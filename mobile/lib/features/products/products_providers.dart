@@ -4,7 +4,6 @@ import '../../core/network/app_exception.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
 import '../../shared/models/product_media.dart';
-import '../../shared/models/product_specification.dart';
 import '../../shared/models/vehicle_compatibility.dart';
 import 'products_repository.dart';
 
@@ -210,15 +209,30 @@ final productMediaProvider =
   return ref.read(productsRepositoryProvider).getMedia(id);
 });
 
-/// Deduplicated attribute values (specs) for a part, keyed by productId.
-/// Sourced from GET /products/{id}/variants → attributeValues.
-final productVariantAttributesProvider =
-    FutureProvider.family<List<ProductAttributeValue>, String>((ref, id) {
-  return ref.read(productsRepositoryProvider).getVariantAttributes(id);
-});
+/// Merged read-only attribute values for a product's "Technical
+/// specification" display: the product's own (product-scoped) attribute
+/// values from [productDetailProvider], plus deduplicated variant-scoped
+/// attribute values collected across its variants (GET
+/// /products/{id}/variants → attributeValues). Product-level values come
+/// first; a variant-level value is dropped if an attribute of the same name
+/// is already present at the product level.
+final productAttributeValuesProvider =
+    FutureProvider.family<List<ProductAttributeValue>, String>((ref, id) async {
+  final product = await ref.watch(productDetailProvider(id).future);
+  final variantAttrs =
+      await ref.read(productsRepositoryProvider).getVariantAttributes(id);
 
-/// Simple product-level specs (Label/Value), keyed by productId.
-final productSpecificationsProvider =
-    FutureProvider.family<List<ProductSpecification>, String>((ref, id) {
-  return ref.read(productsRepositoryProvider).getSpecifications(id);
+  final seen = <String>{};
+  final merged = <ProductAttributeValue>[];
+  for (final a in product.attributeValues) {
+    if (a.displayValue.isNotEmpty && seen.add(a.attributeName)) {
+      merged.add(a);
+    }
+  }
+  for (final a in variantAttrs) {
+    if (a.displayValue.isNotEmpty && seen.add(a.attributeName)) {
+      merged.add(a);
+    }
+  }
+  return merged;
 });

@@ -534,6 +534,31 @@ class _ProductCard extends ConsumerWidget {
                           ),
                         ),
                       ],
+                      if (product.matchedAttributeLabel != null) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.search,
+                                size: 11, color: context.colors.ink),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                '${S.of(context).matchedHint}: '
+                                '${product.matchedAttributeLabel}'
+                                '${product.matchedVariantCount != null ? ' (${product.matchedVariantCount} ${S.of(context).variantsMatchedSuffix})' : ''}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.instrumentSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: context.colors.ink,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

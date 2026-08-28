@@ -18,6 +18,8 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
             .Include(p => p.VehicleCompatibilities).ThenInclude(vc => vc.Vehicle)
+            .Include(p => p.AttributeValues).ThenInclude(av => av.Attribute)
+            .Include(p => p.AttributeValues).ThenInclude(av => av.Option)
             .FirstOrDefaultAsync(p => p.Id == id && !p.Isdeleted, cancellationToken);
     }
 

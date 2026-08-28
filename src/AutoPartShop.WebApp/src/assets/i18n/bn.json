@@ -3419,6 +3419,8 @@
         "variantPriceTooltip": "ভ্যারিয়েন্ট মূল্য",
         "showBarcode": "বারকোড দেখান",
         "reset": "পুনরায় সেট করুন",
+        "matchedHint": "মিলেছে",
+        "variantsMatchedSuffix": "টি ভ্যারিয়েন্ট মিলেছে",
         "header": {
             "title": "যন্ত্রাংশ ব্যবস্থাপনা",
             "subtitle": "আপনার ইনভেন্টরি যন্ত্রাংশ ও পণ্য পরিচালনা করুন",
@@ -3744,6 +3746,7 @@
             "ownPrice": "নিজস্ব মূল্য",
             "inheritsBaseWithPrice": "বেস মূল্য অনুসরণ করে ({{price}} BDT)",
             "noActiveVariantsHint": "কোনো সক্রিয় ভ্যারিয়েন্ট নেই। <strong>ভ্যারিয়েন্ট</strong> ট্যাব থেকে ভ্যারিয়েন্ট যোগ করুন।",
+            "noAttributeValuesHint": "কোনো পণ্য অ্যাট্রিবিউট মান নির্ধারণ করা হয়নি। পার্ট সম্পাদনা থেকে যোগ করুন।",
             "linkCompatibleVehicle": "সামঞ্জস্যপূর্ণ গাড়ি লিঙ্ক করুন",
             "selectVehiclePlaceholder": "একটি গাড়ি নির্বাচন করুন...",
             "addVehicle": "গাড়ি যোগ করুন",
@@ -3828,6 +3831,7 @@
                 "loadBrandsFailed": "ব্র্যান্ড লোড করতে ব্যর্থ হয়েছে",
                 "createSuccess": "যন্ত্রাংশ '{{name}}' সফলভাবে তৈরি হয়েছে",
                 "createFailed": "যন্ত্রাংশ তৈরি করতে ব্যর্থ হয়েছে",
+                "attributeValuesSaveFailedAfterCreate": "যন্ত্রাংশ তৈরি হয়েছে, কিন্তু আপনার দেওয়া অ্যাট্রিবিউট মানগুলো সংরক্ষণ করা যায়নি। যন্ত্রাংশটি খুলে সেগুলো আবার যোগ করুন।",
                 "updateSuccess": "যন্ত্রাংশ '{{name}}' সফলভাবে আপডেট হয়েছে",
                 "updateFailed": "যন্ত্রাংশ আপডেট করতে ব্যর্থ হয়েছে"
             }
@@ -3953,6 +3957,30 @@
                 "deleteFailed": "মুছতে ব্যর্থ হয়েছে"
             }
         },
+        "productAttributeValuesManager": {
+            "title": "পণ্যের অ্যাট্রিবিউট",
+            "hintPart1": "সম্পূর্ণ পণ্যের জন্য প্রযোজ্য অ্যাট্রিবিউট মান নির্ধারণ করুন — যেমন",
+            "hintExamples": "উপকরণ, উৎপত্তি ব্র্যান্ড",
+            "hintPart2": "। ভ্যারিয়েন্ট-ভিত্তিক পার্থক্য (রং, সাইজ)",
+            "hintManageAttributesLink": "অ্যাট্রিবিউট পরিচালনা করুন",
+            "hintPart3": "এর অধীনে থাকে; শুধুমাত্র পণ্য-স্কোপের অ্যাট্রিবিউট এখানে দেখা যাবে।",
+            "willSaveWithProductHint": "পণ্যটি তৈরি করার সময় এই অ্যাট্রিবিউট মানগুলো স্বয়ংক্রিয়ভাবে সংরক্ষিত হবে।",
+            "selectPlaceholder": "নির্বাচন করুন...",
+            "enterValuePlaceholder": "মান লিখুন",
+            "removeAttributeTooltip": "অ্যাট্রিবিউট সরান",
+            "noValuesYet": "এখনো কোনো অ্যাট্রিবিউট মান যোগ করা হয়নি।",
+            "pickAttributePlaceholder": "যোগ করতে একটি অ্যাট্রিবিউট বাছাই করুন...",
+            "addButton": "যোগ করুন",
+            "noAttributesDefinedHint": "এখনো কোনো পণ্য-স্কোপের অ্যাট্রিবিউট নির্ধারণ করা হয়নি।",
+            "setUpAttributeGroups": "অ্যাট্রিবিউট গ্রুপ সেট আপ করুন",
+            "allAttributesAdded": "সমস্ত উপলব্ধ পণ্য অ্যাট্রিবিউট যোগ করা হয়েছে।",
+            "unsavedChanges": "সংরক্ষণ না করা পরিবর্তন",
+            "saveButton": "অ্যাট্রিবিউট সংরক্ষণ করুন",
+            "messages": {
+                "savedDetail": "পণ্যের অ্যাট্রিবিউট সংরক্ষিত হয়েছে",
+                "saveFailed": "পণ্যের অ্যাট্রিবিউট সংরক্ষণ করতে ব্যর্থ হয়েছে"
+            }
+        },
         "attributeGroupManager": {
             "pageTitle": "অ্যাট্রিবিউট গ্রুপ",
             "subtitle": "সমস্ত পণ্য ভ্যারিয়েন্ট জুড়ে ব্যবহৃত পুনঃব্যবহারযোগ্য অ্যাট্রিবিউট গ্রুপ নির্ধারণ করুন",
@@ -3979,6 +4007,9 @@
             "codePlaceholder": "যেমন COLOR",
             "codeRequiredError": "কোড আবশ্যক",
             "dataTypeLabel": "ডেটা টাইপ",
+            "scopeLabel": "স্কোপ",
+            "scopeProduct": "পণ্য",
+            "scopeVariant": "ভ্যারিয়েন্ট",
             "unitLabel": "একক",
             "unitPlaceholder": "যেমন GB, cm",
             "saveAttributeButton": "অ্যাট্রিবিউট সংরক্ষণ করুন",
@@ -4000,6 +4031,7 @@
             "columnAttribute": "অ্যাট্রিবিউট",
             "columnCode": "কোড",
             "columnType": "ধরন",
+            "columnScope": "স্কোপ",
             "columnUnit": "একক",
             "columnOptions": "অপশন",
             "notApplicable": "প্রযোজ্য নয়",

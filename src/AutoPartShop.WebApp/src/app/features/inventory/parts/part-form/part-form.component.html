@@ -320,13 +320,22 @@
       </ng-container>
     </div>
 
-    <!-- ══ SECTION 6: Variants ══ -->
+    <!-- ══ SECTION 6: Product Attributes (product-scoped, e.g. Material) ══ -->
+    <div class="pf-section">
+      <app-product-attribute-values-manager
+        [partId]="partId || ''"
+        [isViewMode]="isViewMode"
+        [initialAttributeValues]="loadedPart?.attributeValues ?? null">
+      </app-product-attribute-values-manager>
+    </div>
+
+    <!-- ══ SECTION 7: Variants ══ -->
     <div class="pf-section">
       <app-product-variant-manager [partId]="partId || ''" [isViewMode]="isViewMode">
       </app-product-variant-manager>
     </div>
 
-    <!-- ══ SECTION 7: Vehicle Compatibility ══ (auto parts only) -->
+    <!-- ══ SECTION 8: Vehicle Compatibility ══ (auto parts only) -->
     <div class="pf-section">
       <div class="pf-section-head">
         <i class="pi pi-car"></i>

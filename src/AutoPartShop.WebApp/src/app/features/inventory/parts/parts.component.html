@@ -173,6 +173,11 @@
               <div class="cell-stack">
                 <span class="cell-primary">{{ part.name }}</span>
                 <span *ngIf="part.localName" class="cell-secondary">{{ part.localName }}</span>
+                <span *ngIf="part.matchedAttributeLabel" class="cell-hint">
+                  <i class="pi pi-search"></i>
+                  {{ 'parts.matchedHint' | translate }}: {{ part.matchedAttributeLabel }}
+                  <ng-container *ngIf="part.matchedVariantCount as n">({{ n }} {{ 'parts.variantsMatchedSuffix' | translate }})</ng-container>
+                </span>
               </div>
             </td>
 
@@ -288,6 +293,11 @@
           <div class="card-dates">
             <span class="card-date"><i class="pi pi-tag"></i> SKU: <span class="cell-mono">{{ part.sku }}</span></span>
           </div>
+          <span *ngIf="part.matchedAttributeLabel" class="cell-hint">
+            <i class="pi pi-search"></i>
+            {{ 'parts.matchedHint' | translate }}: {{ part.matchedAttributeLabel }}
+            <ng-container *ngIf="part.matchedVariantCount as n">({{ n }} {{ 'parts.variantsMatchedSuffix' | translate }})</ng-container>
+          </span>
         </div>
 
         <div class="card-footer">

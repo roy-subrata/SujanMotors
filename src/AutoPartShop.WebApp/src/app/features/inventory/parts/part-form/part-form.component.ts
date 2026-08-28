@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -24,6 +24,7 @@ import { UnitService, UnitResponse } from '../../services/unit.service';
 import { BrandService, BrandResponse } from '../../services/brand.service';
 import { VehicleService, VehicleResponse, CreatePartCompatibilityRequest } from '../../services/vehicle.service';
 import { ProductVariantManagerComponent } from '../product-variant-manager/product-variant-manager.component';
+import { ProductAttributeValuesManagerComponent } from '../product-attribute-values-manager/product-attribute-values-manager.component';
 
 import { forkJoin, of, tap } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -48,6 +49,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         Select,
         TooltipModule,
         ProductVariantManagerComponent,
+        ProductAttributeValuesManagerComponent,
         RouterModule,
         CardModule,
         ToastModule,
@@ -61,6 +63,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     styleUrls: ['./part-form.component.css']
 })
 export class PartFormComponent implements OnInit {
+    /** Read right after createPart() succeeds, to save any attribute values entered before the
+     *  product existed — mirrors pendingCompatibilities, but the values live in the child form. */
+    @ViewChild(ProductAttributeValuesManagerComponent) attributeValuesManager?: ProductAttributeValuesManagerComponent;
+
     private readonly partService = inject(PartService);
     private readonly categoryService = inject(CategoryService);
     private readonly unitService = inject(UnitService);
@@ -82,6 +88,8 @@ export class PartFormComponent implements OnInit {
     partId: string | null = null;
     /** Backend still has a CostPrice column (see Cost Model design), but this form has no UI for it — preserve the existing value on update instead of clobbering it. */
     private existingCostPrice = 0;
+    /** Full product loaded for edit/view mode — passed down to child managers (e.g. attribute values) instead of re-fetching. */
+    loadedPart: PartResponse | null = null;
     isSubmitting = false;
     isLoading = false;
     isCompatibilitySubmitting = false;
@@ -180,6 +188,7 @@ export class PartFormComponent implements OnInit {
     }
 
     private populateForm(part: PartResponse): void {
+        this.loadedPart = part;
         this.existingCostPrice = part.costPrice ?? 0;
         this.selectedCategory = this.categories.find(c => c.id === part.categoryId) || null;
         this.selectedBaseUnit = this.units.find(u => u.id === part.baseUnitId) || null;
@@ -536,8 +545,16 @@ export class PartFormComponent implements OnInit {
 
         this.partService.createPart(request).subscribe({
             next: (response) => {
-                const finalize = () => {
+                const finalize = (attributeValuesFailed: boolean) => {
                     this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.partForm.createdSummary'), detail: this.i18n.t('parts.partForm.messages.createSuccess', { name: response.name }) });
+                    if (attributeValuesFailed) {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: this.i18n.t('common.messages.warning'),
+                            detail: this.i18n.t('parts.partForm.messages.attributeValuesSaveFailedAfterCreate'),
+                            sticky: true
+                        });
+                    }
                     this.isSubmitting = false;
                     this.router.navigate(['/inventory/parts']);
                 };
@@ -546,9 +563,17 @@ export class PartFormComponent implements OnInit {
                     ? this.savePendingCompatibilities(response.id)
                     : of(void 0);
 
-                forkJoin([saveCompatibilities$]).subscribe({
-                    next: () => finalize(),
-                    error: () => finalize()
+                const pendingAttributeValues = this.attributeValuesManager?.getPendingRequest() ?? [];
+                let attributeValuesFailed = false;
+                const saveAttributeValues$ = pendingAttributeValues.length > 0
+                    ? this.partService.saveAttributeValues(response.id, pendingAttributeValues).pipe(
+                        map(() => void 0),
+                        catchError(() => { attributeValuesFailed = true; return of(void 0); }))
+                    : of(void 0);
+
+                forkJoin([saveCompatibilities$, saveAttributeValues$]).subscribe({
+                    next: () => finalize(attributeValuesFailed),
+                    error: () => finalize(attributeValuesFailed)
                 });
             },
             error: (error) => {

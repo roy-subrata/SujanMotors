@@ -76,6 +76,10 @@ public class ProductVariantController : ControllerBase
         if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
             return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
+        var scopeError = await ValidateAttributeScopeAsync(req.AttributeValues, ct);
+        if (scopeError is not null)
+            return BadRequest(scopeError);
+
         // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
         if (string.IsNullOrWhiteSpace(req.SKU))
             req.SKU = await GenerateVariantSkuAsync(productId, req.Code, excludeVariantId: null, ct);
@@ -126,6 +130,10 @@ public class ProductVariantController : ControllerBase
 
         if (variant is null)
             return NotFound(ApiError.NotFound($"Variant '{id}' not found on product '{productId}'", Request.Path));
+
+        var scopeError = await ValidateAttributeScopeAsync(req.AttributeValues, ct);
+        if (scopeError is not null)
+            return BadRequest(scopeError);
 
         // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
         if (string.IsNullOrWhiteSpace(req.SKU))
@@ -276,6 +284,38 @@ public class ProductVariantController : ControllerBase
         {
             _logger.LogWarning(ex, "Failed to sync price schedule for variant {VariantId}", variantId);
         }
+    }
+
+    /// <summary>
+    /// Rejects attribute values whose <see cref="ProductAttribute.Scope"/> is not "variant" (or that
+    /// reference an unknown attribute id), so a product-scoped attribute can never be assigned to a
+    /// variant. Returns an ApiError to surface, or null when every submitted attribute checks out.
+    /// </summary>
+    private async Task<ApiError?> ValidateAttributeScopeAsync(List<VariantAttributeValueRequest>? values, CancellationToken ct)
+    {
+        if (values is null || values.Count == 0) return null;
+
+        var duplicates = values.GroupBy(v => v.AttributeId).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        if (duplicates.Count > 0)
+            return ApiError.Validation($"Attribute id(s) listed more than once: {string.Join(", ", duplicates)}", instance: Request.Path);
+
+        var ids = values.Select(v => v.AttributeId).Distinct().ToList();
+        var attrs = await _db.ProductAttributes
+            .Where(a => ids.Contains(a.Id))
+            .Select(a => new { a.Id, a.Scope })
+            .ToListAsync(ct);
+
+        var missing = ids.Except(attrs.Select(a => a.Id)).ToList();
+        if (missing.Count > 0)
+            return ApiError.Validation($"Unknown attribute id(s): {string.Join(", ", missing)}", instance: Request.Path);
+
+        var wrongScope = attrs.Where(a => a.Scope != "variant").Select(a => a.Id).ToList();
+        if (wrongScope.Count > 0)
+            return ApiError.Validation(
+                $"Attribute(s) {string.Join(", ", wrongScope)} are scoped to 'product' and cannot be assigned to a variant",
+                instance: Request.Path);
+
+        return null;
     }
 
     private async Task SaveAttributeValues(Guid variantId, List<VariantAttributeValueRequest>? values, CancellationToken ct)

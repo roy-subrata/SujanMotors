@@ -131,6 +131,12 @@ public class ProductAttributeGroupController : ControllerBase
     {
         var group = await _db.ProductAttributeGroups.FindAsync(new object[] { id }, ct);
         if (group is null) return NotFound();
+
+        // AttributeGroupId -> Attribute is a NoAction FK: deleting a non-empty group would otherwise
+        // throw an unhandled DbUpdateException instead of a clean error.
+        if (await _db.ProductAttributes.AnyAsync(a => a.AttributeGroupId == id, ct))
+            return Conflict(new { message = "Cannot delete a group that still has attributes — remove or move its attributes first" });
+
         _db.ProductAttributeGroups.Remove(group);
         await _db.SaveChangesAsync(ct);
         return NoContent();
@@ -150,7 +156,7 @@ public class ProductAttributeGroupController : ControllerBase
             if (await _db.ProductAttributes.AnyAsync(a => a.Code == req.Code.Trim().ToUpperInvariant(), ct))
                 return Conflict(new { message = $"Attribute code '{req.Code}' already exists" });
 
-            var attr = ProductAttribute.Create(groupId, req.Name, req.Code, req.DataType, req.Unit ?? "");
+            var attr = ProductAttribute.Create(groupId, req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive, req.Scope);
             _db.ProductAttributes.Add(attr);
             await _db.SaveChangesAsync(ct);
             return Ok(MapAttribute(attr));
@@ -174,7 +180,12 @@ public class ProductAttributeGroupController : ControllerBase
                 .FirstOrDefaultAsync(a => a.Id == attrId && a.AttributeGroupId == groupId, ct);
             if (attr is null) return NotFound();
 
-            attr.Update(req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive);
+            // Changing Scope after values already exist under the old scope would silently orphan
+            // them (still in the DB, but invisible to both the product- and variant-scoped editors).
+            if (!string.Equals(attr.Scope, req.Scope, StringComparison.Ordinal) && await AttributeHasValuesAsync(attrId, ct))
+                return BadRequest(new { message = "Cannot change scope: this attribute already has values assigned. Remove them first." });
+
+            attr.Update(req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive, req.Scope);
             await _db.SaveChangesAsync(ct);
             return Ok(MapAttribute(attr));
         }
@@ -193,10 +204,21 @@ public class ProductAttributeGroupController : ControllerBase
         var attr = await _db.ProductAttributes
             .FirstOrDefaultAsync(a => a.Id == attrId && a.AttributeGroupId == groupId, ct);
         if (attr is null) return NotFound();
+
+        // AttributeId -> Attribute is a NoAction FK on both value tables: deleting an attribute still
+        // referenced by product/variant values would otherwise throw an unhandled DbUpdateException.
+        if (await AttributeHasValuesAsync(attrId, ct))
+            return Conflict(new { message = "Cannot delete an attribute that still has values assigned to products or variants" });
+
         _db.ProductAttributes.Remove(attr);
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+    /// <summary>Whether any product- or variant-scoped value currently references this attribute.</summary>
+    private async Task<bool> AttributeHasValuesAsync(Guid attributeId, CancellationToken ct) =>
+        await _db.ProductAttributeValues.AnyAsync(v => v.AttributeId == attributeId, ct) ||
+        await _db.VariantAttributeValues.AnyAsync(v => v.AttributeId == attributeId, ct);
 
     // ── Options ───────────────────────────────────────────────────────────────
 
@@ -251,6 +273,14 @@ public class ProductAttributeGroupController : ControllerBase
         var opt = await _db.ProductAttributeOptions
             .FirstOrDefaultAsync(o => o.Id == optId && o.AttributeId == attrId, ct);
         if (opt is null) return NotFound();
+
+        // OptionId -> Option is a NoAction FK on both value tables: deleting an option still selected
+        // by an existing product/variant value would otherwise throw an unhandled DbUpdateException.
+        var inUse = await _db.ProductAttributeValues.AnyAsync(v => v.OptionId == optId, ct) ||
+                    await _db.VariantAttributeValues.AnyAsync(v => v.OptionId == optId, ct);
+        if (inUse)
+            return Conflict(new { message = "Cannot delete an option that is still selected on a product or variant" });
+
         _db.ProductAttributeOptions.Remove(opt);
         await _db.SaveChangesAsync(ct);
         return NoContent();
@@ -276,11 +306,12 @@ public class ProductAttributeGroupController : ControllerBase
         a.DataType,
         a.Unit,
         a.IsActive,
+        a.Scope,
         options = a.Options.OrderBy(o => o.SortOrder).Select(o => new { o.Id, o.AttributeId, o.Value, o.SortOrder })
     };
 }
 
 public record CreateAttributeGroupRequest(string Name, int SortOrder = 0, bool IsActive = true);
-public record CreateAttributeRequest(string Name, string Code, string DataType = "option", string? Unit = null, bool IsActive = true);
+public record CreateAttributeRequest(string Name, string Code, string DataType = "option", string? Unit = null, bool IsActive = true, string Scope = "variant");
 public record CreateOptionRequest(string Value, int SortOrder = 0);
 public record AttributeGroupQuery(string Search = "", bool? IsActive = null, int PageNumber = 1, int PageSize = 10);

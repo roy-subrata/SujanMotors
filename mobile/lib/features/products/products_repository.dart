@@ -7,7 +7,6 @@ import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
 import '../../shared/models/product_media.dart';
-import '../../shared/models/product_specification.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle.dart';
 import '../../shared/models/vehicle_compatibility.dart';
@@ -89,57 +88,6 @@ class ProductsRepository {
   Future<void> updateProduct(String id, Map<String, dynamic> payload) async {
     try {
       await _dio.put('/products/$id', data: payload);
-    } on DioException catch (e) {
-      throw AppException.fromDio(e);
-    }
-  }
-
-  /// Descriptive specs (Label/Value) for a product,
-  /// GET /products/{id}/specifications (display order).
-  Future<List<ProductSpecification>> getSpecifications(String id) async {
-    try {
-      final res = await _dio.get('/products/$id/specifications');
-      final data = (res.data as Map<String, dynamic>)['data'];
-      if (data is! List) return const [];
-      return data
-          .whereType<Map>()
-          .map((m) =>
-              ProductSpecification.fromJson(Map<String, dynamic>.from(m)))
-          .toList();
-    } on DioException catch (e) {
-      throw AppException.fromDio(e);
-    }
-  }
-
-  /// Replaces a product's specs (PUT /products/{id}/specifications). Needs
-  /// inventory.edit.
-  Future<void> updateSpecifications(
-      String id, List<ProductSpecification> specs) async {
-    try {
-      await _dio.put('/products/$id/specifications',
-          data: {'specifications': specs.map((s) => s.toJson()).toList()});
-    } on DioException catch (e) {
-      throw AppException.fromDio(e);
-    }
-  }
-
-  /// Typeahead suggestions for the spec editor. [field] is 'label' or 'value';
-  /// [labelKey] scopes value suggestions to one label.
-  Future<List<String>> specificationSuggestions({
-    required String field,
-    String? query,
-    String? labelKey,
-  }) async {
-    try {
-      final res = await _dio.get('/products/specifications/suggestions',
-          queryParameters: {
-            'field': field,
-            if (query != null && query.isNotEmpty) 'query': query,
-            if (labelKey != null && labelKey.isNotEmpty) 'labelKey': labelKey,
-          });
-      final data = (res.data as Map<String, dynamic>)['data'];
-      if (data is! List) return const [];
-      return data.map((e) => e.toString()).toList();
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }

@@ -6,6 +6,26 @@ import { PaginatedResponse } from '../../sales/services/customer.service';
 import { SupplierQuery } from './supplier.service';
 import { environment } from 'src/environments/environment';
 
+/** Mirrors the variant-level `VariantAttributeValue` shape (see product-variant.service.ts), scoped to the product itself. */
+export interface ProductAttributeValueResponse {
+    attributeId: string;
+    attributeName: string;
+    dataType: string;
+    optionId?: string | null;
+    optionValue?: string | null;
+    valueText?: string | null;
+    valueNumber?: number | null;
+    valueBool?: boolean | null;
+}
+
+export interface ProductAttributeValueRequest {
+    attributeId: string;
+    optionId?: string | null;
+    valueText?: string | null;
+    valueNumber?: number | null;
+    valueBool?: boolean | null;
+}
+
 export interface PartResponse {
     id: string;
     name: string;
@@ -58,6 +78,9 @@ export interface PartResponse {
     vehicleFit?: string | null;
     createdBy: string;
     modifiedBy: string;
+    attributeValues?: ProductAttributeValueResponse[];
+    matchedAttributeLabel?: string;
+    matchedVariantCount?: number;
 }
 
 export interface CreatePartRequest {
@@ -236,6 +259,7 @@ export class PartService {
                     warrantyCertificateTemplate: p.warranty?.certificateTemplate ?? null,
                     createdBy: p.createdBy ?? '',
                     modifiedBy: p.modifiedBy ?? '',
+                    attributeValues: p.attributeValues ?? [],
                 } as PartResponse;
             }));
     }
@@ -266,6 +290,12 @@ export class PartService {
 
     getPartCompatibleVehicles(partId: string): Observable<VehicleCompatibilityResponse[]> {
         return this.http.get<{ data: VehicleCompatibilityResponse[] }>(`${this.apiUrl}/${partId}/compatible-vehicles`)
+            .pipe(map(r => r.data));
+    }
+
+    /** Full replace of the product's own (scope === 'product') attribute values. */
+    saveAttributeValues(partId: string, values: ProductAttributeValueRequest[]): Observable<ProductAttributeValueResponse[]> {
+        return this.http.put<{ data: ProductAttributeValueResponse[] }>(`${this.apiUrl}/${partId}/attribute-values`, { attributeValues: values })
             .pipe(map(r => r.data));
     }
 }

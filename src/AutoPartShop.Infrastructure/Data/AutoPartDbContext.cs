@@ -80,6 +80,7 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
     public DbSet<ProductAttributeOption> ProductAttributeOptions { get; set; }
     public DbSet<VariantAttributeValue> VariantAttributeValues { get; set; }
+    public DbSet<ProductAttributeValue> ProductAttributeValues { get; set; }
     public DbSet<ProductMedia> ProductMedias { get; set; }
     public DbSet<CompatibilityRule> CompatibilityRules { get; set; }
     public DbSet<Vehicle> Vehicles { get; set; }
@@ -120,7 +121,6 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<WarehouseLocation> WarehouseLocations { get; set; }
     public DbSet<DailyExpense> DailyExpenses { get; set; }
     public DbSet<CashDeposit> CashDeposits { get; set; }
-    public DbSet<ProductSpecification> ProductSpecifications { get; set; }
     public DbSet<Currency> Currencies { get; set; }
     public DbSet<ExchangeRate> ExchangeRates { get; set; }
     public DbSet<ApplicationSettings> ApplicationSettings { get; set; }

@@ -150,6 +150,10 @@
             <label class="field-label">{{ 'parts.attributeGroupManager.dataTypeLabel' | translate }} <span class="required">*</span></label>
             <p-select formControlName="dataType" [options]="dataTypeOptions" optionLabel="label" optionValue="value" appendTo="body" styleClass="filter-dropdown"></p-select>
           </div>
+          <div class="inline-field">
+            <label class="field-label">{{ 'parts.attributeGroupManager.scopeLabel' | translate }} <span class="required">*</span></label>
+            <p-select formControlName="scope" [options]="scopeOptions" optionLabel="label" optionValue="value" appendTo="body" styleClass="filter-dropdown"></p-select>
+          </div>
           <div class="inline-field narrow">
             <label class="field-label">{{ 'parts.attributeGroupManager.unitLabel' | translate }}</label>
             <input pInputText formControlName="unit" [placeholder]="'parts.attributeGroupManager.unitPlaceholder' | translate" class="form-input" />
@@ -266,6 +270,7 @@
                 <th>{{ 'parts.attributeGroupManager.columnAttribute' | translate }}</th>
                 <th>{{ 'parts.attributeGroupManager.columnCode' | translate }}</th>
                 <th>{{ 'parts.attributeGroupManager.columnType' | translate }}</th>
+                <th>{{ 'parts.attributeGroupManager.columnScope' | translate }}</th>
                 <th>{{ 'parts.attributeGroupManager.columnUnit' | translate }}</th>
                 <th>{{ 'parts.attributeGroupManager.columnOptions' | translate }}</th>
                 <th>{{ 'common.labels.status' | translate }}</th>
@@ -278,6 +283,11 @@
                 <td><code class="attr-code">{{ attr.code }}</code></td>
                 <td>
                   <span class="type-badge">{{ attr.dataType }}</span>
+                </td>
+                <td>
+                  <p-tag [value]="(attr.scope === 'product' ? 'parts.attributeGroupManager.scopeProduct' : 'parts.attributeGroupManager.scopeVariant') | translate"
+                    [severity]="attr.scope === 'product' ? 'info' : 'secondary'">
+                  </p-tag>
                 </td>
                 <td class="text-muted">{{ attr.unit || '—' }}</td>
                 <td>
@@ -313,7 +323,7 @@
               </tr>
               <!-- Inline option input row -->
               <tr *ngIf="showOptionInput && optionTargetAttrId === attr.id">
-                <td colspan="7">
+                <td colspan="8">
                   <div class="option-input-row">
                     <input pInputText [(ngModel)]="optionValue" [placeholder]="'parts.attributeGroupManager.optionValuePlaceholder' | translate" class="option-input" />
                     <button class="btn-save" type="button" [disabled]="!optionValue.trim()" (click)="saveOption()">
@@ -328,7 +338,7 @@
             </ng-template>
             <ng-template #emptymessage>
               <tr>
-                <td colspan="7" class="empty-attrs-row">
+                <td colspan="8" class="empty-attrs-row">
                   {{ 'parts.attributeGroupManager.emptyAttributesRow' | translate }}
                 </td>
               </tr>

@@ -27,7 +27,6 @@ import { VariantPricingService, ActivePriceResponse } from '../../services/varia
 import { ProductLocationManagerComponent } from '../product-location-manager.component';
 import { ProductVariantManagerComponent } from '../product-variant-manager/product-variant-manager.component';
 import { ProductMediaManagerComponent } from '../product-media-manager/product-media-manager.component';
-import { ProductSpecsManagerComponent } from '../product-specs-manager/product-specs-manager.component';
 import { PriceCodeService } from '@/shared/services/price-code.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
@@ -43,7 +42,7 @@ import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
         TextareaModule, DatePickerModule, TooltipModule, TabsModule,
         ToggleSwitchModule, CheckboxModule, SelectModule, ConfirmDialogModule,
         ProductLocationManagerComponent, ProductVariantManagerComponent, ProductMediaManagerComponent,
-        ProductSpecsManagerComponent, TranslatePipe, MoneyFormatPipe
+        TranslatePipe, MoneyFormatPipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './part-details.component.html',
@@ -291,5 +290,14 @@ export class PartDetailsComponent implements OnInit {
 
     formatDate(d: string): string {
         return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    /** Renders a product attribute value (option/text/number/boolean) as display text. */
+    attributeValueDisplay(av: { optionValue?: string | null; valueText?: string | null; valueNumber?: number | null; valueBool?: boolean | null }): string {
+        if (av.optionValue != null) return av.optionValue;
+        if (av.valueText != null && av.valueText !== '') return av.valueText;
+        if (av.valueNumber != null) return String(av.valueNumber);
+        if (av.valueBool != null) return av.valueBool ? this.i18n.t('parts.variantManager.yes') : this.i18n.t('parts.variantManager.no');
+        return '—';
     }
 }

@@ -18,6 +18,7 @@ export interface ProductAttribute {
   dataType: 'text' | 'number' | 'boolean' | 'option';
   unit: string;
   isActive: boolean;
+  scope: 'product' | 'variant';
   options: AttributeOption[];
 }
 
@@ -41,6 +42,7 @@ export interface CreateAttributeRequest {
   dataType?: string;
   unit?: string;
   isActive?: boolean;
+  scope?: 'product' | 'variant';
 }
 
 export interface CreateOptionRequest {

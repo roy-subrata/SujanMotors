@@ -267,11 +267,27 @@
           </div>
         </p-tabpanel>
 
-        <!-- ══ TAB: SPECIFICATIONS ══ -->
+        <!-- ══ TAB: SPECIFICATIONS ══ (read-only — product-scoped attribute values; edited via Edit Part) -->
         <p-tabpanel value="specifications">
           <div class="tab-content">
-            <app-product-specs-manager [partId]="partId!">
-            </app-product-specs-manager>
+            <div class="pd-section">
+              <h3 class="pd-section-title">
+                {{ 'parts.partDetails.tabSpecifications' | translate }}
+                <span class="pd-section-count">{{ part.attributeValues?.length || 0 }}</span>
+              </h3>
+
+              <div class="info-grid" *ngIf="part.attributeValues?.length">
+                <div class="info-item" *ngFor="let av of part.attributeValues">
+                  <label>{{ av.attributeName }}</label>
+                  <span>{{ attributeValueDisplay(av) }}</span>
+                </div>
+              </div>
+
+              <div class="pd-empty-note" *ngIf="!part.attributeValues?.length">
+                <i class="pi pi-info-circle"></i>
+                {{ 'parts.partDetails.noAttributeValuesHint' | translate }}
+              </div>
+            </div>
           </div>
         </p-tabpanel>
 

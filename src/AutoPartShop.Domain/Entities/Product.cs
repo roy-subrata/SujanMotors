@@ -57,6 +57,7 @@ public class Product : AuditableEntity
     public ICollection<PartVehicleCompatibility> VehicleCompatibilities { get; set; } = new List<PartVehicleCompatibility>();
     public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
     public ICollection<ProductMedia> Media { get; set; } = new List<ProductMedia>();
+    public ICollection<ProductAttributeValue> AttributeValues { get; set; } = new List<ProductAttributeValue>();
 
     private Product() { }
 

@@ -60,5 +60,30 @@
 
         /// <summary>Total available stock across all warehouses (QuantityOnHand − QuantityReserved). Populated by list endpoints only.</summary>
         public int TotalStock { get; set; }
+
+        /// <summary>Product-scoped EAV attribute values (e.g. Material). Variant-scoped values are not included here.</summary>
+        public List<ProductAttributeValueSummary> AttributeValues { get; set; } = new();
+
+        /// <summary>
+        /// When the search term matched an attribute value (and not the visible Name/SKU/LocalName/
+        /// PartNumber/OemNumber), the attribute label that explains the match, e.g. "Color: White".
+        /// Null when the row matched by name/SKU or when there was no search term.
+        /// </summary>
+        public string? MatchedAttributeLabel { get; set; }
+
+        /// <summary>Count of distinct variants whose attribute value matched the search term. Only set when more than one variant matched.</summary>
+        public int? MatchedVariantCount { get; set; }
+    }
+
+    public class ProductAttributeValueSummary
+    {
+        public Guid AttributeId { get; set; }
+        public string AttributeName { get; set; } = string.Empty;
+        public string? DataType { get; set; }
+        public Guid? OptionId { get; set; }
+        public string? OptionValue { get; set; }
+        public string? ValueText { get; set; }
+        public decimal? ValueNumber { get; set; }
+        public bool? ValueBool { get; set; }
     }
 }
