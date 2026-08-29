@@ -73,14 +73,14 @@ public class SalesOrderDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Sales Order",
+        new DocHeader(_theme, _shop, _theme.T("salesOrder.title"),
         [
-            new MetaField("No.", _data.SONumber),
-            new MetaField("Date", _data.SODate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.no"), _data.SONumber),
+            new MetaField(_theme.T("common.date"), _data.SODate.ToString("dd MMM yyyy")),
             // Customer PO has no home in the domain yet — MetaField skips blank values, so this
             // simply doesn't render rather than showing a placeholder.
-            new MetaField("Customer PO", _data.CustomerPO),
-            new MetaField("Delivery By", _data.DeliveryBy?.ToString("dd MMM yyyy") ?? ""),
+            new MetaField(_theme.T("salesOrder.customerPO"), _data.CustomerPO),
+            new MetaField(_theme.T("common.deliveryBy"), _data.DeliveryBy?.ToString("dd MMM yyyy") ?? ""),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -98,7 +98,7 @@ public class SalesOrderDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeNote);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Customer Confirmation", "Authorized Signatory").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.customerConfirmation"), _theme.T("common.authorizedSignatory")).Compose(c));
         });
     }
 
@@ -106,7 +106,7 @@ public class SalesOrderDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Bill To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.billTo")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
@@ -129,7 +129,7 @@ public class SalesOrderDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Ship To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.shipTo")));
 
             // Falls back to the customer's own name/address when the order carries no separate
             // delivery address — an order shipping to the billing address is the common case.
@@ -163,19 +163,19 @@ public class SalesOrderDocument : IDocument
             Rate: DocTheme.Amount(l.UnitPrice),
             Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
-        var totals = new List<TotalRow> { new("Subtotal", DocTheme.Amount(_data.SubTotal)) };
+        var totals = new List<TotalRow> { new(_theme.T("common.subtotal"), DocTheme.Amount(_data.SubTotal)) };
 
         if (_data.DiscountAmount > 0)
-            totals.Add(new TotalRow("Discount", $"({DocTheme.Amount(_data.DiscountAmount)})"));
+            totals.Add(new TotalRow(_theme.T("common.discount"), $"({DocTheme.Amount(_data.DiscountAmount)})"));
 
         if (_data.TaxAmount > 0)
             totals.Add(new TotalRow(
-                _data.TaxPercentage > 0 ? $"VAT ({_data.TaxPercentage:N0}%)" : "VAT",
+                _data.TaxPercentage > 0 ? $"{_theme.T("common.vat")} ({_data.TaxPercentage:N0}%)" : _theme.T("common.vat"),
                 DocTheme.Amount(_data.TaxAmount)));
 
         new ItemsTable(
             _theme, items, totals,
-            grandLabel: "Order Total",
+            grandLabel: _theme.T("common.orderTotal"),
             grandValue: DocTheme.Amount(_data.TotalAmount),
             words: AmountInWords.Convert(_data.TotalAmount)).Compose(container);
     }
@@ -184,7 +184,7 @@ public class SalesOrderDocument : IDocument
     {
         var note = !string.IsNullOrWhiteSpace(_data.Notes)
             ? _data.Notes
-            : "Order confirmed against customer PO. Goods will be delivered with Delivery Challan; Tax Invoice to follow on delivery.";
+            : _theme.T("salesOrder.standingNote");
 
         container.Text(note)
             .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);

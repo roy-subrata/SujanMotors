@@ -68,11 +68,11 @@ public class QuotationDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Quotation",
+        new DocHeader(_theme, _shop, _theme.T("quotation.title"),
         [
-            new MetaField("No.", _data.QuotationNumber),
-            new MetaField("Date", _data.QuoteDate.ToString("dd MMM yyyy")),
-            new MetaField("Valid Until", _data.ValidUntil.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.no"), _data.QuotationNumber),
+            new MetaField(_theme.T("common.date"), _data.QuoteDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.validUntil"), _data.ValidUntil.ToString("dd MMM yyyy")),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -84,7 +84,7 @@ public class QuotationDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeTerms);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Checked By", "Authorized Signatory").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.checkedBy"), _theme.T("common.authorizedSignatory")).Compose(c));
         });
     }
 
@@ -92,7 +92,7 @@ public class QuotationDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Quotation To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("quotation.quotationTo")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
@@ -121,17 +121,17 @@ public class QuotationDocument : IDocument
             Rate: DocTheme.Amount(l.UnitPrice),
             Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
-        var totals = new List<TotalRow> { new("Subtotal", DocTheme.Amount(_data.SubTotal)) };
+        var totals = new List<TotalRow> { new(_theme.T("common.subtotal"), DocTheme.Amount(_data.SubTotal)) };
 
         if (_data.DiscountAmount > 0)
-            totals.Add(new TotalRow("Discount", $"({DocTheme.Amount(_data.DiscountAmount)})"));
+            totals.Add(new TotalRow(_theme.T("common.discount"), $"({DocTheme.Amount(_data.DiscountAmount)})"));
 
         if (_data.TaxAmount > 0)
-            totals.Add(new TotalRow("VAT", DocTheme.Amount(_data.TaxAmount)));
+            totals.Add(new TotalRow(_theme.T("common.vat"), DocTheme.Amount(_data.TaxAmount)));
 
         new ItemsTable(
             _theme, items, totals,
-            grandLabel: "Total",
+            grandLabel: _theme.T("common.total"),
             grandValue: DocTheme.Amount(_data.GrandTotal),
             words: AmountInWords.Convert(_data.GrandTotal)).Compose(container);
     }
@@ -140,17 +140,11 @@ public class QuotationDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Terms & Conditions"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.termsConditions")));
 
             var terms = !string.IsNullOrWhiteSpace(_data.Notes)
                 ? [_data.Notes]
-                : new[]
-                {
-                    "1. Prices are valid for 15 days from the date of this quotation.",
-                    "2. Delivery within 3-5 working days of confirmed order.",
-                    "3. 50% advance payable on order confirmation.",
-                    "4. Warranty as per manufacturer's policy.",
-                };
+                : _theme.T("quotation.standingTerms").Split('\n');
 
             col.Item().PaddingTop(DocTheme.Px(5)).Column(c =>
             {

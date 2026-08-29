@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Pdf.Design;
 using ClosedXML.Excel;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -95,7 +96,10 @@ public class ReportExportService : IReportExportService
                 page.Size(PageSizes.A4.Landscape());
                 page.MarginHorizontal(28);
                 page.MarginVertical(26);
-                page.DefaultTextStyle(x => x.FontSize(8));
+                // Noto Sans Bengali trails as a fallback family (same as DocTheme.BaseText) so
+                // Bengali row data and column headers render instead of tofu — harmless for
+                // English-only reports since the fallback is simply never hit.
+                page.DefaultTextStyle(x => x.FontSize(8).FontFamily(DocFonts.Sans, DocFonts.Bengali));
 
                 page.Header().Column(col =>
                 {

@@ -10,6 +10,7 @@ using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -198,7 +199,7 @@ public class PurchaseOrderController : ControllerBase
             TotalAmount: po.TotalAmount,
             Notes: po.Notes);
 
-        var pdfBytes = new PurchaseOrderDocument(data, shop).GeneratePdf();
+        var pdfBytes = new PurchaseOrderDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"purchase-order-{po.PONumber}.pdf");
     }
 

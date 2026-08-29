@@ -65,12 +65,12 @@ public class PurchaseReturnDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Purchase Return",
+        new DocHeader(_theme, _shop, _theme.T("purchaseReturn.title"),
         [
-            new MetaField("No.", _data.ReturnNumber),
-            new MetaField("Date", _data.ReturnDate.ToString("dd MMM yyyy")),
-            new MetaField("Ref. PO", _data.PONumber),
-            new MetaField("Status", _data.Status),
+            new MetaField(_theme.T("common.no"), _data.ReturnNumber),
+            new MetaField(_theme.T("common.date"), _data.ReturnDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.refPO"), _data.PONumber),
+            new MetaField(_theme.T("common.status"), _data.Status),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -90,7 +90,7 @@ public class PurchaseReturnDocument : IDocument
                 col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeNotes);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Approved By", "Supplier Acknowledgement").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.approvedBy"), _theme.T("common.supplierAcknowledgement")).Compose(c));
         });
     }
 
@@ -98,7 +98,7 @@ public class PurchaseReturnDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Return To Supplier"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("purchaseReturn.returnToSupplier")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.SupplierName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
@@ -121,7 +121,7 @@ public class PurchaseReturnDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Reason for Return"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("purchaseReturn.reasonForReturn")));
             col.Item().PaddingTop(DocTheme.Px(6)).Text(
                     string.IsNullOrWhiteSpace(_data.Reason) ? "—" : _data.Reason)
                 .FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink).LineHeight(1.6f);
@@ -140,7 +140,7 @@ public class PurchaseReturnDocument : IDocument
 
         new ItemsTable(
             _theme, items, totals: [],
-            grandLabel: "Total Refund",
+            grandLabel: _theme.T("common.totalRefund"),
             grandValue: DocTheme.Amount(_data.RefundAmount),
             words: AmountInWords.Convert(_data.RefundAmount)).Compose(container);
     }
@@ -149,7 +149,7 @@ public class PurchaseReturnDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Notes"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.notes")));
             col.Item().PaddingTop(DocTheme.Px(5)).Text(_data.Notes)
                 .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);
         });

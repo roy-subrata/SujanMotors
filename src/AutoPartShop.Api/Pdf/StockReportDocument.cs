@@ -51,12 +51,12 @@ public class StockReportDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Stock Report",
+        new DocHeader(_theme, _shop, _theme.T("stockReport.title"),
         [
-            new MetaField("No.", _data.ReportNumber),
-            new MetaField("Date", _data.AsOf.ToString("dd MMM yyyy")),
-            new MetaField("As Of", _data.AsOf.ToString("dd MMM yyyy, h:mm tt")),
-            new MetaField("Warehouse", _data.WarehouseLabel),
+            new MetaField(_theme.T("common.no"), _data.ReportNumber),
+            new MetaField(_theme.T("common.date"), _data.AsOf.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("stockReport.asOf"), _data.AsOf.ToString("dd MMM yyyy, h:mm tt")),
+            new MetaField(_theme.T("stockReport.warehouse"), _data.WarehouseLabel),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -67,7 +67,7 @@ public class StockReportDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(18)).ShowEntire().Element(ComposeNote);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Store Keeper", "Checked By", "Manager").Compose(c));
+                new SignRow(_theme.T("stockReport.storeKeeper"), _theme.T("common.checkedBy"), _theme.T("common.manager")).Compose(c));
         });
     }
 
@@ -90,13 +90,13 @@ public class StockReportDocument : IDocument
 
             table.Header(header =>
             {
-                Head(header.Cell(), "Part No");
-                Head(header.Cell(), "Description");
-                Head(header.Cell(), "Category");
-                Head(header.Cell(), "On Hand", align: Align.Right);
-                Head(header.Cell(), "Reorder", align: Align.Right);
-                Head(header.Cell(), $"Value ({_theme.CurrencySymbol})", align: Align.Right);
-                Head(header.Cell(), "Status", align: Align.Center);
+                Head(header.Cell(), _theme.T("common.partNo"));
+                Head(header.Cell(), _theme.T("common.description"));
+                Head(header.Cell(), _theme.T("stockReport.category"));
+                Head(header.Cell(), _theme.T("stockReport.onHand"), align: Align.Right);
+                Head(header.Cell(), _theme.T("stockReport.reorder"), align: Align.Right);
+                Head(header.Cell(), $"{_theme.T("stockReport.value")} ({_theme.CurrencySymbol})", align: Align.Right);
+                Head(header.Cell(), _theme.T("common.status"), align: Align.Center);
             });
 
             foreach (var r in _data.Rows)
@@ -119,7 +119,7 @@ public class StockReportDocument : IDocument
             table.Cell().ColumnSpan(5)
                 .BorderTop(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
                 .PaddingVertical(DocTheme.Px(9)).PaddingHorizontal(DocTheme.Px(8))
-                .Text("Total Stock Value").FontSize(DocTheme.Px(10.5f)).Bold().FontColor(DocTheme.Ink);
+                .Text(_theme.T("stockReport.totalStockValue")).FontSize(DocTheme.Px(10.5f)).Bold().FontColor(DocTheme.Ink);
 
             table.Cell()
                 .BorderTop(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
@@ -140,13 +140,13 @@ public class StockReportDocument : IDocument
         if (low)
             box.Background(_theme.Accent)
                 .AlignCenter()
-                .Text("LOW")
+                .Text(_theme.T("stockReport.low"))
                 .FontSize(DocTheme.Px(8.5f)).Bold().FontColor(DocTheme.White)
                 .LetterSpacing(0.8f / 8.5f);
         else
             box.Border(DocTheme.RuleHairline).BorderColor(DocTheme.Divider)
                 .AlignCenter()
-                .Text("OK")
+                .Text(_theme.T("stockReport.ok"))
                 .FontSize(DocTheme.Px(8.5f)).SemiBold().FontColor(DocTheme.Muted)
                 .LetterSpacing(0.8f / 8.5f);
     }
@@ -165,10 +165,9 @@ public class StockReportDocument : IDocument
         container.Text(txt =>
         {
             txt.DefaultTextStyle(x => x.FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f));
-            txt.Span("Items marked ");
-            txt.Span("LOW").Bold();
-            txt.Span(" are at or below their reorder level — include them in the next Purchase Order. " +
-                     "Values are at last purchase cost.");
+            txt.Span(_theme.T("stockReport.noteBefore"));
+            txt.Span(_theme.T("stockReport.low")).Bold();
+            txt.Span(_theme.T("stockReport.noteAfter"));
         });
 
     private void ComposeFooter(IContainer container)

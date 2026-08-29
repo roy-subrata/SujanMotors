@@ -73,12 +73,12 @@ public class ProformaInvoiceDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Proforma Invoice",
+        new DocHeader(_theme, _shop, _theme.T("proforma.title"),
         [
-            new MetaField("No.", _data.ProformaNumber),
-            new MetaField("Date", _data.IssueDate.ToString("dd MMM yyyy")),
-            new MetaField("Valid Until", _data.ValidUntil.ToString("dd MMM yyyy")),
-            new MetaField("Ref. Order", _data.RefOrderNumber),
+            new MetaField(_theme.T("common.no"), _data.ProformaNumber),
+            new MetaField(_theme.T("common.date"), _data.IssueDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.validUntil"), _data.ValidUntil.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.refOrder"), _data.RefOrderNumber),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -90,7 +90,7 @@ public class ProformaInvoiceDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeFooterBlocks);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Checked By", "Authorized Signatory").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.checkedBy"), _theme.T("common.authorizedSignatory")).Compose(c));
         });
     }
 
@@ -98,7 +98,7 @@ public class ProformaInvoiceDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Bill To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.billTo")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
@@ -127,17 +127,17 @@ public class ProformaInvoiceDocument : IDocument
             Rate: DocTheme.Amount(l.UnitPrice),
             Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
-        var totals = new List<TotalRow> { new("Subtotal", DocTheme.Amount(_data.SubTotal)) };
+        var totals = new List<TotalRow> { new(_theme.T("common.subtotal"), DocTheme.Amount(_data.SubTotal)) };
 
         if (_data.DiscountAmount > 0)
-            totals.Add(new TotalRow("Discount", $"({DocTheme.Amount(_data.DiscountAmount)})"));
+            totals.Add(new TotalRow(_theme.T("common.discount"), $"({DocTheme.Amount(_data.DiscountAmount)})"));
 
         if (_data.TaxAmount > 0)
-            totals.Add(new TotalRow("VAT", DocTheme.Amount(_data.TaxAmount)));
+            totals.Add(new TotalRow(_theme.T("common.vat"), DocTheme.Amount(_data.TaxAmount)));
 
         new ItemsTable(
             _theme, items, totals,
-            grandLabel: "Total Payable",
+            grandLabel: _theme.T("common.totalPayable"),
             grandValue: DocTheme.Amount(_data.GrandTotal),
             words: AmountInWords.Convert(_data.GrandTotal)).Compose(container);
     }
@@ -147,9 +147,9 @@ public class ProformaInvoiceDocument : IDocument
     {
         container.Row(row =>
         {
-            row.RelativeItem().Element(c => Block(c, "Bank Details", _shop.BankDetails));
+            row.RelativeItem().Element(c => Block(c, _theme.T("common.bankDetails"), _shop.BankDetails));
             row.ConstantItem(DocTheme.Px(24));
-            row.RelativeItem().Element(c => Block(c, "Note", NoteText()));
+            row.RelativeItem().Element(c => Block(c, _theme.T("common.note"), NoteText()));
         });
 
         static void Block(IContainer c, string label, string body)
@@ -167,7 +167,7 @@ public class ProformaInvoiceDocument : IDocument
 
     private string NoteText() => !string.IsNullOrWhiteSpace(_data.Notes)
         ? _data.Notes
-        : "This is a proforma invoice — not a tax invoice.\n50% advance payable to confirm the order.";
+        : _theme.T("proforma.standingNote");
 
     private void ComposeFooter(IContainer container)
     {

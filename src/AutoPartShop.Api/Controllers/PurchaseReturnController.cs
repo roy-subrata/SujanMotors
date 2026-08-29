@@ -9,6 +9,7 @@ using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -169,7 +170,7 @@ public class PurchaseReturnController : ControllerBase
             RefundAmount: purchaseReturn.RefundAmount,
             Notes: purchaseReturn.Notes);
 
-        var pdfBytes = new PurchaseReturnDocument(data, shop).GeneratePdf();
+        var pdfBytes = new PurchaseReturnDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"purchase-return-{purchaseReturn.ReturnNumber}.pdf");
     }
 

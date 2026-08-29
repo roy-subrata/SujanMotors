@@ -1,8 +1,8 @@
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using QuestPDF.Fluent;
 using AutoPartShop.Application.DTOs.CustomerDtos;
-using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,16 +15,16 @@ namespace AutoPartShop.Api.Controllers;
 public class CustomerAccountSummaryController : ControllerBase
 {
     private readonly ICustomerAccountSummaryService _summaryService;
-    private readonly IApplicationSettingsRepository _settingsRepository;
+    private readonly IShopProfileProvider _shopProfiles;
     private readonly ILogger<CustomerAccountSummaryController> _logger;
 
     public CustomerAccountSummaryController(
         ICustomerAccountSummaryService summaryService,
-        IApplicationSettingsRepository settingsRepository,
+        IShopProfileProvider shopProfiles,
         ILogger<CustomerAccountSummaryController> logger)
     {
         _summaryService = summaryService;
-        _settingsRepository = settingsRepository;
+        _shopProfiles = shopProfiles;
         _logger = logger;
     }
 
@@ -76,26 +76,9 @@ public class CustomerAccountSummaryController : ControllerBase
             query.PageSize = int.MaxValue;
 
             var summary = await _summaryService.GetAccountSummaryAsync(query, cancellationToken);
+            var shopProfile = await _shopProfiles.GetAsync(summary.CurrencySymbol, cancellationToken: cancellationToken);
 
-            var businessSettings = await _settingsRepository.GetByCategoryAsync("BUSINESS", cancellationToken);
-
-            string Get(string key, string fallback = "")
-            {
-                var v = businessSettings.FirstOrDefault(s => s.Key == key && !s.Isdeleted)?.Value;
-                return string.IsNullOrWhiteSpace(v) ? fallback : v;
-            }
-
-            var shopProfile = new ShopProfile(
-                Name: Get("SHOP_NAME"),
-                Address: Get("SHOP_ADDRESS"),
-                Phone: Get("SHOP_PHONE"),
-                Email: Get("SHOP_EMAIL"),
-                TaxNo: Get("SHOP_TAX_NUMBER"),
-                Tagline: Get("SHOP_TAGLINE"),
-                FooterText: Get("INVOICE_FOOTER_TEXT", "Thank you for your business!"),
-                CurrencySymbol: summary.CurrencySymbol);
-
-            var document = new CustomerAccountStatementDocument(summary, shopProfile);
+            var document = new CustomerAccountStatementDocument(summary, shopProfile, DocTheme.Default with { Lang = this.GetLanguage() });
             var pdfBytes = document.GeneratePdf();
 
             var filename = $"account-statement-{summary.CustomerCode}-{DateTime.UtcNow:yyyyMMdd}.pdf";

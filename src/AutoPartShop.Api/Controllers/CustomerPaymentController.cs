@@ -1,4 +1,5 @@
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.CustomerPayment;
@@ -24,7 +25,7 @@ public class CustomerPaymentController : ControllerBase
     private readonly ICustomerRepository _customerRepository;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly ISalesOrderRepository _salesOrderRepository;
-    private readonly IApplicationSettingsRepository _settingsRepository;
+    private readonly IShopProfileProvider _shopProfiles;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<CustomerPaymentController> _logger;
@@ -36,7 +37,7 @@ public class CustomerPaymentController : ControllerBase
         ICustomerRepository customerRepository,
         IInvoiceRepository invoiceRepository,
         ISalesOrderRepository salesOrderRepository,
-        IApplicationSettingsRepository settingsRepository,
+        IShopProfileProvider shopProfiles,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
         ILogger<CustomerPaymentController> logger,
@@ -47,7 +48,7 @@ public class CustomerPaymentController : ControllerBase
         _customerPaymentReadRepository = customerPaymentReadRepository;
         _invoiceRepository = invoiceRepository;
         _salesOrderRepository = salesOrderRepository;
-        _settingsRepository = settingsRepository;
+        _shopProfiles = shopProfiles;
         _dbContext = dbContext;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -669,28 +670,15 @@ public class CustomerPaymentController : ControllerBase
 
             var mapped = MapResponse(payment);
 
-            var businessSettings = await _settingsRepository.GetByCategoryAsync("BUSINESS", cancellationToken);
-
-            string Get(string key, string fallback = "")
-            {
-                var v = businessSettings.FirstOrDefault(s => s.Key == key && !s.Isdeleted)?.Value;
-                return string.IsNullOrWhiteSpace(v) ? fallback : v;
-            }
-
             var currencyEntity = await _dbContext.Set<Currency>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Code == mapped.Currency && !c.Isdeleted, cancellationToken);
             string currencySymbol = currencyEntity?.Symbol ?? mapped.Currency;
 
-            var shopProfile = new ShopProfile(
-                Name: Get("SHOP_NAME"),
-                Address: Get("SHOP_ADDRESS"),
-                Phone: Get("SHOP_PHONE"),
-                Email: Get("SHOP_EMAIL"),
-                TaxNo: Get("SHOP_TAX_NUMBER"),
-                Tagline: Get("SHOP_TAGLINE"),
-                FooterText: Get("INVOICE_FOOTER_TEXT", "Thank you for your payment."),
-                CurrencySymbol: currencySymbol);
+            var shopProfile = await _shopProfiles.GetAsync(
+                currencySymbol,
+                defaultFooterText: "Thank you for your payment.",
+                cancellationToken: cancellationToken);
 
             // The receipt shows Invoice Total / Balance Due, which the payment DTO doesn't carry.
             PaymentReceiptContext? receiptContext = null;
@@ -723,7 +711,7 @@ public class CustomerPaymentController : ControllerBase
                 }
             }
 
-            var document = new PaymentReceiptDocument(mapped, shopProfile, receiptContext);
+            var document = new PaymentReceiptDocument(mapped, shopProfile, receiptContext, DocTheme.Default with { Lang = this.GetLanguage() });
             var pdfBytes = document.GeneratePdf();
 
             var filename = $"receipt-{mapped.TransactionNumber}-{DateTime.UtcNow:yyyyMMdd}.pdf";

@@ -84,12 +84,12 @@ public class InvoiceDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, _data.TaxAmount > 0 ? "Tax Invoice" : "Invoice",
+        new DocHeader(_theme, _shop, _data.TaxAmount > 0 ? _theme.T("invoice.taxInvoiceTitle") : _theme.T("invoice.title"),
         [
-            new MetaField("No.", _data.InvoiceNumber),
-            new MetaField("Date", _data.InvoiceDate.ToString("dd MMM yyyy")),
-            new MetaField("Payment Due", _data.DueDate.ToString("dd MMM yyyy")),
-            new MetaField("Ref. Order", _data.SalesOrderNumber),
+            new MetaField(_theme.T("common.no"), _data.InvoiceNumber),
+            new MetaField(_theme.T("common.date"), _data.InvoiceDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.paymentDue"), _data.DueDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.refOrder"), _data.SalesOrderNumber),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -113,7 +113,7 @@ public class InvoiceDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeBankAndTerms);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Customer Signature", "Authorized Signatory").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.customerSignature"), _theme.T("common.authorizedSignatory")).Compose(c));
         });
     }
 
@@ -122,7 +122,7 @@ public class InvoiceDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Bill To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.billTo")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
@@ -147,9 +147,9 @@ public class InvoiceDocument : IDocument
 
             // Vehicle and technician are job context rather than address, so they stay labelled.
             if (!string.IsNullOrWhiteSpace(_data.VehicleLabel))
-                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, "Vehicle", _data.VehicleLabel));
+                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, _theme.T("common.vehicle"), _data.VehicleLabel));
             if (!string.IsNullOrWhiteSpace(_data.TechnicianName))
-                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Technician", _data.TechnicianName));
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, _theme.T("common.technician"), _data.TechnicianName));
         });
     }
 
@@ -158,23 +158,23 @@ public class InvoiceDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Terms"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.terms")));
 
             var creditDays = Math.Max(0, (_data.DueDate.Date - _data.InvoiceDate.Date).Days);
 
-            col.Item().PaddingTop(DocTheme.Px(6)).Element(c => InfoRow(c, "Status", _data.Status.Replace('_', ' ')));
-            col.Item().PaddingTop(DocTheme.Px(3)).Element(c => InfoRow(c, "Credit", creditDays == 0 ? "Due on receipt" : $"{creditDays} days"));
+            col.Item().PaddingTop(DocTheme.Px(6)).Element(c => InfoRow(c, _theme.T("common.status"), _data.Status.Replace('_', ' ')));
+            col.Item().PaddingTop(DocTheme.Px(3)).Element(c => InfoRow(c, _theme.T("common.credit"), creditDays == 0 ? _theme.T("common.dueOnReceipt") : $"{creditDays} {_theme.T("common.days")}"));
 
             if (_data.PaidAmount > 0)
-                col.Item().PaddingTop(DocTheme.Px(3)).Element(c => InfoRow(c, "Paid", _theme.Money(_data.PaidAmount)));
+                col.Item().PaddingTop(DocTheme.Px(3)).Element(c => InfoRow(c, _theme.T("common.paid"), _theme.Money(_data.PaidAmount)));
 
             col.Item().PaddingTop(DocTheme.Px(3)).Element(c => InfoRow(
                 c,
-                _data.BalanceDue <= 0 ? "Settled" : "Balance Due",
+                _data.BalanceDue <= 0 ? _theme.T("common.settled") : _theme.T("common.balanceDue"),
                 _theme.Money(Math.Abs(_data.BalanceDue))));
 
             if (_data.TaxAmount > 0)
-                col.Item().PaddingTop(DocTheme.Px(6)).Text("VAT charged as per Mushak-6.3.")
+                col.Item().PaddingTop(DocTheme.Px(6)).Text(_theme.T("invoice.vatNote"))
                     .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
         });
     }
@@ -190,19 +190,19 @@ public class InvoiceDocument : IDocument
             Rate: DocTheme.Amount(l.UnitPrice),
             Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
-        var totals = new List<TotalRow> { new("Subtotal", DocTheme.Amount(_data.SubTotal)) };
+        var totals = new List<TotalRow> { new(_theme.T("common.subtotal"), DocTheme.Amount(_data.SubTotal)) };
 
         if (_data.DiscountAmount > 0)
-            totals.Add(new TotalRow("Discount", $"({DocTheme.Amount(_data.DiscountAmount)})"));
+            totals.Add(new TotalRow(_theme.T("common.discount"), $"({DocTheme.Amount(_data.DiscountAmount)})"));
 
         if (_data.TaxAmount > 0)
             totals.Add(new TotalRow(
-                _data.TaxPercentage > 0 ? $"VAT ({_data.TaxPercentage:N0}%)" : "VAT",
+                _data.TaxPercentage > 0 ? $"{_theme.T("common.vat")} ({_data.TaxPercentage:N0}%)" : _theme.T("common.vat"),
                 DocTheme.Amount(_data.TaxAmount)));
 
         new ItemsTable(
             _theme, items, totals,
-            grandLabel: "Grand Total",
+            grandLabel: _theme.T("common.grandTotal"),
             grandValue: DocTheme.Amount(_data.GrandTotal),
             words: AmountInWords.Convert(_data.GrandTotal)).Compose(container);
     }
@@ -212,7 +212,7 @@ public class InvoiceDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Payments Received"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("invoice.paymentsReceived")));
 
             col.Item().PaddingTop(DocTheme.Px(8)).Table(table =>
             {
@@ -226,10 +226,10 @@ public class InvoiceDocument : IDocument
 
                 table.Header(header =>
                 {
-                    Head(header.Cell(), "Date");
-                    Head(header.Cell(), "Method");
-                    Head(header.Cell(), "Reference");
-                    Head(header.Cell(), "Amount", right: true);
+                    Head(header.Cell(), _theme.T("common.date"));
+                    Head(header.Cell(), _theme.T("common.method"));
+                    Head(header.Cell(), _theme.T("common.reference"));
+                    Head(header.Cell(), _theme.T("common.amount"), right: true);
                 });
 
                 foreach (var p in _data.Payments)
@@ -266,9 +266,9 @@ public class InvoiceDocument : IDocument
     {
         container.Row(row =>
         {
-            row.RelativeItem().Element(c => Block(c, "Bank Details", _shop.BankDetails));
+            row.RelativeItem().Element(c => Block(c, _theme.T("common.bankDetails"), _shop.BankDetails));
             row.ConstantItem(DocTheme.Px(24));
-            row.RelativeItem().Element(c => Block(c, "Terms", TermsText()));
+            row.RelativeItem().Element(c => Block(c, _theme.T("common.terms"), TermsText()));
         });
 
         // The handoff's Bank Details block is fixed text; ours comes from SHOP_BANK_DETAILS and is
@@ -291,7 +291,7 @@ public class InvoiceDocument : IDocument
     private string TermsText() =>
         !string.IsNullOrWhiteSpace(_data.Notes)
             ? _data.Notes
-            : "Goods once sold are returnable within 7 days with this invoice.\nWarranty as per manufacturer's policy.";
+            : _theme.T("invoice.standingTerms");
 
     // ── Footer ─────────────────────────────────────────────────────────────────
     private void ComposeFooter(IContainer container)
@@ -300,7 +300,7 @@ public class InvoiceDocument : IDocument
         {
             row.RelativeItem().Text(
                     string.IsNullOrWhiteSpace(_shop.FooterText)
-                        ? "Thank you for your business!"
+                        ? _theme.T("common.thankYouBusiness")
                         : _shop.FooterText)
                 .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
 
@@ -335,13 +335,13 @@ public class InvoiceDocument : IDocument
         return string.IsNullOrWhiteSpace(unitSymbol) ? n : $"{n} {unitSymbol}";
     }
 
-    private static string FormatPaymentMethod(string method) => method switch
+    private string FormatPaymentMethod(string method) => method switch
     {
-        "CASH" => "Cash",
-        "CARD" => "Card",
-        "MOBILE_BANKING" => "Mobile",
-        "BANK_TRANSFER" => "Bank Transfer",
-        "ADVANCE_CREDIT" => "Credit Applied",
+        "CASH" => _theme.T("common.paymentMethod.cash"),
+        "CARD" => _theme.T("common.paymentMethod.card"),
+        "MOBILE_BANKING" => _theme.T("common.paymentMethod.mobile"),
+        "BANK_TRANSFER" => _theme.T("common.paymentMethod.bankTransfer"),
+        "ADVANCE_CREDIT" => _theme.T("common.paymentMethod.creditApplied"),
         _ => method
     };
 }

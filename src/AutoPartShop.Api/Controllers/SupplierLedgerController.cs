@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Api.Authorization;
@@ -87,7 +88,7 @@ public class SupplierLedgerController : ControllerBase
     }
 
     /// <summary>
-    /// Download the supplier ledger as a PDF — the server-rendered equivalent of the Supplier
+    /// Download the supplier ledger as a PDF ï¿½ the server-rendered equivalent of the Supplier
     /// Account Summary page. Totals are always all-time (matching GetLedgerSummaryAsync); the
     /// entry list respects fromDate/toDate the same way the on-screen date filter does.
     /// </summary>
@@ -105,7 +106,7 @@ public class SupplierLedgerController : ControllerBase
         try
         {
             // entryLimit here only bounds the summary DTO's own Entries list, which this document
-            // doesn't use — the real entry list below is fetched separately so it can honour the
+            // doesn't use ï¿½ the real entry list below is fetched separately so it can honour the
             // date filter, same as the Angular page's "load all entries then export" flow.
             var summary = await _ledgerService.GetLedgerSummaryAsync(supplierId, entryLimit: 1, cancellationToken);
 
@@ -125,7 +126,7 @@ public class SupplierLedgerController : ControllerBase
 
             var periodLabel = fromDate is null && toDate is null
                 ? "All time"
-                : $"{fromDate?.ToString("dd MMM yyyy") ?? "…"} – {toDate?.ToString("dd MMM yyyy") ?? "…"}";
+                : $"{fromDate?.ToString("dd MMM yyyy") ?? "ï¿½"} ï¿½ {toDate?.ToString("dd MMM yyyy") ?? "ï¿½"}";
 
             var data = new AutoPartShop.Api.Pdf.SupplierLedgerStatementData(
                 SupplierName: summary.SupplierName,
@@ -147,7 +148,7 @@ public class SupplierLedgerController : ControllerBase
                         RunningBalance: e.RunningBalance))
                     .ToList());
 
-            var pdfBytes = new AutoPartShop.Api.Pdf.SupplierLedgerStatementDocument(data, shop)
+            var pdfBytes = new AutoPartShop.Api.Pdf.SupplierLedgerStatementDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() })
                 .GeneratePdf();
 
             var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");

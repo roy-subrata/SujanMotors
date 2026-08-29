@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerDebitNoteDtos;
 using AutoPartShop.Domain.Entities;
@@ -281,7 +282,7 @@ public class CustomerDebitNoteController(
         var currency = await dbContext.Set<Currency>()
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Code == debitNote.Currency && !c.Isdeleted, cancellationToken);
-        var shop = await shopProfiles.GetAsync(currency?.Symbol, cancellationToken);
+        var shop = await shopProfiles.GetAsync(currency?.Symbol, cancellationToken: cancellationToken);
 
         var customer = debitNote.Customer;
         var customerName = customer is null
@@ -309,7 +310,7 @@ public class CustomerDebitNoteController(
             Notes: debitNote.Notes,
             IsDebit: true);
 
-        var pdfBytes = new CreditNoteDocument(data, shop).GeneratePdf();
+        var pdfBytes = new CreditNoteDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"debit-note-{debitNote.DebitNoteNumber}.pdf");
     }
 

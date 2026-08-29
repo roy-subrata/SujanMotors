@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using QuestPDF.Fluent;
 using AutoPartShop.Application.Common;
@@ -16,7 +17,7 @@ namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/supplier-payments")]
 [ApiController]
 // procurement.create (not .view) on the whole controller keeps supplier payments
-// restricted to roles that can spend — preserving the previous Admin/Manager-only posture
+// restricted to roles that can spend ï¿½ preserving the previous Admin/Manager-only posture
 [HasPermission(Permissions.ProcurementCreate)]
 public class SupplierPaymentController : ControllerBase
 {
@@ -231,7 +232,7 @@ public class SupplierPaymentController : ControllerBase
             _logger.LogInformation("Summary retrieved for supplier: {SupplierName}", summary.SupplierName);
 
             var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
-            var pdfBytes = new SupplierAccountStatementDocument(summary, shop).GeneratePdf();
+            var pdfBytes = new SupplierAccountStatementDocument(summary, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
             _logger.LogInformation("PDF report generated, size: {Size}", pdfBytes.Length);
 
             return File(pdfBytes, "application/pdf", $"supplier-statement-{summary.SupplierCode}-{DateTime.UtcNow:yyyyMMdd}.pdf");
@@ -503,7 +504,7 @@ public class SupplierPaymentController : ControllerBase
                 {
                     await _repository.UpdateAsync(payment, cancellationToken);
 
-                    // Only apply RecordPayment once — skip if mark-processed already did it
+                    // Only apply RecordPayment once ï¿½ skip if mark-processed already did it
                     if (payment.PaymentType == PaymentType.REGULAR && !alreadyProcessed && payment.PurchaseOrderId.HasValue)
                     {
                         var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);

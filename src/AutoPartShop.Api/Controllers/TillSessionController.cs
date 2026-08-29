@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.TillSessionDtos;
 using AutoPartShop.Domain.Entities;
@@ -300,7 +301,7 @@ public class TillSessionController(
             OverShort: session.OverShortAmount,
             Note: session.Notes);
 
-        var pdfBytes = new ShiftReportDocument(data, shop).GeneratePdf();
+        var pdfBytes = new ShiftReportDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"shift-report-{session.OpenedAt:yyyyMMdd}-{session.TerminalLabel.Replace(" ", "")}.pdf");
     }
 

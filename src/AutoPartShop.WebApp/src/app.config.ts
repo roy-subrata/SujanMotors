@@ -9,6 +9,7 @@ import { providePrimeNG } from 'primeng/config';
 import { ConfirmationService } from 'primeng/api';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './app/shared/interceptors/auth.interceptor';
+import { languageInterceptor } from './app/shared/interceptors/language.interceptor';
 import { I18nService } from './app/shared/services/i18n.service';
 import { AppBrandingService } from './app/shared/services/app-branding.service';
 import { firstValueFrom } from 'rxjs';
@@ -46,7 +47,7 @@ const AppPreset = definePreset(Aura, {
 export const appConfig: ApplicationConfig = {
     providers: [
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
-        provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
+        provideHttpClient(withFetch(), withInterceptors([authInterceptor, languageInterceptor])),
         provideAnimationsAsync(),
         // Root-level ConfirmationService so the auth interceptor can prompt a reload on
         // optimistic-concurrency (409 CONCURRENCY_CONFLICT) responses from any page.

@@ -61,12 +61,12 @@ public class DailySalesReportDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Daily Sales Report",
+        new DocHeader(_theme, _shop, _theme.T("dailySales.title"),
         [
-            new MetaField("No.", _data.ReportNumber),
-            new MetaField("Date", _data.BusinessDate.ToString("dd MMM yyyy")),
-            new MetaField("Business Day", _data.BusinessDayLabel),
-            new MetaField("Terminal", _data.TerminalLabel),
+            new MetaField(_theme.T("common.no"), _data.ReportNumber),
+            new MetaField(_theme.T("common.date"), _data.BusinessDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("dailySales.businessDay"), _data.BusinessDayLabel),
+            new MetaField(_theme.T("common.terminal"), _data.TerminalLabel),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -86,7 +86,7 @@ public class DailySalesReportDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeNote);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Head Cashier", "Accountant", "Manager").Compose(c));
+                new SignRow(_theme.T("dailySales.headCashier"), _theme.T("common.accountant"), _theme.T("common.manager")).Compose(c));
         });
     }
 
@@ -95,13 +95,13 @@ public class DailySalesReportDocument : IDocument
     {
         container.Row(row =>
         {
-            Kpi(row, "Gross Sales", _theme.Money(_data.GrossSales));
+            Kpi(row, _theme.T("dailySales.grossSales"), _theme.Money(_data.GrossSales));
             row.ConstantItem(DocTheme.Px(12));
-            Kpi(row, "Net Sales", _theme.Money(_data.NetSales));
+            Kpi(row, _theme.T("dailySales.netSales"), _theme.Money(_data.NetSales));
             row.ConstantItem(DocTheme.Px(12));
-            Kpi(row, "VAT Collected", _theme.Money(_data.VatCollected));
+            Kpi(row, _theme.T("dailySales.vatCollected"), _theme.Money(_data.VatCollected));
             row.ConstantItem(DocTheme.Px(12));
-            Kpi(row, "Receipts", _data.ReceiptCount.ToString());
+            Kpi(row, _theme.T("dailySales.receipts"), _data.ReceiptCount.ToString());
         });
     }
 
@@ -131,10 +131,10 @@ public class DailySalesReportDocument : IDocument
                 c.ConstantColumn(DocTheme.Px(140));
             });
 
-            ReconRow(table, "Gross Sales", DocTheme.Amount(_data.GrossSales), false);
-            ReconRow(table, "Less: Returns (Credit Notes)", $"- {DocTheme.Amount(_data.ReturnsAmount)}", false);
-            ReconRow(table, "Less: Discounts", $"- {DocTheme.Amount(_data.DiscountsAmount)}", false);
-            ReconRow(table, "Net Sales", DocTheme.Amount(_data.NetSales), true);
+            ReconRow(table, _theme.T("dailySales.grossSales"), DocTheme.Amount(_data.GrossSales), false);
+            ReconRow(table, _theme.T("dailySales.lessReturns"), $"- {DocTheme.Amount(_data.ReturnsAmount)}", false);
+            ReconRow(table, _theme.T("dailySales.lessDiscounts"), $"- {DocTheme.Amount(_data.DiscountsAmount)}", false);
+            ReconRow(table, _theme.T("dailySales.netSales"), DocTheme.Amount(_data.NetSales), true);
         });
     }
 
@@ -168,7 +168,7 @@ public class DailySalesReportDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().PaddingBottom(DocTheme.Px(6)).Element(c => SectionLabel(c, "By Payment Method"));
+            col.Item().PaddingBottom(DocTheme.Px(6)).Element(c => SectionLabel(c, _theme.T("dailySales.byPaymentMethod")));
 
             col.Item().Table(table =>
             {
@@ -181,9 +181,9 @@ public class DailySalesReportDocument : IDocument
 
                 table.Header(header =>
                 {
-                    SubHead(header.Cell(), "Method");
-                    SubHead(header.Cell(), "Txns", right: true);
-                    SubHead(header.Cell(), $"Amount ({_theme.CurrencySymbol})", right: true);
+                    SubHead(header.Cell(), _theme.T("common.method"));
+                    SubHead(header.Cell(), _theme.T("dailySales.txns"), right: true);
+                    SubHead(header.Cell(), $"{_theme.T("common.amount")} ({_theme.CurrencySymbol})", right: true);
                 });
 
                 foreach (var p in _data.Payments)
@@ -201,7 +201,7 @@ public class DailySalesReportDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().PaddingBottom(DocTheme.Px(6)).Element(c => SectionLabel(c, "By Category"));
+            col.Item().PaddingBottom(DocTheme.Px(6)).Element(c => SectionLabel(c, _theme.T("dailySales.byCategory")));
 
             col.Item().Table(table =>
             {
@@ -213,8 +213,8 @@ public class DailySalesReportDocument : IDocument
 
                 table.Header(header =>
                 {
-                    SubHead(header.Cell(), "Category");
-                    SubHead(header.Cell(), $"Amount ({_theme.CurrencySymbol})", right: true);
+                    SubHead(header.Cell(), _theme.T("dailySales.category"));
+                    SubHead(header.Cell(), $"{_theme.T("common.amount")} ({_theme.CurrencySymbol})", right: true);
                 });
 
                 foreach (var cat in _data.Categories)
@@ -230,8 +230,9 @@ public class DailySalesReportDocument : IDocument
     {
         var note = !string.IsNullOrWhiteSpace(_data.Note)
             ? _data.Note
-            : $"Average sale {_theme.Money(_data.ReceiptCount == 0 ? 0 : _data.NetSales / _data.ReceiptCount)} " +
-              $"across {_data.ReceiptCount} receipts.";
+            : _theme.T("dailySales.avgSaleNote")
+                .Replace("{{amount}}", _theme.Money(_data.ReceiptCount == 0 ? 0 : _data.NetSales / _data.ReceiptCount))
+                .Replace("{{count}}", _data.ReceiptCount.ToString());
 
         container.Text(note)
             .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);

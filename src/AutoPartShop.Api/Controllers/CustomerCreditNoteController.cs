@@ -1,4 +1,5 @@
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerCreditNoteDtos;
 using AutoPartShop.Domain.Entities;
@@ -177,7 +178,7 @@ public class CustomerCreditNoteController : ControllerBase
         var currency = await _dbContext.Set<Currency>()
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Code == creditNote.Currency && !c.Isdeleted, cancellationToken);
-        var shop = await shopProfiles.GetAsync(currency?.Symbol, cancellationToken);
+        var shop = await shopProfiles.GetAsync(currency?.Symbol, cancellationToken: cancellationToken);
 
         var customer = creditNote.Customer;
         var customerName = customer is null
@@ -216,11 +217,11 @@ public class CustomerCreditNoteController : ControllerBase
         }
         else
         {
-            // Warranty refunds and standalone credits have no return lines — show one summary line
+            // Warranty refunds and standalone credits have no return lines ï¿½ show one summary line
             // so the total is still itemised rather than appearing from nowhere.
             lines =
             [
-                new CreditNoteLine(1, "—", "Credit adjustment", null, 1, "", creditNote.TotalAmount, creditNote.TotalAmount)
+                new CreditNoteLine(1, "ï¿½", "Credit adjustment", null, 1, "", creditNote.TotalAmount, creditNote.TotalAmount)
             ];
         }
 
@@ -236,17 +237,17 @@ public class CustomerCreditNoteController : ControllerBase
             TotalCredit: creditNote.TotalAmount,
             Notes: creditNote.Notes);
 
-        var pdfBytes = new CreditNoteDocument(data, shop).GeneratePdf();
+        var pdfBytes = new CreditNoteDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"credit-note-{creditNote.CreditNoteNumber}.pdf");
     }
 
     private static string FormatReason(string? reason) => reason switch
     {
         null or "" => "",
-        "DAMAGED" => "Goods returned — damaged.",
-        "DEFECTIVE" => "Goods returned — manufacturing defect.",
-        "WRONG_ITEM" => "Goods returned — wrong item supplied.",
-        "EXCESS_STOCK" => "Goods returned — excess stock.",
+        "DAMAGED" => "Goods returned ï¿½ damaged.",
+        "DEFECTIVE" => "Goods returned ï¿½ manufacturing defect.",
+        "WRONG_ITEM" => "Goods returned ï¿½ wrong item supplied.",
+        "EXCESS_STOCK" => "Goods returned ï¿½ excess stock.",
         _ => reason.Replace('_', ' ')
     };
 

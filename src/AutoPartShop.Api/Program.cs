@@ -24,6 +24,7 @@ using QuestPDF.Infrastructure;
 
 QuestPDF.Settings.License = LicenseType.Community;
 AutoPartShop.Api.Pdf.Design.DocFonts.Register();
+AutoPartShop.Api.Pdf.Design.DocStrings.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -196,7 +197,12 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 // Dependency.cs — Infrastructure has no project reference back to Api).
 builder.Services.AddScoped<ICashierProfileService, CashierProfileService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-builder.Services.AddScoped<IShopProfileProvider, ShopProfileProvider>();
+// Typed client so ShopProfileProvider can fetch a configured SHOP_LOGO_URL for PDF headers;
+// short timeout so an unreachable logo host never stalls document generation.
+builder.Services.AddHttpClient<IShopProfileProvider, ShopProfileProvider>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
 builder.Services.AddScoped<StockManagementService>();
 builder.Services.AddScoped<StockAdjustmentApplier>();
 // Shared stock-decrement algorithm for every channel that sells stock (POS quick sale,

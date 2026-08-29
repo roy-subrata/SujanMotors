@@ -68,12 +68,12 @@ public class DeliveryChallanDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Delivery Challan",
+        new DocHeader(_theme, _shop, _theme.T("challan.title"),
         [
-            new MetaField("No.", _data.ChallanNumber),
-            new MetaField("Date", _data.ChallanDate.ToString("dd MMM yyyy")),
-            new MetaField("Ref. Order", _data.SalesOrderNumber),
-            new MetaField("Vehicle", _data.VehicleNumber),
+            new MetaField(_theme.T("common.no"), _data.ChallanNumber),
+            new MetaField(_theme.T("common.date"), _data.ChallanDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.refOrder"), _data.SalesOrderNumber),
+            new MetaField(_theme.T("common.vehicle"), _data.VehicleNumber),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -91,7 +91,7 @@ public class DeliveryChallanDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeNote);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Driver", "Received By (Customer)").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.driver"), _theme.T("common.receivedByCustomer")).Compose(c));
         });
     }
 
@@ -100,14 +100,14 @@ public class DeliveryChallanDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Deliver To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.deliverTo")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
 
             var lines = new List<string>();
             if (!string.IsNullOrWhiteSpace(_data.DeliveryAddress)) lines.Add(_data.DeliveryAddress);
-            if (!string.IsNullOrWhiteSpace(_data.ReceiverName)) lines.Add($"Attn: {_data.ReceiverName}");
+            if (!string.IsNullOrWhiteSpace(_data.ReceiverName)) lines.Add($"{_theme.T("challan.attn")} {_data.ReceiverName}");
             if (!string.IsNullOrWhiteSpace(_data.ReceiverPhone)) lines.Add(_data.ReceiverPhone);
 
             if (lines.Count > 0)
@@ -125,14 +125,14 @@ public class DeliveryChallanDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Dispatch Details"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("challan.dispatchDetails")));
 
             var rows = new List<(string, string)>();
-            if (!string.IsNullOrWhiteSpace(_data.TransportCompany)) rows.Add(("Transport", _data.TransportCompany));
-            if (!string.IsNullOrWhiteSpace(_data.VehicleNumber)) rows.Add(("Vehicle", _data.VehicleNumber));
-            if (!string.IsNullOrWhiteSpace(_data.DriverName)) rows.Add(("Driver", _data.DriverName));
-            if (!string.IsNullOrWhiteSpace(_data.DriverPhone)) rows.Add(("Driver Ph.", _data.DriverPhone));
-            if (_data.DispatchedAt is { } at) rows.Add(("Dispatched", at.ToString("dd MMM yyyy, HH:mm")));
+            if (!string.IsNullOrWhiteSpace(_data.TransportCompany)) rows.Add((_theme.T("challan.transport"), _data.TransportCompany));
+            if (!string.IsNullOrWhiteSpace(_data.VehicleNumber)) rows.Add((_theme.T("common.vehicle"), _data.VehicleNumber));
+            if (!string.IsNullOrWhiteSpace(_data.DriverName)) rows.Add((_theme.T("common.driver"), _data.DriverName));
+            if (!string.IsNullOrWhiteSpace(_data.DriverPhone)) rows.Add((_theme.T("challan.driverPhone"), _data.DriverPhone));
+            if (_data.DispatchedAt is { } at) rows.Add((_theme.T("challan.dispatched"), at.ToString("dd MMM yyyy, HH:mm")));
 
             if (rows.Count == 0)
             {
@@ -169,10 +169,10 @@ public class DeliveryChallanDocument : IDocument
                 table.Header(header =>
                 {
                     Head(header.Cell(), "#");
-                    Head(header.Cell(), "Part No");
-                    Head(header.Cell(), "Description");
-                    Head(header.Cell(), "Qty", right: true);
-                    Head(header.Cell(), "Unit");
+                    Head(header.Cell(), _theme.T("common.partNo"));
+                    Head(header.Cell(), _theme.T("common.description"));
+                    Head(header.Cell(), _theme.T("common.qty"), right: true);
+                    Head(header.Cell(), _theme.T("common.unit"));
                 });
 
                 foreach (var line in _data.Lines)
@@ -203,7 +203,7 @@ public class DeliveryChallanDocument : IDocument
 
                 table.Cell().BorderTop(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
                     .Padding(DocTheme.Px(8))
-                    .Text("Total").FontSize(DocTheme.TableCell).SemiBold().FontColor(DocTheme.Ink);
+                    .Text(_theme.T("common.total")).FontSize(DocTheme.TableCell).SemiBold().FontColor(DocTheme.Ink);
             });
         });
     }
@@ -213,8 +213,8 @@ public class DeliveryChallanDocument : IDocument
         var note = !string.IsNullOrWhiteSpace(_data.Notes)
             ? _data.Notes
             : string.IsNullOrWhiteSpace(_data.InvoiceNumber)
-                ? "Goods listed above are dispatched in good condition. Prices are not shown on this challan. Please verify quantities on receipt and sign below."
-                : $"Goods listed above are dispatched in good condition. Prices are not shown on this challan — refer to Tax Invoice {_data.InvoiceNumber}. Please verify quantities on receipt and sign below.";
+                ? _theme.T("challan.standingNoteNoInvoice")
+                : _theme.T("challan.standingNoteWithInvoice").Replace("{{invoiceNumber}}", _data.InvoiceNumber);
 
         container.Text(note)
             .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);

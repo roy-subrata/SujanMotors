@@ -58,11 +58,11 @@ public class VatReportDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "VAT Report",
+        new DocHeader(_theme, _shop, _theme.T("vatReport.title"),
         [
-            new MetaField("No.", _data.ReportNumber),
-            new MetaField("Date", DateTime.Now.ToString("dd MMM yyyy")),
-            new MetaField("Period", FormatPeriod()),
+            new MetaField(_theme.T("common.no"), _data.ReportNumber),
+            new MetaField(_theme.T("common.date"), DateTime.Now.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.period"), FormatPeriod()),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -73,7 +73,7 @@ public class VatReportDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeNote);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Accountant", "VAT Consultant", "Proprietor").Compose(c));
+                new SignRow(_theme.T("common.accountant"), _theme.T("vatReport.vatConsultant"), _theme.T("vatReport.proprietor")).Compose(c));
         });
     }
 
@@ -90,18 +90,18 @@ public class VatReportDocument : IDocument
 
             table.Header(header =>
             {
-                Head(header.Cell(), "Description");
-                Head(header.Cell(), $"Taxable Value ({_theme.CurrencySymbol})", right: true);
-                Head(header.Cell(), $"VAT ({_theme.CurrencySymbol})", right: true);
+                Head(header.Cell(), _theme.T("common.description"));
+                Head(header.Cell(), $"{_theme.T("vatReport.taxableValue")} ({_theme.CurrencySymbol})", right: true);
+                Head(header.Cell(), $"{_theme.T("common.vat")} ({_theme.CurrencySymbol})", right: true);
             });
 
-            Row(table, $"Output VAT — Sales (Mushak-6.3, {_data.SalesInvoiceCount} invoices)",
+            Row(table, _theme.T("vatReport.outputVatSales").Replace("{{count}}", _data.SalesInvoiceCount.ToString()),
                 DocTheme.Amount(_data.SalesTaxableValue), DocTheme.Amount(_data.SalesVatAmount));
 
-            Row(table, "Less: Output VAT reversed — Credit Notes",
+            Row(table, _theme.T("vatReport.outputVatReversed"),
                 $"- {DocTheme.Amount(_data.CreditTaxableValue)}", $"- {DocTheme.Amount(_data.CreditVatAmount)}");
 
-            Row(table, $"Less: Input VAT — Purchases (Mushak-6.1, {_data.PurchaseOrderCount} orders)",
+            Row(table, _theme.T("vatReport.inputVatPurchases").Replace("{{count}}", _data.PurchaseOrderCount.ToString()),
                 DocTheme.Amount(_data.PurchaseTaxableValue), $"- {DocTheme.Amount(_data.PurchaseVatAmount)}");
 
             // Total row: 2px rule top+bottom, bold, spans Description+Taxable Value with the VAT
@@ -109,7 +109,7 @@ public class VatReportDocument : IDocument
             table.Cell().ColumnSpan(2)
                 .BorderTop(DocTheme.RuleMedium).BorderBottom(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
                 .PaddingVertical(DocTheme.Px(9)).PaddingHorizontal(DocTheme.Px(8))
-                .Text("Net VAT Payable to NBR").FontSize(DocTheme.TableCell).Bold().FontColor(DocTheme.Ink);
+                .Text(_theme.T("vatReport.netVatPayable")).FontSize(DocTheme.TableCell).Bold().FontColor(DocTheme.Ink);
 
             table.Cell()
                 .BorderTop(DocTheme.RuleMedium).BorderBottom(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
@@ -121,9 +121,7 @@ public class VatReportDocument : IDocument
 
     private void ComposeNote(IContainer container)
     {
-        var note = $"Standard VAT rate {_data.VatRatePercent:N0}% applied on all taxable sales. " +
-                   "Figures feed the monthly Mushak-9.1 return, due by the 15th of the following month. " +
-                   "Supporting registers: sales register, purchase register, credit note file.";
+        var note = _theme.T("vatReport.standingNote").Replace("{{rate}}", _data.VatRatePercent.ToString("N0"));
 
         container.Text(note)
             .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);

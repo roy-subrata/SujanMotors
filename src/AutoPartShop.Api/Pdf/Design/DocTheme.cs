@@ -60,6 +60,12 @@ public sealed record DocTheme
 
     public string CurrencySymbol { get; init; } = "৳";
 
+    /// <summary>ISO-ish language tag resolved from the request's Accept-Language header ("en"/"bn").</summary>
+    public string Lang { get; init; } = "en";
+
+    /// <summary>Looks up a document label for <see cref="Lang"/> via <see cref="DocStrings"/>.</summary>
+    public string T(string key) => DocStrings.T(key, Lang);
+
     public static DocTheme Default => new();
 
     /// <summary>

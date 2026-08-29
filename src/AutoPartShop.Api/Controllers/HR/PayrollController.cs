@@ -1,5 +1,6 @@
 using System.Text;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.Interfaces;
@@ -421,7 +422,7 @@ public class PayrollController : ControllerBase
             LateDays: payslip.LateDays,
             LeaveDays: payslip.LeaveDays);
 
-        var pdfBytes = new PayslipDocument(data, shop).GeneratePdf();
+        var pdfBytes = new PayslipDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"payslip-{payslip.EmployeeCode}-{monthName.Replace(' ', '-')}.pdf");
     }
 

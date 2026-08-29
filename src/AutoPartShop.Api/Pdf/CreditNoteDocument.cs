@@ -55,7 +55,7 @@ public class CreditNoteDocument : IDocument
         _theme = (theme ?? DocTheme.Default) with { CurrencySymbol = shop.CurrencySymbol };
     }
 
-    private string DocTitle => _data.IsDebit ? "Debit Note" : "Credit Note";
+    private string DocTitle => _data.IsDebit ? _theme.T("creditNote.debitTitle") : _theme.T("creditNote.title");
 
     public DocumentMetadata GetMetadata() => new()
     {
@@ -80,9 +80,9 @@ public class CreditNoteDocument : IDocument
     private void ComposeHeader(IContainer container) =>
         new DocHeader(_theme, _shop, DocTitle,
         [
-            new MetaField("No.", _data.CreditNoteNumber),
-            new MetaField("Date", _data.IssueDate.ToString("dd MMM yyyy")),
-            new MetaField("Ref. Invoice", _data.RefInvoiceNumber),
+            new MetaField(_theme.T("common.no"), _data.CreditNoteNumber),
+            new MetaField(_theme.T("common.date"), _data.IssueDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.refInvoice"), _data.RefInvoiceNumber),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -100,7 +100,7 @@ public class CreditNoteDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeNote);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Customer Acknowledgement", "Authorized Signatory").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.customerAcknowledgement"), _theme.T("common.authorizedSignatory")).Compose(c));
         });
     }
 
@@ -108,7 +108,7 @@ public class CreditNoteDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Issued To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("creditNote.issuedTo")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
@@ -131,7 +131,7 @@ public class CreditNoteDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, _data.IsDebit ? "Reason for Debit" : "Reason for Credit"));
+            col.Item().Element(c => SectionLabel(c, _data.IsDebit ? _theme.T("creditNote.reasonForDebit") : _theme.T("creditNote.reasonForCredit")));
             col.Item().PaddingTop(DocTheme.Px(6)).Text(
                     string.IsNullOrWhiteSpace(_data.Reason) ? "—" : _data.Reason)
                 .FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink).LineHeight(1.6f);
@@ -151,7 +151,7 @@ public class CreditNoteDocument : IDocument
         // Scoped to the corrected items only, so the sole total is the credit/debit itself.
         new ItemsTable(
             _theme, items, totals: [],
-            grandLabel: _data.IsDebit ? "Total Debit" : "Total Credit",
+            grandLabel: _data.IsDebit ? _theme.T("common.totalDebit") : _theme.T("common.totalCredit"),
             grandValue: DocTheme.Amount(_data.TotalCredit),
             words: AmountInWords.Convert(_data.TotalCredit)).Compose(container);
     }
@@ -161,8 +161,8 @@ public class CreditNoteDocument : IDocument
         var note = !string.IsNullOrWhiteSpace(_data.Notes)
             ? _data.Notes
             : _data.IsDebit
-                ? "This amount is added to the customer's outstanding balance and is payable with the next invoice, or on request."
-                : "The credited amount will be adjusted against the customer's next purchase, or refunded on request.";
+                ? _theme.T("creditNote.standingNoteDebit")
+                : _theme.T("creditNote.standingNoteCredit");
 
         container.Text(note)
             .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);

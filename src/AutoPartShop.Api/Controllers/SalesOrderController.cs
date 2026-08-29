@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using QuestPDF.Fluent;
 using AutoPartShop.Application.Common;
@@ -250,7 +251,7 @@ public class SalesOrderController : ControllerBase
             TotalAmount: order.TotalAmount + order.TaxAmount,
             Notes: order.Notes);
 
-        var pdfBytes = new SalesOrderDocument(data, shop).GeneratePdf();
+        var pdfBytes = new SalesOrderDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"sales-order-{order.SONumber}.pdf");
     }
 
@@ -1926,7 +1927,10 @@ public class SalesOrderController : ControllerBase
     [Produces("application/pdf")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DownloadInvoicePdf(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> DownloadInvoicePdf(
+        Guid id,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
     {
         var invoice = await _dbContext.Invoices
             .Include(i => i.CustomerPayments)
@@ -1945,23 +1949,9 @@ public class SalesOrderController : ControllerBase
         if (invoice is null)
             return NotFound(ApiError.NotFound($"Invoice '{id}' not found", Request.Path));
 
-        async Task<string> Setting(string key) =>
-            (await _dbContext.Set<ApplicationSettings>()
-                .Where(s => s.Key == key && !s.Isdeleted)
-                .Select(s => s.Value)
-                .FirstOrDefaultAsync(cancellationToken)) ?? string.Empty;
-
         var so = invoice.SalesOrder;
 
-        var shopProfile = new ShopProfile(
-            Name: await Setting("SHOP_NAME"),
-            Address: await Setting("SHOP_ADDRESS"),
-            Phone: await Setting("SHOP_PHONE"),
-            Email: await Setting("SHOP_EMAIL"),
-            TaxNo: await Setting("SHOP_TAX_NUMBER"),
-            Tagline: await Setting("SHOP_TAGLINE"),
-            FooterText: await Setting("INVOICE_FOOTER_TEXT") is { Length: > 0 } ft ? ft : "Thank you for your business!",
-            BankDetails: await Setting("SHOP_BANK_DETAILS"));
+        var shopProfile = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
 
         var lines = (so?.LineItems ?? [])
             .OrderBy(l => l.LineNumber)
@@ -2015,7 +2005,7 @@ public class SalesOrderController : ControllerBase
 
         try
         {
-            var document = new InvoiceDocument(data, shopProfile);
+            var document = new InvoiceDocument(data, shopProfile, DocTheme.Default with { Lang = this.GetLanguage() });
             var pdfBytes = document.GeneratePdf();
             var filename = $"invoice-{invoice.InvoiceNumber}.pdf";
             return File(pdfBytes, "application/pdf", filename);

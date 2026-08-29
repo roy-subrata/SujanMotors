@@ -60,12 +60,12 @@ public class PaymentReceiptDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Payment Receipt",
+        new DocHeader(_theme, _shop, _theme.T("receipt.title"),
         [
-            new MetaField("No.", _payment.TransactionNumber),
-            new MetaField("Date", _payment.PaymentDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.no"), _payment.TransactionNumber),
+            new MetaField(_theme.T("common.date"), _payment.PaymentDate.ToString("dd MMM yyyy")),
             // The handoff shows just the brand here ("bKash"); the long form goes in the detail table.
-            new MetaField("Mode", ShortMode()),
+            new MetaField(_theme.T("receipt.mode"), ShortMode()),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -78,7 +78,7 @@ public class PaymentReceiptDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(22)).Element(ComposeDetails);
             col.Item().PaddingTop(DocTheme.Px(20)).Element(ComposeNote);
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Received By", "Customer Signature", "Authorized Signatory").Compose(c));
+                new SignRow(_theme.T("common.receivedBy"), _theme.T("common.customerSignature"), _theme.T("common.authorizedSignatory")).Compose(c));
         });
     }
 
@@ -87,7 +87,7 @@ public class PaymentReceiptDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Text("RECEIVED FROM")
+            col.Item().Text(_theme.T("receipt.receivedFrom").ToUpperInvariant())
                 .FontSize(DocTheme.SectionLabel).SemiBold().FontColor(DocTheme.Label)
                 .LetterSpacing(1.2f / DocTheme.SectionLabel);
 
@@ -112,7 +112,7 @@ public class PaymentReceiptDocument : IDocument
             .Row(row =>
             {
                 row.RelativeItem().AlignMiddle()
-                    .Text("AMOUNT RECEIVED")
+                    .Text(_theme.T("receipt.amountReceived").ToUpperInvariant())
                     .FontSize(DocTheme.Px(10)).SemiBold().FontColor(DocTheme.Muted)
                     .LetterSpacing(1.5f / 10f);
 
@@ -125,7 +125,7 @@ public class PaymentReceiptDocument : IDocument
     private void ComposeWords(IContainer container) =>
         container.Text(txt =>
         {
-            txt.Span("IN WORDS  ")
+            txt.Span($"{_theme.T("common.inWords").ToUpperInvariant()}  ")
                 .FontSize(DocTheme.SectionLabel).SemiBold().FontColor(DocTheme.Label)
                 .LetterSpacing(1f / DocTheme.SectionLabel);
             txt.Span(AmountInWords.Convert(_payment.Amount))
@@ -137,31 +137,31 @@ public class PaymentReceiptDocument : IDocument
     {
         var rows = new List<(string Label, string Value, bool Mono, bool Bold)>
         {
-            ("Payment Mode", PaymentMode(), false, false),
+            (_theme.T("receipt.paymentMode"), PaymentMode(), false, false),
         };
 
         if (!string.IsNullOrWhiteSpace(_payment.ReferenceNumber))
-            rows.Add(("Transaction Ref", _payment.ReferenceNumber, true, false));
+            rows.Add((_theme.T("receipt.transactionRef"), _payment.ReferenceNumber, true, false));
         else if (!string.IsNullOrWhiteSpace(_payment.TransactionNumber))
-            rows.Add(("Transaction Ref", _payment.TransactionNumber, true, false));
+            rows.Add((_theme.T("receipt.transactionRef"), _payment.TransactionNumber, true, false));
 
         if (!string.IsNullOrWhiteSpace(_payment.AuthorizationCode))
-            rows.Add(("Auth Code", _payment.AuthorizationCode, true, false));
+            rows.Add((_theme.T("receipt.authCode"), _payment.AuthorizationCode, true, false));
 
         if (!string.IsNullOrWhiteSpace(_payment.InvoiceNumber))
-            rows.Add(("Against Invoice", _payment.InvoiceNumber, true, false));
+            rows.Add((_theme.T("receipt.againstInvoice"), _payment.InvoiceNumber, true, false));
 
         if (_payment.PaymentFee > 0)
         {
-            rows.Add(("Transaction Fee", _theme.Money(_payment.PaymentFee), true, false));
-            rows.Add(("Net Amount", _theme.Money(_payment.NetAmount), true, false));
+            rows.Add((_theme.T("receipt.transactionFee"), _theme.Money(_payment.PaymentFee), true, false));
+            rows.Add((_theme.T("receipt.netAmount"), _theme.Money(_payment.NetAmount), true, false));
         }
 
         if (_context.InvoiceTotal is { } total)
-            rows.Add(("Invoice Total", _theme.Money(total), true, false));
+            rows.Add((_theme.T("receipt.invoiceTotal"), _theme.Money(total), true, false));
 
         if (_context.BalanceDue is { } balance)
-            rows.Add(("Balance Due", _theme.Money(balance), true, true));
+            rows.Add((_theme.T("common.balanceDue"), _theme.Money(balance), true, true));
 
         container.Table(table =>
         {
@@ -199,12 +199,12 @@ public class PaymentReceiptDocument : IDocument
         else if (!string.IsNullOrWhiteSpace(_payment.InvoiceNumber))
         {
             note = _context.BalanceDue is { } b && b <= 0
-                ? $"Invoice {_payment.InvoiceNumber} is settled in full. This receipt is proof of payment for reconciliation purposes."
-                : $"This receipt is proof of payment against invoice {_payment.InvoiceNumber} for reconciliation purposes.";
+                ? _theme.T("receipt.standingNoteSettled").Replace("{{invoiceNumber}}", _payment.InvoiceNumber)
+                : _theme.T("receipt.standingNoteUnsettled").Replace("{{invoiceNumber}}", _payment.InvoiceNumber);
         }
         else
         {
-            note = "This receipt is proof of payment for reconciliation purposes.";
+            note = _theme.T("receipt.standingNoteDefault");
         }
 
         container.Text(note)
@@ -215,7 +215,7 @@ public class PaymentReceiptDocument : IDocument
     {
         container.PaddingTop(DocTheme.Px(10)).Text(
                 string.IsNullOrWhiteSpace(_shop.FooterText)
-                    ? "Thank you for your payment."
+                    ? _theme.T("receipt.thankYouPayment")
                     : _shop.FooterText)
             .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
     }
@@ -239,11 +239,11 @@ public class PaymentReceiptDocument : IDocument
     {
         return _payment.PaymentMethod switch
         {
-            "CASH" => "Cash",
-            "CARD" => "Card",
-            "MOBILE_BANKING" => "Mobile Banking",
-            "BANK_TRANSFER" => "Bank Transfer",
-            "ADVANCE_CREDIT" => "Credit Applied",
+            "CASH" => _theme.T("common.paymentMethod.cash"),
+            "CARD" => _theme.T("common.paymentMethod.card"),
+            "MOBILE_BANKING" => _theme.T("common.paymentMethod.mobileBanking"),
+            "BANK_TRANSFER" => _theme.T("common.paymentMethod.bankTransfer"),
+            "ADVANCE_CREDIT" => _theme.T("common.paymentMethod.creditApplied"),
             _ => _payment.PaymentMethod.Replace('_', ' ')
         };
     }

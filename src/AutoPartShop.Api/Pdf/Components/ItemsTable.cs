@@ -81,11 +81,11 @@ public sealed class ItemsTable
             table.Header(header =>
             {
                 Head(header.Cell(), "#");
-                Head(header.Cell(), "Part No");
-                Head(header.Cell(), "Description");
-                Head(header.Cell(), "Qty", right: true);
-                Head(header.Cell(), $"Rate ({_theme.CurrencySymbol})", right: true);
-                Head(header.Cell(), $"Amount ({_theme.CurrencySymbol})", right: true);
+                Head(header.Cell(), _theme.T("common.partNo"));
+                Head(header.Cell(), _theme.T("common.description"));
+                Head(header.Cell(), _theme.T("common.qty"), right: true);
+                Head(header.Cell(), $"{_theme.T("common.rate")} ({_theme.CurrencySymbol})", right: true);
+                Head(header.Cell(), $"{_theme.T("common.amount")} ({_theme.CurrencySymbol})", right: true);
             });
 
             foreach (var it in _items)
@@ -171,7 +171,7 @@ public sealed class ItemsTable
     {
         container.Text(txt =>
         {
-            txt.Span("IN WORDS  ")
+            txt.Span($"{_theme.T("common.inWords").ToUpperInvariant()}  ")
                 .FontSize(DocTheme.SectionLabel).SemiBold().FontColor(DocTheme.Label)
                 .LetterSpacing(1f / DocTheme.SectionLabel);
             txt.Span(_words)

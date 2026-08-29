@@ -70,11 +70,11 @@ public class PayslipDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Payslip",
+        new DocHeader(_theme, _shop, _theme.T("payslip.title"),
         [
-            new MetaField("No.", _data.EmployeeCode),
-            new MetaField("Month", _data.MonthName),
-            new MetaField("Ref", _data.RunCode),
+            new MetaField(_theme.T("common.no"), _data.EmployeeCode),
+            new MetaField(_theme.T("payslip.month"), _data.MonthName),
+            new MetaField(_theme.T("payslip.ref"), _data.RunCode),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -87,7 +87,7 @@ public class PayslipDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(16)).Element(ComposeAttendanceNote);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Employee Signature", "Authorized Signatory").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.employeeSignature"), _theme.T("common.authorizedSignatory")).Compose(c));
         });
     }
 
@@ -95,7 +95,7 @@ public class PayslipDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Text("EMPLOYEE")
+            col.Item().Text(_theme.T("payslip.employee").ToUpperInvariant())
                 .FontSize(DocTheme.SectionLabel).SemiBold().FontColor(DocTheme.Label)
                 .LetterSpacing(1.2f / DocTheme.SectionLabel);
 
@@ -117,20 +117,22 @@ public class PayslipDocument : IDocument
     {
         var rows = new List<(string Label, decimal Value, bool Bold)>
         {
-            ("Basic salary", _data.MonthlySalary, false),
+            (_theme.T("payslip.basicSalary"), _data.MonthlySalary, false),
         };
 
-        if (_data.OvertimeAmount > 0) rows.Add(("Overtime", _data.OvertimeAmount, false));
-        if (_data.BonusAmount > 0) rows.Add(("Bonus", _data.BonusAmount, false));
-        if (_data.OtherAllowance > 0) rows.Add(("Allowance", _data.OtherAllowance, false));
-        if (_data.CommissionAmount > 0) rows.Add(("Sales commission", _data.CommissionAmount, false));
-        rows.Add(("Gross pay", _data.GrossPay, true));
+        if (_data.OvertimeAmount > 0) rows.Add((_theme.T("payslip.overtime"), _data.OvertimeAmount, false));
+        if (_data.BonusAmount > 0) rows.Add((_theme.T("payslip.bonus"), _data.BonusAmount, false));
+        if (_data.OtherAllowance > 0) rows.Add((_theme.T("payslip.allowance"), _data.OtherAllowance, false));
+        if (_data.CommissionAmount > 0) rows.Add((_theme.T("payslip.salesCommission"), _data.CommissionAmount, false));
+        rows.Add((_theme.T("payslip.grossPay"), _data.GrossPay, true));
 
         if (_data.AbsenceDeduction > 0)
-            rows.Add(($"Absence deduction ({_data.AbsentDays} absent, {_data.HalfDays} half-days)", -_data.AbsenceDeduction, false));
-        if (_data.AdvanceDeduction > 0) rows.Add(("Salary advance", -_data.AdvanceDeduction, false));
-        if (_data.TaxDeduction > 0) rows.Add(("Tax", -_data.TaxDeduction, false));
-        if (_data.OtherDeduction > 0) rows.Add(("Other deduction", -_data.OtherDeduction, false));
+            rows.Add((_theme.T("payslip.absenceDeduction")
+                .Replace("{{absent}}", _data.AbsentDays.ToString())
+                .Replace("{{half}}", _data.HalfDays.ToString()), -_data.AbsenceDeduction, false));
+        if (_data.AdvanceDeduction > 0) rows.Add((_theme.T("payslip.salaryAdvance"), -_data.AdvanceDeduction, false));
+        if (_data.TaxDeduction > 0) rows.Add((_theme.T("payslip.tax"), -_data.TaxDeduction, false));
+        if (_data.OtherDeduction > 0) rows.Add((_theme.T("payslip.otherDeduction"), -_data.OtherDeduction, false));
 
         container.Table(table =>
         {
@@ -164,7 +166,7 @@ public class PayslipDocument : IDocument
             .Row(row =>
             {
                 row.RelativeItem().AlignMiddle()
-                    .Text("NET PAY")
+                    .Text(_theme.T("payslip.netPay").ToUpperInvariant())
                     .FontSize(DocTheme.Px(10)).SemiBold().FontColor(DocTheme.Muted)
                     .LetterSpacing(1.5f / 10f);
 
@@ -176,8 +178,12 @@ public class PayslipDocument : IDocument
 
     private void ComposeAttendanceNote(IContainer container) =>
         container.Text(
-                $"Attendance: {_data.PresentDays} present, {_data.LateDays} late, {_data.HalfDays} half, " +
-                $"{_data.AbsentDays} absent, {_data.LeaveDays} leave.")
+                _theme.T("payslip.attendanceNote")
+                    .Replace("{{present}}", _data.PresentDays.ToString())
+                    .Replace("{{late}}", _data.LateDays.ToString())
+                    .Replace("{{half}}", _data.HalfDays.ToString())
+                    .Replace("{{absent}}", _data.AbsentDays.ToString())
+                    .Replace("{{leave}}", _data.LeaveDays.ToString()))
             .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);
 
     private void ComposeFooter(IContainer container)

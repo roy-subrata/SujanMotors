@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.QuotationDtos;
 using AutoPartShop.Application.Services;
@@ -369,7 +370,7 @@ public class QuotationController(
             GrandTotal: quotation.GrandTotal,
             Notes: quotation.Notes);
 
-        var pdfBytes = new QuotationDocument(data, shop).GeneratePdf();
+        var pdfBytes = new QuotationDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"quotation-{quotation.QuotationNumber}.pdf");
     }
 

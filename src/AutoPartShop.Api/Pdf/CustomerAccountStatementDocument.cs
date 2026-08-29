@@ -19,7 +19,11 @@ public record ShopProfile(
     // — e.g. "City Bank PLC — Kawran Bazar Branch\nA/C Name: …\nA/C No: … · Routing: …".
     // Blank until configured; the invoice omits the block rather than printing a placeholder
     // account number that someone might actually pay into.
-    string BankDetails = "");
+    string BankDetails = "",
+    // Fetched server-side from SHOP_LOGO_URL by ShopProfileProvider when it's a resolvable http(s)
+    // URL. Null whenever no logo is configured (or it's the frontend's unresolvable "assets/..."
+    // default) — DocHeader falls back to the initials-square placeholder in that case.
+    byte[]? LogoBytes = null);
 
 /// <summary>
 /// Statement of Account. Not one of the 13 documents in design_handoff_pos_documents, so the body
@@ -62,11 +66,11 @@ public class CustomerAccountStatementDocument : IDocument
     // "Statement" rather than "Statement of Account": the longer title is wider than any in the
     // handoff and squeezes the company block until the tagline wraps. The meta grid says what it is.
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Statement",
+        new DocHeader(_theme, _shop, _theme.T("statement.title"),
         [
             // Period is too wide for the meta column and already appears under Statement Details.
-            new MetaField("No.", $"SOA-{_data.CustomerCode}"),
-            new MetaField("Date", _data.ReportDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.no"), $"SOA-{_data.CustomerCode}"),
+            new MetaField(_theme.T("common.date"), _data.ReportDate.ToString("dd MMM yyyy")),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -89,17 +93,17 @@ public class CustomerAccountStatementDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Bill To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.billTo")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CustomerName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
 
             if (!string.IsNullOrWhiteSpace(_data.CustomerCode))
-                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, "Account No", _data.CustomerCode));
+                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, _theme.T("statement.accountNo"), _data.CustomerCode));
             if (!string.IsNullOrWhiteSpace(_data.CustomerPhone))
-                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Phone", _data.CustomerPhone));
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, _theme.T("common.phone"), _data.CustomerPhone));
             if (!string.IsNullOrWhiteSpace(_data.CustomerType))
-                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Account Type", _data.CustomerType));
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, _theme.T("statement.accountType"), _data.CustomerType));
         });
     }
 
@@ -114,14 +118,14 @@ public class CustomerAccountStatementDocument : IDocument
 
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Statement Details"));
-            col.Item().PaddingTop(DocTheme.Px(6)).Element(c => InfoRow(c, "Period", PeriodLabel()));
-            col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Transactions", _data.PurchaseItems.Count.ToString()));
+            col.Item().Element(c => SectionLabel(c, _theme.T("statement.statementDetails")));
+            col.Item().PaddingTop(DocTheme.Px(6)).Element(c => InfoRow(c, _theme.T("common.period"), PeriodLabel()));
+            col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, _theme.T("common.transactions"), _data.PurchaseItems.Count.ToString()));
 
             // Only meaningful when the whole statement concerns one vehicle; otherwise the column
             // in the table carries it per line.
             if (vehicles.Count == 1)
-                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Vehicle", vehicles[0]));
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, _theme.T("common.vehicle"), vehicles[0]));
         });
     }
 
@@ -130,12 +134,12 @@ public class CustomerAccountStatementDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Transaction History"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("statement.transactionHistory")));
 
             if (_data.PurchaseItems.Count == 0)
             {
                 col.Item().PaddingTop(DocTheme.Px(20)).AlignCenter()
-                    .Text("No transactions found for this period.")
+                    .Text(_theme.T("common.noTransactionsPeriod"))
                     .FontSize(DocTheme.Body).FontColor(DocTheme.Label);
                 return;
             }
@@ -157,13 +161,13 @@ public class CustomerAccountStatementDocument : IDocument
 
                 table.Header(header =>
                 {
-                    Head(header.Cell(), "Date");
-                    Head(header.Cell(), "Invoice");
-                    Head(header.Cell(), "Item Description");
-                    Head(header.Cell(), "Vehicle");
-                    Head(header.Cell(), "Qty", right: true);
-                    Head(header.Cell(), $"Rate ({_theme.CurrencySymbol})", right: true);
-                    Head(header.Cell(), $"Amount ({_theme.CurrencySymbol})", right: true);
+                    Head(header.Cell(), _theme.T("common.date"));
+                    Head(header.Cell(), _theme.T("statement.invoice"));
+                    Head(header.Cell(), _theme.T("statement.itemDescription"));
+                    Head(header.Cell(), _theme.T("common.vehicle"));
+                    Head(header.Cell(), _theme.T("common.qty"), right: true);
+                    Head(header.Cell(), $"{_theme.T("common.rate")} ({_theme.CurrencySymbol})", right: true);
+                    Head(header.Cell(), $"{_theme.T("common.amount")} ({_theme.CurrencySymbol})", right: true);
                 });
 
                 foreach (var item in _data.PurchaseItems)
@@ -202,8 +206,8 @@ public class CustomerAccountStatementDocument : IDocument
     {
         container.AlignRight().Width(DocTheme.TotalsWidth).Column(col =>
         {
-            SummaryRow(col, "Total Billed", DocTheme.Amount(_data.TotalPurchaseAmount));
-            SummaryRow(col, "Total Paid", $"({DocTheme.Amount(_data.TotalPaidAmount)})");
+            SummaryRow(col, _theme.T("statement.totalBilled"), DocTheme.Amount(_data.TotalPurchaseAmount));
+            SummaryRow(col, _theme.T("common.totalPaid"), $"({DocTheme.Amount(_data.TotalPaidAmount)})");
 
             col.Item().PaddingTop(DocTheme.Px(4))
                 .BorderTop(DocTheme.RuleMedium).BorderBottom(DocTheme.RuleMedium)
@@ -211,7 +215,7 @@ public class CustomerAccountStatementDocument : IDocument
                 .Padding(DocTheme.Px(8))
                 .Row(row =>
                 {
-                    row.RelativeItem().Text(_data.CurrentDue <= 0 ? "Settled" : "Balance Due")
+                    row.RelativeItem().Text(_data.CurrentDue <= 0 ? _theme.T("common.settled") : _theme.T("common.balanceDue"))
                         .FontSize(DocTheme.GrandTotal).Bold().FontColor(DocTheme.Ink);
                     row.AutoItem().Text(_theme.Money(Math.Abs(_data.CurrentDue)))
                         .Style(DocTheme.MonoText).FontSize(DocTheme.GrandTotal).Bold().FontColor(DocTheme.Ink);
@@ -234,7 +238,7 @@ public class CustomerAccountStatementDocument : IDocument
         {
             row.RelativeItem().Text(
                     string.IsNullOrWhiteSpace(_shop.FooterText)
-                        ? "Thank you for your continued business. Please contact us for any queries."
+                        ? _theme.T("statement.thankYouFooter")
                         : _shop.FooterText)
                 .FontSize(DocTheme.AddressSize).FontColor(DocTheme.Label);
 
@@ -254,8 +258,8 @@ public class CustomerAccountStatementDocument : IDocument
         var from = _data.FromDate?.ToString("dd MMM yyyy");
         var to = _data.ToDate?.ToString("dd MMM yyyy");
 
-        if (from is null && to is null) return "All time";
-        return $"{from ?? "All time"} – {to ?? _data.ReportDate.ToString("dd MMM yyyy")}";
+        if (from is null && to is null) return _theme.T("common.allTime");
+        return $"{from ?? _theme.T("common.allTime")} – {to ?? _data.ReportDate.ToString("dd MMM yyyy")}";
     }
 
     private static void Head(IContainer cell, string text, bool right = false)

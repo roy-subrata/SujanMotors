@@ -45,11 +45,11 @@ public class SupplierAccountStatementDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Supplier Statement",
+        new DocHeader(_theme, _shop, _theme.T("supplierStatement.title"),
         [
             // SupplierCode already carries its own prefix (e.g. "SUP-0042") — don't double it.
-            new MetaField("No.", _data.SupplierCode),
-            new MetaField("Date", DateTime.Now.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.no"), _data.SupplierCode),
+            new MetaField(_theme.T("common.date"), DateTime.Now.ToString("dd MMM yyyy")),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -71,11 +71,11 @@ public class SupplierAccountStatementDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Supplier"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.supplier")));
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.SupplierName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
             if (!string.IsNullOrWhiteSpace(_data.SupplierCode))
-                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, "Code", _data.SupplierCode));
+                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, _theme.T("common.code"), _data.SupplierCode));
         });
     }
 
@@ -83,12 +83,12 @@ public class SupplierAccountStatementDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Account Details"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("supplierStatement.accountDetails")));
             if (_data.CreditLimit > 0)
-                col.Item().PaddingTop(DocTheme.Px(6)).Element(c => InfoRow(c, "Credit Limit", _theme.Money(_data.CreditLimit)));
-            col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Outstanding", $"{_data.OutstandingInvoiceCount} invoice(s)"));
+                col.Item().PaddingTop(DocTheme.Px(6)).Element(c => InfoRow(c, _theme.T("supplierStatement.creditLimit"), _theme.Money(_data.CreditLimit)));
+            col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, _theme.T("supplierStatement.outstanding"), $"{_data.OutstandingInvoiceCount} {_theme.T("supplierStatement.invoiceUnit")}"));
             if (_data.LastPaymentDate is { } last)
-                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, "Last Payment", $"{last:dd MMM yyyy} · {_theme.Money(_data.LastPaymentAmount)}"));
+                col.Item().PaddingTop(DocTheme.Px(2)).Element(c => InfoRow(c, _theme.T("supplierStatement.lastPayment"), $"{last:dd MMM yyyy} · {_theme.Money(_data.LastPaymentAmount)}"));
         });
     }
 
@@ -100,12 +100,12 @@ public class SupplierAccountStatementDocument : IDocument
 
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Payment History"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("supplierStatement.paymentHistory")));
 
             if (history.Count == 0)
             {
                 col.Item().PaddingTop(DocTheme.Px(20)).AlignCenter()
-                    .Text("No payments recorded for this supplier.")
+                    .Text(_theme.T("supplierStatement.noPayments"))
                     .FontSize(DocTheme.Body).FontColor(DocTheme.Label);
             }
             else
@@ -124,12 +124,12 @@ public class SupplierAccountStatementDocument : IDocument
 
                     table.Header(header =>
                     {
-                        Head(header.Cell(), "Date");
-                        Head(header.Cell(), "Transaction");
-                        Head(header.Cell(), "Method");
-                        Head(header.Cell(), "Reference");
-                        Head(header.Cell(), "Status");
-                        Head(header.Cell(), $"Amount ({_theme.CurrencySymbol})", right: true);
+                        Head(header.Cell(), _theme.T("common.date"));
+                        Head(header.Cell(), _theme.T("supplierStatement.transaction"));
+                        Head(header.Cell(), _theme.T("common.method"));
+                        Head(header.Cell(), _theme.T("common.reference"));
+                        Head(header.Cell(), _theme.T("common.status"));
+                        Head(header.Cell(), $"{_theme.T("common.amount")} ({_theme.CurrencySymbol})", right: true);
                     });
 
                     foreach (var p in history)
@@ -156,12 +156,12 @@ public class SupplierAccountStatementDocument : IDocument
     {
         container.AlignRight().Width(DocTheme.TotalsWidth).Column(col =>
         {
-            SummaryRow(col, "Total Paid", DocTheme.Amount(_data.TotalPaid));
+            SummaryRow(col, _theme.T("common.totalPaid"), DocTheme.Amount(_data.TotalPaid));
             if (_data.TotalAdvanceAmount > 0)
-                SummaryRow(col, "Advances", DocTheme.Amount(_data.TotalAdvanceAmount));
+                SummaryRow(col, _theme.T("supplierStatement.advances"), DocTheme.Amount(_data.TotalAdvanceAmount));
             if (_data.TotalRefunds > 0)
-                SummaryRow(col, "Refunds", $"({DocTheme.Amount(_data.TotalRefunds)})");
-            SummaryRow(col, "Total Due", DocTheme.Amount(_data.TotalDue));
+                SummaryRow(col, _theme.T("supplierStatement.refunds"), $"({DocTheme.Amount(_data.TotalRefunds)})");
+            SummaryRow(col, _theme.T("supplierStatement.totalDue"), DocTheme.Amount(_data.TotalDue));
 
             col.Item().PaddingTop(DocTheme.Px(4))
                 .BorderTop(DocTheme.RuleMedium).BorderBottom(DocTheme.RuleMedium)
@@ -169,7 +169,7 @@ public class SupplierAccountStatementDocument : IDocument
                 .Padding(DocTheme.Px(8))
                 .Row(row =>
                 {
-                    row.RelativeItem().Text(_data.PaymentBalance <= 0 ? "Settled" : "Balance Payable")
+                    row.RelativeItem().Text(_data.PaymentBalance <= 0 ? _theme.T("common.settled") : _theme.T("supplierStatement.balancePayable"))
                         .FontSize(DocTheme.GrandTotal).Bold().FontColor(DocTheme.Ink);
                     row.AutoItem().Text(_theme.Money(Math.Abs(_data.PaymentBalance)))
                         .Style(DocTheme.MonoText).FontSize(DocTheme.GrandTotal).Bold().FontColor(DocTheme.Ink);
@@ -203,12 +203,12 @@ public class SupplierAccountStatementDocument : IDocument
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
-    private static string FormatMethod(string method) => method switch
+    private string FormatMethod(string method) => method switch
     {
-        "CASH" => "Cash",
-        "CARD" => "Card",
-        "MOBILE_BANKING" => "Mobile",
-        "BANK_TRANSFER" => "Bank Transfer",
+        "CASH" => _theme.T("common.paymentMethod.cash"),
+        "CARD" => _theme.T("common.paymentMethod.card"),
+        "MOBILE_BANKING" => _theme.T("common.paymentMethod.mobile"),
+        "BANK_TRANSFER" => _theme.T("common.paymentMethod.bankTransfer"),
         _ => string.IsNullOrWhiteSpace(method) ? "—" : method.Replace('_', ' ')
     };
 

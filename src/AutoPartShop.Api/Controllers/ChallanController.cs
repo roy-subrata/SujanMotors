@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Enums;
@@ -145,7 +146,7 @@ public class ChallanController(
     }
 
     /// <summary>
-    /// Download the Delivery Challan as a PDF. Quantities only — no prices, per the document spec.
+    /// Download the Delivery Challan as a PDF. Quantities only ï¿½ no prices, per the document spec.
     /// </summary>
     [HttpGet("{id:guid}/pdf")]
     [Produces("application/pdf")]
@@ -210,7 +211,7 @@ public class ChallanController(
                 .ToList(),
             Notes: challan.Notes);
 
-        var pdfBytes = new DeliveryChallanDocument(data, shopProfile).GeneratePdf();
+        var pdfBytes = new DeliveryChallanDocument(data, shopProfile, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"challan-{challan.ChallanNumber}.pdf");
     }
 
