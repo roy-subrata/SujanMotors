@@ -209,10 +209,9 @@ final productMediaProvider =
   return ref.read(productsRepositoryProvider).getMedia(id);
 });
 
-/// Merged read-only attribute values for a product's "Technical
-/// specification" display: the product's own (product-scoped) attribute
-/// values from [productDetailProvider], plus deduplicated variant-scoped
-/// attribute values collected across its variants (GET
+/// Merged read-only attribute values for a product's "Attributes" display:
+/// the product's own attribute values from [productDetailProvider], plus
+/// deduplicated variant-level attribute values collected across its variants (GET
 /// /products/{id}/variants → attributeValues). Product-level values come
 /// first; a variant-level value is dropped if an attribute of the same name
 /// is already present at the product level.

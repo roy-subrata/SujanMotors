@@ -200,7 +200,7 @@ class _BodyState extends ConsumerState<_Body> {
                   onSelect: _jumpToSection,
                 ),
 
-                // ── Details + technical specification ──────────────────────
+                // ── Details + product attributes ────────────────────────────
                 if (_activeSection == 0 || _activeSection == 1) ...[
                   _DetailsCard(product: product),
                   _TechSpecCard(productId: product.id),
@@ -866,7 +866,7 @@ class _SectionPillNav extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final labels = [
       S.of(context).overview,
-      S.of(context).specifications,
+      S.of(context).attributes,
       S.of(context).compatibility,
       S.of(context).stockAndLots,
     ];
@@ -1001,7 +1001,7 @@ class _SpecCell extends StatelessWidget {
   }
 }
 
-// ── Technical specification card (product + variant attributes, merged) ───────
+// ── Attributes card (product + variant attributes, merged) ────────────────────
 
 class _TechSpecCard extends ConsumerWidget {
   const _TechSpecCard({required this.productId});
@@ -1021,7 +1021,7 @@ class _TechSpecCard extends ConsumerWidget {
           children: [
             const SizedBox(height: 12),
             _SectionCard(
-              title: S.of(context).technicalSpecification,
+              title: S.of(context).productAttributes,
               child: Column(
                 children: [
                   for (final attr in attrs)

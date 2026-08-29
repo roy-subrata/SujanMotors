@@ -128,7 +128,7 @@ class S {
   String get reserved => _t('Reserved', 'রিজার্ভড');
   String get reorderAt => _t('Reorder at', 'রিঅর্ডার লেভেল');
   String get overview => _t('Overview', 'সারসংক্ষেপ');
-  String get specifications => _t('Specifications', 'স্পেসিফিকেশন');
+  String get attributes => _t('Attributes', 'অ্যাট্রিবিউট');
   String get compatibility => _t('Compatibility', 'সামঞ্জস্য');
   String get stockAndLots => _t('Stock & lots', 'স্টক ও লট');
   String get details => _t('Details', 'বিবরণ');
@@ -140,8 +140,8 @@ class S {
   String get type => _t('Type', 'ধরন');
   String get variants => _t('Variants', 'ভ্যারিয়েন্ট');
   String get notes => _t('Notes', 'নোট');
-  String get technicalSpecification =>
-      _t('Technical specification', 'টেকনিক্যাল স্পেসিফিকেশন');
+  String get productAttributes =>
+      _t('Product attributes', 'পণ্যের অ্যাট্রিবিউট');
   String get compatibleVehicles =>
       _t('Compatible vehicles', 'সামঞ্জস্যপূর্ণ গাড়ি');
   String get noCompatibleVehiclesYet => _t(
