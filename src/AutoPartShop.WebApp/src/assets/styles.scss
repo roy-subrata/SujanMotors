@@ -670,6 +670,16 @@ app-root {
         height: 56px !important;
     }
 
+    /* Re-hide the topbar search box on mobile/tablet. The global
+       "CRITICAL LAYOUT ALIGNMENT OVERRIDES" block above forces display:flex on
+       both with !important, which beats the hiding rules in _topbar.scss (they
+       load earlier, so equal-specificity !important goes to this later file).
+       Without this, the search + title squeeze the notification/theme/user icons
+       off the right edge of the viewport. */
+    .layout-topbar .topbar-search {
+        display: none !important;
+    }
+
     .layout-main-container {
         margin-left: 0 !important;
         margin-top: 0 !important;
@@ -685,6 +695,15 @@ app-root {
 
     .layout-wrapper.layout-mobile-active .layout-sidebar {
         transform: translateX(0) !important;
+    }
+}
+
+/* Phones + small tablets — hide the topbar page title too (search is already
+   hidden above). Same reason as above: the global override block forces it
+   flex, beating the _topbar.scss ≤768px hiding rule. */
+@media (max-width: 768px) {
+    .layout-topbar .topbar-title {
+        display: none !important;
     }
 }
 

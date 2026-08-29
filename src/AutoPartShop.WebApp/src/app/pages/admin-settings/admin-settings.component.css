@@ -691,6 +691,15 @@
     padding: 12px;
   }
 
+  /* Tabs exceed narrow widths (5 tabs ≈ 586px); allow horizontal scroll
+     instead of clipping the trailing tabs off-screen. */
+  ::ng-deep .p-tablist-tab-list {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .tab-toolbar {
     flex-direction: column;
     align-items: stretch;

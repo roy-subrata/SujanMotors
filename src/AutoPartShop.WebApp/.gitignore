@@ -46,3 +46,6 @@ Thumbs.db
 /test-results/
 /e2e-report/
 /e2e/.auth/
+
+# Mobile-QA harness output (screenshots + JSON report)
+/e2e-mobile/results/
