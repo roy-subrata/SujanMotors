@@ -21,6 +21,19 @@ public sealed class ProductImportService(
     private const string PriceUpdateReason = "IMPORT_PRICE_UPDATE";
     private const string InitialPriceReason = "INITIAL_PRICE";
 
+    // Set once per CommitAsync run (see there) from the configurable SKU_PREFIX company-profile
+    // setting; BuildPart/BuildVariant read it instead of re-querying settings per row.
+    private string _skuPrefix = "SKU";
+
+    private async Task<string> GetSkuPrefixAsync(CancellationToken cancellationToken)
+    {
+        var value = await _db.Set<ApplicationSettings>()
+            .Where(s => s.Key == "SKU_PREFIX" && !s.Isdeleted)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+        return string.IsNullOrWhiteSpace(value) ? "SKU" : value;
+    }
+
     // Canonical column headers, in template order. A trailing "*" marks a column that is
     // required when creating a part (on an update, blank means "leave unchanged").
     // SKU is the import key: blank creates, filled updates.
@@ -304,6 +317,10 @@ public sealed class ProductImportService(
         var ctx = await LoadContextAsync(cancellationToken);
         var state = new RowValidationState();
         var user = _currentUserService.GetCurrentUsername();
+
+        // Resolved once per import run rather than per row — BuildPart/BuildVariant run
+        // synchronously in a tight loop over potentially thousands of rows.
+        _skuPrefix = await GetSkuPrefixAsync(cancellationToken);
 
         var result = new ProductImportCommitResult();
 
@@ -919,7 +936,7 @@ public sealed class ProductImportService(
         Guid? unitId = !string.IsNullOrWhiteSpace(row.Unit) && unitMap.TryGetValue(Key(row.Unit), out var unitRef)
             ? unitRef.Entity.Id : null;
 
-        var sku = _codeGenerateService.GenerateAsync("SKU").GetAwaiter().GetResult();
+        var sku = _codeGenerateService.GenerateAsync(_skuPrefix).GetAwaiter().GetResult();
         var partNumber = string.IsNullOrWhiteSpace(row.PartNumber)
             ? null
             : PartNumber.Create(row.PartNumber.Trim());
@@ -1010,7 +1027,7 @@ public sealed class ProductImportService(
         var costPrice = row.VariantCostPrice ?? row.CostPrice ?? parent.CostPrice;
         var sellingPrice = row.VariantSellingPrice ?? row.SellingPrice ?? parent.SellingPrice;
 
-        var sku = _codeGenerateService.GenerateAsync("SKU").GetAwaiter().GetResult();
+        var sku = _codeGenerateService.GenerateAsync(_skuPrefix).GetAwaiter().GetResult();
 
         PartNumber? variantPartNumber = null;
         if (!string.IsNullOrWhiteSpace(row.VariantPartNumber))

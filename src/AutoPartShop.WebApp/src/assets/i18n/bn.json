@@ -3923,7 +3923,7 @@
             "codePlaceholder": "যেমন RED-L",
             "skuLabel": "SKU",
             "skuPlaceholder": "পণ্যের SKU + কোড থেকে স্বয়ংক্রিয়ভাবে তৈরি হয়",
-            "skuHint": "একটি অনন্য SKU স্বয়ংক্রিয়ভাবে তৈরি করতে খালি রাখুন (পণ্যের SKU + কোড)।",
+            "skuHint": "সংরক্ষণের পর পণ্যের SKU + কোড থেকে স্বয়ংক্রিয়ভাবে তৈরি হবে।",
             "barcodeLabel": "বারকোড",
             "barcodePlaceholder": "UPC / EAN",
             "partNumberLabel": "পার্ট নম্বর",
@@ -4279,6 +4279,7 @@
             "salesOrderPrefix": "বিক্রয় আদেশ প্রিফিক্স",
             "purchaseOrderPrefix": "ক্রয় আদেশ প্রিফিক্স",
             "quotationPrefix": "কোটেশন প্রিফিক্স",
+            "skuPrefix": "SKU প্রিফিক্স",
             "hint": "শুধুমাত্র নতুন তৈরি ডকুমেন্টে প্রযোজ্য — বিদ্যমান ডকুমেন্ট নম্বর অপরিবর্তিত থাকে।"
         },
         "preview": {

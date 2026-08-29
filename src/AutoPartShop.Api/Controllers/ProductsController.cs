@@ -325,6 +325,19 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
+    /// Configurable SKU prefix (Company Profile &gt; Document Numbering) — falls back to the
+    /// historical hardcoded "SKU" if no setting has been configured yet.
+    /// </summary>
+    private async Task<string> GetSkuPrefixAsync(CancellationToken cancellationToken)
+    {
+        var value = await _dbContext.Set<ApplicationSettings>()
+            .Where(s => s.Key == "SKU_PREFIX" && !s.Isdeleted)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+        return string.IsNullOrWhiteSpace(value) ? "SKU" : value;
+    }
+
+    /// <summary>
     /// Rejects duplicate/unknown attribute ids, and any attribute already assigned to one of this
     /// product's own variants (a product can't have a value both directly and per-variant at once).
     /// Returns an ApiError to surface, or null when every submitted attribute checks out.
@@ -387,7 +400,7 @@ public class ProductsController : ControllerBase
                 return Conflict(ApiError.Conflict($"A product with part number '{request.PartNumber}' already exists", instance: Request.Path));
         }
 
-        var sku = await _codeGenerateService.GenerateAsync("SKU", cancellationToken);
+        var sku = await _codeGenerateService.GenerateAsync(await GetSkuPrefixAsync(cancellationToken), cancellationToken);
         // PartNumber is optional — some brands don't publish a catalog code. SKU identifies the part.
         var partNumber = string.IsNullOrWhiteSpace(request.PartNumber)
             ? null

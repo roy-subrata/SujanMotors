@@ -253,6 +253,10 @@ const FIELDS: FieldDef[] = [
               <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.quotationPrefix') }}</label>
               <input pInputText formControlName="quotationNumberPrefix" placeholder="QT" class="w-full" />
             </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.skuPrefix') }}</label>
+              <input pInputText formControlName="skuPrefix" placeholder="SKU" class="w-full" />
+            </div>
           </div>
           <small class="text-gray-400 block mt-2">{{ i18n.t('companyProfile.numbering.hint') }}</small>
         </p-card>
@@ -341,6 +345,7 @@ export class CompanyProfileComponent implements OnInit {
     salesOrderNumberPrefix:  ['SO'],
     purchaseOrderNumberPrefix: ['PO'],
     quotationNumberPrefix:   ['QT'],
+    skuPrefix:               ['SKU'],
   });
 
   ngOnInit(): void {
@@ -370,6 +375,7 @@ export class CompanyProfileComponent implements OnInit {
           salesOrderNumberPrefix:  numberingMap['SALES_ORDER_NUMBER_PREFIX'] || 'SO',
           purchaseOrderNumberPrefix: numberingMap['PURCHASE_ORDER_NUMBER_PREFIX'] || 'PO',
           quotationNumberPrefix:   numberingMap['QUOTATION_NUMBER_PREFIX'] || 'QT',
+          skuPrefix:               numberingMap['SKU_PREFIX'] || 'SKU',
         });
         this.loading.set(false);
       },
@@ -408,6 +414,7 @@ export class CompanyProfileComponent implements OnInit {
       salesOrderNumberPrefix:    { key: 'SALES_ORDER_NUMBER_PREFIX',   category: 'NUMBERING' },
       purchaseOrderNumberPrefix: { key: 'PURCHASE_ORDER_NUMBER_PREFIX', category: 'NUMBERING' },
       quotationNumberPrefix:     { key: 'QUOTATION_NUMBER_PREFIX',     category: 'NUMBERING' },
+      skuPrefix:                 { key: 'SKU_PREFIX',                 category: 'NUMBERING' },
     };
 
     const dataTypeMap: Record<string, string> = {

@@ -3964,7 +3964,7 @@
             "codePlaceholder": "e.g. RED-L",
             "skuLabel": "SKU",
             "skuPlaceholder": "Auto-generated from Product SKU + Code",
-            "skuHint": "Leave blank to auto-generate a unique SKU (Product SKU + Code).",
+            "skuHint": "Automatically generated from Product SKU + Code once saved.",
             "barcodeLabel": "Barcode",
             "barcodePlaceholder": "UPC / EAN",
             "partNumberLabel": "Part Number",
@@ -4320,6 +4320,7 @@
             "salesOrderPrefix": "Sales Order Prefix",
             "purchaseOrderPrefix": "Purchase Order Prefix",
             "quotationPrefix": "Quotation Prefix",
+            "skuPrefix": "SKU Prefix",
             "hint": "Applies to newly created documents only — existing document numbers are unaffected."
         },
         "preview": {

@@ -208,7 +208,9 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
     }
 
     this.isSubmitting = true;
-    const v = this.variantForm.value;
+    // getRawValue(), not value: sku is a disabled control, so .value would omit it and the
+    // server would regenerate a fresh SKU on every edit save instead of keeping the existing one.
+    const v = this.variantForm.getRawValue();
 
     const attributeValues: VariantAttributeValueRequest[] = this.attrValuesArray.controls
       .map((ctrl, i) => {
@@ -293,7 +295,9 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
       code: ['', [Validators.required, Validators.maxLength(50)]],
       partNumber: [''],
       oemNumber: [''],
-      sku: [''],
+      // Always auto-generated from Product SKU + Code (see GenerateVariantSkuAsync on the
+      // backend) — disabled so it can't drift from what the server will actually assign.
+      sku: [{ value: '', disabled: true }],
       barcode: [''],
       costPrice: [null],
       sellingPrice: [null],
