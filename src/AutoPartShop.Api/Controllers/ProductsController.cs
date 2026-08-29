@@ -405,6 +405,10 @@ public class ProductsController : ControllerBase
         var partNumber = string.IsNullOrWhiteSpace(request.PartNumber)
             ? null
             : PartNumber.Create(request.PartNumber);
+        // Barcode is optional on the request — a brand-printed UPC/EAN can be entered manually,
+        // but a part without one still needs something scannable for POS/label printing, so it
+        // defaults to the (already-unique) SKU rather than being left blank.
+        var barcode = string.IsNullOrWhiteSpace(request.Barcode) ? sku : request.Barcode.Trim();
         var part = Product.Create(
             request.Name, partNumber, sku, request.CategoryId,
             request.BrandId, request.BaseUnitId, request.UnitId,
@@ -412,7 +416,7 @@ public class ProductsController : ControllerBase
             request.CostPrice, request.SellingPrice, request.MinimumStock,
             request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
-            request.Barcode, request.Tags, request.ProductType, request.IsPerishable,
+            barcode, request.Tags, request.ProductType, request.IsPerishable,
             request.WeightKg, request.TaxCode,
             request.OemNumber, request.LocalName);
 

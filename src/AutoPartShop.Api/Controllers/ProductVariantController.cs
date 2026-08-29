@@ -84,6 +84,12 @@ public class ProductVariantController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.SKU))
             req.SKU = await GenerateVariantSkuAsync(productId, req.Code, excludeVariantId: null, ct);
 
+        // Barcode is optional — a real scanned UPC/EAN can be entered manually, but a variant
+        // without one still needs something scannable for POS/label printing, so it defaults to
+        // the (already-unique) SKU rather than being left blank.
+        if (string.IsNullOrWhiteSpace(req.Barcode))
+            req.Barcode = req.SKU;
+
         var conflict = await CheckUniquenessAsync(productId, req, excludeVariantId: null, ct);
         if (conflict is not null)
             return Conflict(conflict);
@@ -138,6 +144,10 @@ public class ProductVariantController : ControllerBase
         // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
         if (string.IsNullOrWhiteSpace(req.SKU))
             req.SKU = await GenerateVariantSkuAsync(productId, req.Code, excludeVariantId: id, ct);
+
+        // Barcode is optional — see the same fallback in Create above.
+        if (string.IsNullOrWhiteSpace(req.Barcode))
+            req.Barcode = req.SKU;
 
         var conflict = await CheckUniquenessAsync(productId, req, excludeVariantId: id, ct);
         if (conflict is not null)

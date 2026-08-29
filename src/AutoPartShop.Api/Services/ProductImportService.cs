@@ -943,6 +943,10 @@ public sealed class ProductImportService(
 
         var hasWarranty = row.HasWarranty ?? false;
 
+        // Same fallback as the manual create form: a part without a real scanned barcode still
+        // needs something scannable for POS/label printing, so it defaults to the SKU.
+        var barcode = string.IsNullOrWhiteSpace(row.Barcode) ? sku : row.Barcode.Trim();
+
         var part = Product.Create(
             row.Name!.Trim(), partNumber, sku, catRef.Entity.Id,
             brandId, unitId, unitId,
@@ -950,7 +954,7 @@ public sealed class ProductImportService(
             row.CostPrice ?? 0, row.SellingPrice ?? 0, row.MinimumStock ?? 0,
             hasWarranty, row.WarrantyPeriodMonths, row.WarrantyType,
             warrantyTerms: null, warrantyCertificateTemplate: null,
-            row.Barcode?.Trim(), row.Tags?.Trim(),
+            barcode, row.Tags?.Trim(),
             string.IsNullOrWhiteSpace(row.ProductType) ? "PHYSICAL" : row.ProductType.Trim().ToUpperInvariant(),
             isPerishable: false,
             row.WeightKg,
@@ -1033,11 +1037,15 @@ public sealed class ProductImportService(
         if (!string.IsNullOrWhiteSpace(row.VariantPartNumber))
             variantPartNumber = PartNumber.Create(row.VariantPartNumber!.Trim());
 
+        // Same fallback as the manual variant dialog: default to the SKU when the sheet doesn't
+        // carry a real scanned barcode.
+        var variantBarcode = string.IsNullOrWhiteSpace(row.VariantBarcode) ? sku : row.VariantBarcode.Trim();
+
         var variant = ProductVariant.Create(
             parent.Id, variantName, variantCode,
             costPrice, sellingPrice,
             sku,
-            row.VariantBarcode?.Trim(),
+            variantBarcode,
             currency: "BDT",
             isActive: true,
             weightKg: row.WeightKg,
