@@ -26,6 +26,7 @@ namespace AutoPartShop.Application.Customers.Dtos
         public decimal DueAmount { get; set; }
         public bool CanPlaceOrder { get; set; }
         public string PrimaryContactPerson { get; set; } = string.Empty;
+        public string PaymentTerms { get; set; } = string.Empty;
         public DateTime? LastPurchaseDate { get; set; }
         public decimal TotalPurchaseAmount { get; set; }
         public string Notes { get; set; } = string.Empty;

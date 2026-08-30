@@ -51,6 +51,10 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .IsRequired()
             .HasMaxLength(20);
 
+        builder.Property(c => c.PaymentTerms)
+            .HasMaxLength(20)
+            .IsRequired(false);
+
         // Ignore computed properties
         builder.Ignore(c => c.TotalPaid);
         builder.Ignore(c => c.AccountBalance);

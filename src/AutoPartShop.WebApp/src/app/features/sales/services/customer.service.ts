@@ -22,6 +22,8 @@ export interface CreateCustomerRequest {
     customerType: string;
     primaryContactPerson?: string;
     notes?: string;
+    /** NET15/NET30/NET45/NET60/COD/PREPAID — informational default only, no enforcement. */
+    paymentTerms?: string;
 }
 
 export interface UpdateCustomerRequest extends CreateCustomerRequest {}
@@ -53,6 +55,7 @@ export interface CustomerResponse {
     totalPurchaseAmount: number;
     notes: string;
     createdAt: string;
+    paymentTerms?: string;
 }
 
 export interface CustomerQuery {

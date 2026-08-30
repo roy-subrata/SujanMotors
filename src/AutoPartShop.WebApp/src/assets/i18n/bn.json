@@ -742,6 +742,16 @@
             "phoneRequired": "ফোন আবশ্যক",
             "companyLabel": "প্রতিষ্ঠানের নাম",
             "companyPlaceholder": "যেমন, ABC অটো পার্টস ইনক.",
+            "paymentTermsLabel": "পেমেন্টের শর্তাবলী",
+            "paymentTermsPlaceholder": "পেমেন্টের শর্ত নির্বাচন করুন...",
+            "paymentTerms": {
+                "NET15": "নেট ১৫",
+                "NET30": "নেট ৩০",
+                "NET45": "নেট ৪৫",
+                "NET60": "নেট ৬০",
+                "COD": "সিওডি (ডেলিভারিতে নগদ)",
+                "PREPAID": "অগ্রিম পরিশোধিত"
+            },
             "emailLabel": "ইমেইল",
             "emailPlaceholder": "যেমন, customer@example.com",
             "emailInvalid": "বৈধ ইমেইল আবশ্যক",

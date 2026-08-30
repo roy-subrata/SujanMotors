@@ -20,4 +20,5 @@ public class UpdateCustomerRequest
     // The field used to be accepted here and silently dropped, which read as a bug in the update.
     public string PrimaryContactPerson { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public string PaymentTerms { get; set; } = string.Empty;
 }

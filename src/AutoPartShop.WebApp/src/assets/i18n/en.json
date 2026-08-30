@@ -742,6 +742,16 @@
             "phoneRequired": "Phone is required",
             "companyLabel": "Company Name",
             "companyPlaceholder": "e.g., ABC Auto Parts Inc.",
+            "paymentTermsLabel": "Payment Terms",
+            "paymentTermsPlaceholder": "Select payment terms...",
+            "paymentTerms": {
+                "NET15": "Net 15",
+                "NET30": "Net 30",
+                "NET45": "Net 45",
+                "NET60": "Net 60",
+                "COD": "COD (Cash on Delivery)",
+                "PREPAID": "Prepaid"
+            },
             "emailLabel": "Email",
             "emailPlaceholder": "e.g., customer@example.com",
             "emailInvalid": "Valid email is required",

@@ -97,6 +97,18 @@
             <input pInputText formControlName="companyName" [placeholder]="'customers.form.companyPlaceholder' | translate" />
           </div>
         </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>{{ 'customers.form.paymentTermsLabel' | translate }}</label>
+            <p-select formControlName="paymentTerms" [options]="paymentTermsOptions" optionLabel="label" optionValue="value"
+              [placeholder]="'customers.form.paymentTermsPlaceholder' | translate" [showClear]="true" [style]="{ width: '100%' }">
+            </p-select>
+          </div>
+          <div class="form-group">
+            <!-- Empty for alignment -->
+          </div>
+        </div>
       </div>
 
       <!-- Section 2: Contact Information -->

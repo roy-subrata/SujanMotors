@@ -74,6 +74,18 @@ export class CustomerFormComponent implements OnInit {
 
     countries: ItemResponse[] = [];
 
+    /** Getter, not a field: a field freezes the labels in the language active at construction. */
+    get paymentTermsOptions() {
+        return [
+            { label: this.i18n.t('customers.form.paymentTerms.NET15'), value: 'NET15' },
+            { label: this.i18n.t('customers.form.paymentTerms.NET30'), value: 'NET30' },
+            { label: this.i18n.t('customers.form.paymentTerms.NET45'), value: 'NET45' },
+            { label: this.i18n.t('customers.form.paymentTerms.NET60'), value: 'NET60' },
+            { label: this.i18n.t('customers.form.paymentTerms.COD'), value: 'COD' },
+            { label: this.i18n.t('customers.form.paymentTerms.PREPAID'), value: 'PREPAID' }
+        ];
+    }
+
     ngOnInit(): void {
         this.initializeForm();
         this.loadCountries();
@@ -165,7 +177,8 @@ export class CustomerFormComponent implements OnInit {
             country: ['Bangladesh', []],
             customerType: ['RETAIL', [Validators.required]],
             primaryContactPerson: [''],
-            notes: ['']
+            notes: [''],
+            paymentTerms: [null]
         });
     }
 
@@ -190,7 +203,8 @@ export class CustomerFormComponent implements OnInit {
                     postalCode: customer.postalCode,
                     customerType: customer.customerType,
                     primaryContactPerson: customer.primaryContactPerson,
-                    notes: customer.notes
+                    notes: customer.notes,
+                    paymentTerms: customer.paymentTerms || null
                 });
                 this.loading.set(false);
 
@@ -246,7 +260,8 @@ export class CustomerFormComponent implements OnInit {
             country: formValue.country,
             customerType: formValue.customerType,
             primaryContactPerson: formValue.primaryContactPerson,
-            notes: formValue.notes
+            notes: formValue.notes,
+            paymentTerms: formValue.paymentTerms
         };
 
         const operation = this.mode() === 'edit' && this.customerId() ? this.customerService.updateCustomer(this.customerId()!, request) : this.customerService.createCustomer(request);

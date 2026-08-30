@@ -27,6 +27,7 @@ public class Customer : AuditableEntity
     public DateTime? LastPurchaseDate { get; private set; }
     public decimal TotalPurchaseAmount { get; private set; } = 0;
     public string PrimaryContactPerson { get; private set; } = string.Empty;
+    public string PaymentTerms { get; private set; } = string.Empty;
 
     // Navigation properties
     public ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
@@ -64,7 +65,7 @@ public class Customer : AuditableEntity
     public static Customer Create(string customerCode, string firstName, string lastName,
         string email, string phone, string companyName, string billingAddress,
         string shippingAddress, string city, string state, string postalCode,
-        string country, string customerType = "RETAIL", string notes = "")
+        string country, string customerType = "RETAIL", string notes = "", string? paymentTerms = null)
     {
         if (string.IsNullOrWhiteSpace(customerCode))
             throw new ArgumentException("CustomerCode cannot be empty", nameof(customerCode));
@@ -98,7 +99,8 @@ public class Customer : AuditableEntity
             Country = country?.Trim() ?? string.Empty,
             CustomerType = customerType.ToUpper(),
             Status = CustomerStatus.ACTIVE,
-            Notes = notes?.Trim() ?? string.Empty
+            Notes = notes?.Trim() ?? string.Empty,
+            PaymentTerms = paymentTerms?.Trim() ?? string.Empty
         };
     }
 
@@ -201,5 +203,10 @@ public class Customer : AuditableEntity
     public void SetPrimaryContactPerson(string contactPerson)
     {
         PrimaryContactPerson = contactPerson?.Trim() ?? string.Empty;
+    }
+
+    public void SetPaymentTerms(string? paymentTerms)
+    {
+        PaymentTerms = paymentTerms?.Trim() ?? string.Empty;
     }
 }

@@ -18,6 +18,7 @@ public class CreateCustomerRequest
     public string CustomerType { get; set; } = "RETAIL";
     public string PrimaryContactPerson { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public string PaymentTerms { get; set; } = string.Empty;
 }
 
 

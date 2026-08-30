@@ -322,7 +322,7 @@ public class CustomerController : ControllerBase
             }
 
             // CreateCustomerRequest.CustomerCode was accepted and then discarded. Honour an
-            // explicit code when it is free, and fall back to the generated sequence otherwise —
+            // explicit code when it is free, and fall back to the generated sequence otherwise ï¿½
             // same contract as suppliers.
             string customerCode;
             if (!string.IsNullOrWhiteSpace(request.CustomerCode))
@@ -350,7 +350,8 @@ public class CustomerController : ControllerBase
                 request.PostalCode,
                 request.Country,
                 request.CustomerType,
-                request.Notes
+                request.Notes,
+                request.PaymentTerms
             );
 
             customer.SetPrimaryContactPerson(request.PrimaryContactPerson);
@@ -384,7 +385,7 @@ public class CustomerController : ControllerBase
             var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
-            // Phone must stay unique — reject if another customer already has it.
+            // Phone must stay unique ï¿½ reject if another customer already has it.
             if (!string.IsNullOrWhiteSpace(request.Phone))
             {
                 var existingByPhone = await _customerRepository.GetByPhoneAsync(request.Phone.Trim(), cancellationToken);
@@ -401,6 +402,7 @@ public class CustomerController : ControllerBase
 
             customer.SetPrimaryContactPerson(request.PrimaryContactPerson);
             customer.UpdateNotes(request.Notes);
+            customer.SetPaymentTerms(string.IsNullOrEmpty(request.PaymentTerms) ? customer.PaymentTerms : request.PaymentTerms);
 
             customer.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
@@ -532,7 +534,7 @@ public class CustomerController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Repository-level in-use guard (defense in depth) — surface a clean 409.
+            // Repository-level in-use guard (defense in depth) ï¿½ surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
@@ -568,6 +570,7 @@ public class CustomerController : ControllerBase
             DueAmount = customer.CurrentBalance,      // Outstanding balance (due)
             CanPlaceOrder = customer.CanPlaceOrder(),
             PrimaryContactPerson = customer.PrimaryContactPerson,
+            PaymentTerms = customer.PaymentTerms,
             LastPurchaseDate = customer.LastPurchaseDate,
             TotalPurchaseAmount = customer.TotalPurchaseAmount,
             Notes = customer.Notes,

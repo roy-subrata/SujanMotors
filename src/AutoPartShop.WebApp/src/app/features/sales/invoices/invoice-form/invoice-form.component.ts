@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, ActivatedRoute } from '@angular/router';
 import { InvoiceService, InvoiceResponse, CreateInvoiceRequest, RecordPaymentRequest } from '../../services/invoice.service';
 import { SalesOrderService, SalesOrderResponse } from '../../services/sales-order.service';
+import { CustomerService } from '../../services/customer.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -52,6 +53,7 @@ export class InvoiceFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly invoiceService = inject(InvoiceService);
   private readonly salesOrderService = inject(SalesOrderService);
+  private readonly customerService = inject(CustomerService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
@@ -158,11 +160,39 @@ export class InvoiceFormComponent implements OnInit {
 
   onSalesOrderChange(salesOrderId: string): void {
     const order = this.salesOrders().find(o => o.id === salesOrderId);
-    if (order) {
-      this.invoiceForm.patchValue({
-        subTotal: order.subTotal,
-        taxAmount: order.taxAmount
-      });
+    if (!order) return;
+
+    this.invoiceForm.patchValue({
+      subTotal: order.subTotal,
+      taxAmount: order.taxAmount
+    });
+
+    // Default due date from the customer's payment terms; the field stays editable.
+    this.customerService.getCustomerById(order.customerId).subscribe({
+      next: (customer) => {
+        const dayOffset = this.paymentTermsDayOffset(customer.paymentTerms);
+        if (dayOffset !== null) {
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + dayOffset);
+          this.invoiceForm.patchValue({ dueDate });
+        }
+      },
+      error: () => {
+        // Keep the existing default due date if the customer lookup fails.
+      }
+    });
+  }
+
+  /** NET15/30/45/60 -> day offset, COD/PREPAID -> 0, unset/unrecognized -> null (keep existing default). */
+  private paymentTermsDayOffset(paymentTerms: string | undefined): number | null {
+    switch (paymentTerms) {
+      case 'NET15': return 15;
+      case 'NET30': return 30;
+      case 'NET45': return 45;
+      case 'NET60': return 60;
+      case 'COD':
+      case 'PREPAID': return 0;
+      default: return null;
     }
   }
 
