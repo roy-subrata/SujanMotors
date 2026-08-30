@@ -30,4 +30,9 @@ export const environment = {
 
     // Same relative URL as production — nginx handles routing in both envs
     apiUrl: '/api',
+
+    // Test/prod are otherwise visually identical builds. This flag drives a "TEST
+    // ENVIRONMENT" banner in the app shell (app.topbar.html) so nobody mistakes one
+    // for the other, and gets echoed into the API's Swagger title too (Program.cs).
+    envName: 'staging',
 };
