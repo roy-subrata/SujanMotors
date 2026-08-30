@@ -16,7 +16,8 @@ namespace AutoPartShop.Api.Controllers;
 public class CategoriesController(
     ILogger<CategoriesController> _logger,
     ICategoryRepository _categoryRepository,
-    ICategoryReadRepository _categoryReadRepository) : ControllerBase
+    ICategoryReadRepository _categoryReadRepository,
+    ICategoryAttributeGroupRepository _categoryAttributeGroupRepository) : ControllerBase
 {
     // â”€â”€ List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -102,6 +103,26 @@ public class CategoriesController(
 
         var items = await _categoryRepository.GetAllDescendantsAsync(id, cancellationToken);
         return Ok(ApiResponse<object>.Ok(items.Select(c => MapToResponse(c))));
+    }
+
+    /// <summary>
+    /// Attribute groups scoped to this category — the category's own links plus any inherited from
+    /// its ancestors (e.g. a group linked to "Wheels &amp; Tires" also applies to its "Tires" child).
+    /// Same response shape as GET /api/v1/attribute-groups.
+    /// </summary>
+    [HttpGet("{id:guid}/attribute-groups")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAttributeGroups(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (!await _categoryRepository.ExistsAsync(id, cancellationToken))
+            return NotFound(ApiError.NotFound($"Category '{id}' not found", Request.Path));
+
+        var ancestors = await _categoryRepository.GetAncestorsAsync(id, cancellationToken);
+        var categoryIds = new[] { id }.Concat(ancestors.Select(c => c.Id));
+
+        var groups = await _categoryAttributeGroupRepository.GetByCategoryIdsAsync(categoryIds, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(groups.Select(ProductAttributeGroupController.MapGroup)));
     }
 
     /// <summary>

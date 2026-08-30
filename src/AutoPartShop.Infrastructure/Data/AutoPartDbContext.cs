@@ -79,6 +79,7 @@ public class AutoPartDbContext : IdentityDbContext<ApplicationUser, ApplicationR
     public DbSet<ProductAttributeGroup> ProductAttributeGroups { get; set; }
     public DbSet<ProductAttribute> ProductAttributes { get; set; }
     public DbSet<ProductAttributeOption> ProductAttributeOptions { get; set; }
+    public DbSet<CategoryAttributeGroup> CategoryAttributeGroups { get; set; }
     public DbSet<VariantAttributeValue> VariantAttributeValues { get; set; }
     public DbSet<ProductAttributeValue> ProductAttributeValues { get; set; }
     public DbSet<ProductMedia> ProductMedias { get; set; }

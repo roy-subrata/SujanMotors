@@ -90,6 +90,8 @@ public class ProductsController : ControllerBase
         [FromQuery] string? sortDirection,
         [FromQuery] bool flattenVariants = false,
         [FromQuery] bool lowStockOnly = false,
+        [FromQuery] Guid[]? vehicleIds = null,
+        [FromQuery] Guid[]? attributeOptionIds = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -106,7 +108,9 @@ public class ProductsController : ControllerBase
             IsActive = isActive,
             FlattenVariants = flattenVariants,
             CategoryId = categoryId,
-            LowStockOnly = lowStockOnly
+            LowStockOnly = lowStockOnly,
+            VehicleIds = vehicleIds?.Length > 0 ? vehicleIds : null,
+            AttributeOptionIds = attributeOptionIds?.Length > 0 ? attributeOptionIds : null
         };
 
         if (!string.IsNullOrWhiteSpace(sortBy))

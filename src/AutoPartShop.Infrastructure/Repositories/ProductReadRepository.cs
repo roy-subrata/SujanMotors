@@ -1,13 +1,14 @@
 using AutoPartShop.Application.Parts;
 using AutoPartShop.Application.Parts.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Repositories;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.Data.SqlTypes;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
 
-public class ProductReadRepository(AutoPartDbContext _db) : IProductReadRepository
+public class ProductReadRepository(AutoPartDbContext _db, ICategoryRepository _categoryRepository) : IProductReadRepository
 {
     // Semantic search: rank products by cosine distance between their stored embedding and the
     // query vector, entirely server-side (SQL Server 2025 VECTOR_DISTANCE), then paginate.
@@ -90,9 +91,11 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
     public async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllAsync(ProductQuery query, CancellationToken cancellationToken = default)
     {
         var term = query.Search.ToLower();
+        var categoryIds = await ResolveCategoryIdsAsync(query.CategoryId, cancellationToken);
+        var attributeGroups = await ResolveAttributeOptionGroupsAsync(query.AttributeOptionIds, cancellationToken);
 
         if (query.FlattenVariants)
-            return await FindAllFlattenedAsync(query, term, cancellationToken);
+            return await FindAllFlattenedAsync(query, term, categoryIds, attributeGroups, cancellationToken);
 
         var parts = _db.Parts
             .Include(p => p.Category)
@@ -101,7 +104,10 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted)
             .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId);
+            .Where(x => categoryIds == null || categoryIds.Contains(x.CategoryId))
+            .Where(x => query.VehicleIds == null || !query.VehicleIds.Any()
+                || x.VehicleCompatibilities.Any(vc =>
+                    !vc.Isdeleted && vc.IsCompatible && query.VehicleIds.Contains(vc.VehicleId)));
 
         // Each word must match SOMEWHERE (name/sku/attribute, etc.) — a different field per word is
         // fine, so "battery white" finds a product named "Battery" with a White variant.
@@ -118,6 +124,16 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                    (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))) ||
                 x.Variants.Any(v => v.Attributes.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
                    (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%")))));
+        }
+
+        // Faceted filter: a product must match ALL selected attributes (AND across groups), matching
+        // ANY of that attribute's selected options (OR within the group). A value at either the
+        // product level or on any of its variants counts — same "either level" rule as search above.
+        foreach (var (attributeId, optionIds) in attributeGroups)
+        {
+            parts = parts.Where(x =>
+                x.AttributeValues.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value)) ||
+                x.Variants.Any(v => v.Attributes.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value))));
         }
 
         if (query.LowStockOnly)
@@ -260,12 +276,46 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
         return qty > 0 ? value / qty : 0;
     }
 
+    /// <summary>
+    /// Category id(s) a CategoryId filter should match against: the category itself plus all of its
+    /// descendants, so filtering by a parent (e.g. "Wheels &amp; Tires") also returns products filed
+    /// under its children (e.g. "Tires"). Null means "no category filter" (matches everything).
+    /// </summary>
+    private async Task<HashSet<Guid>?> ResolveCategoryIdsAsync(Guid? categoryId, CancellationToken cancellationToken)
+    {
+        if (categoryId is null) return null;
+
+        var descendants = await _categoryRepository.GetAllDescendantsAsync(categoryId.Value, cancellationToken);
+        return new[] { categoryId.Value }.Concat(descendants.Select(c => c.Id)).ToHashSet();
+    }
+
+    /// <summary>
+    /// Groups selected attribute-option ids by their owning attribute, so callers can AND across
+    /// distinct attributes while ORing within each attribute's selected options.
+    /// </summary>
+    private async Task<List<(Guid AttributeId, List<Guid> OptionIds)>> ResolveAttributeOptionGroupsAsync(
+        IReadOnlyCollection<Guid>? optionIds, CancellationToken cancellationToken)
+    {
+        if (optionIds is null || optionIds.Count == 0) return [];
+
+        var rows = await _db.ProductAttributeOptions
+            .Where(o => optionIds.Contains(o.Id))
+            .Select(o => new { o.Id, o.AttributeId })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(o => o.AttributeId)
+            .Select(g => (g.Key, g.Select(x => x.Id).ToList()))
+            .ToList();
+    }
+
     // Flattened view for transactional documents (PO, SO, GRN, POS):
     //   - Products WITHOUT active variants → returned as-is (base product)
     //   - Products WITH active variants    → each variant returned as its own line item
     // Search matches on product name, product SKU, variant name, or variant SKU.
     private async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllFlattenedAsync(
-        ProductQuery query, string term, CancellationToken cancellationToken)
+        ProductQuery query, string term, HashSet<Guid>? categoryIds,
+        List<(Guid AttributeId, List<Guid> OptionIds)> attributeGroups, CancellationToken cancellationToken)
     {
         var baseQuery = _db.Parts
             .Include(p => p.Category)
@@ -274,7 +324,10 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted)
             .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
+            .Where(x => categoryIds == null || categoryIds.Contains(x.CategoryId))
+            .Where(x => query.VehicleIds == null || !query.VehicleIds.Any()
+                || x.VehicleCompatibilities.Any(vc =>
+                    !vc.Isdeleted && vc.IsCompatible && query.VehicleIds.Contains(vc.VehicleId)))
             .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted));
 
         // Each word must match SOMEWHERE (name/sku/attribute) — see FindAllAsync for the same pattern.
@@ -287,6 +340,14 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{t}%")) ||
                 x.AttributeValues.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
                     (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))));
+        }
+
+        // Faceted filter (product-level only — this branch only has products with no active
+        // variants, so there is no variant-level value to fall back to).
+        foreach (var (attributeId, optionIds) in attributeGroups)
+        {
+            baseQuery = baseQuery.Where(x =>
+                x.AttributeValues.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value)));
         }
 
         var baseItems = await baseQuery
@@ -340,7 +401,7 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
         var variantQuery = _db.ProductVariants
             .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
             .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
-            .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId);
+            .Where(v => categoryIds == null || categoryIds.Contains(v.Part!.CategoryId));
 
         // NOTE: intentionally not matching on v.PartNumber here. Member access on the PartNumber
         // value-converted type (v.PartNumber.Value) cannot be translated by EF Core once this
@@ -363,6 +424,15 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                     (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))) ||
                 v.Part.AttributeValues.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
                     (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))));
+        }
+
+        // Faceted filter: a value on the variant itself OR its parent product counts — same
+        // "either level" rule as the search predicate above.
+        foreach (var (attributeId, optionIds) in attributeGroups)
+        {
+            variantQuery = variantQuery.Where(v =>
+                v.Attributes.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value)) ||
+                v.Part!.AttributeValues.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value)));
         }
 
         var variantItems = await variantQuery

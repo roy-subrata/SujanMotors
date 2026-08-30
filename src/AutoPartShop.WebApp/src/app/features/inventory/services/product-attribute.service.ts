@@ -96,6 +96,16 @@ export class ProductAttributeService {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
 
+  /** Category ids currently linked to this attribute group (not wrapped in an ApiResponse envelope). */
+  getGroupCategories(id: string): Observable<string[]> {
+    return this.http.get<string[]>(`${this.base}/${id}/categories`);
+  }
+
+  /** Full-replace the set of categories this attribute group applies to. */
+  setGroupCategories(id: string, categoryIds: string[]): Observable<string[]> {
+    return this.http.put<string[]>(`${this.base}/${id}/categories`, { categoryIds });
+  }
+
   addAttribute(groupId: string, req: CreateAttributeRequest): Observable<ProductAttribute> {
     return this.http.post<ProductAttribute>(`${this.base}/${groupId}/attributes`, req);
   }

@@ -8,6 +8,7 @@ import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { TagModule } from 'primeng/tag';
 import { MenuModule, Menu } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
@@ -18,17 +19,26 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { PartsImportDialogComponent } from './parts-import-dialog/parts-import-dialog.component';
 import { PartService, PartResponse } from '../services/part.service';
 import { CategoryService, CategoryResponse } from '../services/category.service';
+import { VehicleService, VehicleResponse } from '../services/vehicle.service';
+import { ProductAttributeGroup } from '../services/product-attribute.service';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PriceCodeService } from '@/shared/services/price-code.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { ExtensiveFilterDialogComponent } from '@/shared/components/extensive-filter-dialog/extensive-filter-dialog.component';
 import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+
+/** One multi-select filter control per category-scoped "option" attribute (text/number/boolean attributes aren't filterable). */
+interface AttributeFilterControl {
+    attributeId: string;
+    attributeName: string;
+    options: { label: string; value: string }[];
+    selectedOptionIds: string[];
+}
 
 @Component({
     selector: 'app-parts',
@@ -40,6 +50,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         ButtonModule,
         InputTextModule,
         Select,
+        MultiSelectModule,
         TagModule,
         MenuModule,
         TooltipModule,
@@ -51,9 +62,8 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         FilterBarComponent,
         DataPaginationComponent,
         StatStripComponent,
-        StatusPillFilterComponent,
-        MoreFiltersDialogComponent,
         PartsImportDialogComponent,
+        ExtensiveFilterDialogComponent,
         TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
@@ -63,6 +73,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 export class PartsComponent implements OnInit {
     private readonly partService = inject(PartService);
     private readonly categoryService = inject(CategoryService);
+    private readonly vehicleService = inject(VehicleService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly currencyService = inject(CurrencyService);
@@ -82,11 +93,12 @@ export class PartsComponent implements OnInit {
     searchTerm = '';
     filterStatus = '';
     filterCategoryId = '';
+    filterVehicleIds: string[] = [];
     sortValue = '';
 
     actionMenuItems: MenuItem[] = [];
     importDialogVisible = false;
-    moreFiltersVisible = false;
+    extensiveFiltersVisible = false;
     stats: StatStripItem[] = [];
 
     statusOptions: { label: string; value: string }[] = [];
@@ -94,6 +106,14 @@ export class PartsComponent implements OnInit {
     /** Category names come from the API (not translatable); only the "All Categories" label is re-built on language switch. */
     categoryOptions: { label: string; value: string }[] = [];
     private loadedCategories: { label: string; value: string }[] = [];
+
+    /** Vehicle options for the compatibility multi-select filter — "Make Model Year" labels from the API. */
+    vehicleOptions: { label: string; value: string }[] = [];
+    private loadedVehicles: { label: string; value: string }[] = [];
+
+    /** Category-scoped "option" attribute filters — rebuilt whenever filterCategoryId changes. */
+    attributeFilterControls: AttributeFilterControl[] = [];
+    loadingAttributeFilters = false;
 
     /** value encodes "field_direction" — matches SortOption.Field on the backend Part entity. */
     sortOptions: { label: string; value: string }[] = [];
@@ -107,10 +127,7 @@ export class PartsComponent implements OnInit {
     }
 
     private buildCategoryOptions(): void {
-        this.categoryOptions = [
-            { label: this.i18n.t('parts.allCategories'), value: '' },
-            ...this.loadedCategories
-        ];
+        this.categoryOptions = [{ label: this.i18n.t('parts.allCategories'), value: '' }, ...this.loadedCategories];
     }
 
     private buildSortOptions(): void {
@@ -125,8 +142,12 @@ export class PartsComponent implements OnInit {
 
     Math = Math;
 
-    get totalPages(): number { return Math.max(1, Math.ceil(this.totalRecords / this.pageSize)); }
-    get first(): number { return (this.currentPage - 1) * this.pageSize; }
+    get totalPages(): number {
+        return Math.max(1, Math.ceil(this.totalRecords / this.pageSize));
+    }
+    get first(): number {
+        return (this.currentPage - 1) * this.pageSize;
+    }
 
     constructor() {}
 
@@ -145,10 +166,21 @@ export class PartsComponent implements OnInit {
         this.loadStats();
         this.categoryService.getActiveCategories().subscribe({
             next: (categories: CategoryResponse[]) => {
-                this.loadedCategories = categories.map(c => ({ label: c.name, value: c.id }));
+                this.loadedCategories = categories.map((c) => ({ label: c.name, value: c.id }));
                 this.buildCategoryOptions();
             },
-            error: () => { /* dropdown just stays "All Categories" — not worth a toast */ }
+            error: () => {
+                /* dropdown just stays "All Categories" — not worth a toast */
+            }
+        });
+        this.vehicleService.getAllVehicles().subscribe({
+            next: (vehicles: VehicleResponse[]) => {
+                this.loadedVehicles = vehicles.map((v) => ({ label: `${v.make} ${v.model} ${v.year}`.trim(), value: v.id }));
+                this.vehicleOptions = this.loadedVehicles;
+            },
+            error: () => {
+                /* vehicle filter just stays empty — not worth a toast */
+            }
         });
     }
 
@@ -175,7 +207,9 @@ export class PartsComponent implements OnInit {
                 };
                 this.buildStats();
             },
-            error: () => { /* strip just stays empty — not worth a toast */ }
+            error: () => {
+                /* strip just stays empty — not worth a toast */
+            }
         });
     }
 
@@ -189,36 +223,35 @@ export class PartsComponent implements OnInit {
         ];
     }
 
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value;
-        this.onFilterChange();
-    }
-
     loadData(page = this.currentPage, rows = this.pageSize): void {
         this.loading = true;
         this.currentPage = page;
         this.pageSize = rows;
         const isActive = this.filterStatus === 'ACTIVE' ? true : this.filterStatus === 'INACTIVE' ? false : undefined;
         const [sortBy, sortDirection] = this.sortValue ? this.sortValue.split('_') : [undefined, undefined];
-        this.partService.getParts({
-            search: this.searchTerm,
-            pageNumber: page,
-            pageSize: rows,
-            isActive,
-            categoryId: this.filterCategoryId || undefined,
-            sortBy,
-            sortDirection: sortDirection as 'asc' | 'desc' | undefined
-        }).subscribe({
-            next: (response) => {
-                this.parts = response.data;
-                this.totalRecords = response.pagination.totalCount;
-                this.loading = false;
-            },
-            error: () => {
-                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.messages.loadFailed') });
-                this.loading = false;
-            }
-        });
+        this.partService
+            .getParts({
+                search: this.searchTerm,
+                pageNumber: page,
+                pageSize: rows,
+                isActive,
+                categoryId: this.filterCategoryId || undefined,
+                vehicleIds: this.filterVehicleIds.length ? this.filterVehicleIds : undefined,
+                attributeOptionIds: this.selectedAttributeOptionIds.length ? this.selectedAttributeOptionIds : undefined,
+                sortBy,
+                sortDirection: sortDirection as 'asc' | 'desc' | undefined
+            })
+            .subscribe({
+                next: (response) => {
+                    this.parts = response.data;
+                    this.totalRecords = response.pagination.totalCount;
+                    this.loading = false;
+                },
+                error: () => {
+                    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.messages.loadFailed') });
+                    this.loading = false;
+                }
+            });
     }
 
     goToPage(page: number): void {
@@ -261,14 +294,22 @@ export class PartsComponent implements OnInit {
     /**
      * Handle search
      */
-    onSearch(): void { this.loadData(1, this.pageSize); }
-    onFilterChange(): void { this.loadData(1, this.pageSize); }
-    refreshData(): void { this.loadData(this.currentPage, this.pageSize); }
+    onSearch(): void {
+        this.loadData(1, this.pageSize);
+    }
+    onFilterChange(): void {
+        this.loadData(1, this.pageSize);
+    }
+    refreshData(): void {
+        this.loadData(this.currentPage, this.pageSize);
+    }
 
     clearFilters(): void {
         this.searchTerm = '';
         this.filterStatus = '';
         this.filterCategoryId = '';
+        this.filterVehicleIds = [];
+        this.attributeFilterControls = [];
         this.sortValue = '';
         this.loadData(1, this.pageSize);
     }
@@ -277,11 +318,83 @@ export class PartsComponent implements OnInit {
      * Check if filters are active
      */
     hasActiveFilters(): boolean {
-        return !!(this.searchTerm || this.filterStatus || this.filterCategoryId || this.sortValue);
+        return !!(
+            this.searchTerm ||
+            this.filterStatus ||
+            this.filterCategoryId ||
+            this.filterVehicleIds.length ||
+            this.selectedAttributeOptionIds.length ||
+            this.sortValue
+        );
     }
 
     get filterCategoryLabel(): string {
-        return this.categoryOptions.find(c => c.value === this.filterCategoryId)?.label ?? '';
+        return this.categoryOptions.find((c) => c.value === this.filterCategoryId)?.label ?? '';
+    }
+
+    get selectedVehicleLabels(): string {
+        return this.filterVehicleIds
+            .map((id) => this.vehicleOptions.find((v) => v.value === id)?.label ?? '')
+            .filter(Boolean)
+            .join(', ');
+    }
+
+    /** Category changed in the dropdown — the available attribute filters are category-dependent,
+     *  so stale selections from a previous category must be cleared and the controls rebuilt. */
+    onCategoryFilterChange(): void {
+        this.loadAttributeFilters();
+        this.onFilterChange();
+    }
+
+    private loadAttributeFilters(): void {
+        this.attributeFilterControls = [];
+        if (!this.filterCategoryId) return;
+        this.loadingAttributeFilters = true;
+        this.categoryService.getAttributeGroups(this.filterCategoryId).subscribe({
+            next: (groups: ProductAttributeGroup[]) => {
+                this.attributeFilterControls = groups
+                    .flatMap((g) => g.attributes)
+                    .filter((a) => a.dataType === 'option' && a.isActive)
+                    .map((a) => ({
+                        attributeId: a.id,
+                        attributeName: a.name,
+                        options: a.options.map((o) => ({ label: o.value, value: o.id })),
+                        selectedOptionIds: []
+                    }));
+                this.loadingAttributeFilters = false;
+            },
+            error: () => {
+                /* attribute filter panel just stays empty — not worth a toast */
+                this.loadingAttributeFilters = false;
+            }
+        });
+    }
+
+    /** Flattened selected option ids across all rendered attribute controls — sent as `attributeOptionIds`. */
+    get selectedAttributeOptionIds(): string[] {
+        return this.attributeFilterControls.flatMap((c) => c.selectedOptionIds);
+    }
+
+    selectedAttributeOptionLabels(ctrl: AttributeFilterControl): string {
+        return ctrl.selectedOptionIds
+            .map((id) => ctrl.options.find((o) => o.value === id)?.label ?? '')
+            .filter(Boolean)
+            .join(', ');
+    }
+
+    clearAttributeFilter(ctrl: AttributeFilterControl): void {
+        ctrl.selectedOptionIds = [];
+        this.onFilterChange();
+    }
+
+    /** Number of attribute controls with at least one option selected — drives the trigger button's count badge. */
+    get activeAttributeFilterCount(): number {
+        return this.attributeFilterControls.filter((c) => c.selectedOptionIds.length > 0).length;
+    }
+
+    clearAttributeFilters(): void {
+        this.attributeFilterControls.forEach((ctrl) => (ctrl.selectedOptionIds = []));
+        this.onFilterChange();
     }
 
     onLazyLoad(event: TableLazyLoadEvent): void {
@@ -357,7 +470,7 @@ export class PartsComponent implements OnInit {
                     summary: this.i18n.t('common.messages.success'),
                     detail: this.i18n.t('parts.messages.activateSuccess')
                 });
-                const index = this.parts.findIndex(p => p.id === part.id);
+                const index = this.parts.findIndex((p) => p.id === part.id);
                 if (index !== -1) {
                     this.parts[index] = updatedPart;
                     this.parts = [...this.parts];
@@ -384,7 +497,7 @@ export class PartsComponent implements OnInit {
                     summary: this.i18n.t('common.messages.success'),
                     detail: this.i18n.t('parts.messages.deactivateSuccess')
                 });
-                const index = this.parts.findIndex(p => p.id === part.id);
+                const index = this.parts.findIndex((p) => p.id === part.id);
                 if (index !== -1) {
                     this.parts[index] = updatedPart;
                     this.parts = [...this.parts];

@@ -89,6 +89,7 @@ public static class Dependency
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IPartVehicleCompatibilityRepository, PartVehicleCompatibilityRepository>();
+        services.AddScoped<ICategoryAttributeGroupRepository, CategoryAttributeGroupRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<IWarehouseRepository, WarehouseRepository>();
         services.AddScoped<IStockLevelRepository, StockLevelRepository>();

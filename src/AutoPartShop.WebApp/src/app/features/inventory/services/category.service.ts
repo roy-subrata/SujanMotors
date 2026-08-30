@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { ProductAttributeGroup } from './product-attribute.service';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 
@@ -138,5 +139,11 @@ export class CategoryService {
     /** Soft delete. */
     deleteCategory(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
+
+    /** Attribute groups linked to this category or any of its ancestors — same shape as
+     *  ProductAttributeService.getAllGroups(); used to build the category-scoped attribute filter. */
+    getAttributeGroups(categoryId: string): Observable<ProductAttributeGroup[]> {
+        return this.http.get<{ data: ProductAttributeGroup[] }>(`${this.apiUrl}/${categoryId}/attribute-groups`).pipe(map((r) => r.data));
     }
 }

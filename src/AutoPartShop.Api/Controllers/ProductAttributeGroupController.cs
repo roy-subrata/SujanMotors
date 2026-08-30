@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +13,16 @@ namespace AutoPartShop.Api.Controllers;
 public class ProductAttributeGroupController : ControllerBase
 {
     private readonly AutoPartDbContext _db;
+    private readonly ICategoryAttributeGroupRepository _categoryAttributeGroupRepository;
     private readonly ILogger<ProductAttributeGroupController> _logger;
 
-    public ProductAttributeGroupController(AutoPartDbContext db, ILogger<ProductAttributeGroupController> logger)
+    public ProductAttributeGroupController(
+        AutoPartDbContext db,
+        ICategoryAttributeGroupRepository categoryAttributeGroupRepository,
+        ILogger<ProductAttributeGroupController> logger)
     {
         _db = db;
+        _categoryAttributeGroupRepository = categoryAttributeGroupRepository;
         _logger = logger;
     }
 
@@ -140,6 +146,39 @@ public class ProductAttributeGroupController : ControllerBase
         _db.ProductAttributeGroups.Remove(group);
         await _db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    // ── Category links ───────────────────────────────────────────────────────
+
+    /// <summary>Category ids currently linked to this attribute group.</summary>
+    [HttpGet("{id:guid}/categories")]
+    public async Task<IActionResult> GetCategories(Guid id, CancellationToken ct)
+    {
+        if (!await _db.ProductAttributeGroups.AnyAsync(g => g.Id == id, ct))
+            return NotFound(new { message = "Attribute group not found" });
+
+        var categoryIds = await _categoryAttributeGroupRepository.GetCategoryIdsForGroupAsync(id, ct);
+        return Ok(categoryIds);
+    }
+
+    /// <summary>Full-replace the set of categories this attribute group applies to.</summary>
+    [HttpPut("{id:guid}/categories")]
+    [HasPermission(Permissions.InventoryEdit)]
+    public async Task<IActionResult> SetCategories(Guid id, [FromBody] SetAttributeGroupCategoriesRequest req, CancellationToken ct)
+    {
+        if (!await _db.ProductAttributeGroups.AnyAsync(g => g.Id == id, ct))
+            return NotFound(new { message = "Attribute group not found" });
+
+        var categoryIds = req.CategoryIds ?? [];
+        if (categoryIds.Length > 0)
+        {
+            var validCount = await _db.Categories.CountAsync(c => categoryIds.Contains(c.Id) && !c.Isdeleted, ct);
+            if (validCount != categoryIds.Distinct().Count())
+                return BadRequest(new { message = "One or more category ids do not exist" });
+        }
+
+        await _categoryAttributeGroupRepository.ReplaceForGroupAsync(id, categoryIds, ct);
+        return Ok(categoryIds.Distinct());
     }
 
     // ── Attributes ────────────────────────────────────────────────────────────
@@ -283,7 +322,9 @@ public class ProductAttributeGroupController : ControllerBase
 
     // ── Mappers ───────────────────────────────────────────────────────────────
 
-    private static object MapGroup(ProductAttributeGroup g) => new
+    /// <summary>Internal (not private) so <see cref="CategoriesController"/> can reuse the same
+    /// response shape for its category-scoped attribute-groups lookup.</summary>
+    internal static object MapGroup(ProductAttributeGroup g) => new
     {
         g.Id,
         g.Name,
@@ -309,3 +350,4 @@ public record CreateAttributeGroupRequest(string Name, int SortOrder = 0, bool I
 public record CreateAttributeRequest(string Name, string Code, string DataType = "option", string? Unit = null, bool IsActive = true);
 public record CreateOptionRequest(string Value, int SortOrder = 0);
 public record AttributeGroupQuery(string Search = "", bool? IsActive = null, int PageNumber = 1, int PageSize = 10);
+public record SetAttributeGroupCategoriesRequest(Guid[]? CategoryIds);

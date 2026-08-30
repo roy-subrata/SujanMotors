@@ -1,0 +1,30 @@
+<p-dialog
+    [modal]="true"
+    [(visible)]="visible"
+    (visibleChange)="visibleChange.emit($event)"
+    [style]="{ width: '440px', maxWidth: '95vw' }"
+    [dismissableMask]="true"
+    styleClass="efd-dialog"
+>
+    <ng-template #header>
+        <div class="efd-header">
+            <span class="efd-header-icon"><i class="pi pi-sliders-h"></i></span>
+            <span class="efd-header-title">{{ title }}</span>
+            <span class="efd-header-count" *ngIf="activeCount > 0">{{ activeCount }}</span>
+        </div>
+    </ng-template>
+
+    <div class="extensive-filter-body">
+        <ng-content></ng-content>
+    </div>
+
+    <ng-template #footer>
+        <div class="efd-footer">
+            <button type="button" class="efd-clear-btn" [disabled]="activeCount === 0" (click)="clear.emit()">
+                <i class="pi pi-filter-slash"></i>
+                {{ 'common.actions.clear' | translate }}
+            </button>
+            <button type="button" class="btn-primary" (click)="close()">{{ 'common.actions.done' | translate }}</button>
+        </div>
+    </ng-template>
+</p-dialog>

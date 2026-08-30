@@ -8,320 +8,352 @@
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
 <!-- Bulk import dialog -->
-<app-parts-import-dialog
-  [(visible)]="importDialogVisible"
-  (imported)="onPartsImported($event)">
-</app-parts-import-dialog>
+<app-parts-import-dialog [(visible)]="importDialogVisible" (imported)="onPartsImported($event)"> </app-parts-import-dialog>
+
+<!-- Category-scoped attribute filters dialog -->
+<app-extensive-filter-dialog
+    [(visible)]="extensiveFiltersVisible"
+    [title]="'parts.attributeFiltersDialogTitle' | translate"
+    [activeCount]="activeAttributeFilterCount"
+    (clear)="clearAttributeFilters()"
+>
+    <div class="filter-group" *ngFor="let ctrl of attributeFilterControls">
+        <label class="filter-label">{{ ctrl.attributeName }}</label>
+        <p-multiselect
+            [options]="ctrl.options"
+            [(ngModel)]="ctrl.selectedOptionIds"
+            optionLabel="label"
+            optionValue="value"
+            [placeholder]="ctrl.attributeName"
+            [maxSelectedLabels]="1"
+            [showClear]="true"
+            (onChange)="onFilterChange()"
+            appendTo="body"
+            styleClass="filter-dropdown"
+        >
+        </p-multiselect>
+    </div>
+</app-extensive-filter-dialog>
 
 <app-page-container>
+    <!-- ==================== HEADER ==================== -->
+    <app-page-header [title]="'parts.title' | translate" [subtitle]="'parts.subtitle' | translate" [count]="totalRecords" [countLabel]="'parts.itemLabel' | translate" countIcon="pi pi-box">
+        <ng-container actions>
+            @if (priceCodeService.isConfigured()) {
+                <button class="btn-icon" [pTooltip]="priceCodeService.showActualPrice() ? ('parts.hideCostPrices' | translate) : ('parts.showCostPrices' | translate)" tooltipPosition="bottom" (click)="priceCodeService.toggleVisibility()">
+                    <i class="pi" [ngClass]="priceCodeService.showActualPrice() ? 'pi-eye' : 'pi-eye-slash'"></i>
+                </button>
+            }
+            <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
+                <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+            </button>
+            <button class="btn-secondary" [pTooltip]="'parts.importTooltip' | translate" tooltipPosition="bottom" (click)="openImportDialog()">
+                <i class="pi pi-file-import"></i>
+                <span>{{ 'common.actions.import' | translate }}</span>
+            </button>
+            <button class="btn-primary" (click)="createPart()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'parts.newPart' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== HEADER ==================== -->
-  <app-page-header
-    [title]="'parts.title' | translate"
-    [subtitle]="'parts.subtitle' | translate"
-    [count]="totalRecords" [countLabel]="'parts.itemLabel' | translate" countIcon="pi pi-box">
-    <ng-container actions>
-      @if (priceCodeService.isConfigured()) {
-        <button class="btn-icon" [pTooltip]="priceCodeService.showActualPrice() ? ('parts.hideCostPrices' | translate) : ('parts.showCostPrices' | translate)" tooltipPosition="bottom" (click)="priceCodeService.toggleVisibility()">
-          <i class="pi" [ngClass]="priceCodeService.showActualPrice() ? 'pi-eye' : 'pi-eye-slash'"></i>
-        </button>
-      }
-      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
-        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-      </button>
-      <button class="btn-secondary" [pTooltip]="'parts.importTooltip' | translate" tooltipPosition="bottom" (click)="openImportDialog()">
-        <i class="pi pi-file-import"></i>
-        <span>{{ 'common.actions.import' | translate }}</span>
-      </button>
-      <button class="btn-primary" (click)="createPart()">
-        <i class="pi pi-plus"></i>
-        <span>{{ 'parts.newPart' | translate }}</span>
-      </button>
-    </ng-container>
-  </app-page-header>
+    <!-- ==================== STATS ==================== -->
+    <app-stat-strip [stats]="stats"></app-stat-strip>
 
-  <!-- ==================== STATS ==================== -->
-  <app-stat-strip [stats]="stats"></app-stat-strip>
+    <!-- ==================== FILTERS ==================== -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'parts.searchPlaceholder' | translate" (keyup.enter)="onSearch()" class="search-input" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+        </div>
 
-  <!-- ==================== FILTERS ==================== -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input
-          type="text"
-          [(ngModel)]="searchTerm"
-          [placeholder]="'parts.searchPlaceholder' | translate"
-          (keyup.enter)="onSearch()"
-          class="search-input" />
-        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-    </div>
+        <div filters class="filter-group">
+            <p-select
+                [options]="categoryOptions"
+                [(ngModel)]="filterCategoryId"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'parts.allCategories' | translate"
+                [showClear]="true"
+                (onChange)="onCategoryFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
 
-    <div filters class="filter-group">
-      <p-select
-        [options]="categoryOptions"
-        [(ngModel)]="filterCategoryId"
-        optionLabel="label"
-        optionValue="value"
-        [placeholder]="'parts.allCategories' | translate"
-        [showClear]="true"
-        (onChange)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
-    </div>
+        <!-- Category-scoped "option" attribute filters — opens a dialog instead of cluttering the bar inline -->
+        <div filters class="filter-group" *ngIf="filterCategoryId && attributeFilterControls.length > 0">
+            <button type="button" class="btn-secondary attribute-filter-trigger" (click)="extensiveFiltersVisible = true">
+                <i class="pi pi-sliders-h"></i>
+                <span>{{ 'parts.attributeFiltersButton' | translate }}</span>
+                <span *ngIf="activeAttributeFilterCount > 0" class="filter-count-badge">{{ activeAttributeFilterCount }}</span>
+            </button>
+        </div>
 
-    <div filters class="filter-group">
-      <app-status-pill-filter
-        [options]="statusOptions"
-        [value]="filterStatus"
-        (valueChange)="onStatusFilterChange($event)">
-      </app-status-pill-filter>
-    </div>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'common.status.allStatuses' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
 
-    <div filters class="filter-group">
-      <p-select
-        [options]="sortOptions"
-        [(ngModel)]="sortValue"
-        optionLabel="label"
-        optionValue="value"
-        [placeholder]="'parts.sort' | translate"
-        [showClear]="true"
-        (onChange)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
-    </div>
+        <div filters class="filter-group">
+            <p-multiselect
+                [options]="vehicleOptions"
+                [(ngModel)]="filterVehicleIds"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'parts.vehicleFilterPlaceholder' | translate"
+                [maxSelectedLabels]="1"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-multiselect>
+        </div>
 
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()">
-        <i class="pi pi-search"></i>
-        {{ 'common.actions.search' | translate }}
-      </button>
-      <button class="text-btn" (click)="moreFiltersVisible = true">
-        {{ 'common.labels.moreFilters' | translate }}
-      </button>
-      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i>
-        {{ 'common.actions.clear' | translate }}
-      </button>
-    </div>
+        <div filters class="filter-group">
+            <p-select [options]="sortOptions" [(ngModel)]="sortValue" optionLabel="label" optionValue="value" [placeholder]="'parts.sort' | translate" [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown">
+            </p-select>
+        </div>
 
-    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
-      <span *ngIf="searchTerm" class="filter-chip">
-        {{ 'parts.searchFilterChip' | translate:{ term: searchTerm } }}
-        <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
-      </span>
-      <span *ngIf="filterCategoryId" class="filter-chip">
-        {{ 'parts.categoryFilterChip' | translate:{ category: filterCategoryLabel } }}
-        <i class="pi pi-times" (click)="filterCategoryId = ''; onFilterChange()"></i>
-      </span>
-      <span *ngIf="filterStatus" class="filter-chip">
-        {{ 'parts.statusFilterChip' | translate:{ status: filterStatus } }}
-        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
-      </span>
-      <span *ngIf="sortValue" class="filter-chip">
-        {{ (sortValue.startsWith('Name') ? 'parts.nameSortLabel' : 'parts.priceSortLabel') | translate }} {{ 'parts.sortChipSuffix' | translate }}
-        <i class="pi pi-times" (click)="sortValue = ''; onFilterChange()"></i>
-      </span>
-    </div>
-  </app-filter-bar>
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()">
+                <i class="pi pi-search"></i>
+                {{ 'common.actions.search' | translate }}
+            </button>
+            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+                <i class="pi pi-filter-slash"></i>
+                {{ 'common.actions.clear' | translate }}
+            </button>
+        </div>
 
-  <app-more-filters-dialog
-    [options]="statusOptions"
-    [selected]="filterStatus"
-    [previewCount]="totalRecords"
-    [(visible)]="moreFiltersVisible"
-    (apply)="onStatusFilterChange($event)">
-  </app-more-filters-dialog>
-
-  <!-- ==================== DATA TABLE (Desktop) ==================== -->
-  <section class="table-section desktop-only">
-    <div class="table-container">
-      <p-table
-        [value]="parts"
-        [lazy]="true"
-        [paginator]="false"
-        [rows]="pageSize"
-        [totalRecords]="totalRecords"
-        [loading]="loading"
-        (onLazyLoad)="onLazyLoad($event)"
-        [rowHover]="true"
-        [scrollable]="true"
-        scrollHeight="flex"
-        styleClass="app-table">
-
-        <ng-template #header>
-          <tr>
-            <th class="col-part">{{ 'parts.columnPart' | translate }}</th>
-            <th class="col-category">{{ 'common.labels.category' | translate }}</th>
-            <th class="col-brand">{{ 'parts.brand' | translate }}</th>
-            <th class="col-price">{{ 'parts.columnCost' | translate }}</th>
-            <th class="col-status">{{ 'common.labels.status' | translate }}</th>
-            <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
-          </tr>
-        </ng-template>
-
-        <ng-template #body let-part>
-          <tr class="data-row" [class.row-inactive]="!part.isActive" (dblclick)="viewPart(part)">
-            <!-- Part -->
-            <td class="col-part">
-              <div class="cell-stack">
-                <span class="cell-primary">{{ part.name }}</span>
-                <span *ngIf="part.localName" class="cell-secondary">{{ part.localName }}</span>
-                <span *ngIf="part.matchedAttributeLabel" class="cell-hint">
-                  <i class="pi pi-search"></i>
-                  {{ 'parts.matchedHint' | translate }}: {{ part.matchedAttributeLabel }}
-                  <ng-container *ngIf="part.matchedVariantCount as n">({{ n }} {{ 'parts.variantsMatchedSuffix' | translate }})</ng-container>
+        <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
+            <span *ngIf="searchTerm" class="filter-chip">
+                {{ 'parts.searchFilterChip' | translate: { term: searchTerm } }}
+                <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
+            </span>
+            <span *ngIf="filterCategoryId" class="filter-chip">
+                {{ 'parts.categoryFilterChip' | translate: { category: filterCategoryLabel } }}
+                <i class="pi pi-times" (click)="filterCategoryId = ''; onFilterChange()"></i>
+            </span>
+            <span *ngIf="filterStatus" class="filter-chip">
+                {{ 'parts.statusFilterChip' | translate: { status: filterStatus } }}
+                <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+            </span>
+            <span *ngIf="filterVehicleIds.length" class="filter-chip">
+                {{ 'parts.vehicleFilterChip' | translate: { vehicles: selectedVehicleLabels } }}
+                <i class="pi pi-times" (click)="filterVehicleIds = []; onFilterChange()"></i>
+            </span>
+            <ng-container *ngFor="let ctrl of attributeFilterControls">
+                <span *ngIf="ctrl.selectedOptionIds.length" class="filter-chip">
+                    {{ 'parts.attributeFilterChip' | translate: { attribute: ctrl.attributeName, values: selectedAttributeOptionLabels(ctrl) } }}
+                    <i class="pi pi-times" (click)="clearAttributeFilter(ctrl)"></i>
                 </span>
-              </div>
-            </td>
-
-            <td class="col-category"><span class="text-muted">{{ part.categoryName || '-' }}</span></td>
-            <td class="col-brand"><span class="text-muted">{{ part.brandName || '-' }}</span></td>
-
-            <td class="col-price">
-              <span class="amount-value" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">{{ formatCostPrice(part.costPrice) }}</span>
-            </td>
-
-            <td class="col-status">
-              <span class="status-pill" [attr.data-status]="part.isActive ? 'active' : 'inactive'">
-                {{ formatStatus(part.isActive) }}
-              </span>
-            </td>
-
-            <td class="col-actions">
-              <div class="action-cell">
-                <button class="btn-action" [pTooltip]="'common.labels.more' | translate" (click)="showActionMenu($event, part)">
-                  <i class="pi pi-ellipsis-v"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="6">
-              <div class="empty-state">
-                <div class="empty-icon"><i class="pi pi-box"></i></div>
-                <h3>{{ 'parts.noPartsFoundTitle' | translate }}</h3>
-                <p *ngIf="hasActiveFilters()">{{ 'parts.noResultsHint' | translate }}</p>
-                <p *ngIf="!hasActiveFilters()">{{ 'parts.noResultsHintEmpty' | translate }}</p>
-                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createPart()">
-                  <i class="pi pi-plus"></i>
-                  {{ 'parts.createPart' | translate }}
-                </button>
-                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
-                  <i class="pi pi-filter-slash"></i>
-                  {{ 'common.actions.clearFilters' | translate }}
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #loadingbody>
-          <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
-            <td>
-              <div class="skeleton-stack">
-                <div class="skeleton skeleton-avatar"></div>
-                <div class="skeleton skeleton-text"></div>
-              </div>
-            </td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-badge"></div></td>
-            <td><div class="skeleton skeleton-actions"></div></td>
-          </tr>
-        </ng-template>
-
-      </p-table>
-    </div>
-  </section>
-
-  <!-- ==================== MOBILE CARDS ==================== -->
-  <section class="cards-section mobile-only">
-    <!-- Loading Skeleton -->
-    <div *ngIf="loading" class="cards-grid">
-      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
-        <div class="card-header">
-          <div class="skeleton skeleton-text"></div>
-          <div class="skeleton skeleton-badge"></div>
+            </ng-container>
+            <span *ngIf="sortValue" class="filter-chip">
+                {{ (sortValue.startsWith('Name') ? 'parts.nameSortLabel' : 'parts.priceSortLabel') | translate }} {{ 'parts.sortChipSuffix' | translate }}
+                <i class="pi pi-times" (click)="sortValue = ''; onFilterChange()"></i>
+            </span>
         </div>
-        <div class="card-body">
-          <div class="skeleton skeleton-text-lg"></div>
-          <div class="skeleton skeleton-text-sm"></div>
+    </app-filter-bar>
+
+    <!-- ==================== DATA TABLE (Desktop) ==================== -->
+    <section class="table-section desktop-only">
+        <div class="table-container">
+            <p-table
+                [value]="parts"
+                [lazy]="true"
+                [paginator]="false"
+                [rows]="pageSize"
+                [totalRecords]="totalRecords"
+                [loading]="loading"
+                (onLazyLoad)="onLazyLoad($event)"
+                [rowHover]="true"
+                [scrollable]="true"
+                scrollHeight="flex"
+                styleClass="app-table"
+            >
+                <ng-template #header>
+                    <tr>
+                        <th class="col-part">{{ 'parts.columnPart' | translate }}</th>
+                        <th class="col-category">{{ 'common.labels.category' | translate }}</th>
+                        <th class="col-brand">{{ 'parts.brand' | translate }}</th>
+                        <th class="col-price">{{ 'parts.columnCost' | translate }}</th>
+                        <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+                        <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
+
+                <ng-template #body let-part>
+                    <tr class="data-row" [class.row-inactive]="!part.isActive" (dblclick)="viewPart(part)">
+                        <!-- Part -->
+                        <td class="col-part">
+                            <div class="cell-stack">
+                                <span class="cell-primary">{{ part.name }}</span>
+                                <span *ngIf="part.localName" class="cell-secondary">{{ part.localName }}</span>
+                                <span *ngIf="part.matchedAttributeLabel" class="cell-hint">
+                                    <i class="pi pi-search"></i>
+                                    {{ 'parts.matchedHint' | translate }}: {{ part.matchedAttributeLabel }}
+                                    <ng-container *ngIf="part.matchedVariantCount as n">({{ n }} {{ 'parts.variantsMatchedSuffix' | translate }})</ng-container>
+                                </span>
+                            </div>
+                        </td>
+
+                        <td class="col-category">
+                            <span class="text-muted">{{ part.categoryName || '-' }}</span>
+                        </td>
+                        <td class="col-brand">
+                            <span class="text-muted">{{ part.brandName || '-' }}</span>
+                        </td>
+
+                        <td class="col-price">
+                            <span class="amount-value" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">{{ formatCostPrice(part.costPrice) }}</span>
+                        </td>
+
+                        <td class="col-status">
+                            <span class="status-pill" [attr.data-status]="part.isActive ? 'active' : 'inactive'">
+                                {{ formatStatus(part.isActive) }}
+                            </span>
+                        </td>
+
+                        <td class="col-actions">
+                            <div class="action-cell">
+                                <button class="btn-action" [pTooltip]="'common.labels.more' | translate" (click)="showActionMenu($event, part)">
+                                    <i class="pi pi-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="pi pi-box"></i></div>
+                                <h3>{{ 'parts.noPartsFoundTitle' | translate }}</h3>
+                                <p *ngIf="hasActiveFilters()">{{ 'parts.noResultsHint' | translate }}</p>
+                                <p *ngIf="!hasActiveFilters()">{{ 'parts.noResultsHintEmpty' | translate }}</p>
+                                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createPart()">
+                                    <i class="pi pi-plus"></i>
+                                    {{ 'parts.createPart' | translate }}
+                                </button>
+                                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
+                                    <i class="pi pi-filter-slash"></i>
+                                    {{ 'common.actions.clearFilters' | translate }}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #loadingbody>
+                    <tr *ngFor="let _ of [1, 2, 3, 4, 5, 6, 7, 8]" class="skeleton-row">
+                        <td>
+                            <div class="skeleton-stack">
+                                <div class="skeleton skeleton-avatar"></div>
+                                <div class="skeleton skeleton-text"></div>
+                            </div>
+                        </td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-badge"></div></td>
+                        <td><div class="skeleton skeleton-actions"></div></td>
+                    </tr>
+                </ng-template>
+            </p-table>
         </div>
-        <div class="card-footer">
-          <div class="skeleton skeleton-text-sm"></div>
-          <div class="skeleton skeleton-text-sm"></div>
-        </div>
-      </div>
-    </div>
+    </section>
 
-    <!-- Empty State -->
-    <div *ngIf="!loading && parts.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-box"></i></div>
-      <h3>{{ 'parts.noPartsMobileTitle' | translate }}</h3>
-      <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'parts.createFirstPartMobile') | translate }}</p>
-      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createPart()">
-        <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'parts.newPart') | translate }}
-      </button>
-    </div>
-
-    <!-- Part Cards -->
-    <div *ngIf="!loading && parts.length > 0" class="cards-grid">
-      <div *ngFor="let part of parts" class="order-card" [class.card-inactive]="!part.isActive" (click)="viewPart(part)">
-        <div class="card-header">
-          <span class="card-so-number">{{ part.partNumber }}</span>
-          <span class="status-pill" [attr.data-status]="part.isActive ? 'active' : 'inactive'">
-            {{ formatStatus(part.isActive) }}
-          </span>
+    <!-- ==================== MOBILE CARDS ==================== -->
+    <section class="cards-section mobile-only">
+        <!-- Loading Skeleton -->
+        <div *ngIf="loading" class="cards-grid">
+            <div *ngFor="let _ of [1, 2, 3, 4]" class="order-card skeleton-card">
+                <div class="card-header">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-badge"></div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton skeleton-text-lg"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+                <div class="card-footer">
+                    <div class="skeleton skeleton-text-sm"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+            </div>
         </div>
 
-        <div class="card-body">
-          <div class="card-customer">
-            <span class="customer-name">{{ part.name }}</span>
-          </div>
-          <div class="card-dates">
-            <span class="card-date"><i class="pi pi-tag"></i> SKU: <span class="cell-mono">{{ part.sku }}</span></span>
-          </div>
-          <span *ngIf="part.matchedAttributeLabel" class="cell-hint">
-            <i class="pi pi-search"></i>
-            {{ 'parts.matchedHint' | translate }}: {{ part.matchedAttributeLabel }}
-            <ng-container *ngIf="part.matchedVariantCount as n">({{ n }} {{ 'parts.variantsMatchedSuffix' | translate }})</ng-container>
-          </span>
+        <!-- Empty State -->
+        <div *ngIf="!loading && parts.length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-box"></i></div>
+            <h3>{{ 'parts.noPartsMobileTitle' | translate }}</h3>
+            <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'parts.createFirstPartMobile') | translate }}</p>
+            <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createPart()">
+                <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
+                {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'parts.newPart') | translate }}
+            </button>
         </div>
 
-        <div class="card-footer">
-          <div class="card-amount">
-            <span class="amount-label">{{ 'parts.columnCost' | translate }}</span>
-            <span class="amount-value" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">{{ formatCostPrice(part.costPrice) }}</span>
-          </div>
-          <button class="btn-card-action" (click)="showActionMenu($event, part); $event.stopPropagation()">
-            <i class="pi pi-ellipsis-h"></i>
-          </button>
+        <!-- Part Cards -->
+        <div *ngIf="!loading && parts.length > 0" class="cards-grid">
+            <div *ngFor="let part of parts" class="order-card" [class.card-inactive]="!part.isActive" (click)="viewPart(part)">
+                <div class="card-header">
+                    <span class="card-so-number">{{ part.partNumber }}</span>
+                    <span class="status-pill" [attr.data-status]="part.isActive ? 'active' : 'inactive'">
+                        {{ formatStatus(part.isActive) }}
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="card-customer">
+                        <span class="customer-name">{{ part.name }}</span>
+                    </div>
+                    <div class="card-dates">
+                        <span class="card-date"
+                            ><i class="pi pi-tag"></i> SKU: <span class="cell-mono">{{ part.sku }}</span></span
+                        >
+                    </div>
+                    <span *ngIf="part.matchedAttributeLabel" class="cell-hint">
+                        <i class="pi pi-search"></i>
+                        {{ 'parts.matchedHint' | translate }}: {{ part.matchedAttributeLabel }}
+                        <ng-container *ngIf="part.matchedVariantCount as n">({{ n }} {{ 'parts.variantsMatchedSuffix' | translate }})</ng-container>
+                    </span>
+                </div>
+
+                <div class="card-footer">
+                    <div class="card-amount">
+                        <span class="amount-label">{{ 'parts.columnCost' | translate }}</span>
+                        <span class="amount-value" [class.coded-price]="priceCodeService.getDisplayPrice(part.costPrice) !== null">{{ formatCostPrice(part.costPrice) }}</span>
+                    </div>
+                    <button class="btn-card-action" (click)="showActionMenu($event, part); $event.stopPropagation()">
+                        <i class="pi pi-ellipsis-h"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
+    </section>
 
-  </section>
-
-  <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
-  <app-data-pagination
-    [first]="first"
-    [pageSize]="pageSize"
-    [totalRecords]="totalRecords"
-    [itemLabel]="'parts.itemLabel' | translate"
-    (pageChange)="goToPage($event)"
-    (pageSizeChange)="onPageSizeChange($event)">
-  </app-data-pagination>
-
+    <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+    <app-data-pagination [first]="first" [pageSize]="pageSize" [totalRecords]="totalRecords" [itemLabel]="'parts.itemLabel' | translate" (pageChange)="goToPage($event)" (pageSizeChange)="onPageSizeChange($event)"> </app-data-pagination>
 </app-page-container>
