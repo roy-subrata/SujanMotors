@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/i18n/strings.dart';
 import '../../shared/format.dart';
+import '../../shared/models/attribute_group.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
 import '../../shared/widgets/app_scaffold.dart';
@@ -79,6 +80,27 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
     );
   }
 
+  Future<void> _openAttributeFilter(
+    ProductSearchController controller,
+    ProductSearchState state,
+  ) async {
+    final result = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.85,
+        child: _AttributeFilterSheet(
+          groups: state.attributeGroups,
+          selectedOptionIds: state.attributeOptionIds.toSet(),
+        ),
+      ),
+    );
+    if (result != null) {
+      controller.setAttributeFilters(result.toList());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(productSearchControllerProvider);
@@ -138,6 +160,10 @@ class _ProductSearchScreenState extends ConsumerState<ProductSearchScreen> {
                         ? controller.showAll()
                         : controller.selectCategory(id, categoryName: name),
                     onMore: () => _openCategoryPicker(controller),
+                    hasAttributeFilters: state.attributeGroups.isNotEmpty,
+                    attributeFilterCount: state.attributeOptionIds.length,
+                    onAttributeFilter: () =>
+                        _openAttributeFilter(controller, state),
                   ),
             loading: () => const SizedBox(height: 44),
             error: (_, _) => const SizedBox.shrink(),
@@ -211,6 +237,9 @@ class _CategoryTabRow extends StatelessWidget {
     required this.onLowStockToggle,
     required this.onSelect,
     required this.onMore,
+    required this.hasAttributeFilters,
+    required this.attributeFilterCount,
+    required this.onAttributeFilter,
   });
 
   final List<Category> categories;
@@ -220,6 +249,12 @@ class _CategoryTabRow extends StatelessWidget {
   final VoidCallback onLowStockToggle;
   final void Function(String? id, String? name) onSelect;
   final VoidCallback onMore;
+
+  /// True once the selected category's attribute groups have loaded and it
+  /// has at least one filterable ("option" type) attribute.
+  final bool hasAttributeFilters;
+  final int attributeFilterCount;
+  final VoidCallback onAttributeFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -246,6 +281,15 @@ class _CategoryTabRow extends StatelessWidget {
               onTap: () => onSelect(cat.id, cat.name),
             ),
           ),
+          if (selectedId != null && hasAttributeFilters)
+            _Tab(
+              label: attributeFilterCount > 0
+                  ? '${S.of(context).attributes} · $attributeFilterCount'
+                  : S.of(context).attributes,
+              icon: Icons.tune_rounded,
+              isSelected: attributeFilterCount > 0,
+              onTap: onAttributeFilter,
+            ),
           _Tab(
             label: S.of(context).more,
             icon: Icons.expand_more_rounded,
@@ -436,6 +480,124 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
                 widget.onSelected(cat.id, cat.name);
                 Navigator.of(context).pop();
               },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Attribute filter sheet ────────────────────────────────────────────────────
+
+/// Category-scoped attribute filter — one section per attribute group, one
+/// [Wrap] of [FilterChip]s per filterable ("option" type) attribute.
+/// Selections are local until "Done" pops the sheet with the chosen set;
+/// closing any other way (swipe, back, backdrop tap) discards them.
+class _AttributeFilterSheet extends StatefulWidget {
+  const _AttributeFilterSheet({
+    required this.groups,
+    required this.selectedOptionIds,
+  });
+
+  final List<FilterableAttributeGroup> groups;
+  final Set<String> selectedOptionIds;
+
+  @override
+  State<_AttributeFilterSheet> createState() => _AttributeFilterSheetState();
+}
+
+class _AttributeFilterSheetState extends State<_AttributeFilterSheet> {
+  late final Set<String> _selected = {...widget.selectedOptionIds};
+
+  @override
+  Widget build(BuildContext context) {
+    final filterableGroups = widget.groups
+        .map((g) => (
+              group: g,
+              attributes: g.attributes.where((a) => a.isFilterable).toList(),
+            ))
+        .where((g) => g.attributes.isNotEmpty)
+        .toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  S.of(context).filterByAttributes,
+                  style: GoogleFonts.instrumentSans(
+                      fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: filterableGroups.isEmpty
+              ? EmptyView(
+                  message: S.of(context).noAttributesForCategory,
+                  icon: Icons.tune_rounded,
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  children: [
+                    for (final g in filterableGroups) ...[
+                      for (final attr in g.attributes) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12, bottom: 6),
+                          child: Text(
+                            attr.name,
+                            style: GoogleFonts.instrumentSans(
+                                fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final opt in attr.options)
+                              FilterChip(
+                                label: Text(opt.value),
+                                selected: _selected.contains(opt.id),
+                                onSelected: (sel) => setState(() {
+                                  if (sel) {
+                                    _selected.add(opt.id);
+                                  } else {
+                                    _selected.remove(opt.id);
+                                  }
+                                }),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ],
+                ),
+        ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: () => setState(() => _selected.clear()),
+                  child: Text(S.of(context).clearAll),
+                ),
+                const Spacer(),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(_selected),
+                  child: Text(S.of(context).done),
+                ),
+              ],
             ),
           ),
         ),

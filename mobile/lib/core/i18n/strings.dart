@@ -142,6 +142,11 @@ class S {
   String get notes => _t('Notes', 'নোট');
   String get productAttributes =>
       _t('Product attributes', 'পণ্যের অ্যাট্রিবিউট');
+  String get filterByAttributes =>
+      _t('Filter by Attributes', 'অ্যাট্রিবিউট দিয়ে ফিল্টার করুন');
+  String get noAttributesForCategory => _t(
+      'No filterable attributes for this category',
+      'এই বিভাগের জন্য কোনো ফিল্টারযোগ্য অ্যাট্রিবিউট নেই');
   String get compatibleVehicles =>
       _t('Compatible vehicles', 'সামঞ্জস্যপূর্ণ গাড়ি');
   String get noCompatibleVehiclesYet => _t(

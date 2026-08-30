@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/network/dio_provider.dart';
+import '../../shared/models/attribute_group.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
 
@@ -31,6 +32,25 @@ class CategoriesRepository {
         res.data as Map<String, dynamic>,
         Category.fromJson,
       );
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+
+  /// Attribute groups linked to [categoryId] or any of its ancestor
+  /// categories — the filterable attribute set for the Parts list's
+  /// category-scoped attribute filter.
+  Future<List<FilterableAttributeGroup>> getAttributeGroups(
+      String categoryId) async {
+    try {
+      final res = await _dio.get('/categories/$categoryId/attribute-groups');
+      final data = (res.data as Map<String, dynamic>)['data'];
+      if (data is! List) return const [];
+      return data
+          .whereType<Map>()
+          .map((m) =>
+              FilterableAttributeGroup.fromJson(Map<String, dynamic>.from(m)))
+          .toList();
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }

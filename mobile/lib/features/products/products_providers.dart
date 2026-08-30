@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
+import '../../shared/models/attribute_group.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
 import '../../shared/models/product_media.dart';
 import '../../shared/models/vehicle_compatibility.dart';
+import 'categories_repository.dart';
 import 'products_repository.dart';
 
 /// Immutable view-state for the paginated product search list.
@@ -15,6 +17,8 @@ class ProductSearchState {
     this.categoryId,
     this.categoryName,
     this.lowStockOnly = false,
+    this.attributeOptionIds = const [],
+    this.attributeGroups = const [],
     this.isLoading = false,
     this.isLoadingMore = false,
     this.hasMore = false,
@@ -30,6 +34,16 @@ class ProductSearchState {
 
   /// Server-side "at/below reorder point" filter (the red "Low stock" chip).
   final bool lowStockOnly;
+
+  /// Selected `ProductAttributeOption` ids for the category-scoped
+  /// attribute filter (AND across attributes, OR within one attribute).
+  final List<String> attributeOptionIds;
+
+  /// Filterable attribute groups for the current category — fetched once
+  /// per category selection, cached here so opening the filter sheet
+  /// doesn't refetch every time.
+  final List<FilterableAttributeGroup> attributeGroups;
+
   final bool isLoading;
   final bool isLoadingMore;
   final bool hasMore;
@@ -40,6 +54,7 @@ class ProductSearchState {
   ProductSearchState copyWith({
     List<Product>? items,
     String? query,
+    List<FilterableAttributeGroup>? attributeGroups,
     bool? isLoading,
     bool? isLoadingMore,
     bool? hasMore,
@@ -52,6 +67,8 @@ class ProductSearchState {
       categoryId: categoryId,
       categoryName: categoryName,
       lowStockOnly: lowStockOnly,
+      attributeOptionIds: attributeOptionIds,
+      attributeGroups: attributeGroups ?? this.attributeGroups,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,
@@ -76,36 +93,70 @@ class ProductSearchController extends Notifier<ProductSearchState> {
       query: query,
       categoryId: state.categoryId,
       categoryName: state.categoryName,
-      lowStockOnly: state.lowStockOnly);
+      lowStockOnly: state.lowStockOnly,
+      attributeOptionIds: state.attributeOptionIds,
+      attributeGroups: state.attributeGroups);
 
   /// Filters the current query by category server-side. Pass null to clear
-  /// back to "All categories".
-  Future<void> selectCategory(String? categoryId, {String? categoryName}) =>
-      _run(
-          query: state.query,
-          categoryId: categoryId,
-          categoryName: categoryName,
-          lowStockOnly: state.lowStockOnly);
+  /// back to "All categories". The attribute filter set is category-
+  /// dependent, so both the selections and the cached attribute groups
+  /// reset here; a new category's groups are fetched afterwards.
+  Future<void> selectCategory(String? categoryId, {String? categoryName}) async {
+    await _run(
+        query: state.query,
+        categoryId: categoryId,
+        categoryName: categoryName,
+        lowStockOnly: state.lowStockOnly,
+        attributeOptionIds: const [],
+        attributeGroups: const []);
+    if (categoryId == null) return;
+    final gen = _generation;
+    try {
+      final groups = await ref
+          .read(categoriesRepositoryProvider)
+          .getAttributeGroups(categoryId);
+      if (gen != _generation) return; // category changed again meanwhile
+      state = state.copyWith(attributeGroups: groups);
+    } on AppException {
+      // Attribute groups are a filter affordance, not core data — a failed
+      // fetch just means the "Attributes" tab stays hidden, no error banner.
+    }
+  }
 
-  /// The "All" chip — clears both the category and low-stock filters.
+  /// The "All" chip — clears the category, low-stock, and attribute filters.
   Future<void> showAll() => _run(
       query: state.query,
       categoryId: null,
       categoryName: null,
-      lowStockOnly: false);
+      lowStockOnly: false,
+      attributeOptionIds: const [],
+      attributeGroups: const []);
 
   /// Toggles the server-side low-stock filter (at/below reorder point).
   Future<void> toggleLowStock() => _run(
       query: state.query,
       categoryId: state.categoryId,
       categoryName: state.categoryName,
-      lowStockOnly: !state.lowStockOnly);
+      lowStockOnly: !state.lowStockOnly,
+      attributeOptionIds: state.attributeOptionIds,
+      attributeGroups: state.attributeGroups);
+
+  /// Applies the attribute filter chosen in the filter sheet.
+  Future<void> setAttributeFilters(List<String> optionIds) => _run(
+      query: state.query,
+      categoryId: state.categoryId,
+      categoryName: state.categoryName,
+      lowStockOnly: state.lowStockOnly,
+      attributeOptionIds: optionIds,
+      attributeGroups: state.attributeGroups);
 
   Future<void> _run({
     required String query,
     required String? categoryId,
     required String? categoryName,
     required bool lowStockOnly,
+    required List<String> attributeOptionIds,
+    required List<FilterableAttributeGroup> attributeGroups,
   }) async {
     final gen = ++_generation;
     _page = 1;
@@ -114,6 +165,8 @@ class ProductSearchController extends Notifier<ProductSearchState> {
       categoryId: categoryId,
       categoryName: categoryName,
       lowStockOnly: lowStockOnly,
+      attributeOptionIds: attributeOptionIds,
+      attributeGroups: attributeGroups,
       isLoading: true,
     );
     try {
@@ -122,6 +175,7 @@ class ProductSearchController extends Notifier<ProductSearchState> {
             page: 1,
             categoryId: categoryId,
             lowStockOnly: lowStockOnly,
+            attributeOptionIds: attributeOptionIds,
           );
       if (gen != _generation) return; // superseded by a newer search
       state = ProductSearchState(
@@ -129,6 +183,8 @@ class ProductSearchController extends Notifier<ProductSearchState> {
         categoryId: categoryId,
         categoryName: categoryName,
         lowStockOnly: lowStockOnly,
+        attributeOptionIds: attributeOptionIds,
+        attributeGroups: attributeGroups,
         items: res.data,
         hasMore: res.pagination.hasNextPage,
       );
@@ -139,6 +195,8 @@ class ProductSearchController extends Notifier<ProductSearchState> {
         categoryId: categoryId,
         categoryName: categoryName,
         lowStockOnly: lowStockOnly,
+        attributeOptionIds: attributeOptionIds,
+        attributeGroups: attributeGroups,
         error: e.message,
       );
     }
@@ -155,6 +213,7 @@ class ProductSearchController extends Notifier<ProductSearchState> {
             page: next,
             categoryId: state.categoryId,
             lowStockOnly: state.lowStockOnly,
+            attributeOptionIds: state.attributeOptionIds,
           );
       if (gen != _generation) return; // superseded by a newer search
       _page = next;

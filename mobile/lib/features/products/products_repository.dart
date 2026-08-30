@@ -23,6 +23,7 @@ class ProductsRepository {
     bool? isActive,
     String? categoryId,
     bool lowStockOnly = false,
+    List<String>? attributeOptionIds,
   }) async {
     try {
       final res = await _dio.get('/products', queryParameters: {
@@ -32,6 +33,8 @@ class ProductsRepository {
         'isActive': ?isActive,
         'categoryId': ?categoryId,
         if (lowStockOnly) 'lowStockOnly': true,
+        if (attributeOptionIds != null && attributeOptionIds.isNotEmpty)
+          'attributeOptionIds': attributeOptionIds,
       });
       return PagedResponse.fromJson(
         res.data as Map<String, dynamic>,
