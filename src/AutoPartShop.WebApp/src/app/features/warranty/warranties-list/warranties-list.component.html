@@ -2,483 +2,455 @@
 <p-confirmDialog />
 
 <app-page-container>
-  <!-- Page Header -->
-  <app-page-header
-    [title]="'warranties.title' | translate"
-    [subtitle]="'warranties.subtitle' | translate"
-    [count]="filteredWarranties.length" [countLabel]="'warranties.itemLabel' | translate" countIcon="pi pi-shield">
-    <ng-container actions>
-      <button class="btn-icon" [pTooltip]="'warranties.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadWarranties()">
-        <i class="pi pi-refresh"></i>
-      </button>
-      <button class="btn-primary" (click)="openCreateDialog()">
-        <i class="pi pi-plus"></i><span>{{ 'warranties.actions.registerWarranty' | translate }}</span>
-      </button>
-    </ng-container>
-  </app-page-header>
+    <!-- Page Header -->
+    <app-page-header [title]="'warranties.title' | translate" [subtitle]="'warranties.subtitle' | translate" [count]="filteredWarranties.length" [countLabel]="'warranties.itemLabel' | translate" countIcon="pi pi-shield">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'warranties.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadWarranties()">
+                <i class="pi pi-refresh"></i>
+            </button>
+            <button class="btn-primary" (click)="openCreateDialog()">
+                <i class="pi pi-plus"></i><span>{{ 'warranties.actions.registerWarranty' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- Summary Metrics -->
-  <app-stat-strip [stats]="stats"></app-stat-strip>
+    <!-- Summary Metrics -->
+    <app-stat-strip [stats]="stats"></app-stat-strip>
 
-  <!-- Filters -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input type="text" [(ngModel)]="searchText" (input)="onSearch()"
-          [placeholder]="'warranties.searchPlaceholder' | translate"
-          class="search-input" />
-        <button *ngIf="searchText" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
-      </div>
-    </div>
-    <div filters class="filter-group">
-      <app-status-pill-filter
-        [options]="statuses"
-        [value]="selectedStatus"
-        (valueChange)="onStatusFilterChange($event)">
-      </app-status-pill-filter>
-    </div>
-    <div filterActions class="filter-group filter-actions">
-      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
-    </div>
-  </app-filter-bar>
-
-  <app-more-filters-dialog
-    [options]="statuses"
-    [selected]="selectedStatus"
-    [previewCount]="filteredWarranties.length"
-    [(visible)]="moreFiltersVisible"
-    (apply)="onStatusFilterChange($event)">
-  </app-more-filters-dialog>
-
-  <!-- Warranties Table -->
-  <section class="table-section desktop-only">
-    <div class="table-container">
-    <p-table
-      [value]="pagedWarranties"
-      [loading]="isLoading"
-      [paginator]="false"
-      [scrollable]="true"
-      styleClass="app-table">
-      <ng-template #header>
-        <tr>
-          <th>{{ 'warranties.columns.warrantyNumber' | translate }}</th>
-          <th>{{ 'warranties.columns.part' | translate }}</th>
-          <th>{{ 'warranties.columns.customer' | translate }}</th>
-          <th>{{ 'warranties.columns.salesOrder' | translate }}</th>
-          <th>{{ 'warranties.columns.start' | translate }}</th>
-          <th>{{ 'warranties.columns.expiry' | translate }}</th>
-          <th>{{ 'warranties.columns.period' | translate }}</th>
-          <th>{{ 'warranties.columns.coverageType' | translate }}</th>
-          <th>{{ 'warranties.columns.status' | translate }}</th>
-          <th>{{ 'warranties.columns.remaining' | translate }}</th>
-          <th>{{ 'warranties.columns.actions' | translate }}</th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-warranty>
-        <tr>
-          <td>
-            <a class="link-text" (click)="openDetailDialog(warranty)">{{ warranty.warrantyNumber }}</a>
-          </td>
-          <td>
-            <div class="cell-primary">{{ warranty.partName }}</div>
-            <div *ngIf="warranty.partLocalName" class="cell-secondary">{{ warranty.partLocalName }}</div>
-            <div class="cell-secondary">{{ warranty.partSKU }}</div>
-          </td>
-          <td>
-            <div class="cell-primary">{{ warranty.customerName }}</div>
-            <div class="cell-secondary">{{ warranty.customerPhone }}</div>
-          </td>
-          <td>
-            <span class="so-badge">{{ warranty.salesOrderNumber }}</span>
-          </td>
-          <td class="timestamp">{{ formatDate(warranty.warrantyStartDate) }}</td>
-          <td class="timestamp">{{ formatDate(warranty.warrantyExpiryDate) }}</td>
-          <td>{{ warranty.warrantyPeriodMonths }} {{ 'warranties.monthsSuffix' | translate }}</td>
-          <td>
-            <span class="type-badge">{{ getWarrantyTypeLabel(warranty.warrantyType) }}</span>
-          </td>
-          <td>
-            <p-tag [value]="warranty.status" [severity]="getStatusSeverity(warranty.status)"></p-tag>
-          </td>
-          <td>
-            <span [class]="getDaysUntilExpiryClass(warranty)">
-              {{ getDaysUntilExpiryDisplay(warranty) }}
-            </span>
-          </td>
-          <td>
-            <div class="action-buttons">
-              <button pButton type="button" icon="pi pi-eye"
-                class="p-button-sm p-button-info p-button-text"
-                [pTooltip]="'warranties.actions.viewDetails' | translate" tooltipPosition="top"
-                (click)="openDetailDialog(warranty)"></button>
-              <button *ngIf="isManager && warranty.status === 'ACTIVE'"
-                pButton type="button" icon="pi pi-ban"
-                class="p-button-sm p-button-danger p-button-text"
-                [pTooltip]="'warranties.actions.voidWarranty' | translate" tooltipPosition="top"
-                (click)="openVoidDialog(warranty)"></button>
-              <button *ngIf="isManager && warranty.status === 'VOID'"
-                pButton type="button" icon="pi pi-trash"
-                class="p-button-sm p-button-danger p-button-text"
-                [pTooltip]="'warranties.actions.delete' | translate" tooltipPosition="top"
-                (click)="deleteWarranty(warranty)"></button>
+    <!-- Filters -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchText" (input)="onSearch()" [placeholder]="'warranties.searchPlaceholder' | translate" class="search-input" />
+                <button *ngIf="searchText" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
             </div>
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template #emptymessage>
-        <tr>
-          <td colspan="11" class="empty-message">
-            <i class="pi pi-shield"></i>
-            <p>{{ 'warranties.emptyTitleTable' | translate }}</p>
-            <button pButton type="button" [label]="'warranties.actions.registerNewWarranty' | translate" icon="pi pi-plus"
-              class="p-button-sm p-button-outlined" (click)="openCreateDialog()"></button>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-    </div>
-  </section>
-
-  <!-- ==================== WARRANTIES CARDS (Mobile) ==================== -->
-  <section class="cards-section mobile-only">
-
-    <div *ngIf="isLoading" class="cards-grid">
-      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
-        <div class="card-header">
-          <div class="skeleton skeleton-text"></div>
-          <div class="skeleton skeleton-badge"></div>
         </div>
-        <div class="card-body">
-          <div class="skeleton skeleton-text-lg"></div>
-          <div class="skeleton skeleton-text-sm"></div>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statuses"
+                [(ngModel)]="selectedStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'warranties.statuses.allStatuses' | translate"
+                [showClear]="true"
+                (onChange)="onStatusChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
         </div>
-      </div>
-    </div>
+    </app-filter-bar>
 
-    <div *ngIf="!isLoading && filteredWarranties.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-shield"></i></div>
-      <h3>{{ 'warranties.emptyTitleCard' | translate }}</h3>
-      <p>{{ 'warranties.emptySubtitle' | translate }}</p>
-      <button pButton type="button" [label]="'warranties.actions.registerNewWarranty' | translate" icon="pi pi-plus"
-        class="p-button-sm p-button-outlined" (click)="openCreateDialog()"></button>
-    </div>
+    <!-- Warranties Table -->
+    <section class="table-section desktop-only">
+        <div class="table-container">
+            <p-table [value]="pagedWarranties" [loading]="isLoading" [paginator]="false" [scrollable]="true" styleClass="app-table">
+                <ng-template #header>
+                    <tr>
+                        <th>{{ 'warranties.columns.warrantyNumber' | translate }}</th>
+                        <th>{{ 'warranties.columns.part' | translate }}</th>
+                        <th>{{ 'warranties.columns.customer' | translate }}</th>
+                        <th>{{ 'warranties.columns.salesOrder' | translate }}</th>
+                        <th>{{ 'warranties.columns.start' | translate }}</th>
+                        <th>{{ 'warranties.columns.expiry' | translate }}</th>
+                        <th>{{ 'warranties.columns.period' | translate }}</th>
+                        <th>{{ 'warranties.columns.coverageType' | translate }}</th>
+                        <th>{{ 'warranties.columns.status' | translate }}</th>
+                        <th>{{ 'warranties.columns.remaining' | translate }}</th>
+                        <th>{{ 'warranties.columns.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-warranty>
+                    <tr>
+                        <td>
+                            <a class="link-text" (click)="openDetailDialog(warranty)">{{ warranty.warrantyNumber }}</a>
+                        </td>
+                        <td>
+                            <div class="cell-primary">{{ warranty.partName }}</div>
+                            <div *ngIf="warranty.partLocalName" class="cell-secondary">{{ warranty.partLocalName }}</div>
+                            <div class="cell-secondary">{{ warranty.partSKU }}</div>
+                        </td>
+                        <td>
+                            <div class="cell-primary">{{ warranty.customerName }}</div>
+                            <div class="cell-secondary">{{ warranty.customerPhone }}</div>
+                        </td>
+                        <td>
+                            <span class="so-badge">{{ warranty.salesOrderNumber }}</span>
+                        </td>
+                        <td class="timestamp">{{ formatDate(warranty.warrantyStartDate) }}</td>
+                        <td class="timestamp">{{ formatDate(warranty.warrantyExpiryDate) }}</td>
+                        <td>{{ warranty.warrantyPeriodMonths }} {{ 'warranties.monthsSuffix' | translate }}</td>
+                        <td>
+                            <span class="type-badge">{{ getWarrantyTypeLabel(warranty.warrantyType) }}</span>
+                        </td>
+                        <td>
+                            <p-tag [value]="warranty.status" [severity]="getStatusSeverity(warranty.status)"></p-tag>
+                        </td>
+                        <td>
+                            <span [class]="getDaysUntilExpiryClass(warranty)">
+                                {{ getDaysUntilExpiryDisplay(warranty) }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-eye"
+                                    class="p-button-sm p-button-info p-button-text"
+                                    [pTooltip]="'warranties.actions.viewDetails' | translate"
+                                    tooltipPosition="top"
+                                    (click)="openDetailDialog(warranty)"
+                                ></button>
+                                <button
+                                    *ngIf="isManager && warranty.status === 'ACTIVE'"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-ban"
+                                    class="p-button-sm p-button-danger p-button-text"
+                                    [pTooltip]="'warranties.actions.voidWarranty' | translate"
+                                    tooltipPosition="top"
+                                    (click)="openVoidDialog(warranty)"
+                                ></button>
+                                <button
+                                    *ngIf="isManager && warranty.status === 'VOID'"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-trash"
+                                    class="p-button-sm p-button-danger p-button-text"
+                                    [pTooltip]="'warranties.actions.delete' | translate"
+                                    tooltipPosition="top"
+                                    (click)="deleteWarranty(warranty)"
+                                ></button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="11" class="empty-message">
+                            <i class="pi pi-shield"></i>
+                            <p>{{ 'warranties.emptyTitleTable' | translate }}</p>
+                            <button pButton type="button" [label]="'warranties.actions.registerNewWarranty' | translate" icon="pi pi-plus" class="p-button-sm p-button-outlined" (click)="openCreateDialog()"></button>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </section>
 
-    <div *ngIf="!isLoading && filteredWarranties.length > 0" class="cards-grid">
-      <div *ngFor="let warranty of pagedWarranties" class="order-card">
-
-        <div class="card-header">
-          <a class="card-so-number link-text" (click)="openDetailDialog(warranty)">{{ warranty.warrantyNumber }}</a>
-          <p-tag [value]="warranty.status" [severity]="getStatusSeverity(warranty.status)"></p-tag>
+    <!-- ==================== WARRANTIES CARDS (Mobile) ==================== -->
+    <section class="cards-section mobile-only">
+        <div *ngIf="isLoading" class="cards-grid">
+            <div *ngFor="let _ of [1, 2, 3, 4]" class="order-card skeleton-card">
+                <div class="card-header">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-badge"></div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton skeleton-text-lg"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+            </div>
         </div>
 
-        <div class="card-body">
-          <div class="cell-stack">
-            <span class="cell-primary">{{ warranty.partName }}</span>
-            <span *ngIf="warranty.partLocalName" class="cell-secondary">{{ warranty.partLocalName }}</span>
-            <span class="cell-secondary">{{ warranty.partSKU }}</span>
-          </div>
-          <div class="cell-stack">
-            <span class="cell-primary">{{ warranty.customerName }}</span>
-            <span class="cell-secondary">{{ warranty.customerPhone }}</span>
-          </div>
-          <div class="card-meta">
-            <span class="card-meta-item"><i class="pi pi-file"></i>&nbsp;{{ warranty.salesOrderNumber }}</span>
-            <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ formatDate(warranty.warrantyStartDate) }} – {{ formatDate(warranty.warrantyExpiryDate) }}</span>
-            <span class="card-meta-item"><i class="pi pi-clock"></i>&nbsp;{{ warranty.warrantyPeriodMonths }} {{ 'warranties.monthsSuffix' | translate }}</span>
-            <span class="card-meta-item"><i class="pi pi-shield"></i>&nbsp;{{ getWarrantyTypeLabel(warranty.warrantyType) }}</span>
-            <span class="card-meta-item" [class]="getDaysUntilExpiryClass(warranty)">
-              {{ getDaysUntilExpiryDisplay(warranty) }}
-            </span>
-          </div>
+        <div *ngIf="!isLoading && filteredWarranties.length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-shield"></i></div>
+            <h3>{{ 'warranties.emptyTitleCard' | translate }}</h3>
+            <p>{{ 'warranties.emptySubtitle' | translate }}</p>
+            <button pButton type="button" [label]="'warranties.actions.registerNewWarranty' | translate" icon="pi pi-plus" class="p-button-sm p-button-outlined" (click)="openCreateDialog()"></button>
         </div>
 
-        <div class="card-footer">
-          <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-info p-button-text"
-            [pTooltip]="'warranties.actions.viewDetails' | translate" tooltipPosition="top" (click)="openDetailDialog(warranty)"></button>
-          <button *ngIf="isManager && warranty.status === 'ACTIVE'" pButton type="button" icon="pi pi-ban"
-            class="p-button-sm p-button-danger p-button-text"
-            [pTooltip]="'warranties.actions.voidWarranty' | translate" tooltipPosition="top" (click)="openVoidDialog(warranty)"></button>
-          <button *ngIf="isManager && warranty.status === 'VOID'" pButton type="button" icon="pi pi-trash"
-            class="p-button-sm p-button-danger p-button-text"
-            [pTooltip]="'warranties.actions.delete' | translate" tooltipPosition="top" (click)="deleteWarranty(warranty)"></button>
+        <div *ngIf="!isLoading && filteredWarranties.length > 0" class="cards-grid">
+            <div *ngFor="let warranty of pagedWarranties" class="order-card">
+                <div class="card-header">
+                    <a class="card-so-number link-text" (click)="openDetailDialog(warranty)">{{ warranty.warrantyNumber }}</a>
+                    <p-tag [value]="warranty.status" [severity]="getStatusSeverity(warranty.status)"></p-tag>
+                </div>
+
+                <div class="card-body">
+                    <div class="cell-stack">
+                        <span class="cell-primary">{{ warranty.partName }}</span>
+                        <span *ngIf="warranty.partLocalName" class="cell-secondary">{{ warranty.partLocalName }}</span>
+                        <span class="cell-secondary">{{ warranty.partSKU }}</span>
+                    </div>
+                    <div class="cell-stack">
+                        <span class="cell-primary">{{ warranty.customerName }}</span>
+                        <span class="cell-secondary">{{ warranty.customerPhone }}</span>
+                    </div>
+                    <div class="card-meta">
+                        <span class="card-meta-item"><i class="pi pi-file"></i>&nbsp;{{ warranty.salesOrderNumber }}</span>
+                        <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ formatDate(warranty.warrantyStartDate) }} – {{ formatDate(warranty.warrantyExpiryDate) }}</span>
+                        <span class="card-meta-item"><i class="pi pi-clock"></i>&nbsp;{{ warranty.warrantyPeriodMonths }} {{ 'warranties.monthsSuffix' | translate }}</span>
+                        <span class="card-meta-item"><i class="pi pi-shield"></i>&nbsp;{{ getWarrantyTypeLabel(warranty.warrantyType) }}</span>
+                        <span class="card-meta-item" [class]="getDaysUntilExpiryClass(warranty)">
+                            {{ getDaysUntilExpiryDisplay(warranty) }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-info p-button-text" [pTooltip]="'warranties.actions.viewDetails' | translate" tooltipPosition="top" (click)="openDetailDialog(warranty)"></button>
+                    <button
+                        *ngIf="isManager && warranty.status === 'ACTIVE'"
+                        pButton
+                        type="button"
+                        icon="pi pi-ban"
+                        class="p-button-sm p-button-danger p-button-text"
+                        [pTooltip]="'warranties.actions.voidWarranty' | translate"
+                        tooltipPosition="top"
+                        (click)="openVoidDialog(warranty)"
+                    ></button>
+                    <button
+                        *ngIf="isManager && warranty.status === 'VOID'"
+                        pButton
+                        type="button"
+                        icon="pi pi-trash"
+                        class="p-button-sm p-button-danger p-button-text"
+                        [pTooltip]="'warranties.actions.delete' | translate"
+                        tooltipPosition="top"
+                        (click)="deleteWarranty(warranty)"
+                    ></button>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
+    </section>
 
-  </section>
-
-  <app-data-pagination
-    [first]="first"
-    [pageSize]="pageSize"
-    [totalRecords]="filteredWarranties.length"
-    [itemLabel]="'warranties.itemLabel' | translate"
-    (pageChange)="goToPage($event)"
-    (pageSizeChange)="onPageSizeChange($event)">
-  </app-data-pagination>
+    <app-data-pagination [first]="first" [pageSize]="pageSize" [totalRecords]="filteredWarranties.length" [itemLabel]="'warranties.itemLabel' | translate" (pageChange)="goToPage($event)" (pageSizeChange)="onPageSizeChange($event)">
+    </app-data-pagination>
 </app-page-container>
 
 <!-- Create Warranty Registration Dialog -->
-<p-dialog
-  [(visible)]="showCreateDialog"
-  [header]="'warranties.actions.registerNewWarranty' | translate"
-  [modal]="true"
-  [style]="{ width: '700px' }"
-  [draggable]="false"
-  [resizable]="false"
-  [closable]="!isCreating">
-
-  <div class="dialog-form">
-    <!-- Step 1: Find Sales Order -->
-    <div class="form-section">
-      <h4 class="section-title"><i class="pi pi-search"></i> {{ 'warranties.dialog.findSalesOrder' | translate }}</h4>
-      <div class="search-order-row">
-        <input pInputText type="text" [(ngModel)]="soNumberSearch"
-          [placeholder]="'warranties.dialog.soPlaceholder' | translate"
-          class="w-full" (keyup.enter)="searchSalesOrder()" />
-        <button pButton type="button" icon="pi pi-search" [label]="'warranties.dialog.find' | translate"
-          class="p-button-outlined" [loading]="isLoadingOrder"
-          (click)="searchSalesOrder()"></button>
-      </div>
-    </div>
-
-    <!-- Order Info (when found) -->
-    <div *ngIf="selectedOrder" class="form-section">
-      <h4 class="section-title"><i class="pi pi-file"></i> {{ 'warranties.dialog.orderDetails' | translate }}</h4>
-      <div class="order-info-grid">
-        <div class="info-item">
-          <span class="info-label">{{ 'warranties.dialog.orderNumber' | translate }}</span>
-          <span class="info-value">{{ selectedOrder.soNumber }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">{{ 'warranties.dialog.customer' | translate }}</span>
-          <span class="info-value">{{ selectedOrder.customerName }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">{{ 'warranties.dialog.date' | translate }}</span>
-          <span class="info-value">{{ formatDate(selectedOrder.orderDate) }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">{{ 'warranties.dialog.status' | translate }}</span>
-          <span class="info-value">{{ selectedOrder.status }}</span>
-        </div>
-      </div>
-
-      <!-- Line Items Selection -->
-      <div class="form-group mt-3">
-        <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.selectLineItem' | translate }}</label>
-        <p-select [(ngModel)]="selectedLineId" [options]="selectedOrder.lines"
-          optionLabel="partName" optionValue="id"
-          [placeholder]="'warranties.dialog.selectPartPlaceholder' | translate"
-          (onChange)="onLineSelect()" styleClass="w-full" appendTo="body">
-          <ng-template let-line pTemplate="item">
-            <div class="line-option">
-              <span class="line-part">{{ line.partName }}</span>
-              <small *ngIf="line.partLocalName" class="part-row-local d-block">{{ line.partLocalName }}</small>
-              <span class="line-detail">{{ 'warranties.dialog.skuLabel' | translate }}: {{ line.partSku }} | {{ 'warranties.dialog.qtyLabel' | translate }}: {{ line.quantity }} | {{ line.unitPrice | moneyFormat }}</span>
+<p-dialog [(visible)]="showCreateDialog" [header]="'warranties.actions.registerNewWarranty' | translate" [modal]="true" [style]="{ width: '700px' }" [draggable]="false" [resizable]="false" [closable]="!isCreating">
+    <div class="dialog-form">
+        <!-- Step 1: Find Sales Order -->
+        <div class="form-section">
+            <h4 class="section-title"><i class="pi pi-search"></i> {{ 'warranties.dialog.findSalesOrder' | translate }}</h4>
+            <div class="search-order-row">
+                <input pInputText type="text" [(ngModel)]="soNumberSearch" [placeholder]="'warranties.dialog.soPlaceholder' | translate" class="w-full" (keyup.enter)="searchSalesOrder()" />
+                <button pButton type="button" icon="pi pi-search" [label]="'warranties.dialog.find' | translate" class="p-button-outlined" [loading]="isLoadingOrder" (click)="searchSalesOrder()"></button>
             </div>
-          </ng-template>
-        </p-select>
-      </div>
+        </div>
+
+        <!-- Order Info (when found) -->
+        <div *ngIf="selectedOrder" class="form-section">
+            <h4 class="section-title"><i class="pi pi-file"></i> {{ 'warranties.dialog.orderDetails' | translate }}</h4>
+            <div class="order-info-grid">
+                <div class="info-item">
+                    <span class="info-label">{{ 'warranties.dialog.orderNumber' | translate }}</span>
+                    <span class="info-value">{{ selectedOrder.soNumber }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">{{ 'warranties.dialog.customer' | translate }}</span>
+                    <span class="info-value">{{ selectedOrder.customerName }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">{{ 'warranties.dialog.date' | translate }}</span>
+                    <span class="info-value">{{ formatDate(selectedOrder.orderDate) }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">{{ 'warranties.dialog.status' | translate }}</span>
+                    <span class="info-value">{{ selectedOrder.status }}</span>
+                </div>
+            </div>
+
+            <!-- Line Items Selection -->
+            <div class="form-group mt-3">
+                <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.selectLineItem' | translate }}</label>
+                <p-select
+                    [(ngModel)]="selectedLineId"
+                    [options]="selectedOrder.lines"
+                    optionLabel="partName"
+                    optionValue="id"
+                    [placeholder]="'warranties.dialog.selectPartPlaceholder' | translate"
+                    (onChange)="onLineSelect()"
+                    styleClass="w-full"
+                    appendTo="body"
+                >
+                    <ng-template let-line pTemplate="item">
+                        <div class="line-option">
+                            <span class="line-part">{{ line.partName }}</span>
+                            <small *ngIf="line.partLocalName" class="part-row-local d-block">{{ line.partLocalName }}</small>
+                            <span class="line-detail">{{ 'warranties.dialog.skuLabel' | translate }}: {{ line.partSku }} | {{ 'warranties.dialog.qtyLabel' | translate }}: {{ line.quantity }} | {{ line.unitPrice | moneyFormat }}</span>
+                        </div>
+                    </ng-template>
+                </p-select>
+            </div>
+        </div>
+
+        <!-- Warranty Details (when line selected) -->
+        <div *ngIf="getSelectedLine()" class="form-section">
+            <h4 class="section-title"><i class="pi pi-shield"></i> {{ 'warranties.dialog.warrantyCoverageDetails' | translate }}</h4>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.warrantyCoverageType' | translate }}</label>
+                    <p-select [(ngModel)]="newWarranty.warrantyType" [options]="warrantyTypes" optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.periodMonths' | translate }}</label>
+                    <p-inputNumber [(ngModel)]="newWarranty.warrantyPeriodMonths" [min]="1" [max]="120" [showButtons]="true" styleClass="w-full"></p-inputNumber>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.startDate' | translate }}</label>
+                    <p-datePicker [(ngModel)]="newWarranty.warrantyStartDate" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full" appendTo="body"></p-datePicker>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ 'warranties.dialog.certificateNumber' | translate }}</label>
+                    <input pInputText type="text" [(ngModel)]="newWarranty.certificateNumber" [placeholder]="'warranties.dialog.certificatePlaceholder' | translate" class="w-full" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.warrantyCoverageTerms' | translate }}</label>
+                <textarea pTextarea [(ngModel)]="newWarranty.warrantyTerms" [placeholder]="'warranties.dialog.termsPlaceholder' | translate" rows="3" class="w-full"></textarea>
+                <small class="form-hint">{{ 'warranties.dialog.termsHint' | translate }}</small>
+            </div>
+        </div>
     </div>
 
-    <!-- Warranty Details (when line selected) -->
-    <div *ngIf="getSelectedLine()" class="form-section">
-      <h4 class="section-title"><i class="pi pi-shield"></i> {{ 'warranties.dialog.warrantyCoverageDetails' | translate }}</h4>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.warrantyCoverageType' | translate }}</label>
-          <p-select [(ngModel)]="newWarranty.warrantyType" [options]="warrantyTypes"
-            optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-        </div>
-        <div class="form-group">
-          <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.periodMonths' | translate }}</label>
-          <p-inputNumber [(ngModel)]="newWarranty.warrantyPeriodMonths"
-            [min]="1" [max]="120" [showButtons]="true" styleClass="w-full"></p-inputNumber>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.startDate' | translate }}</label>
-          <p-datePicker [(ngModel)]="newWarranty.warrantyStartDate"
-            [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full" appendTo="body"></p-datePicker>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ 'warranties.dialog.certificateNumber' | translate }}</label>
-          <input pInputText type="text" [(ngModel)]="newWarranty.certificateNumber"
-            [placeholder]="'warranties.dialog.certificatePlaceholder' | translate" class="w-full" />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.warrantyCoverageTerms' | translate }}</label>
-        <textarea pTextarea [(ngModel)]="newWarranty.warrantyTerms"
-          [placeholder]="'warranties.dialog.termsPlaceholder' | translate"
-          rows="3" class="w-full"></textarea>
-        <small class="form-hint">{{ 'warranties.dialog.termsHint' | translate }}</small>
-      </div>
-    </div>
-  </div>
-
-  <ng-template #footer>
-    <button pButton type="button" [label]="'common.actions.cancel' | translate" class="p-button-text"
-      [disabled]="isCreating" (click)="showCreateDialog = false"></button>
-    <button pButton type="button" [label]="'warranties.actions.registerWarranty' | translate" icon="pi pi-check"
-      class="p-button-success" [disabled]="!canCreateWarranty()" [loading]="isCreating"
-      (click)="createWarranty()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="'common.actions.cancel' | translate" class="p-button-text" [disabled]="isCreating" (click)="showCreateDialog = false"></button>
+        <button pButton type="button" [label]="'warranties.actions.registerWarranty' | translate" icon="pi pi-check" class="p-button-success" [disabled]="!canCreateWarranty()" [loading]="isCreating" (click)="createWarranty()"></button>
+    </ng-template>
 </p-dialog>
 
 <!-- Void Warranty Dialog -->
-<p-dialog
-  [(visible)]="showVoidDialog"
-  [header]="'warranties.actions.voidWarranty' | translate"
-  [modal]="true"
-  [style]="{ width: '500px' }"
-  [draggable]="false"
-  [resizable]="false">
+<p-dialog [(visible)]="showVoidDialog" [header]="'warranties.actions.voidWarranty' | translate" [modal]="true" [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
+    <div class="dialog-form">
+        <div class="void-warning">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>{{ 'warranties.dialog.voidWarning' | translate }}</span>
+        </div>
 
-  <div class="dialog-form">
-    <div class="void-warning">
-      <i class="pi pi-exclamation-triangle"></i>
-      <span>{{ 'warranties.dialog.voidWarning' | translate }}</span>
+        <div *ngIf="selectedWarranty" class="info-summary">
+            <div class="info-item">
+                <span class="info-label">{{ 'warranties.dialog.warrantyLabel' | translate }}</span>
+                <span class="info-value">{{ selectedWarranty.warrantyNumber }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">{{ 'warranties.dialog.partLabel' | translate }}</span>
+                <span class="info-value"
+                    >{{ selectedWarranty.partName }}<span *ngIf="selectedWarranty.partLocalName"> — {{ selectedWarranty.partLocalName }}</span></span
+                >
+            </div>
+            <div class="info-item">
+                <span class="info-label">{{ 'warranties.dialog.customerLabel' | translate }}</span>
+                <span class="info-value">{{ selectedWarranty.customerName }}</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.reasonForVoiding' | translate }}</label>
+            <textarea pTextarea [(ngModel)]="voidReason" [placeholder]="'warranties.dialog.voidReasonPlaceholder' | translate" rows="3" class="w-full"></textarea>
+            <small class="p-error" *ngIf="voidSubmitted && !voidReason.trim()">{{ 'warranties.dialog.voidReasonError' | translate }}</small>
+        </div>
     </div>
 
-    <div *ngIf="selectedWarranty" class="info-summary">
-      <div class="info-item">
-        <span class="info-label">{{ 'warranties.dialog.warrantyLabel' | translate }}</span>
-        <span class="info-value">{{ selectedWarranty.warrantyNumber }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">{{ 'warranties.dialog.partLabel' | translate }}</span>
-        <span class="info-value">{{ selectedWarranty.partName }}<span *ngIf="selectedWarranty.partLocalName"> — {{ selectedWarranty.partLocalName }}</span></span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">{{ 'warranties.dialog.customerLabel' | translate }}</span>
-        <span class="info-value">{{ selectedWarranty.customerName }}</span>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ 'warranties.dialog.reasonForVoiding' | translate }}</label>
-      <textarea pTextarea [(ngModel)]="voidReason"
-        [placeholder]="'warranties.dialog.voidReasonPlaceholder' | translate"
-        rows="3" class="w-full"></textarea>
-      <small class="p-error" *ngIf="voidSubmitted && !voidReason.trim()">{{ 'warranties.dialog.voidReasonError' | translate }}</small>
-    </div>
-  </div>
-
-  <ng-template #footer>
-    <button pButton type="button" [label]="'common.actions.cancel' | translate" class="p-button-text"
-      (click)="showVoidDialog = false"></button>
-    <button pButton type="button" [label]="'warranties.actions.voidWarranty' | translate" icon="pi pi-ban"
-      class="p-button-danger" [disabled]="!voidReason.trim()"
-      (click)="confirmVoid()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="'common.actions.cancel' | translate" class="p-button-text" (click)="showVoidDialog = false"></button>
+        <button pButton type="button" [label]="'warranties.actions.voidWarranty' | translate" icon="pi pi-ban" class="p-button-danger" [disabled]="!voidReason.trim()" (click)="confirmVoid()"></button>
+    </ng-template>
 </p-dialog>
 
 <!-- Warranty Detail Dialog -->
-<p-dialog
-  [(visible)]="showDetailDialog"
-  [header]="'warranties.dialog.detailHeader' | translate"
-  [modal]="true"
-  [style]="{ width: '650px' }"
-  [draggable]="false"
-  [resizable]="false">
+<p-dialog [(visible)]="showDetailDialog" [header]="'warranties.dialog.detailHeader' | translate" [modal]="true" [style]="{ width: '650px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="detailWarranty" class="dialog-form">
+        <div class="detail-header">
+            <h3>{{ detailWarranty.warrantyNumber }}</h3>
+            <p-tag [value]="detailWarranty.status" [severity]="getStatusSeverity(detailWarranty.status)"></p-tag>
+        </div>
 
-  <div *ngIf="detailWarranty" class="dialog-form">
-    <div class="detail-header">
-      <h3>{{ detailWarranty.warrantyNumber }}</h3>
-      <p-tag [value]="detailWarranty.status" [severity]="getStatusSeverity(detailWarranty.status)"></p-tag>
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>{{ 'warranties.dialog.productInformation' | translate }}</h4>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.partName' | translate }}</span>
+                    <span class="detail-value"
+                        >{{ detailWarranty.partName }}<span *ngIf="detailWarranty.partLocalName" class="part-row-local"> ({{ detailWarranty.partLocalName }})</span></span
+                    >
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.sku' | translate }}</span>
+                    <span class="detail-value">{{ detailWarranty.partSKU }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.certificate' | translate }}</span>
+                    <span class="detail-value">{{ detailWarranty.certificateNumber }}</span>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>{{ 'warranties.dialog.customerInformation' | translate }}</h4>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.name' | translate }}</span>
+                    <span class="detail-value">{{ detailWarranty.customerName }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.phone' | translate }}</span>
+                    <span class="detail-value">{{ detailWarranty.customerPhone }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.salesOrder' | translate }}</span>
+                    <span class="detail-value">{{ detailWarranty.salesOrderNumber }}</span>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>{{ 'warranties.dialog.warrantyPeriod' | translate }}</h4>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.warrantyCoverageType' | translate }}</span>
+                    <span class="detail-value">{{ getWarrantyTypeLabel(detailWarranty.warrantyType) }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.periodMonths' | translate }}</span>
+                    <span class="detail-value">{{ detailWarranty.warrantyPeriodMonths }} {{ 'warranties.monthsSuffix' | translate }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.startDateLabel' | translate }}</span>
+                    <span class="detail-value">{{ formatDate(detailWarranty.warrantyStartDate) }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.expiryDate' | translate }}</span>
+                    <span class="detail-value">{{ formatDate(detailWarranty.warrantyExpiryDate) }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.columns.remaining' | translate }}</span>
+                    <span [class]="getDaysUntilExpiryClass(detailWarranty)" class="detail-value">
+                        {{ getDaysUntilExpiryDisplay(detailWarranty) }}
+                    </span>
+                </div>
+            </div>
+
+            <div *ngIf="detailWarranty.guaranteeMessage" class="detail-section full-width">
+                <h4>{{ 'warranties.dialog.guaranteeMessage' | translate }}</h4>
+                <p class="terms-text">{{ detailWarranty.guaranteeMessage }}</p>
+            </div>
+
+            <div *ngIf="detailWarranty.warrantyTerms" class="detail-section full-width">
+                <h4>{{ 'warranties.dialog.termsAndConditions' | translate }}</h4>
+                <p class="terms-text">{{ detailWarranty.warrantyTerms }}</p>
+            </div>
+
+            <div *ngIf="detailWarranty.status === 'VOID'" class="detail-section full-width">
+                <h4>{{ 'warranties.dialog.voidInformation' | translate }}</h4>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.reason' | translate }}</span>
+                    <span class="detail-value">{{ detailWarranty.voidReason }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ 'warranties.dialog.voidedDate' | translate }}</span>
+                    <span class="detail-value">{{ formatDate(detailWarranty.voidedDate!) }}</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="detail-grid">
-      <div class="detail-section">
-        <h4>{{ 'warranties.dialog.productInformation' | translate }}</h4>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.partName' | translate }}</span>
-          <span class="detail-value">{{ detailWarranty.partName }}<span *ngIf="detailWarranty.partLocalName" class="part-row-local"> ({{ detailWarranty.partLocalName }})</span></span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.sku' | translate }}</span>
-          <span class="detail-value">{{ detailWarranty.partSKU }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.certificate' | translate }}</span>
-          <span class="detail-value">{{ detailWarranty.certificateNumber }}</span>
-        </div>
-      </div>
-
-      <div class="detail-section">
-        <h4>{{ 'warranties.dialog.customerInformation' | translate }}</h4>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.name' | translate }}</span>
-          <span class="detail-value">{{ detailWarranty.customerName }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.phone' | translate }}</span>
-          <span class="detail-value">{{ detailWarranty.customerPhone }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.salesOrder' | translate }}</span>
-          <span class="detail-value">{{ detailWarranty.salesOrderNumber }}</span>
-        </div>
-      </div>
-
-      <div class="detail-section">
-        <h4>{{ 'warranties.dialog.warrantyPeriod' | translate }}</h4>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.warrantyCoverageType' | translate }}</span>
-          <span class="detail-value">{{ getWarrantyTypeLabel(detailWarranty.warrantyType) }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.periodMonths' | translate }}</span>
-          <span class="detail-value">{{ detailWarranty.warrantyPeriodMonths }} {{ 'warranties.monthsSuffix' | translate }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.startDateLabel' | translate }}</span>
-          <span class="detail-value">{{ formatDate(detailWarranty.warrantyStartDate) }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.expiryDate' | translate }}</span>
-          <span class="detail-value">{{ formatDate(detailWarranty.warrantyExpiryDate) }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.columns.remaining' | translate }}</span>
-          <span [class]="getDaysUntilExpiryClass(detailWarranty)" class="detail-value">
-            {{ getDaysUntilExpiryDisplay(detailWarranty) }}
-          </span>
-        </div>
-      </div>
-
-      <div *ngIf="detailWarranty.guaranteeMessage" class="detail-section full-width">
-        <h4>{{ 'warranties.dialog.guaranteeMessage' | translate }}</h4>
-        <p class="terms-text">{{ detailWarranty.guaranteeMessage }}</p>
-      </div>
-
-      <div *ngIf="detailWarranty.warrantyTerms" class="detail-section full-width">
-        <h4>{{ 'warranties.dialog.termsAndConditions' | translate }}</h4>
-        <p class="terms-text">{{ detailWarranty.warrantyTerms }}</p>
-      </div>
-
-      <div *ngIf="detailWarranty.status === 'VOID'" class="detail-section full-width">
-        <h4>{{ 'warranties.dialog.voidInformation' | translate }}</h4>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.reason' | translate }}</span>
-          <span class="detail-value">{{ detailWarranty.voidReason }}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">{{ 'warranties.dialog.voidedDate' | translate }}</span>
-          <span class="detail-value">{{ formatDate(detailWarranty.voidedDate!) }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <ng-template #footer>
-    <button pButton type="button" [label]="'common.actions.close' | translate" class="p-button-text"
-      (click)="showDetailDialog = false"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="'common.actions.close' | translate" class="p-button-text" (click)="showDetailDialog = false"></button>
+    </ng-template>
 </p-dialog>

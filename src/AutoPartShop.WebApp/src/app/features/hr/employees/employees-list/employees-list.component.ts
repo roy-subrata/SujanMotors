@@ -19,16 +19,28 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-employees-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, TooltipModule, ToastModule, ConfirmDialogModule,
-        DialogModule, PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent,
-        StatusPillFilterComponent, MoreFiltersDialogComponent, TranslatePipe],
+    imports: [
+        CommonModule,
+        FormsModule,
+        TableModule,
+        ButtonModule,
+        InputTextModule,
+        Select,
+        TooltipModule,
+        ToastModule,
+        ConfirmDialogModule,
+        DialogModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent,
+        TranslatePipe
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './employees-list.component.html',
     styleUrls: ['./employees-list.component.css']
@@ -49,7 +61,6 @@ export class EmployeesListComponent implements OnInit {
     searchTerm = '';
     filterStatus: EmployeeStatus | '' = '';
     filterDepartment = '';
-    moreFiltersVisible = false;
 
     statusOptions = [
         { label: 'All Statuses', value: '' },
@@ -106,11 +117,6 @@ export class EmployeesListComponent implements OnInit {
     onFilterChange(): void {
         this.pageNumber = 1;
         this.loadEmployees();
-    }
-
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value as EmployeeStatus | '';
-        this.onFilterChange();
     }
 
     clearSearch(): void {
@@ -217,9 +223,7 @@ export class EmployeesListComponent implements OnInit {
             next: (result: any) => {
                 this.statusSaving = false;
                 this.statusDialogVisible = false;
-                const loginNote = (result?.loginDisabled || result?.loginEnabled)
-                    ? ` — login "${employee.userName}" ${isDeactivating ? 'disabled' : 'enabled'}`
-                    : '';
+                const loginNote = result?.loginDisabled || result?.loginEnabled ? ` — login "${employee.userName}" ${isDeactivating ? 'disabled' : 'enabled'}` : '';
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',

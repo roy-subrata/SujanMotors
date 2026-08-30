@@ -6,105 +6,93 @@
 <p-confirmDialog></p-confirmDialog>
 
 <app-page-container>
+    <!-- ==================== HEADER ==================== -->
+    <app-page-header [title]="'brands.title' | translate" [subtitle]="'brands.subtitle' | translate" [count]="totalRecords" [countLabel]="'brands.countLabel' | translate" countIcon="pi pi-tags">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
+                <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+            </button>
+            <button class="btn-primary" (click)="createBrand()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'brands.addBrand' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== HEADER ==================== -->
-  <app-page-header
-    [title]="'brands.title' | translate"
-    [subtitle]="'brands.subtitle' | translate"
-    [count]="totalRecords" [countLabel]="'brands.countLabel' | translate" countIcon="pi pi-tags">
-    <ng-container actions>
-      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
-        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-      </button>
-      <button class="btn-primary" (click)="createBrand()">
-        <i class="pi pi-plus"></i>
-        <span>{{ 'brands.addBrand' | translate }}</span>
-      </button>
-    </ng-container>
-  </app-page-header>
+    <!-- ==================== FILTERS ==================== -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'brands.searchBrands' | translate" (keyup.enter)="onSearch()" class="search-input" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+        </div>
 
-  <!-- ==================== FILTERS ==================== -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input
-          type="text"
-          [(ngModel)]="searchTerm"
-          [placeholder]="'brands.searchBrands' | translate"
-          (keyup.enter)="onSearch()"
-          class="search-input" />
-        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-    </div>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'common.status.all' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
 
-    <div filters class="filter-group">
-      <app-status-pill-filter
-        [options]="statusOptions"
-        [value]="filterStatusValue"
-        (valueChange)="onStatusFilterChange($event)">
-      </app-status-pill-filter>
-    </div>
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()">
+                <i class="pi pi-search"></i>
+                {{ 'common.actions.apply' | translate }}
+            </button>
+            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+                <i class="pi pi-filter-slash"></i>
+                {{ 'common.actions.clear' | translate }}
+            </button>
+        </div>
 
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()">
-        <i class="pi pi-search"></i>
-        {{ 'common.actions.apply' | translate }}
-      </button>
-      <button class="text-btn" (click)="moreFiltersVisible = true">
-        {{ 'common.labels.moreFilters' | translate }}
-      </button>
-      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i>
-        {{ 'common.actions.clear' | translate }}
-      </button>
-    </div>
+        <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
+            <span *ngIf="searchTerm" class="filter-chip">
+                {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
+                <i class="pi pi-times" (click)="clearSearchInput(); onSearch()"></i>
+            </span>
+            <span *ngIf="filterStatus !== null" class="filter-chip">
+                {{ 'common.labels.status' | translate }}: {{ getStatusLabel(filterStatus) }}
+                <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+            </span>
+        </div>
+    </app-filter-bar>
 
-    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
-      <span *ngIf="searchTerm" class="filter-chip">
-        {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
-        <i class="pi pi-times" (click)="clearSearchInput(); onSearch()"></i>
-      </span>
-      <span *ngIf="filterStatus !== null" class="filter-chip">
-        {{ 'common.labels.status' | translate }}: {{ getStatusLabel(filterStatus) }}
-        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
-      </span>
-    </div>
-  </app-filter-bar>
-
-  <app-more-filters-dialog
-    [options]="statusOptions"
-    [selected]="filterStatusValue"
-    [previewCount]="totalRecords"
-    [(visible)]="moreFiltersVisible"
-    (apply)="onStatusFilterChange($event)">
-  </app-more-filters-dialog>
-
-  <!-- ==================== LIST SECTION ==================== -->
-  <app-brands-list
-    [brands]="brands"
-    [loading]="loading"
-    [totalRecords]="totalRecords"
-    [rows]="rows"
-    [currentPage]="currentPage"
-    (editBrand)="selectAndOpenUpdate($event)"
-    (deleteBrand)="selectAndDelete($event)"
-    (toggleStatus)="toggleBrandStatus($event)"
-    (pageChange)="onPageChange($event)">
-  </app-brands-list>
-
+    <!-- ==================== LIST SECTION ==================== -->
+    <app-brands-list
+        [brands]="brands"
+        [loading]="loading"
+        [totalRecords]="totalRecords"
+        [rows]="rows"
+        [currentPage]="currentPage"
+        (editBrand)="selectAndOpenUpdate($event)"
+        (deleteBrand)="selectAndDelete($event)"
+        (toggleStatus)="toggleBrandStatus($event)"
+        (pageChange)="onPageChange($event)"
+    >
+    </app-brands-list>
 </app-page-container>
 
 <!-- ==================== FORM DIALOG ==================== -->
 <app-brands-form-dialog
-  [displayCreateDialog]="displayCreateDialog"
-  [displayUpdateDialog]="displayUpdateDialog"
-  [selectedBrand]="selectedBrand"
-  (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
-  (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
-  (createSuccess)="onCreateSuccess()"
-  (updateSuccess)="onUpdateSuccess()">
+    [displayCreateDialog]="displayCreateDialog"
+    [displayUpdateDialog]="displayUpdateDialog"
+    [selectedBrand]="selectedBrand"
+    (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
+    (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
+    (createSuccess)="onCreateSuccess()"
+    (updateSuccess)="onUpdateSuccess()"
+>
 </app-brands-form-dialog>

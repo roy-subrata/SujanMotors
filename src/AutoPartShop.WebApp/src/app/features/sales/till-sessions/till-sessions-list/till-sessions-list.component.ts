@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
+import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 
@@ -17,8 +18,6 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
@@ -30,22 +29,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 @Component({
     selector: 'app-till-sessions-list',
     standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        TableModule,
-        ButtonModule,
-        DatePicker,
-        TooltipModule,
-        ToastModule,
-        PageContainerComponent,
-        PageHeaderComponent,
-        FilterBarComponent,
-        DataPaginationComponent,
-        StatusPillFilterComponent,
-        MoreFiltersDialogComponent,
-        TranslatePipe
-    ],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, DatePicker, Select, TooltipModule, ToastModule, PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent, TranslatePipe],
     providers: [MessageService],
     templateUrl: './till-sessions-list.component.html',
     styleUrls: ['./till-sessions-list.component.scss']
@@ -77,17 +61,10 @@ export class TillSessionsListComponent implements OnInit {
         ];
     }
 
-    moreFiltersVisible = false;
-
     Math = Math;
 
     ngOnInit(): void {
         this.loadData();
-    }
-
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value as TillSessionStatus | '';
-        this.onFilterChange();
     }
 
     private formatDateForApi(date: Date): string {
@@ -224,11 +201,12 @@ export class TillSessionsListComponent implements OnInit {
 
     formatStatus(status: string): string {
         if (!status) return '-';
-        const key = 'tillSessions.statusOptions.' + status.toLowerCase()
-            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const key = 'tillSessions.statusOptions.' + status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
         const label = this.i18n.t(key);
         if (label !== key) return label;
-        return status.split('_')
-            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+        return status
+            .split('_')
+            .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+            .join(' ');
     }
 }

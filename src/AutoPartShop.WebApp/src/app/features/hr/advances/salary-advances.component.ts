@@ -20,17 +20,30 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-salary-advances',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, InputNumberModule, Select, DatePickerModule,
-        DialogModule, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent,
-        StatusPillFilterComponent, MoreFiltersDialogComponent, TranslatePipe],
+    imports: [
+        CommonModule,
+        FormsModule,
+        TableModule,
+        ButtonModule,
+        InputTextModule,
+        InputNumberModule,
+        Select,
+        DatePickerModule,
+        DialogModule,
+        TooltipModule,
+        ToastModule,
+        ConfirmDialogModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent,
+        TranslatePipe
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './salary-advances.component.html',
     styleUrls: ['./salary-advances.component.css']
@@ -50,7 +63,6 @@ export class SalaryAdvancesComponent implements OnInit {
 
     searchTerm = '';
     filterStatus: SalaryAdvanceStatus | '' = '';
-    moreFiltersVisible = false;
 
     rejectDialogVisible = false;
     rejectReason = '';
@@ -133,11 +145,6 @@ export class SalaryAdvancesComponent implements OnInit {
         this.loadAdvances();
     }
 
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value as SalaryAdvanceStatus | '';
-        this.onFilterChange();
-    }
-
     clearSearch(): void {
         this.searchTerm = '';
         this.pageNumber = 1;
@@ -162,7 +169,7 @@ export class SalaryAdvancesComponent implements OnInit {
         this.form = this.emptyForm();
         if (this.employees.length === 0) {
             this.employeeService.getAllEmployees().subscribe({
-                next: (employees) => (this.employees = employees.filter(e => e.status === 'ACTIVE')),
+                next: (employees) => (this.employees = employees.filter((e) => e.status === 'ACTIVE')),
                 error: (err) => console.error('Failed to load employees:', err)
             });
         }
@@ -181,33 +188,35 @@ export class SalaryAdvancesComponent implements OnInit {
         }
 
         this.saving = true;
-        this.advanceService.requestAdvance({
-            employeeId: this.form.employeeId,
-            advanceDate: this.toDateOnly(this.form.advanceDate),
-            amount: this.form.amount,
-            paymentMethod: this.form.paymentMethod,
-            notes: this.form.notes || ''
-        }).subscribe({
-            next: () => {
-                this.saving = false;
-                this.dialogVisible = false;
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: 'Advance recorded — expense posted to the cash book'
-                });
-                this.loadAdvances();
-            },
-            error: (err) => {
-                this.saving = false;
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: err?.error?.message || 'Failed to record advance'
-                });
-                console.error('Error giving advance:', err);
-            }
-        });
+        this.advanceService
+            .requestAdvance({
+                employeeId: this.form.employeeId,
+                advanceDate: this.toDateOnly(this.form.advanceDate),
+                amount: this.form.amount,
+                paymentMethod: this.form.paymentMethod,
+                notes: this.form.notes || ''
+            })
+            .subscribe({
+                next: () => {
+                    this.saving = false;
+                    this.dialogVisible = false;
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Success',
+                        detail: 'Advance recorded — expense posted to the cash book'
+                    });
+                    this.loadAdvances();
+                },
+                error: (err) => {
+                    this.saving = false;
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: err?.error?.message || 'Failed to record advance'
+                    });
+                    console.error('Error giving advance:', err);
+                }
+            });
     }
 
     /**

@@ -2,276 +2,277 @@
 <p-confirmDialog></p-confirmDialog>
 
 <app-page-container>
+    <!-- ==================== HEADER ==================== -->
+    <app-page-header [title]="'invoices.listTitle' | translate" [subtitle]="'invoices.subtitle' | translate" [count]="totalRecords" [countLabel]="'invoices.countLabel' | translate" countIcon="pi pi-file-invoice">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'invoices.exportCSV' | translate" tooltipPosition="bottom" (click)="exportInvoices('csv')">
+                <i class="pi pi-file"></i>
+            </button>
+            <button class="btn-icon" [pTooltip]="'invoices.exportJSON' | translate" tooltipPosition="bottom" (click)="exportInvoices('json')">
+                <i class="pi pi-file-export"></i>
+            </button>
+            <button class="btn-primary" (click)="createInvoice()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'invoices.newInvoice' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== HEADER ==================== -->
-  <app-page-header
-    [title]="'invoices.listTitle' | translate"
-    [subtitle]="'invoices.subtitle' | translate"
-    [count]="totalRecords" [countLabel]="'invoices.countLabel' | translate" countIcon="pi pi-file-invoice">
-    <ng-container actions>
-      <button class="btn-icon" [pTooltip]="'invoices.exportCSV' | translate" tooltipPosition="bottom" (click)="exportInvoices('csv')">
-        <i class="pi pi-file"></i>
-      </button>
-      <button class="btn-icon" [pTooltip]="'invoices.exportJSON' | translate" tooltipPosition="bottom" (click)="exportInvoices('json')">
-        <i class="pi pi-file-export"></i>
-      </button>
-      <button class="btn-primary" (click)="createInvoice()">
-        <i class="pi pi-plus"></i>
-        <span>{{ 'invoices.newInvoice' | translate }}</span>
-      </button>
-    </ng-container>
-  </app-page-header>
-
-  <!-- ==================== FILTERS ==================== -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input type="text" [(ngModel)]="searchTerm" [placeholder]="'invoices.searchPlaceholder' | translate"
-          class="search-input" (keyup.enter)="onSearch()">
-        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
-      </div>
-    </div>
-
-    <div filters class="filter-group">
-      <app-status-pill-filter
-        [options]="statusOptions"
-        [value]="filterStatus"
-        (valueChange)="onStatusFilterChange($event)">
-      </app-status-pill-filter>
-    </div>
-
-    <div filters class="filter-group">
-      <!-- <label class="filter-label">Invoice Date</label> -->
-      <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-        [placeholder]="'invoices.dateRangePlaceholder' | translate" dateFormat="M dd, yy" [showButtonBar]="true"
-        (onSelect)="onFilterChange()" (onClear)="onFilterChange()" appendTo="body" styleClass="filter-datepicker"></p-datepicker>
-    </div>
-
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> {{ 'common.actions.search' | translate }}</button>
-      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
-      <button *ngIf="searchTerm || filterStatus || (dateRange && dateRange.length)" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i> {{ 'common.actions.clear' | translate }}
-      </button>
-    </div>
-  </app-filter-bar>
-
-  <app-more-filters-dialog
-    [options]="statusOptions"
-    [selected]="filterStatus"
-    [previewCount]="totalRecords"
-    [(visible)]="moreFiltersVisible"
-    (apply)="onStatusFilterChange($event)">
-  </app-more-filters-dialog>
-
-  <!-- ==================== DATA TABLE (Desktop) ==================== -->
-  <section class="table-section desktop-only">
-    <div class="table-container">
-      <p-table [value]="invoices" [loading]="loading" [lazy]="true" [paginator]="false"
-        [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
-        styleClass="app-table" dataKey="id">
-
-        <ng-template #header>
-          <tr>
-            <th class="col-invoice">{{ 'invoices.columns.invoiceNumber' | translate }}</th>
-            <th class="col-so">{{ 'invoices.columns.salesOrder' | translate }}</th>
-            <th class="col-customer">{{ 'invoices.columns.customer' | translate }}</th>
-            <th class="col-date">{{ 'invoices.columns.invoiceDate' | translate }}</th>
-            <th class="col-date">{{ 'invoices.columns.dueDate' | translate }}</th>
-            <th class="col-status">{{ 'invoices.columns.status' | translate }}</th>
-            <th class="col-amount">{{ 'invoices.columns.total' | translate }}</th>
-            <th class="col-amount">{{ 'invoices.columns.outstanding' | translate }}</th>
-            <th class="col-actions">{{ 'invoices.columns.actions' | translate }}</th>
-          </tr>
-        </ng-template>
-
-        <ng-template #body let-invoice>
-          <tr class="data-row" [class.row-overdue]="invoice.isOverdue" (dblclick)="viewInvoice(invoice)">
-            <td class="col-invoice">
-              <div class="so-cell">
-                <span class="so-link" (click)="viewInvoice(invoice)">{{ invoice.invoiceNumber }}</span>
-                <span *ngIf="invoice.isOverdue" class="overdue-badge">{{ 'invoices.overdue' | translate }}</span>
-              </div>
-            </td>
-            <td class="col-so">
-              <span *ngIf="invoice.salesOrderNumber" class="so-link" (click)="viewSalesOrder(invoice)">{{ invoice.salesOrderNumber }}</span>
-              <span *ngIf="!invoice.salesOrderNumber" class="text-muted">-</span>
-            </td>
-            <td class="col-customer">
-              <div class="customer-info">
-                <span class="customer-name">{{ invoice.customerName || '-' }}</span>
-                <span class="customer-phone">{{ invoice.customerPhone }}</span>
-              </div>
-            </td>
-            <td class="col-date"><span class="date-text">{{ formatDate(invoice.invoiceDate) }}</span></td>
-            <td class="col-date"><span class="date-text" [class.text-danger]="invoice.isOverdue">{{ formatDate(invoice.dueDate) }}</span></td>
-            <td class="col-status">
-              <span class="status-pill" [attr.data-status]="invoice.status.toLowerCase()">{{ formatStatus(invoice.status) }}</span>
-            </td>
-            <td class="col-amount"><span class="amount-value">{{ formatCurrency(invoice.grandTotal) }}</span></td>
-            <td class="col-amount">
-              <span class="amount-value" [class.text-danger]="invoice.outstandingAmount > 0">{{ formatCurrency(invoice.outstandingAmount) }}</span>
-            </td>
-            <td class="col-actions">
-              <div class="action-cell">
-                <button class="btn-action" [pTooltip]="'common.labels.actions' | translate" (click)="openActionMenu($event, invoice)"><i class="pi pi-ellipsis-v"></i></button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="9">
-              <div class="empty-state">
-                <div class="empty-icon"><i class="pi pi-file-invoice"></i></div>
-                <h3>{{ 'invoices.emptyTitle' | translate }}</h3>
-                <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'invoices.emptyHintCreate') | translate }}</p>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </div>
-  </section>
-
-  <!-- ==================== MOBILE CARDS ==================== -->
-  <section class="cards-section mobile-only">
-    <div *ngIf="!loading && invoices.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-file-invoice"></i></div>
-      <h3>{{ 'invoices.emptyTitleMobile' | translate }}</h3>
-      <p>{{ (searchTerm ? 'common.labels.tryDifferentFilters' : 'invoices.emptyHintMobileCreate') | translate }}</p>
-    </div>
-
-    <div *ngIf="invoices.length > 0" class="cards-grid">
-      <div *ngFor="let invoice of invoices" class="order-card" [class.card-overdue]="invoice.isOverdue" (click)="viewInvoice(invoice)">
-        <div class="card-header">
-          <span class="card-so-number">{{ invoice.invoiceNumber }}</span>
-          <span class="status-pill" [attr.data-status]="invoice.status.toLowerCase()">{{ formatStatus(invoice.status) }}</span>
-        </div>
-        <div class="card-body">
-          <div class="card-customer">
-            <span class="customer-name">{{ invoice.customerName || '-' }}</span>
-          </div>
-          <div class="card-dates">
-            <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(invoice.invoiceDate) }}</span>
-            <span *ngIf="invoice.isOverdue" class="overdue-badge">{{ 'invoices.overdue' | translate }}</span>
-          </div>
-        </div>
-        <div class="card-footer">
-          <div class="card-amount">
-            <span class="amount-label">{{ 'invoices.cardTotal' | translate }}</span>
-            <span class="amount-value">{{ formatCurrency(invoice.grandTotal) }}</span>
-          </div>
-          <div class="card-amount">
-            <span class="amount-label">{{ 'invoices.cardOutstanding' | translate }}</span>
-            <span class="amount-value" [class.text-danger]="invoice.outstandingAmount > 0">{{ formatCurrency(invoice.outstandingAmount) }}</span>
-          </div>
-          <button class="btn-card-action" (click)="openActionMenu($event, invoice); $event.stopPropagation()"><i class="pi pi-ellipsis-h"></i></button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================== PAGINATION ==================== -->
-  <app-data-pagination
-    [first]="(pageNumber - 1) * pageSize"
-    [pageSize]="pageSize"
-    [totalRecords]="totalRecords"
-    [pageSizeOptions]="pageSizeOptions"
-    [itemLabel]="'invoices.itemLabel' | translate"
-    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
-    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
-  </app-data-pagination>
-
-  <!-- Context Action Menu (shared, single instance) -->
-  <p-menu #actionMenu [popup]="true" [model]="actionItems" appendTo="body"></p-menu>
-
-  <!-- Payment Dialog -->
-  <p-dialog [header]="'invoices.paymentDialog.title' | translate" [(visible)]="showPaymentDialog" [modal]="true" [style]="{width: '500px'}"
-    [closable]="true" appendTo="body" (onHide)="closePaymentDialog()">
-    <div *ngIf="selectedInvoice" class="payment-content">
-      <!-- Invoice Summary -->
-      <div class="invoice-summary bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
-        <div class="summary-row flex justify-between py-2">
-          <span class="text-sm text-gray-600">{{ 'invoices.paymentDialog.invoiceLabel' | translate }}</span>
-          <span class="text-sm font-medium text-gray-900">{{ selectedInvoice.invoiceNumber }}</span>
-        </div>
-        <div class="summary-row flex justify-between py-2">
-          <span class="text-sm text-gray-600">{{ 'invoices.paymentDialog.customerLabel' | translate }}</span>
-          <span class="text-sm font-medium text-gray-900">{{ selectedInvoice.customerName }}</span>
-        </div>
-        <div class="summary-row flex justify-between py-2">
-          <span class="text-sm text-gray-600">{{ 'invoices.paymentDialog.grandTotalLabel' | translate }}</span>
-          <span class="text-sm font-medium text-gray-900">{{ formatCurrency(selectedInvoice.grandTotal) }}</span>
-        </div>
-        <div class="summary-row flex justify-between py-2">
-          <span class="text-sm text-gray-600">{{ 'invoices.paymentDialog.alreadyPaidLabel' | translate }}</span>
-          <span class="text-sm font-medium text-green-600">{{ formatCurrency(selectedInvoice.amountPaid) }}</span>
-        </div>
-        <div class="summary-row flex justify-between py-2 border-t border-gray-300 mt-2 pt-2">
-          <span class="text-sm font-semibold text-gray-700">{{ 'invoices.paymentDialog.outstandingLabel' | translate }}</span>
-          <span class="text-sm font-bold text-red-600">{{ formatCurrency(selectedInvoice.outstandingAmount) }}</span>
-        </div>
-      </div>
-
-      <!-- Payment Form -->
-      <div class="payment-form space-y-4">
-        <div class="form-field">
-          <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'invoices.paymentDialog.amountLabel' | translate }}</label>
-          <p-inputNumber [(ngModel)]="paymentAmount" mode="currency" [currency]="currencyCode" [locale]="currencyLocale"
-            [min]="0" styleClass="w-full">
-          </p-inputNumber>
-          <small class="text-gray-500 mt-1 block">{{ 'invoices.paymentDialog.amountHint' | translate }}</small>
-        </div>
-
-        <div class="form-field">
-          <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'invoices.paymentDialog.dateLabel' | translate }}</label>
-          <p-datepicker [(ngModel)]="paymentDate" [showIcon]="true" dateFormat="M dd, yy"
-            appendTo="body" styleClass="w-full"></p-datepicker>
-        </div>
-
-        <div class="form-field">
-          <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'invoices.paymentDialog.methodLabel' | translate }}</label>
-          <p-select [(ngModel)]="paymentMethod" [options]="paymentMethods" optionLabel="label" optionValue="value"
-            styleClass="w-full" >
-          </p-select>
-        </div>
-
-        <!-- Payment Method Info -->
-        <div *ngIf="paymentMethod === 'CASH'" class="bg-green-50 border border-green-200 rounded-lg p-3">
-          <div class="flex items-start gap-2">
-            <i class="pi pi-check-circle text-green-600 mt-0.5"></i>
-            <div class="text-sm text-green-800">
-              <strong>{{ 'invoices.paymentDialog.cashNoticeTitle' | translate }}</strong> {{ 'invoices.paymentDialog.cashNoticeBody' | translate }}
+    <!-- ==================== FILTERS ==================== -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'invoices.searchPlaceholder' | translate" class="search-input" (keyup.enter)="onSearch()" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
             </div>
-          </div>
         </div>
 
-        <div *ngIf="paymentMethod !== 'CASH'" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div class="flex items-start gap-2">
-            <i class="pi pi-info-circle text-blue-600 mt-0.5"></i>
-            <div class="text-sm text-blue-800">
-              <strong>{{ 'invoices.paymentDialog.otherNoticeTitle' | translate:{ method: paymentMethod } }}</strong> {{ 'invoices.paymentDialog.otherNoticeBody' | translate }}
-              <a class="text-blue-600 underline cursor-pointer" (click)="closePaymentDialog(); viewCustomerPayments(selectedInvoice!)">{{ 'invoices.paymentDialog.otherNoticeLink' | translate }}</a>
-              {{ 'invoices.paymentDialog.otherNoticeSuffix' | translate }}
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'invoices.statusOptions.allStatuses' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
+
+        <div filters class="filter-group">
+            <!-- <label class="filter-label">Invoice Date</label> -->
+            <p-datepicker
+                [(ngModel)]="dateRange"
+                selectionMode="range"
+                [showIcon]="true"
+                [placeholder]="'invoices.dateRangePlaceholder' | translate"
+                dateFormat="M dd, yy"
+                [showButtonBar]="true"
+                (onSelect)="onFilterChange()"
+                (onClear)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-datepicker"
+            ></p-datepicker>
+        </div>
+
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> {{ 'common.actions.search' | translate }}</button>
+            <button *ngIf="searchTerm || filterStatus || (dateRange && dateRange.length)" class="btn-clear" (click)="clearFilters()"><i class="pi pi-filter-slash"></i> {{ 'common.actions.clear' | translate }}</button>
+        </div>
+    </app-filter-bar>
+
+    <!-- ==================== DATA TABLE (Desktop) ==================== -->
+    <section class="table-section desktop-only">
+        <div class="table-container">
+            <p-table [value]="invoices" [loading]="loading" [lazy]="true" [paginator]="false" [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex" styleClass="app-table" dataKey="id">
+                <ng-template #header>
+                    <tr>
+                        <th class="col-invoice">{{ 'invoices.columns.invoiceNumber' | translate }}</th>
+                        <th class="col-so">{{ 'invoices.columns.salesOrder' | translate }}</th>
+                        <th class="col-customer">{{ 'invoices.columns.customer' | translate }}</th>
+                        <th class="col-date">{{ 'invoices.columns.invoiceDate' | translate }}</th>
+                        <th class="col-date">{{ 'invoices.columns.dueDate' | translate }}</th>
+                        <th class="col-status">{{ 'invoices.columns.status' | translate }}</th>
+                        <th class="col-amount">{{ 'invoices.columns.total' | translate }}</th>
+                        <th class="col-amount">{{ 'invoices.columns.outstanding' | translate }}</th>
+                        <th class="col-actions">{{ 'invoices.columns.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
+
+                <ng-template #body let-invoice>
+                    <tr class="data-row" [class.row-overdue]="invoice.isOverdue" (dblclick)="viewInvoice(invoice)">
+                        <td class="col-invoice">
+                            <div class="so-cell">
+                                <span class="so-link" (click)="viewInvoice(invoice)">{{ invoice.invoiceNumber }}</span>
+                                <span *ngIf="invoice.isOverdue" class="overdue-badge">{{ 'invoices.overdue' | translate }}</span>
+                            </div>
+                        </td>
+                        <td class="col-so">
+                            <span *ngIf="invoice.salesOrderNumber" class="so-link" (click)="viewSalesOrder(invoice)">{{ invoice.salesOrderNumber }}</span>
+                            <span *ngIf="!invoice.salesOrderNumber" class="text-muted">-</span>
+                        </td>
+                        <td class="col-customer">
+                            <div class="customer-info">
+                                <span class="customer-name">{{ invoice.customerName || '-' }}</span>
+                                <span class="customer-phone">{{ invoice.customerPhone }}</span>
+                            </div>
+                        </td>
+                        <td class="col-date">
+                            <span class="date-text">{{ formatDate(invoice.invoiceDate) }}</span>
+                        </td>
+                        <td class="col-date">
+                            <span class="date-text" [class.text-danger]="invoice.isOverdue">{{ formatDate(invoice.dueDate) }}</span>
+                        </td>
+                        <td class="col-status">
+                            <span class="status-pill" [attr.data-status]="invoice.status.toLowerCase()">{{ formatStatus(invoice.status) }}</span>
+                        </td>
+                        <td class="col-amount">
+                            <span class="amount-value">{{ formatCurrency(invoice.grandTotal) }}</span>
+                        </td>
+                        <td class="col-amount">
+                            <span class="amount-value" [class.text-danger]="invoice.outstandingAmount > 0">{{ formatCurrency(invoice.outstandingAmount) }}</span>
+                        </td>
+                        <td class="col-actions">
+                            <div class="action-cell">
+                                <button class="btn-action" [pTooltip]="'common.labels.actions' | translate" (click)="openActionMenu($event, invoice)"><i class="pi pi-ellipsis-v"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="pi pi-file-invoice"></i></div>
+                                <h3>{{ 'invoices.emptyTitle' | translate }}</h3>
+                                <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'invoices.emptyHintCreate') | translate }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </section>
+
+    <!-- ==================== MOBILE CARDS ==================== -->
+    <section class="cards-section mobile-only">
+        <div *ngIf="!loading && invoices.length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-file-invoice"></i></div>
+            <h3>{{ 'invoices.emptyTitleMobile' | translate }}</h3>
+            <p>{{ (searchTerm ? 'common.labels.tryDifferentFilters' : 'invoices.emptyHintMobileCreate') | translate }}</p>
+        </div>
+
+        <div *ngIf="invoices.length > 0" class="cards-grid">
+            <div *ngFor="let invoice of invoices" class="order-card" [class.card-overdue]="invoice.isOverdue" (click)="viewInvoice(invoice)">
+                <div class="card-header">
+                    <span class="card-so-number">{{ invoice.invoiceNumber }}</span>
+                    <span class="status-pill" [attr.data-status]="invoice.status.toLowerCase()">{{ formatStatus(invoice.status) }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="card-customer">
+                        <span class="customer-name">{{ invoice.customerName || '-' }}</span>
+                    </div>
+                    <div class="card-dates">
+                        <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(invoice.invoiceDate) }}</span>
+                        <span *ngIf="invoice.isOverdue" class="overdue-badge">{{ 'invoices.overdue' | translate }}</span>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="card-amount">
+                        <span class="amount-label">{{ 'invoices.cardTotal' | translate }}</span>
+                        <span class="amount-value">{{ formatCurrency(invoice.grandTotal) }}</span>
+                    </div>
+                    <div class="card-amount">
+                        <span class="amount-label">{{ 'invoices.cardOutstanding' | translate }}</span>
+                        <span class="amount-value" [class.text-danger]="invoice.outstandingAmount > 0">{{ formatCurrency(invoice.outstandingAmount) }}</span>
+                    </div>
+                    <button class="btn-card-action" (click)="openActionMenu($event, invoice); $event.stopPropagation()"><i class="pi pi-ellipsis-h"></i></button>
+                </div>
             </div>
-          </div>
+        </div>
+    </section>
+
+    <!-- ==================== PAGINATION ==================== -->
+    <app-data-pagination
+        [first]="(pageNumber - 1) * pageSize"
+        [pageSize]="pageSize"
+        [totalRecords]="totalRecords"
+        [pageSizeOptions]="pageSizeOptions"
+        [itemLabel]="'invoices.itemLabel' | translate"
+        (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+        (pageSizeChange)="onPageChange({ page: 0, rows: $event })"
+    >
+    </app-data-pagination>
+
+    <!-- Context Action Menu (shared, single instance) -->
+    <p-menu #actionMenu [popup]="true" [model]="actionItems" appendTo="body"></p-menu>
+
+    <!-- Payment Dialog -->
+    <p-dialog [header]="'invoices.paymentDialog.title' | translate" [(visible)]="showPaymentDialog" [modal]="true" [style]="{ width: '500px' }" [closable]="true" appendTo="body" (onHide)="closePaymentDialog()">
+        <div *ngIf="selectedInvoice" class="payment-content">
+            <!-- Invoice Summary -->
+            <div class="invoice-summary bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+                <div class="summary-row flex justify-between py-2">
+                    <span class="text-sm text-gray-600">{{ 'invoices.paymentDialog.invoiceLabel' | translate }}</span>
+                    <span class="text-sm font-medium text-gray-900">{{ selectedInvoice.invoiceNumber }}</span>
+                </div>
+                <div class="summary-row flex justify-between py-2">
+                    <span class="text-sm text-gray-600">{{ 'invoices.paymentDialog.customerLabel' | translate }}</span>
+                    <span class="text-sm font-medium text-gray-900">{{ selectedInvoice.customerName }}</span>
+                </div>
+                <div class="summary-row flex justify-between py-2">
+                    <span class="text-sm text-gray-600">{{ 'invoices.paymentDialog.grandTotalLabel' | translate }}</span>
+                    <span class="text-sm font-medium text-gray-900">{{ formatCurrency(selectedInvoice.grandTotal) }}</span>
+                </div>
+                <div class="summary-row flex justify-between py-2">
+                    <span class="text-sm text-gray-600">{{ 'invoices.paymentDialog.alreadyPaidLabel' | translate }}</span>
+                    <span class="text-sm font-medium text-green-600">{{ formatCurrency(selectedInvoice.amountPaid) }}</span>
+                </div>
+                <div class="summary-row flex justify-between py-2 border-t border-gray-300 mt-2 pt-2">
+                    <span class="text-sm font-semibold text-gray-700">{{ 'invoices.paymentDialog.outstandingLabel' | translate }}</span>
+                    <span class="text-sm font-bold text-red-600">{{ formatCurrency(selectedInvoice.outstandingAmount) }}</span>
+                </div>
+            </div>
+
+            <!-- Payment Form -->
+            <div class="payment-form space-y-4">
+                <div class="form-field">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'invoices.paymentDialog.amountLabel' | translate }}</label>
+                    <p-inputNumber [(ngModel)]="paymentAmount" mode="currency" [currency]="currencyCode" [locale]="currencyLocale" [min]="0" styleClass="w-full"> </p-inputNumber>
+                    <small class="text-gray-500 mt-1 block">{{ 'invoices.paymentDialog.amountHint' | translate }}</small>
+                </div>
+
+                <div class="form-field">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'invoices.paymentDialog.dateLabel' | translate }}</label>
+                    <p-datepicker [(ngModel)]="paymentDate" [showIcon]="true" dateFormat="M dd, yy" appendTo="body" styleClass="w-full"></p-datepicker>
+                </div>
+
+                <div class="form-field">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'invoices.paymentDialog.methodLabel' | translate }}</label>
+                    <p-select [(ngModel)]="paymentMethod" [options]="paymentMethods" optionLabel="label" optionValue="value" styleClass="w-full"> </p-select>
+                </div>
+
+                <!-- Payment Method Info -->
+                <div *ngIf="paymentMethod === 'CASH'" class="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div class="flex items-start gap-2">
+                        <i class="pi pi-check-circle text-green-600 mt-0.5"></i>
+                        <div class="text-sm text-green-800">
+                            <strong>{{ 'invoices.paymentDialog.cashNoticeTitle' | translate }}</strong> {{ 'invoices.paymentDialog.cashNoticeBody' | translate }}
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="paymentMethod !== 'CASH'" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div class="flex items-start gap-2">
+                        <i class="pi pi-info-circle text-blue-600 mt-0.5"></i>
+                        <div class="text-sm text-blue-800">
+                            <strong>{{ 'invoices.paymentDialog.otherNoticeTitle' | translate: { method: paymentMethod } }}</strong> {{ 'invoices.paymentDialog.otherNoticeBody' | translate }}
+                            <a class="text-blue-600 underline cursor-pointer" (click)="closePaymentDialog(); viewCustomerPayments(selectedInvoice!)">{{ 'invoices.paymentDialog.otherNoticeLink' | translate }}</a>
+                            {{ 'invoices.paymentDialog.otherNoticeSuffix' | translate }}
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="paymentMethod !== 'CASH'" class="form-field">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'invoices.paymentDialog.referenceLabel' | translate }}</label>
+                    <input
+                        type="text"
+                        [(ngModel)]="paymentReference"
+                        [placeholder]="'invoices.paymentDialog.referencePlaceholder' | translate"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+            </div>
         </div>
 
-        <div *ngIf="paymentMethod !== 'CASH'" class="form-field">
-          <label class="block text-sm font-medium text-gray-700 mb-2">{{ 'invoices.paymentDialog.referenceLabel' | translate }}</label>
-          <input type="text" [(ngModel)]="paymentReference" [placeholder]="'invoices.paymentDialog.referencePlaceholder' | translate"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-        </div>
-      </div>
-    </div>
-
-    <ng-template pTemplate="footer">
-      <button pButton type="button" [label]="'common.actions.cancel' | translate" class="p-button-outlined" (click)="closePaymentDialog()"></button>
-      <button pButton type="button" [label]="'invoices.paymentDialog.submit' | translate" icon="pi pi-check" (click)="recordPayment()"></button>
-    </ng-template>
-  </p-dialog>
-
+        <ng-template pTemplate="footer">
+            <button pButton type="button" [label]="'common.actions.cancel' | translate" class="p-button-outlined" (click)="closePaymentDialog()"></button>
+            <button pButton type="button" [label]="'invoices.paymentDialog.submit' | translate" icon="pi pi-check" (click)="recordPayment()"></button>
+        </ng-template>
+    </p-dialog>
 </app-page-container>

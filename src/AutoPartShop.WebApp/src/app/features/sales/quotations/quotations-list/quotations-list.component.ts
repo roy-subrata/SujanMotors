@@ -15,6 +15,7 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
+import { SelectModule } from 'primeng/select';
 
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
@@ -28,8 +29,6 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
@@ -51,12 +50,11 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         ConfirmDialogModule,
         InputGroupModule,
         InputGroupAddonModule,
+        SelectModule,
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
-        StatusPillFilterComponent,
-        MoreFiltersDialogComponent,
         ConvertQuotationDialogComponent,
         TranslatePipe
     ],
@@ -92,7 +90,6 @@ export class QuotationsListComponent implements OnInit {
     statusOptions: { label: string; value: string }[] = [];
 
     actionMenuItems: MenuItem[] = [];
-    moreFiltersVisible = false;
 
     Math = Math;
 
@@ -122,11 +119,6 @@ export class QuotationsListComponent implements OnInit {
             { label: this.i18n.t('quotations.statusOptions.converted'), value: 'CONVERTED' },
             { label: this.i18n.t('quotations.statusOptions.expired'), value: 'EXPIRED' }
         ];
-    }
-
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value as QuotationStatus | '';
-        this.onFilterChange();
     }
 
     private buildActionMenuItems(quotation: QuotationResponse): void {
@@ -421,7 +413,9 @@ export class QuotationsListComponent implements OnInit {
             const label = this.i18n.t(prefix + camel);
             if (label !== prefix + camel) return label;
         }
-        return status.split('_')
-            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+        return status
+            .split('_')
+            .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+            .join(' ');
     }
 }

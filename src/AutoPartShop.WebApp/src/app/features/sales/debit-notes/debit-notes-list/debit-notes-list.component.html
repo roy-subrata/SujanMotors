@@ -11,239 +11,224 @@
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
 <app-page-container>
+    <!-- ==================== HEADER ==================== -->
+    <app-page-header [title]="'debitNotes.title' | translate" [subtitle]="'debitNotes.subtitle' | translate" [count]="totalRecords" [countLabel]="'debitNotes.countLabel' | translate" countIcon="pi pi-file-export">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
+                <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+            </button>
+            <button class="btn-primary" (click)="createDebitNote()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'debitNotes.newDebitNote' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== HEADER ==================== -->
-  <app-page-header
-    [title]="'debitNotes.title' | translate"
-    [subtitle]="'debitNotes.subtitle' | translate"
-    [count]="totalRecords" [countLabel]="'debitNotes.countLabel' | translate" countIcon="pi pi-file-export">
-    <ng-container actions>
-      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
-        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-      </button>
-      <button class="btn-primary" (click)="createDebitNote()">
-        <i class="pi pi-plus"></i>
-        <span>{{ 'debitNotes.newDebitNote' | translate }}</span>
-      </button>
-    </ng-container>
-  </app-page-header>
-
-  <!-- ==================== FILTERS ==================== -->
-  <app-filter-bar>
-    <div filters class="filter-group">
-      <app-status-pill-filter
-        [options]="statusOptions"
-        [value]="filterStatus"
-        (valueChange)="onStatusFilterChange($event)">
-      </app-status-pill-filter>
-    </div>
-
-    <div filterActions class="filter-group filter-actions">
-      <button class="text-btn" (click)="moreFiltersVisible = true">
-        {{ 'common.labels.moreFilters' | translate }}
-      </button>
-      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i>
-        {{ 'common.actions.clear' | translate }}
-      </button>
-    </div>
-
-    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}:</span>
-      <span *ngIf="filterStatus" class="filter-chip">
-        {{ 'common.listPage.statusChip' | translate }}: {{ formatStatus(filterStatus) }}
-        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
-      </span>
-    </div>
-  </app-filter-bar>
-
-  <app-more-filters-dialog
-    [options]="statusOptions"
-    [selected]="filterStatus"
-    [previewCount]="totalRecords"
-    [(visible)]="moreFiltersVisible"
-    (apply)="onStatusFilterChange($event)">
-  </app-more-filters-dialog>
-
-  <!-- ==================== DATA TABLE (Desktop) ==================== -->
-  <section class="table-section desktop-only">
-    <div class="table-container">
-      <p-table
-        [value]="debitNotes"
-        [lazy]="true"
-        [paginator]="false"
-        [rows]="pageSize"
-        [totalRecords]="totalRecords"
-        [loading]="loading"
-        (onLazyLoad)="onLazyLoad($event)"
-        [rowHover]="true"
-        [scrollable]="true"
-        scrollHeight="flex"
-        styleClass="app-table">
-
-        <ng-template #header>
-          <tr>
-            <th class="col-debit-note">{{ 'debitNotes.columns.debitNoteNumber' | translate }}</th>
-            <th class="col-customer">{{ 'debitNotes.columns.customer' | translate }}</th>
-            <th class="col-invoice">{{ 'debitNotes.columns.invoice' | translate }}</th>
-            <th class="col-reason">{{ 'debitNotes.columns.reason' | translate }}</th>
-            <th class="col-date">{{ 'debitNotes.columns.issueDate' | translate }}</th>
-            <th class="col-status">{{ 'debitNotes.columns.status' | translate }}</th>
-            <th class="col-amount">{{ 'debitNotes.columns.amount' | translate }}</th>
-            <th class="col-actions">{{ 'debitNotes.columns.actions' | translate }}</th>
-          </tr>
-        </ng-template>
-
-        <ng-template #body let-debitNote>
-          <tr class="data-row">
-            <td class="col-debit-note">
-              <span class="dn-link">{{ debitNote.debitNoteNumber }}</span>
-            </td>
-
-            <td class="col-customer">
-              <span class="customer-name">{{ debitNote.customerName || '-' }}</span>
-            </td>
-
-            <td class="col-invoice">
-              <span class="date-text">{{ debitNote.invoiceNumber || '—' }}</span>
-            </td>
-
-            <td class="col-reason">
-              <span class="reason-text" [pTooltip]="debitNote.reason" tooltipPosition="top">{{ debitNote.reason }}</span>
-            </td>
-
-            <td class="col-date"><span class="date-text">{{ formatDate(debitNote.issueDate) }}</span></td>
-
-            <td class="col-status">
-              <span class="status-pill" [attr.data-status]="debitNote.status.toLowerCase()">
-                {{ formatStatus(debitNote.status) }}
-              </span>
-            </td>
-
-            <td class="col-amount">
-              <span class="amount-value">{{ formatCurrency(debitNote.totalAmount, debitNote.currency) }}</span>
-            </td>
-
-            <td class="col-actions">
-              <div class="action-cell">
-                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, debitNote)">
-                  <i class="pi pi-ellipsis-v"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="8">
-              <div class="empty-state">
-                <div class="empty-icon"><i class="pi pi-file-export"></i></div>
-                <h3>{{ 'debitNotes.emptyTitle' | translate }}</h3>
-                <p *ngIf="hasActiveFilters()">{{ 'debitNotes.emptyHintFiltered' | translate }}</p>
-                <p *ngIf="!hasActiveFilters()">{{ 'debitNotes.emptyHintCreate' | translate }}</p>
-                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createDebitNote()">
-                  <i class="pi pi-plus"></i>
-                  {{ 'debitNotes.createFirst' | translate }}
-                </button>
-                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
-                  <i class="pi pi-filter-slash"></i>
-                  {{ 'common.actions.clearFilters' | translate }}
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #loadingbody>
-          <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
-            <td><div class="skeleton skeleton-text"></div></td>
-            <td><div class="skeleton skeleton-text"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-badge"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-actions"></div></td>
-          </tr>
-        </ng-template>
-
-      </p-table>
-    </div>
-  </section>
-
-  <!-- ==================== MOBILE CARDS ==================== -->
-  <section class="cards-section mobile-only">
-    <!-- Loading Skeleton -->
-    <div *ngIf="loading" class="cards-grid">
-      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
-        <div class="card-header">
-          <div class="skeleton skeleton-text"></div>
-          <div class="skeleton skeleton-badge"></div>
-        </div>
-        <div class="card-body">
-          <div class="skeleton skeleton-text-lg"></div>
-          <div class="skeleton skeleton-text-sm"></div>
-        </div>
-        <div class="card-footer">
-          <div class="skeleton skeleton-text-sm"></div>
-          <div class="skeleton skeleton-text-sm"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Empty State -->
-    <div *ngIf="!loading && debitNotes.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-file-export"></i></div>
-      <h3>{{ 'debitNotes.emptyTitleMobile' | translate }}</h3>
-      <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'debitNotes.emptyHintMobileCreate') | translate }}</p>
-      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createDebitNote()">
-        <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'debitNotes.newDebitNote') | translate }}
-      </button>
-    </div>
-
-    <!-- Debit Note Cards -->
-    <div *ngIf="!loading && debitNotes.length > 0" class="cards-grid">
-      <div *ngFor="let debitNote of debitNotes" class="order-card">
-        <div class="card-header">
-          <span class="card-so-number">{{ debitNote.debitNoteNumber }}</span>
-          <span class="status-pill" [attr.data-status]="debitNote.status.toLowerCase()">
-            {{ formatStatus(debitNote.status) }}
-          </span>
+    <!-- ==================== FILTERS ==================== -->
+    <app-filter-bar>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'debitNotes.statusOptions.allStatuses' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
         </div>
 
-        <div class="card-body">
-          <div class="card-customer">
-            <span class="customer-name">{{ debitNote.customerName || '-' }}</span>
-            <span *ngIf="debitNote.invoiceNumber" class="invoice-ref">{{ 'debitNotes.refPrefix' | translate }} {{ debitNote.invoiceNumber }}</span>
-          </div>
-          <div class="card-dates">
-            <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(debitNote.issueDate) }}</span>
-          </div>
+        <div filterActions class="filter-group filter-actions">
+            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+                <i class="pi pi-filter-slash"></i>
+                {{ 'common.actions.clear' | translate }}
+            </button>
         </div>
 
-        <div class="card-footer">
-          <div class="card-amount">
-            <span class="amount-label">{{ 'debitNotes.cardAmount' | translate }}</span>
-            <span class="amount-value">{{ formatCurrency(debitNote.totalAmount, debitNote.currency) }}</span>
-          </div>
-          <button class="btn-card-action" (click)="showActionMenu($event, debitNote); $event.stopPropagation()">
-            <i class="pi pi-ellipsis-h"></i>
-          </button>
+        <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}:</span>
+            <span *ngIf="filterStatus" class="filter-chip">
+                {{ 'common.listPage.statusChip' | translate }}: {{ formatStatus(filterStatus) }}
+                <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+            </span>
         </div>
-      </div>
-    </div>
-  </section>
+    </app-filter-bar>
 
-  <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
-  <app-data-pagination
-    [first]="first"
-    [pageSize]="pageSize"
-    [totalRecords]="totalRecords"
-    [itemLabel]="'debitNotes.itemLabel' | translate"
-    (pageChange)="goToPage($event)"
-    (pageSizeChange)="onPageSizeChange($event)">
-  </app-data-pagination>
+    <!-- ==================== DATA TABLE (Desktop) ==================== -->
+    <section class="table-section desktop-only">
+        <div class="table-container">
+            <p-table
+                [value]="debitNotes"
+                [lazy]="true"
+                [paginator]="false"
+                [rows]="pageSize"
+                [totalRecords]="totalRecords"
+                [loading]="loading"
+                (onLazyLoad)="onLazyLoad($event)"
+                [rowHover]="true"
+                [scrollable]="true"
+                scrollHeight="flex"
+                styleClass="app-table"
+            >
+                <ng-template #header>
+                    <tr>
+                        <th class="col-debit-note">{{ 'debitNotes.columns.debitNoteNumber' | translate }}</th>
+                        <th class="col-customer">{{ 'debitNotes.columns.customer' | translate }}</th>
+                        <th class="col-invoice">{{ 'debitNotes.columns.invoice' | translate }}</th>
+                        <th class="col-reason">{{ 'debitNotes.columns.reason' | translate }}</th>
+                        <th class="col-date">{{ 'debitNotes.columns.issueDate' | translate }}</th>
+                        <th class="col-status">{{ 'debitNotes.columns.status' | translate }}</th>
+                        <th class="col-amount">{{ 'debitNotes.columns.amount' | translate }}</th>
+                        <th class="col-actions">{{ 'debitNotes.columns.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
 
+                <ng-template #body let-debitNote>
+                    <tr class="data-row">
+                        <td class="col-debit-note">
+                            <span class="dn-link">{{ debitNote.debitNoteNumber }}</span>
+                        </td>
+
+                        <td class="col-customer">
+                            <span class="customer-name">{{ debitNote.customerName || '-' }}</span>
+                        </td>
+
+                        <td class="col-invoice">
+                            <span class="date-text">{{ debitNote.invoiceNumber || '—' }}</span>
+                        </td>
+
+                        <td class="col-reason">
+                            <span class="reason-text" [pTooltip]="debitNote.reason" tooltipPosition="top">{{ debitNote.reason }}</span>
+                        </td>
+
+                        <td class="col-date">
+                            <span class="date-text">{{ formatDate(debitNote.issueDate) }}</span>
+                        </td>
+
+                        <td class="col-status">
+                            <span class="status-pill" [attr.data-status]="debitNote.status.toLowerCase()">
+                                {{ formatStatus(debitNote.status) }}
+                            </span>
+                        </td>
+
+                        <td class="col-amount">
+                            <span class="amount-value">{{ formatCurrency(debitNote.totalAmount, debitNote.currency) }}</span>
+                        </td>
+
+                        <td class="col-actions">
+                            <div class="action-cell">
+                                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, debitNote)">
+                                    <i class="pi pi-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="pi pi-file-export"></i></div>
+                                <h3>{{ 'debitNotes.emptyTitle' | translate }}</h3>
+                                <p *ngIf="hasActiveFilters()">{{ 'debitNotes.emptyHintFiltered' | translate }}</p>
+                                <p *ngIf="!hasActiveFilters()">{{ 'debitNotes.emptyHintCreate' | translate }}</p>
+                                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createDebitNote()">
+                                    <i class="pi pi-plus"></i>
+                                    {{ 'debitNotes.createFirst' | translate }}
+                                </button>
+                                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
+                                    <i class="pi pi-filter-slash"></i>
+                                    {{ 'common.actions.clearFilters' | translate }}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #loadingbody>
+                    <tr *ngFor="let _ of [1, 2, 3, 4, 5, 6, 7, 8]" class="skeleton-row">
+                        <td><div class="skeleton skeleton-text"></div></td>
+                        <td><div class="skeleton skeleton-text"></div></td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-text"></div></td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-badge"></div></td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-actions"></div></td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </section>
+
+    <!-- ==================== MOBILE CARDS ==================== -->
+    <section class="cards-section mobile-only">
+        <!-- Loading Skeleton -->
+        <div *ngIf="loading" class="cards-grid">
+            <div *ngFor="let _ of [1, 2, 3, 4]" class="order-card skeleton-card">
+                <div class="card-header">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-badge"></div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton skeleton-text-lg"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+                <div class="card-footer">
+                    <div class="skeleton skeleton-text-sm"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loading && debitNotes.length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-file-export"></i></div>
+            <h3>{{ 'debitNotes.emptyTitleMobile' | translate }}</h3>
+            <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'debitNotes.emptyHintMobileCreate') | translate }}</p>
+            <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createDebitNote()">
+                <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
+                {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'debitNotes.newDebitNote') | translate }}
+            </button>
+        </div>
+
+        <!-- Debit Note Cards -->
+        <div *ngIf="!loading && debitNotes.length > 0" class="cards-grid">
+            <div *ngFor="let debitNote of debitNotes" class="order-card">
+                <div class="card-header">
+                    <span class="card-so-number">{{ debitNote.debitNoteNumber }}</span>
+                    <span class="status-pill" [attr.data-status]="debitNote.status.toLowerCase()">
+                        {{ formatStatus(debitNote.status) }}
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="card-customer">
+                        <span class="customer-name">{{ debitNote.customerName || '-' }}</span>
+                        <span *ngIf="debitNote.invoiceNumber" class="invoice-ref">{{ 'debitNotes.refPrefix' | translate }} {{ debitNote.invoiceNumber }}</span>
+                    </div>
+                    <div class="card-dates">
+                        <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(debitNote.issueDate) }}</span>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <div class="card-amount">
+                        <span class="amount-label">{{ 'debitNotes.cardAmount' | translate }}</span>
+                        <span class="amount-value">{{ formatCurrency(debitNote.totalAmount, debitNote.currency) }}</span>
+                    </div>
+                    <button class="btn-card-action" (click)="showActionMenu($event, debitNote); $event.stopPropagation()">
+                        <i class="pi pi-ellipsis-h"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+    <app-data-pagination [first]="first" [pageSize]="pageSize" [totalRecords]="totalRecords" [itemLabel]="'debitNotes.itemLabel' | translate" (pageChange)="goToPage($event)" (pageSizeChange)="onPageSizeChange($event)"> </app-data-pagination>
 </app-page-container>

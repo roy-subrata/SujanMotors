@@ -1,956 +1,1396 @@
 <p-toast />
 
 <app-page-container>
-  <!-- Header -->
-  <app-page-header
-    [title]="i18n.t('warrantyClaims.title')"
-    [subtitle]="i18n.t('warrantyClaims.subtitle')"
-    [count]="filteredClaims.length" [countLabel]="i18n.t('warrantyClaims.itemLabel')" countIcon="pi pi-file-check">
-    <ng-container actions>
-      <button class="btn-icon" [pTooltip]="i18n.t('warrantyClaims.actions.refresh')" tooltipPosition="bottom" (click)="loadClaims()">
-        <i class="pi pi-refresh"></i>
-      </button>
-      <button class="btn-primary" (click)="openCreateDialog()">
-        <i class="pi pi-plus"></i><span>{{ i18n.t('warrantyClaims.actions.newClaim') }}</span>
-      </button>
-    </ng-container>
-  </app-page-header>
+    <!-- Header -->
+    <app-page-header [title]="i18n.t('warrantyClaims.title')" [subtitle]="i18n.t('warrantyClaims.subtitle')" [count]="filteredClaims.length" [countLabel]="i18n.t('warrantyClaims.itemLabel')" countIcon="pi pi-file-check">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="i18n.t('warrantyClaims.actions.refresh')" tooltipPosition="bottom" (click)="loadClaims()">
+                <i class="pi pi-refresh"></i>
+            </button>
+            <button class="btn-primary" (click)="openCreateDialog()">
+                <i class="pi pi-plus"></i><span>{{ i18n.t('warrantyClaims.actions.newClaim') }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- Metrics -->
-  <app-stat-strip [stats]="stats"></app-stat-strip>
+    <!-- Metrics -->
+    <app-stat-strip [stats]="stats"></app-stat-strip>
 
-  <!-- Filters -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input type="text" class="search-input" [(ngModel)]="searchText" (input)="onSearch()"
-          [placeholder]="i18n.t('warrantyClaims.searchPlaceholder')" />
-        <button *ngIf="searchText" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
-      </div>
-    </div>
-    <div filters class="filter-group">
-      <app-status-pill-filter
-        [options]="statuses"
-        [value]="selectedStatus"
-        (valueChange)="onStatusFilterChange($event)">
-      </app-status-pill-filter>
-    </div>
-    <div filterActions class="filter-group filter-actions">
-      <button class="text-btn" (click)="moreFiltersVisible = true">{{ i18n.t('common.labels.moreFilters') }}</button>
-    </div>
-  </app-filter-bar>
-
-  <app-more-filters-dialog
-    [options]="statuses"
-    [selected]="selectedStatus"
-    [previewCount]="filteredClaims.length"
-    [(visible)]="moreFiltersVisible"
-    (apply)="onStatusFilterChange($event)">
-  </app-more-filters-dialog>
-
-  <!-- Claims Table -->
-  <section class="table-section desktop-only">
-    <div class="table-container">
-    <p-table [value]="pagedClaims" [loading]="isLoading" [paginator]="false"
-      [scrollable]="true" styleClass="app-table">
-      <ng-template #header>
-        <tr>
-          <th>{{ i18n.t('warrantyClaims.columns.claimNumber') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.warrantyPart') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.customer') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.claimDate') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.coverageType') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.resolutionMethod') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.technician') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.status') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.daysOpen') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.cost') }}</th>
-          <th>{{ i18n.t('warrantyClaims.columns.actions') }}</th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-claim>
-        <tr>
-          <td>
-            <a class="link-text" (click)="openDetailDialog(claim)">{{ claim.claimNumber }}</a>
-          </td>
-          <td>
-            <div class="cell-primary">{{ claim.warrantyNumber }}</div>
-            <div class="cell-secondary">{{ claim.partName }}<span *ngIf="claim.partLocalName"> — {{ claim.partLocalName }}</span> ({{ claim.partSKU }})</div>
-          </td>
-          <td>
-            <div class="cell-primary">{{ claim.customerName }}</div>
-            <div class="cell-secondary">{{ claim.customerPhone }}</div>
-          </td>
-          <td><span class="timestamp">{{ formatDate(claim.claimDate) }}</span></td>
-          <td>
-            <p-tag [value]="getCoverageTypeLabel(claim.warrantyCoverageType)"
-              [severity]="getCoverageTypeSeverity(claim.warrantyCoverageType)"></p-tag>
-          </td>
-          <td>
-            <p-tag [value]="getResolutionMethodLabel(claim.serviceType)"
-              [severity]="getResolutionMethodSeverity(claim.serviceType)"></p-tag>
-          </td>
-          <td>
-            <span *ngIf="claim.technicianName" class="cell-primary">{{ claim.technicianName }}</span>
-            <span *ngIf="!claim.technicianName" class="cell-secondary">—</span>
-          </td>
-          <td>
-            <p-tag [value]="getStatusLabel(claim.status)" [severity]="getStatusSeverity(claim.status)"></p-tag>
-          </td>
-          <td>
-            <span *ngIf="claim.isOpen" [class]="getDaysOpenClass(claim.daysOpen)">{{ claim.daysOpen }}{{ i18n.t('warrantyClaims.daysOpenSuffix') }}</span>
-            <span *ngIf="!claim.isOpen" class="cell-secondary">{{ i18n.t('warrantyClaims.closedLabel') }}</span>
-          </td>
-          <td>
-            <span *ngIf="claim.serviceCost">{{ formatCurrency(claim.serviceCost) }}</span>
-            <span *ngIf="!claim.serviceCost" class="cell-secondary">—</span>
-          </td>
-          <td>
-            <div class="action-buttons">
-              <button *ngIf="canRunQuickFlow(claim)" pButton type="button" [icon]="getQuickFlowIcon(claim)"
-                class="p-button-sm p-button-success" [label]="getQuickFlowLabel(claim)"
-                [pTooltip]="i18n.t('warrantyClaims.actions.quickFlowTooltip')" tooltipPosition="top" (click)="runQuickFlow(claim)"></button>
-
-              <!-- View Detail -->
-              <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-text p-button-secondary"
-                [pTooltip]="i18n.t('warrantyClaims.actions.viewDetails')" tooltipPosition="top" (click)="openDetailDialog(claim)"></button>
-
-              <!-- Print claim slip / service report -->
-              <button pButton type="button" icon="pi pi-print" class="p-button-sm p-button-text p-button-secondary"
-                [pTooltip]="i18n.t('warrantyClaims.actions.printClaim')" tooltipPosition="top" (click)="printClaim(claim)"></button>
-
-              <!-- Submit for Review (PENDING) -->
-              <button *ngIf="canSubmitForReview(claim)" pButton type="button" icon="pi pi-send"
-                class="p-button-sm p-button-text p-button-info" [pTooltip]="i18n.t('warrantyClaims.actions.submitForReview')" tooltipPosition="top"
-                (click)="submitForReview(claim)"></button>
-
-              <!-- Approve (UNDER_REVIEW) -->
-              <button *ngIf="canApprove(claim)" pButton type="button" icon="pi pi-check"
-                class="p-button-sm p-button-text p-button-success" [pTooltip]="i18n.t('warrantyClaims.actions.approve')" tooltipPosition="top"
-                (click)="openApproveDialog(claim)"></button>
-
-              <!-- Reject (UNDER_REVIEW or PENDING) -->
-              <button *ngIf="canReject(claim)" pButton type="button" icon="pi pi-times"
-                class="p-button-sm p-button-text p-button-danger" [pTooltip]="i18n.t('warrantyClaims.actions.reject')" tooltipPosition="top"
-                (click)="openRejectDialog(claim)"></button>
-
-              <!-- Assign Technician (APPROVED) -->
-              <button *ngIf="canAssignTechnician(claim)" pButton type="button" icon="pi pi-user-plus"
-                class="p-button-sm p-button-text p-button-info" [pTooltip]="i18n.t('warrantyClaims.actions.assignTechnician')" tooltipPosition="top"
-                (click)="openAssignDialog(claim)"></button>
-
-              <!-- Start Service without a technician (repair sent out / bench repair) -->
-              <button *ngIf="canStartService(claim)" pButton type="button" icon="pi pi-play"
-                class="p-button-sm p-button-text p-button-info" [pTooltip]="i18n.t('warrantyClaims.actions.startService')" tooltipPosition="top"
-                (click)="startService(claim)"></button>
-
-              <!-- Update Service Cost (REPAIR, IN_PROGRESS or APPROVED) -->
-              <button *ngIf="canUpdateServiceCost(claim)" pButton type="button" icon="pi pi-dollar"
-                class="p-button-sm p-button-text p-button-info" [pTooltip]="i18n.t('warrantyClaims.actions.updateRepairCost')" tooltipPosition="top"
-                (click)="openServiceCostUpdate(claim)"></button>
-
-              <!-- Complete (IN_PROGRESS) -->
-              <button *ngIf="canComplete(claim)" pButton type="button" icon="pi pi-check-circle"
-                class="p-button-sm p-button-text p-button-success" [pTooltip]="i18n.t('warrantyClaims.actions.completeClaim')" tooltipPosition="top"
-                (click)="openCompleteDialog(claim)"></button>
-
-              <!-- Send defective to vendor (replacement only) -->
-              <button *ngIf="canOpenSendDefective(claim)" pButton type="button" icon="pi pi-send"
-                class="p-button-sm p-button-text p-button-warning" [pTooltip]="i18n.t('warrantyClaims.actions.sendDefectiveToVendor')" tooltipPosition="top"
-                (click)="openSendDefectiveDialog(claim)"></button>
-
-              <!-- Receive replacement from vendor (replacement only) -->
-              <button *ngIf="canOpenReceiveReplacement(claim)" pButton type="button" icon="pi pi-download"
-                class="p-button-sm p-button-text p-button-help" [pTooltip]="i18n.t('warrantyClaims.actions.receiveReplacementFromVendor')" tooltipPosition="top"
-                (click)="openReceiveReplacementDialog(claim)"></button>
-
-              <!-- Defective disposition: scrap / restock (replacement, quarantined) -->
-              <button *ngIf="claim.canScrapDefectiveItem" pButton type="button" icon="pi pi-trash"
-                class="p-button-sm p-button-text p-button-danger" [pTooltip]="i18n.t('warrantyClaims.actions.scrapDefective')" tooltipPosition="top"
-                (click)="scrapDefective(claim)"></button>
-              <button *ngIf="claim.canRestockDefectiveItem" pButton type="button" icon="pi pi-undo"
-                class="p-button-sm p-button-text p-button-secondary" [pTooltip]="i18n.t('warrantyClaims.actions.restockDefective')" tooltipPosition="top"
-                (click)="restockDefective(claim)"></button>
-
-              <!-- Repair: send to / receive from manufacturer -->
-              <button *ngIf="claim.canSendForRepair" pButton type="button" icon="pi pi-truck"
-                class="p-button-sm p-button-text p-button-warning" [pTooltip]="i18n.t('warrantyClaims.actions.sendForRepair')" tooltipPosition="top"
-                (click)="openSendForRepairDialog(claim)"></button>
-              <button *ngIf="claim.canReceiveFromRepair" pButton type="button" icon="pi pi-box"
-                class="p-button-sm p-button-text p-button-help" [pTooltip]="i18n.t('warrantyClaims.actions.receiveRepairedItem')" tooltipPosition="top"
-                (click)="receiveFromRepair(claim)"></button>
-
-              <!-- Close (COMPLETED or REJECTED) -->
-              <button *ngIf="canClose(claim)" pButton type="button" icon="pi pi-lock"
-                class="p-button-sm p-button-text p-button-secondary" [pTooltip]="i18n.t('warrantyClaims.actions.closeClaim')" tooltipPosition="top"
-                (click)="openCloseDialog(claim)"></button>
+    <!-- Filters -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" class="search-input" [(ngModel)]="searchText" (input)="onSearch()" [placeholder]="i18n.t('warrantyClaims.searchPlaceholder')" />
+                <button *ngIf="searchText" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
             </div>
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template #emptymessage>
-        <tr>
-          <td colspan="11">
-            <div class="empty-state">
-              <i class="pi pi-inbox"></i>
-              <p>{{ i18n.t('warrantyClaims.emptyTitleTable') }}</p>
-              <button pButton type="button" [label]="i18n.t('warrantyClaims.actions.createNewClaim')" icon="pi pi-plus"
-                class="p-button-outlined p-button-sm" (click)="openCreateDialog()"></button>
+        </div>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statuses"
+                [(ngModel)]="selectedStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="i18n.t('warrantyClaims.statuses.allStatuses')"
+                [showClear]="true"
+                (onChange)="onStatusChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
+    </app-filter-bar>
+
+    <!-- Claims Table -->
+    <section class="table-section desktop-only">
+        <div class="table-container">
+            <p-table [value]="pagedClaims" [loading]="isLoading" [paginator]="false" [scrollable]="true" styleClass="app-table">
+                <ng-template #header>
+                    <tr>
+                        <th>{{ i18n.t('warrantyClaims.columns.claimNumber') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.warrantyPart') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.customer') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.claimDate') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.coverageType') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.resolutionMethod') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.technician') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.status') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.daysOpen') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.cost') }}</th>
+                        <th>{{ i18n.t('warrantyClaims.columns.actions') }}</th>
+                    </tr>
+                </ng-template>
+                <ng-template #body let-claim>
+                    <tr>
+                        <td>
+                            <a class="link-text" (click)="openDetailDialog(claim)">{{ claim.claimNumber }}</a>
+                        </td>
+                        <td>
+                            <div class="cell-primary">{{ claim.warrantyNumber }}</div>
+                            <div class="cell-secondary">
+                                {{ claim.partName }}<span *ngIf="claim.partLocalName"> — {{ claim.partLocalName }}</span> ({{ claim.partSKU }})
+                            </div>
+                        </td>
+                        <td>
+                            <div class="cell-primary">{{ claim.customerName }}</div>
+                            <div class="cell-secondary">{{ claim.customerPhone }}</div>
+                        </td>
+                        <td>
+                            <span class="timestamp">{{ formatDate(claim.claimDate) }}</span>
+                        </td>
+                        <td>
+                            <p-tag [value]="getCoverageTypeLabel(claim.warrantyCoverageType)" [severity]="getCoverageTypeSeverity(claim.warrantyCoverageType)"></p-tag>
+                        </td>
+                        <td>
+                            <p-tag [value]="getResolutionMethodLabel(claim.serviceType)" [severity]="getResolutionMethodSeverity(claim.serviceType)"></p-tag>
+                        </td>
+                        <td>
+                            <span *ngIf="claim.technicianName" class="cell-primary">{{ claim.technicianName }}</span>
+                            <span *ngIf="!claim.technicianName" class="cell-secondary">—</span>
+                        </td>
+                        <td>
+                            <p-tag [value]="getStatusLabel(claim.status)" [severity]="getStatusSeverity(claim.status)"></p-tag>
+                        </td>
+                        <td>
+                            <span *ngIf="claim.isOpen" [class]="getDaysOpenClass(claim.daysOpen)">{{ claim.daysOpen }}{{ i18n.t('warrantyClaims.daysOpenSuffix') }}</span>
+                            <span *ngIf="!claim.isOpen" class="cell-secondary">{{ i18n.t('warrantyClaims.closedLabel') }}</span>
+                        </td>
+                        <td>
+                            <span *ngIf="claim.serviceCost">{{ formatCurrency(claim.serviceCost) }}</span>
+                            <span *ngIf="!claim.serviceCost" class="cell-secondary">—</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button
+                                    *ngIf="canRunQuickFlow(claim)"
+                                    pButton
+                                    type="button"
+                                    [icon]="getQuickFlowIcon(claim)"
+                                    class="p-button-sm p-button-success"
+                                    [label]="getQuickFlowLabel(claim)"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.quickFlowTooltip')"
+                                    tooltipPosition="top"
+                                    (click)="runQuickFlow(claim)"
+                                ></button>
+
+                                <!-- View Detail -->
+                                <button
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-eye"
+                                    class="p-button-sm p-button-text p-button-secondary"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.viewDetails')"
+                                    tooltipPosition="top"
+                                    (click)="openDetailDialog(claim)"
+                                ></button>
+
+                                <!-- Print claim slip / service report -->
+                                <button pButton type="button" icon="pi pi-print" class="p-button-sm p-button-text p-button-secondary" [pTooltip]="i18n.t('warrantyClaims.actions.printClaim')" tooltipPosition="top" (click)="printClaim(claim)"></button>
+
+                                <!-- Submit for Review (PENDING) -->
+                                <button
+                                    *ngIf="canSubmitForReview(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-send"
+                                    class="p-button-sm p-button-text p-button-info"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.submitForReview')"
+                                    tooltipPosition="top"
+                                    (click)="submitForReview(claim)"
+                                ></button>
+
+                                <!-- Approve (UNDER_REVIEW) -->
+                                <button
+                                    *ngIf="canApprove(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-check"
+                                    class="p-button-sm p-button-text p-button-success"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.approve')"
+                                    tooltipPosition="top"
+                                    (click)="openApproveDialog(claim)"
+                                ></button>
+
+                                <!-- Reject (UNDER_REVIEW or PENDING) -->
+                                <button
+                                    *ngIf="canReject(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-times"
+                                    class="p-button-sm p-button-text p-button-danger"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.reject')"
+                                    tooltipPosition="top"
+                                    (click)="openRejectDialog(claim)"
+                                ></button>
+
+                                <!-- Assign Technician (APPROVED) -->
+                                <button
+                                    *ngIf="canAssignTechnician(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-user-plus"
+                                    class="p-button-sm p-button-text p-button-info"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.assignTechnician')"
+                                    tooltipPosition="top"
+                                    (click)="openAssignDialog(claim)"
+                                ></button>
+
+                                <!-- Start Service without a technician (repair sent out / bench repair) -->
+                                <button
+                                    *ngIf="canStartService(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-play"
+                                    class="p-button-sm p-button-text p-button-info"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.startService')"
+                                    tooltipPosition="top"
+                                    (click)="startService(claim)"
+                                ></button>
+
+                                <!-- Update Service Cost (REPAIR, IN_PROGRESS or APPROVED) -->
+                                <button
+                                    *ngIf="canUpdateServiceCost(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-dollar"
+                                    class="p-button-sm p-button-text p-button-info"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.updateRepairCost')"
+                                    tooltipPosition="top"
+                                    (click)="openServiceCostUpdate(claim)"
+                                ></button>
+
+                                <!-- Complete (IN_PROGRESS) -->
+                                <button
+                                    *ngIf="canComplete(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-check-circle"
+                                    class="p-button-sm p-button-text p-button-success"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.completeClaim')"
+                                    tooltipPosition="top"
+                                    (click)="openCompleteDialog(claim)"
+                                ></button>
+
+                                <!-- Send defective to vendor (replacement only) -->
+                                <button
+                                    *ngIf="canOpenSendDefective(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-send"
+                                    class="p-button-sm p-button-text p-button-warning"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.sendDefectiveToVendor')"
+                                    tooltipPosition="top"
+                                    (click)="openSendDefectiveDialog(claim)"
+                                ></button>
+
+                                <!-- Receive replacement from vendor (replacement only) -->
+                                <button
+                                    *ngIf="canOpenReceiveReplacement(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-download"
+                                    class="p-button-sm p-button-text p-button-help"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.receiveReplacementFromVendor')"
+                                    tooltipPosition="top"
+                                    (click)="openReceiveReplacementDialog(claim)"
+                                ></button>
+
+                                <!-- Defective disposition: scrap / restock (replacement, quarantined) -->
+                                <button
+                                    *ngIf="claim.canScrapDefectiveItem"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-trash"
+                                    class="p-button-sm p-button-text p-button-danger"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.scrapDefective')"
+                                    tooltipPosition="top"
+                                    (click)="scrapDefective(claim)"
+                                ></button>
+                                <button
+                                    *ngIf="claim.canRestockDefectiveItem"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-undo"
+                                    class="p-button-sm p-button-text p-button-secondary"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.restockDefective')"
+                                    tooltipPosition="top"
+                                    (click)="restockDefective(claim)"
+                                ></button>
+
+                                <!-- Repair: send to / receive from manufacturer -->
+                                <button
+                                    *ngIf="claim.canSendForRepair"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-truck"
+                                    class="p-button-sm p-button-text p-button-warning"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.sendForRepair')"
+                                    tooltipPosition="top"
+                                    (click)="openSendForRepairDialog(claim)"
+                                ></button>
+                                <button
+                                    *ngIf="claim.canReceiveFromRepair"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-box"
+                                    class="p-button-sm p-button-text p-button-help"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.receiveRepairedItem')"
+                                    tooltipPosition="top"
+                                    (click)="receiveFromRepair(claim)"
+                                ></button>
+
+                                <!-- Close (COMPLETED or REJECTED) -->
+                                <button
+                                    *ngIf="canClose(claim)"
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-lock"
+                                    class="p-button-sm p-button-text p-button-secondary"
+                                    [pTooltip]="i18n.t('warrantyClaims.actions.closeClaim')"
+                                    tooltipPosition="top"
+                                    (click)="openCloseDialog(claim)"
+                                ></button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="11">
+                            <div class="empty-state">
+                                <i class="pi pi-inbox"></i>
+                                <p>{{ i18n.t('warrantyClaims.emptyTitleTable') }}</p>
+                                <button pButton type="button" [label]="i18n.t('warrantyClaims.actions.createNewClaim')" icon="pi pi-plus" class="p-button-outlined p-button-sm" (click)="openCreateDialog()"></button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </section>
+
+    <!-- ==================== CLAIMS CARDS (Mobile) ==================== -->
+    <section class="cards-section mobile-only">
+        <div *ngIf="isLoading" class="cards-grid">
+            <div *ngFor="let _ of [1, 2, 3, 4]" class="order-card skeleton-card">
+                <div class="card-header">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-badge"></div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton skeleton-text-lg"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
             </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-    </div>
-  </section>
-
-  <!-- ==================== CLAIMS CARDS (Mobile) ==================== -->
-  <section class="cards-section mobile-only">
-
-    <div *ngIf="isLoading" class="cards-grid">
-      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
-        <div class="card-header">
-          <div class="skeleton skeleton-text"></div>
-          <div class="skeleton skeleton-badge"></div>
-        </div>
-        <div class="card-body">
-          <div class="skeleton skeleton-text-lg"></div>
-          <div class="skeleton skeleton-text-sm"></div>
-        </div>
-      </div>
-    </div>
-
-    <div *ngIf="!isLoading && filteredClaims.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-      <h3>{{ i18n.t('warrantyClaims.emptyTitleCard') }}</h3>
-      <p>{{ i18n.t('warrantyClaims.emptySubtitle') }}</p>
-      <button pButton type="button" [label]="i18n.t('warrantyClaims.actions.createNewClaim')" icon="pi pi-plus"
-        class="p-button-outlined p-button-sm" (click)="openCreateDialog()"></button>
-    </div>
-
-    <div *ngIf="!isLoading && filteredClaims.length > 0" class="cards-grid">
-      <div *ngFor="let claim of pagedClaims" class="order-card">
-
-        <div class="card-header">
-          <a class="card-so-number link-text" (click)="openDetailDialog(claim)">{{ claim.claimNumber }}</a>
-          <p-tag [value]="getStatusLabel(claim.status)" [severity]="getStatusSeverity(claim.status)"></p-tag>
         </div>
 
-        <div class="card-body">
-          <div class="cell-stack">
-            <span class="cell-primary">{{ claim.warrantyNumber }}</span>
-            <span class="cell-secondary">{{ claim.partName }}<span *ngIf="claim.partLocalName"> — {{ claim.partLocalName }}</span> ({{ claim.partSKU }})</span>
-          </div>
-          <div class="cell-stack">
-            <span class="cell-primary">{{ claim.customerName }}</span>
-            <span class="cell-secondary">{{ claim.customerPhone }}</span>
-          </div>
-          <div class="card-meta">
-            <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ formatDate(claim.claimDate) }}</span>
-            <span class="card-meta-item"><i class="pi pi-shield"></i>&nbsp;{{ getCoverageTypeLabel(claim.warrantyCoverageType) }}</span>
-            <span class="card-meta-item"><i class="pi pi-wrench"></i>&nbsp;{{ getResolutionMethodLabel(claim.serviceType) }}</span>
-            <span *ngIf="claim.technicianName" class="card-meta-item"><i class="pi pi-user"></i>&nbsp;{{ claim.technicianName }}</span>
-            <span *ngIf="claim.isOpen" class="card-meta-item" [class]="getDaysOpenClass(claim.daysOpen)"><i class="pi pi-hourglass"></i>&nbsp;{{ claim.daysOpen }}{{ i18n.t('warrantyClaims.cardDaysOpenSuffix') }}</span>
-            <span *ngIf="!claim.isOpen" class="card-meta-item cell-secondary">{{ i18n.t('warrantyClaims.closedLabel') }}</span>
-            <span *ngIf="claim.serviceCost" class="card-meta-item"><i class="pi pi-dollar"></i>&nbsp;{{ formatCurrency(claim.serviceCost) }}</span>
-          </div>
+        <div *ngIf="!isLoading && filteredClaims.length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-inbox"></i></div>
+            <h3>{{ i18n.t('warrantyClaims.emptyTitleCard') }}</h3>
+            <p>{{ i18n.t('warrantyClaims.emptySubtitle') }}</p>
+            <button pButton type="button" [label]="i18n.t('warrantyClaims.actions.createNewClaim')" icon="pi pi-plus" class="p-button-outlined p-button-sm" (click)="openCreateDialog()"></button>
         </div>
 
-        <div class="card-footer" style="flex-wrap: wrap; row-gap: 0.35rem;">
-          <button *ngIf="canRunQuickFlow(claim)" pButton type="button" [icon]="getQuickFlowIcon(claim)"
-            class="p-button-sm p-button-success" [label]="getQuickFlowLabel(claim)"
-            [pTooltip]="i18n.t('warrantyClaims.actions.quickFlowTooltip')" tooltipPosition="top" (click)="runQuickFlow(claim)"></button>
+        <div *ngIf="!isLoading && filteredClaims.length > 0" class="cards-grid">
+            <div *ngFor="let claim of pagedClaims" class="order-card">
+                <div class="card-header">
+                    <a class="card-so-number link-text" (click)="openDetailDialog(claim)">{{ claim.claimNumber }}</a>
+                    <p-tag [value]="getStatusLabel(claim.status)" [severity]="getStatusSeverity(claim.status)"></p-tag>
+                </div>
 
-          <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-text p-button-secondary"
-            [pTooltip]="i18n.t('warrantyClaims.actions.viewDetails')" tooltipPosition="top" (click)="openDetailDialog(claim)"></button>
+                <div class="card-body">
+                    <div class="cell-stack">
+                        <span class="cell-primary">{{ claim.warrantyNumber }}</span>
+                        <span class="cell-secondary"
+                            >{{ claim.partName }}<span *ngIf="claim.partLocalName"> — {{ claim.partLocalName }}</span> ({{ claim.partSKU }})</span
+                        >
+                    </div>
+                    <div class="cell-stack">
+                        <span class="cell-primary">{{ claim.customerName }}</span>
+                        <span class="cell-secondary">{{ claim.customerPhone }}</span>
+                    </div>
+                    <div class="card-meta">
+                        <span class="card-meta-item"><i class="pi pi-calendar"></i>&nbsp;{{ formatDate(claim.claimDate) }}</span>
+                        <span class="card-meta-item"><i class="pi pi-shield"></i>&nbsp;{{ getCoverageTypeLabel(claim.warrantyCoverageType) }}</span>
+                        <span class="card-meta-item"><i class="pi pi-wrench"></i>&nbsp;{{ getResolutionMethodLabel(claim.serviceType) }}</span>
+                        <span *ngIf="claim.technicianName" class="card-meta-item"><i class="pi pi-user"></i>&nbsp;{{ claim.technicianName }}</span>
+                        <span *ngIf="claim.isOpen" class="card-meta-item" [class]="getDaysOpenClass(claim.daysOpen)"><i class="pi pi-hourglass"></i>&nbsp;{{ claim.daysOpen }}{{ i18n.t('warrantyClaims.cardDaysOpenSuffix') }}</span>
+                        <span *ngIf="!claim.isOpen" class="card-meta-item cell-secondary">{{ i18n.t('warrantyClaims.closedLabel') }}</span>
+                        <span *ngIf="claim.serviceCost" class="card-meta-item"><i class="pi pi-dollar"></i>&nbsp;{{ formatCurrency(claim.serviceCost) }}</span>
+                    </div>
+                </div>
 
-          <button pButton type="button" icon="pi pi-print" class="p-button-sm p-button-text p-button-secondary"
-            [pTooltip]="i18n.t('warrantyClaims.actions.printClaim')" tooltipPosition="top" (click)="printClaim(claim)"></button>
+                <div class="card-footer" style="flex-wrap: wrap; row-gap: 0.35rem">
+                    <button
+                        *ngIf="canRunQuickFlow(claim)"
+                        pButton
+                        type="button"
+                        [icon]="getQuickFlowIcon(claim)"
+                        class="p-button-sm p-button-success"
+                        [label]="getQuickFlowLabel(claim)"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.quickFlowTooltip')"
+                        tooltipPosition="top"
+                        (click)="runQuickFlow(claim)"
+                    ></button>
 
-          <button *ngIf="canSubmitForReview(claim)" pButton type="button" icon="pi pi-send"
-            class="p-button-sm p-button-text p-button-info" [pTooltip]="i18n.t('warrantyClaims.actions.submitForReview')" tooltipPosition="top"
-            (click)="submitForReview(claim)"></button>
+                    <button pButton type="button" icon="pi pi-eye" class="p-button-sm p-button-text p-button-secondary" [pTooltip]="i18n.t('warrantyClaims.actions.viewDetails')" tooltipPosition="top" (click)="openDetailDialog(claim)"></button>
 
-          <button *ngIf="canApprove(claim)" pButton type="button" icon="pi pi-check"
-            class="p-button-sm p-button-text p-button-success" [pTooltip]="i18n.t('warrantyClaims.actions.approve')" tooltipPosition="top"
-            (click)="openApproveDialog(claim)"></button>
+                    <button pButton type="button" icon="pi pi-print" class="p-button-sm p-button-text p-button-secondary" [pTooltip]="i18n.t('warrantyClaims.actions.printClaim')" tooltipPosition="top" (click)="printClaim(claim)"></button>
 
-          <button *ngIf="canReject(claim)" pButton type="button" icon="pi pi-times"
-            class="p-button-sm p-button-text p-button-danger" [pTooltip]="i18n.t('warrantyClaims.actions.reject')" tooltipPosition="top"
-            (click)="openRejectDialog(claim)"></button>
+                    <button
+                        *ngIf="canSubmitForReview(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-send"
+                        class="p-button-sm p-button-text p-button-info"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.submitForReview')"
+                        tooltipPosition="top"
+                        (click)="submitForReview(claim)"
+                    ></button>
 
-          <button *ngIf="canAssignTechnician(claim)" pButton type="button" icon="pi pi-user-plus"
-            class="p-button-sm p-button-text p-button-info" [pTooltip]="i18n.t('warrantyClaims.actions.assignTechnician')" tooltipPosition="top"
-            (click)="openAssignDialog(claim)"></button>
+                    <button
+                        *ngIf="canApprove(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-check"
+                        class="p-button-sm p-button-text p-button-success"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.approve')"
+                        tooltipPosition="top"
+                        (click)="openApproveDialog(claim)"
+                    ></button>
 
-          <button *ngIf="canStartService(claim)" pButton type="button" icon="pi pi-play"
-            class="p-button-sm p-button-text p-button-info" [pTooltip]="i18n.t('warrantyClaims.actions.startService')" tooltipPosition="top"
-            (click)="startService(claim)"></button>
+                    <button
+                        *ngIf="canReject(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-sm p-button-text p-button-danger"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.reject')"
+                        tooltipPosition="top"
+                        (click)="openRejectDialog(claim)"
+                    ></button>
 
-          <button *ngIf="canUpdateServiceCost(claim)" pButton type="button" icon="pi pi-dollar"
-            class="p-button-sm p-button-text p-button-info" [pTooltip]="i18n.t('warrantyClaims.actions.updateRepairCost')" tooltipPosition="top"
-            (click)="openServiceCostUpdate(claim)"></button>
+                    <button
+                        *ngIf="canAssignTechnician(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-user-plus"
+                        class="p-button-sm p-button-text p-button-info"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.assignTechnician')"
+                        tooltipPosition="top"
+                        (click)="openAssignDialog(claim)"
+                    ></button>
 
-          <button *ngIf="canComplete(claim)" pButton type="button" icon="pi pi-check-circle"
-            class="p-button-sm p-button-text p-button-success" [pTooltip]="i18n.t('warrantyClaims.actions.completeClaim')" tooltipPosition="top"
-            (click)="openCompleteDialog(claim)"></button>
+                    <button
+                        *ngIf="canStartService(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-play"
+                        class="p-button-sm p-button-text p-button-info"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.startService')"
+                        tooltipPosition="top"
+                        (click)="startService(claim)"
+                    ></button>
 
-          <button *ngIf="canOpenSendDefective(claim)" pButton type="button" icon="pi pi-send"
-            class="p-button-sm p-button-text p-button-warning" [pTooltip]="i18n.t('warrantyClaims.actions.sendDefectiveToVendor')" tooltipPosition="top"
-            (click)="openSendDefectiveDialog(claim)"></button>
+                    <button
+                        *ngIf="canUpdateServiceCost(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-dollar"
+                        class="p-button-sm p-button-text p-button-info"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.updateRepairCost')"
+                        tooltipPosition="top"
+                        (click)="openServiceCostUpdate(claim)"
+                    ></button>
 
-          <button *ngIf="canOpenReceiveReplacement(claim)" pButton type="button" icon="pi pi-download"
-            class="p-button-sm p-button-text p-button-help" [pTooltip]="i18n.t('warrantyClaims.actions.receiveReplacementFromVendor')" tooltipPosition="top"
-            (click)="openReceiveReplacementDialog(claim)"></button>
+                    <button
+                        *ngIf="canComplete(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-check-circle"
+                        class="p-button-sm p-button-text p-button-success"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.completeClaim')"
+                        tooltipPosition="top"
+                        (click)="openCompleteDialog(claim)"
+                    ></button>
 
-          <button *ngIf="claim.canScrapDefectiveItem" pButton type="button" icon="pi pi-trash"
-            class="p-button-sm p-button-text p-button-danger" [pTooltip]="i18n.t('warrantyClaims.actions.scrapDefective')" tooltipPosition="top"
-            (click)="scrapDefective(claim)"></button>
-          <button *ngIf="claim.canRestockDefectiveItem" pButton type="button" icon="pi pi-undo"
-            class="p-button-sm p-button-text p-button-secondary" [pTooltip]="i18n.t('warrantyClaims.actions.restockDefective')" tooltipPosition="top"
-            (click)="restockDefective(claim)"></button>
+                    <button
+                        *ngIf="canOpenSendDefective(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-send"
+                        class="p-button-sm p-button-text p-button-warning"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.sendDefectiveToVendor')"
+                        tooltipPosition="top"
+                        (click)="openSendDefectiveDialog(claim)"
+                    ></button>
 
-          <button *ngIf="claim.canSendForRepair" pButton type="button" icon="pi pi-truck"
-            class="p-button-sm p-button-text p-button-warning" [pTooltip]="i18n.t('warrantyClaims.actions.sendForRepair')" tooltipPosition="top"
-            (click)="openSendForRepairDialog(claim)"></button>
-          <button *ngIf="claim.canReceiveFromRepair" pButton type="button" icon="pi pi-box"
-            class="p-button-sm p-button-text p-button-help" [pTooltip]="i18n.t('warrantyClaims.actions.receiveRepairedItem')" tooltipPosition="top"
-            (click)="receiveFromRepair(claim)"></button>
+                    <button
+                        *ngIf="canOpenReceiveReplacement(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-download"
+                        class="p-button-sm p-button-text p-button-help"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.receiveReplacementFromVendor')"
+                        tooltipPosition="top"
+                        (click)="openReceiveReplacementDialog(claim)"
+                    ></button>
 
-          <button *ngIf="canClose(claim)" pButton type="button" icon="pi pi-lock"
-            class="p-button-sm p-button-text p-button-secondary" [pTooltip]="i18n.t('warrantyClaims.actions.closeClaim')" tooltipPosition="top"
-            (click)="openCloseDialog(claim)"></button>
+                    <button
+                        *ngIf="claim.canScrapDefectiveItem"
+                        pButton
+                        type="button"
+                        icon="pi pi-trash"
+                        class="p-button-sm p-button-text p-button-danger"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.scrapDefective')"
+                        tooltipPosition="top"
+                        (click)="scrapDefective(claim)"
+                    ></button>
+                    <button
+                        *ngIf="claim.canRestockDefectiveItem"
+                        pButton
+                        type="button"
+                        icon="pi pi-undo"
+                        class="p-button-sm p-button-text p-button-secondary"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.restockDefective')"
+                        tooltipPosition="top"
+                        (click)="restockDefective(claim)"
+                    ></button>
+
+                    <button
+                        *ngIf="claim.canSendForRepair"
+                        pButton
+                        type="button"
+                        icon="pi pi-truck"
+                        class="p-button-sm p-button-text p-button-warning"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.sendForRepair')"
+                        tooltipPosition="top"
+                        (click)="openSendForRepairDialog(claim)"
+                    ></button>
+                    <button
+                        *ngIf="claim.canReceiveFromRepair"
+                        pButton
+                        type="button"
+                        icon="pi pi-box"
+                        class="p-button-sm p-button-text p-button-help"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.receiveRepairedItem')"
+                        tooltipPosition="top"
+                        (click)="receiveFromRepair(claim)"
+                    ></button>
+
+                    <button
+                        *ngIf="canClose(claim)"
+                        pButton
+                        type="button"
+                        icon="pi pi-lock"
+                        class="p-button-sm p-button-text p-button-secondary"
+                        [pTooltip]="i18n.t('warrantyClaims.actions.closeClaim')"
+                        tooltipPosition="top"
+                        (click)="openCloseDialog(claim)"
+                    ></button>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
+    </section>
 
-  </section>
-
-  <app-data-pagination
-    [first]="first"
-    [pageSize]="pageSize"
-    [totalRecords]="filteredClaims.length"
-    [itemLabel]="i18n.t('warrantyClaims.itemLabel')"
-    (pageChange)="goToPage($event)"
-    (pageSizeChange)="onPageSizeChange($event)">
-  </app-data-pagination>
+    <app-data-pagination [first]="first" [pageSize]="pageSize" [totalRecords]="filteredClaims.length" [itemLabel]="i18n.t('warrantyClaims.itemLabel')" (pageChange)="goToPage($event)" (pageSizeChange)="onPageSizeChange($event)"> </app-data-pagination>
 </app-page-container>
 
 <!-- ==================== DETAIL DIALOG ==================== -->
-<p-dialog [(visible)]="showDetailDialog" [header]="i18n.t('warrantyClaims.detail.header')" [modal]="true"
-  [style]="{ width: '700px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="detail-dialog">
-    <div class="detail-header">
-      <span class="detail-claim-number">{{ selectedClaim.claimNumber }}</span>
-      <p-tag [value]="getStatusLabel(selectedClaim.status)" [severity]="getStatusSeverity(selectedClaim.status)"></p-tag>
-    </div>
-
-    <div class="detail-grid">
-      <div class="detail-section">
-        <h4>{{ i18n.t('warrantyClaims.detail.warrantyAndProduct') }}</h4>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.warrantyNumber') }}</span><span>{{ selectedClaim.warrantyNumber }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.coverageType') }}</span><span><p-tag [value]="getCoverageTypeLabel(selectedClaim.warrantyCoverageType)" [severity]="getCoverageTypeSeverity(selectedClaim.warrantyCoverageType)"></p-tag></span></div>
-        <div class="detail-row">
-          <span class="detail-label">{{ i18n.t('warrantyClaims.detail.part') }}</span>
-          <span>{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span> ({{ selectedClaim.partSKU }})</span>
-        </div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.resolutionMethod') }}</span><span><p-tag [value]="getResolutionMethodLabel(selectedClaim.serviceType)" [severity]="getResolutionMethodSeverity(selectedClaim.serviceType)"></p-tag></span></div>
-      </div>
-
-      <div class="detail-section">
-        <h4>{{ i18n.t('warrantyClaims.detail.customer') }}</h4>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.name') }}</span><span>{{ selectedClaim.customerName }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.phone') }}</span><span>{{ selectedClaim.customerPhone }}</span></div>
-      </div>
-
-      <div class="detail-section">
-        <h4>{{ i18n.t('warrantyClaims.detail.dates') }}</h4>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.claimDate') }}</span><span>{{ formatDate(selectedClaim.claimDate) }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.approved') }}</span><span>{{ formatDate(selectedClaim.approvedDate) }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.serviceStart') }}</span><span>{{ formatDate(selectedClaim.serviceStartDate) }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.completed') }}</span><span>{{ formatDate(selectedClaim.serviceCompletedDate) }}</span></div>
-      </div>
-
-      <div class="detail-section">
-        <h4>{{ i18n.t('warrantyClaims.detail.serviceDetails') }}</h4>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.technician') }}</span><span>{{ selectedClaim.technicianName || '—' }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.additionalCustomerCost') }}</span><span>{{ selectedClaim.serviceCost ? formatCurrency(selectedClaim.serviceCost) : '—' }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.daysOpen') }}</span><span [class]="selectedClaim.isOpen ? getDaysOpenClass(selectedClaim.daysOpen) : ''">{{ selectedClaim.isOpen ? (selectedClaim.daysOpen + i18n.t('warrantyClaims.daysOpenSuffix')) : i18n.t('warrantyClaims.closedLabel') }}</span></div>
-      </div>
-    </div>
-
-    <div class="detail-section full-width" *ngIf="selectedClaim.issueDescription">
-      <h4>{{ i18n.t('warrantyClaims.detail.issueDescription') }}</h4>
-      <p class="detail-text">{{ selectedClaim.issueDescription }}</p>
-    </div>
-
-    <div class="detail-section full-width" *ngIf="selectedClaim.resolutionDetails">
-      <h4>{{ i18n.t('warrantyClaims.detail.resolution') }}</h4>
-      <p class="detail-text">{{ selectedClaim.resolutionDetails }}</p>
-    </div>
-
-    <div class="detail-section full-width" *ngIf="selectedClaim.serviceType === 'REFUND'">
-      <h4>{{ i18n.t('warrantyClaims.detail.refundSummary') }}</h4>
-      <div class="detail-grid">
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.refundType') }}</span><span>{{ selectedClaim.refundType === 'STORE_CREDIT' ? i18n.t('warrantyClaims.detail.storeCredit') : (selectedClaim.refundType === 'CASH_REFUND' ? i18n.t('warrantyClaims.detail.cashRefund') : '—') }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.refundAmount') }}</span><span>{{ selectedClaim.refundAmount ? formatCurrency(selectedClaim.refundAmount) : '—' }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.reference') }}</span><span>{{ selectedClaim.refundReferenceNumber || '—' }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.returnedItemReceived') }}</span><span>{{ selectedClaim.refundReturnItemReceived ? i18n.t('warrantyClaims.detail.yes') : i18n.t('warrantyClaims.detail.no') }}</span></div>
-        <div class="detail-row"><span class="detail-label">{{ i18n.t('warrantyClaims.detail.returnedItemHandling') }}</span><span>
-          {{ !selectedClaim.refundReturnItemReceived ? i18n.t('warrantyClaims.detail.noStockReturn') : (selectedClaim.refundRestockAsSellable ? i18n.t('warrantyClaims.detail.returnedToSellableStock') : i18n.t('warrantyClaims.detail.quarantinedFromSale')) }}
-        </span></div>
-      </div>
-    </div>
-
-    <div class="detail-section full-width" *ngIf="selectedClaim.rejectionReason">
-      <h4>{{ i18n.t('warrantyClaims.detail.rejectionReason') }}</h4>
-      <p class="detail-text rejection-text">{{ selectedClaim.rejectionReason }}</p>
-    </div>
-
-    <div class="detail-section full-width" *ngIf="selectedClaim.serviceNotes">
-      <h4>{{ i18n.t('warrantyClaims.detail.serviceNotes') }}</h4>
-      <p class="detail-text">{{ selectedClaim.serviceNotes }}</p>
-    </div>
-
-    <div class="detail-section full-width" *ngIf="selectedClaim.guaranteeMessage">
-      <h4>{{ i18n.t('warrantyClaims.detail.guaranteeMessage') }}</h4>
-      <p class="detail-text">{{ selectedClaim.guaranteeMessage }}</p>
-    </div>
-
-    <div class="detail-section full-width" *ngIf="selectedClaim.serviceType === 'REPLACEMENT' || selectedClaim.serviceType === 'REFUND'">
-      <h4>{{ selectedClaim.serviceType === 'REPLACEMENT' ? i18n.t('warrantyClaims.detail.replacementLogistics') : i18n.t('warrantyClaims.detail.refundStockHistory') }}</h4>
-
-      <div *ngIf="isLoadingReplacementLogistics" class="cell-secondary">{{ i18n.t('warrantyClaims.detail.loadingLogistics') }}</div>
-
-      <div *ngIf="!isLoadingReplacementLogistics && replacementLogistics">
-        <div class="logistics-header-row">
-          <div>
-            <span class="detail-label">{{ i18n.t('warrantyClaims.detail.currentState') }}</span>
-            <p-tag [value]="getLogisticsStateLabel(replacementLogistics.state)"
-              [severity]="getLogisticsStateSeverity(replacementLogistics.state)"></p-tag>
-          </div>
-          <div class="logistics-action-buttons">
-            <button *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" pButton type="button" icon="pi pi-send" [label]="i18n.t('warrantyClaims.detail.sendDefective')"
-              class="p-button-sm p-button-warning"
-              [disabled]="!replacementLogistics.canSendDefectiveItem"
-              (click)="openSendDefectiveDialog(selectedClaim)"></button>
-            <button *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" pButton type="button" icon="pi pi-download" [label]="i18n.t('warrantyClaims.detail.receiveReplacement')"
-              class="p-button-sm p-button-help"
-              [disabled]="!replacementLogistics.canReceiveReplacementItem"
-              (click)="openReceiveReplacementDialog(selectedClaim)"></button>
-            <button pButton type="button" icon="pi pi-refresh" class="p-button-sm p-button-outlined"
-              [pTooltip]="i18n.t('warrantyClaims.detail.refreshLogisticsTooltip')" tooltipPosition="top"
-              (click)="loadReplacementLogistics(selectedClaim.id)"></button>
-          </div>
+<p-dialog [(visible)]="showDetailDialog" [header]="i18n.t('warrantyClaims.detail.header')" [modal]="true" [style]="{ width: '700px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="detail-dialog">
+        <div class="detail-header">
+            <span class="detail-claim-number">{{ selectedClaim.claimNumber }}</span>
+            <p-tag [value]="getStatusLabel(selectedClaim.status)" [severity]="getStatusSeverity(selectedClaim.status)"></p-tag>
         </div>
 
-        <div *ngIf="replacementLogistics.events.length === 0" class="cell-secondary" style="margin-top: 0.75rem;">
-          {{ selectedClaim.serviceType === 'REPLACEMENT' ? i18n.t('warrantyClaims.detail.noReplacementEvents') : i18n.t('warrantyClaims.detail.noRefundEvents') }}
-        </div>
-
-        <div *ngIf="replacementLogistics.events.length > 0" class="logistics-events">
-          <div class="logistics-event" *ngFor="let event of replacementLogistics.events">
-            <div class="logistics-event-main">
-              <p-tag [value]="getLogisticsReasonLabel(event.reason)" severity="info"></p-tag>
-              <span class="timestamp">{{ formatDate(event.movementDate) }}</span>
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>{{ i18n.t('warrantyClaims.detail.warrantyAndProduct') }}</h4>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.warrantyNumber') }}</span
+                    ><span>{{ selectedClaim.warrantyNumber }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.coverageType') }}</span
+                    ><span><p-tag [value]="getCoverageTypeLabel(selectedClaim.warrantyCoverageType)" [severity]="getCoverageTypeSeverity(selectedClaim.warrantyCoverageType)"></p-tag></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.part') }}</span>
+                    <span
+                        >{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span> ({{ selectedClaim.partSKU }})</span
+                    >
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.resolutionMethod') }}</span
+                    ><span><p-tag [value]="getResolutionMethodLabel(selectedClaim.serviceType)" [severity]="getResolutionMethodSeverity(selectedClaim.serviceType)"></p-tag></span>
+                </div>
             </div>
-            <div class="cell-secondary">
-              {{ i18n.t('warrantyClaims.detail.qtyLabel') }}: {{ event.quantity }} | {{ i18n.t('warrantyClaims.detail.approvedByLabel') }}: {{ event.approvedBy || i18n.t('warrantyClaims.detail.systemLabel') }}
-              <span *ngIf="event.warehouseName"> | {{ i18n.t('warrantyClaims.detail.warehouseLabel') }}: {{ event.warehouseName }}</span>
-              <span *ngIf="event.notes"> | {{ i18n.t('warrantyClaims.detail.notesLabel') }}: {{ event.notes }}</span>
+
+            <div class="detail-section">
+                <h4>{{ i18n.t('warrantyClaims.detail.customer') }}</h4>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.name') }}</span
+                    ><span>{{ selectedClaim.customerName }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.phone') }}</span
+                    ><span>{{ selectedClaim.customerPhone }}</span>
+                </div>
             </div>
-          </div>
+
+            <div class="detail-section">
+                <h4>{{ i18n.t('warrantyClaims.detail.dates') }}</h4>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.claimDate') }}</span
+                    ><span>{{ formatDate(selectedClaim.claimDate) }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.approved') }}</span
+                    ><span>{{ formatDate(selectedClaim.approvedDate) }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.serviceStart') }}</span
+                    ><span>{{ formatDate(selectedClaim.serviceStartDate) }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.completed') }}</span
+                    ><span>{{ formatDate(selectedClaim.serviceCompletedDate) }}</span>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>{{ i18n.t('warrantyClaims.detail.serviceDetails') }}</h4>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.technician') }}</span
+                    ><span>{{ selectedClaim.technicianName || '—' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.additionalCustomerCost') }}</span
+                    ><span>{{ selectedClaim.serviceCost ? formatCurrency(selectedClaim.serviceCost) : '—' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.daysOpen') }}</span
+                    ><span [class]="selectedClaim.isOpen ? getDaysOpenClass(selectedClaim.daysOpen) : ''">{{ selectedClaim.isOpen ? selectedClaim.daysOpen + i18n.t('warrantyClaims.daysOpenSuffix') : i18n.t('warrantyClaims.closedLabel') }}</span>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <div class="detail-section full-width" *ngIf="selectedClaim.issueDescription">
+            <h4>{{ i18n.t('warrantyClaims.detail.issueDescription') }}</h4>
+            <p class="detail-text">{{ selectedClaim.issueDescription }}</p>
+        </div>
+
+        <div class="detail-section full-width" *ngIf="selectedClaim.resolutionDetails">
+            <h4>{{ i18n.t('warrantyClaims.detail.resolution') }}</h4>
+            <p class="detail-text">{{ selectedClaim.resolutionDetails }}</p>
+        </div>
+
+        <div class="detail-section full-width" *ngIf="selectedClaim.serviceType === 'REFUND'">
+            <h4>{{ i18n.t('warrantyClaims.detail.refundSummary') }}</h4>
+            <div class="detail-grid">
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.refundType') }}</span
+                    ><span>{{ selectedClaim.refundType === 'STORE_CREDIT' ? i18n.t('warrantyClaims.detail.storeCredit') : selectedClaim.refundType === 'CASH_REFUND' ? i18n.t('warrantyClaims.detail.cashRefund') : '—' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.refundAmount') }}</span
+                    ><span>{{ selectedClaim.refundAmount ? formatCurrency(selectedClaim.refundAmount) : '—' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.reference') }}</span
+                    ><span>{{ selectedClaim.refundReferenceNumber || '—' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.returnedItemReceived') }}</span
+                    ><span>{{ selectedClaim.refundReturnItemReceived ? i18n.t('warrantyClaims.detail.yes') : i18n.t('warrantyClaims.detail.no') }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.detail.returnedItemHandling') }}</span
+                    ><span>
+                        {{
+                            !selectedClaim.refundReturnItemReceived
+                                ? i18n.t('warrantyClaims.detail.noStockReturn')
+                                : selectedClaim.refundRestockAsSellable
+                                  ? i18n.t('warrantyClaims.detail.returnedToSellableStock')
+                                  : i18n.t('warrantyClaims.detail.quarantinedFromSale')
+                        }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-section full-width" *ngIf="selectedClaim.rejectionReason">
+            <h4>{{ i18n.t('warrantyClaims.detail.rejectionReason') }}</h4>
+            <p class="detail-text rejection-text">{{ selectedClaim.rejectionReason }}</p>
+        </div>
+
+        <div class="detail-section full-width" *ngIf="selectedClaim.serviceNotes">
+            <h4>{{ i18n.t('warrantyClaims.detail.serviceNotes') }}</h4>
+            <p class="detail-text">{{ selectedClaim.serviceNotes }}</p>
+        </div>
+
+        <div class="detail-section full-width" *ngIf="selectedClaim.guaranteeMessage">
+            <h4>{{ i18n.t('warrantyClaims.detail.guaranteeMessage') }}</h4>
+            <p class="detail-text">{{ selectedClaim.guaranteeMessage }}</p>
+        </div>
+
+        <div class="detail-section full-width" *ngIf="selectedClaim.serviceType === 'REPLACEMENT' || selectedClaim.serviceType === 'REFUND'">
+            <h4>{{ selectedClaim.serviceType === 'REPLACEMENT' ? i18n.t('warrantyClaims.detail.replacementLogistics') : i18n.t('warrantyClaims.detail.refundStockHistory') }}</h4>
+
+            <div *ngIf="isLoadingReplacementLogistics" class="cell-secondary">{{ i18n.t('warrantyClaims.detail.loadingLogistics') }}</div>
+
+            <div *ngIf="!isLoadingReplacementLogistics && replacementLogistics">
+                <div class="logistics-header-row">
+                    <div>
+                        <span class="detail-label">{{ i18n.t('warrantyClaims.detail.currentState') }}</span>
+                        <p-tag [value]="getLogisticsStateLabel(replacementLogistics.state)" [severity]="getLogisticsStateSeverity(replacementLogistics.state)"></p-tag>
+                    </div>
+                    <div class="logistics-action-buttons">
+                        <button
+                            *ngIf="selectedClaim.serviceType === 'REPLACEMENT'"
+                            pButton
+                            type="button"
+                            icon="pi pi-send"
+                            [label]="i18n.t('warrantyClaims.detail.sendDefective')"
+                            class="p-button-sm p-button-warning"
+                            [disabled]="!replacementLogistics.canSendDefectiveItem"
+                            (click)="openSendDefectiveDialog(selectedClaim)"
+                        ></button>
+                        <button
+                            *ngIf="selectedClaim.serviceType === 'REPLACEMENT'"
+                            pButton
+                            type="button"
+                            icon="pi pi-download"
+                            [label]="i18n.t('warrantyClaims.detail.receiveReplacement')"
+                            class="p-button-sm p-button-help"
+                            [disabled]="!replacementLogistics.canReceiveReplacementItem"
+                            (click)="openReceiveReplacementDialog(selectedClaim)"
+                        ></button>
+                        <button
+                            pButton
+                            type="button"
+                            icon="pi pi-refresh"
+                            class="p-button-sm p-button-outlined"
+                            [pTooltip]="i18n.t('warrantyClaims.detail.refreshLogisticsTooltip')"
+                            tooltipPosition="top"
+                            (click)="loadReplacementLogistics(selectedClaim.id)"
+                        ></button>
+                    </div>
+                </div>
+
+                <div *ngIf="replacementLogistics.events.length === 0" class="cell-secondary" style="margin-top: 0.75rem">
+                    {{ selectedClaim.serviceType === 'REPLACEMENT' ? i18n.t('warrantyClaims.detail.noReplacementEvents') : i18n.t('warrantyClaims.detail.noRefundEvents') }}
+                </div>
+
+                <div *ngIf="replacementLogistics.events.length > 0" class="logistics-events">
+                    <div class="logistics-event" *ngFor="let event of replacementLogistics.events">
+                        <div class="logistics-event-main">
+                            <p-tag [value]="getLogisticsReasonLabel(event.reason)" severity="info"></p-tag>
+                            <span class="timestamp">{{ formatDate(event.movementDate) }}</span>
+                        </div>
+                        <div class="cell-secondary">
+                            {{ i18n.t('warrantyClaims.detail.qtyLabel') }}: {{ event.quantity }} | {{ i18n.t('warrantyClaims.detail.approvedByLabel') }}: {{ event.approvedBy || i18n.t('warrantyClaims.detail.systemLabel') }}
+                            <span *ngIf="event.warehouseName"> | {{ i18n.t('warrantyClaims.detail.warehouseLabel') }}: {{ event.warehouseName }}</span>
+                            <span *ngIf="event.notes"> | {{ i18n.t('warrantyClaims.detail.notesLabel') }}: {{ event.notes }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </p-dialog>
 
 <!-- ==================== APPROVE DIALOG ==================== -->
-<p-dialog [(visible)]="showApproveDialog" [header]="i18n.t('warrantyClaims.approveDialog.header')" [modal]="true"
-  [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner success-banner">
-      <i class="pi pi-check-circle"></i>
-      <span>{{ i18n.t('warrantyClaims.approveDialog.banner', { claimNumber: selectedClaim.claimNumber, customerName: selectedClaim.customerName }) }}</span>
-    </div>
+<p-dialog [(visible)]="showApproveDialog" [header]="i18n.t('warrantyClaims.approveDialog.header')" [modal]="true" [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner success-banner">
+            <i class="pi pi-check-circle"></i>
+            <span>{{ i18n.t('warrantyClaims.approveDialog.banner', { claimNumber: selectedClaim.claimNumber, customerName: selectedClaim.customerName }) }}</span>
+        </div>
 
-    <div class="dialog-summary">
-      <div class="summary-row"><span>{{ i18n.t('warrantyClaims.approveDialog.part') }}</span><span>{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span></span></div>
-      <div class="summary-row"><span>{{ i18n.t('warrantyClaims.approveDialog.issue') }}</span><span>{{ selectedClaim.issueDescription }}</span></div>
+        <div class="dialog-summary">
+            <div class="summary-row">
+                <span>{{ i18n.t('warrantyClaims.approveDialog.part') }}</span
+                ><span
+                    >{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span></span
+                >
+            </div>
+            <div class="summary-row">
+                <span>{{ i18n.t('warrantyClaims.approveDialog.issue') }}</span
+                ><span>{{ selectedClaim.issueDescription }}</span>
+            </div>
+        </div>
     </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showApproveDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.approveDialog.approveClaim')" class="p-button-success" icon="pi pi-check" (click)="approveClaim()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showApproveDialog = false"></button>
+        <button pButton type="button" [label]="i18n.t('warrantyClaims.approveDialog.approveClaim')" class="p-button-success" icon="pi pi-check" (click)="approveClaim()"></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== REJECT DIALOG ==================== -->
-<p-dialog [(visible)]="showRejectDialog" [header]="i18n.t('warrantyClaims.rejectDialog.header')" [modal]="true"
-  [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner danger-banner">
-      <i class="pi pi-exclamation-triangle"></i>
-      <span>{{ i18n.t('warrantyClaims.rejectDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
-    </div>
+<p-dialog [(visible)]="showRejectDialog" [header]="i18n.t('warrantyClaims.rejectDialog.header')" [modal]="true" [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner danger-banner">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>{{ i18n.t('warrantyClaims.rejectDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.rejectDialog.reasonLabel') }}</label>
-      <textarea pTextarea [(ngModel)]="rejectReason" [placeholder]="i18n.t('warrantyClaims.rejectDialog.reasonPlaceholder')" rows="4" class="w-full"></textarea>
-      <small class="p-error" *ngIf="rejectSubmitted && !rejectReason.trim()">{{ i18n.t('warrantyClaims.rejectDialog.reasonError') }}</small>
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.rejectDialog.reasonLabel') }}</label>
+            <textarea pTextarea [(ngModel)]="rejectReason" [placeholder]="i18n.t('warrantyClaims.rejectDialog.reasonPlaceholder')" rows="4" class="w-full"></textarea>
+            <small class="p-error" *ngIf="rejectSubmitted && !rejectReason.trim()">{{ i18n.t('warrantyClaims.rejectDialog.reasonError') }}</small>
+        </div>
     </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showRejectDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.rejectDialog.rejectClaim')" class="p-button-danger" icon="pi pi-times"
-      [disabled]="!rejectReason.trim()" (click)="rejectClaim()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showRejectDialog = false"></button>
+        <button pButton type="button" [label]="i18n.t('warrantyClaims.rejectDialog.rejectClaim')" class="p-button-danger" icon="pi pi-times" [disabled]="!rejectReason.trim()" (click)="rejectClaim()"></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== ASSIGN TECHNICIAN DIALOG ==================== -->
-<p-dialog [(visible)]="showAssignDialog" [header]="i18n.t('warrantyClaims.assignDialog.header')" [modal]="true"
-  [style]="{ width: '550px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner info-banner">
-      <i class="pi pi-user-plus"></i>
-      <span>{{ i18n.t('warrantyClaims.assignDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
-    </div>
+<p-dialog [(visible)]="showAssignDialog" [header]="i18n.t('warrantyClaims.assignDialog.header')" [modal]="true" [style]="{ width: '550px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner info-banner">
+            <i class="pi pi-user-plus"></i>
+            <span>{{ i18n.t('warrantyClaims.assignDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.assignDialog.selectTechnician') }}</label>
-      <app-lazy-autocomplete [fetchFn]="searchTechniciansLazy" [(ngModel)]="selectedTechnician"
-        [ngModelOptions]="{ standalone: true }" optionLabel="name"
-        [placeholder]="i18n.t('warrantyClaims.assignDialog.searchPlaceholder')"
-        (onItemSelect)="selectedTechnician = $any($event)" (onClearEvent)="selectedTechnician = null">
-        <ng-template let-tech>
-          <div class="tech-suggestion">
-            <div class="tech-name"><strong>{{ tech.name }}</strong> <span class="tech-code">({{ tech.technicianCode }})</span></div>
-            <div class="tech-detail">{{ tech.shopName }} · {{ tech.phone }}</div>
-          </div>
-        </ng-template>
-      </app-lazy-autocomplete>
-      <small class="p-error" *ngIf="assignSubmitted && !selectedTechnician">{{ i18n.t('warrantyClaims.assignDialog.technicianError') }}</small>
-    </div>
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.assignDialog.selectTechnician') }}</label>
+            <app-lazy-autocomplete
+                [fetchFn]="searchTechniciansLazy"
+                [(ngModel)]="selectedTechnician"
+                [ngModelOptions]="{ standalone: true }"
+                optionLabel="name"
+                [placeholder]="i18n.t('warrantyClaims.assignDialog.searchPlaceholder')"
+                (onItemSelect)="selectedTechnician = $any($event)"
+                (onClearEvent)="selectedTechnician = null"
+            >
+                <ng-template let-tech>
+                    <div class="tech-suggestion">
+                        <div class="tech-name">
+                            <strong>{{ tech.name }}</strong> <span class="tech-code">({{ tech.technicianCode }})</span>
+                        </div>
+                        <div class="tech-detail">{{ tech.shopName }} · {{ tech.phone }}</div>
+                    </div>
+                </ng-template>
+            </app-lazy-autocomplete>
+            <small class="p-error" *ngIf="assignSubmitted && !selectedTechnician">{{ i18n.t('warrantyClaims.assignDialog.technicianError') }}</small>
+        </div>
 
-    <div *ngIf="selectedTechnician" class="selected-tech-card">
-      <div class="tech-card-row"><span>{{ i18n.t('warrantyClaims.assignDialog.nameLabel') }}</span><strong>{{ selectedTechnician.name }}</strong></div>
-      <div class="tech-card-row"><span>{{ i18n.t('warrantyClaims.assignDialog.codeLabel') }}</span><span>{{ selectedTechnician.technicianCode }}</span></div>
-      <div class="tech-card-row"><span>{{ i18n.t('warrantyClaims.assignDialog.shopLabel') }}</span><span>{{ selectedTechnician.shopName }}</span></div>
-      <div class="tech-card-row"><span>{{ i18n.t('warrantyClaims.assignDialog.phoneLabel') }}</span><span>{{ selectedTechnician.phone }}</span></div>
+        <div *ngIf="selectedTechnician" class="selected-tech-card">
+            <div class="tech-card-row">
+                <span>{{ i18n.t('warrantyClaims.assignDialog.nameLabel') }}</span
+                ><strong>{{ selectedTechnician.name }}</strong>
+            </div>
+            <div class="tech-card-row">
+                <span>{{ i18n.t('warrantyClaims.assignDialog.codeLabel') }}</span
+                ><span>{{ selectedTechnician.technicianCode }}</span>
+            </div>
+            <div class="tech-card-row">
+                <span>{{ i18n.t('warrantyClaims.assignDialog.shopLabel') }}</span
+                ><span>{{ selectedTechnician.shopName }}</span>
+            </div>
+            <div class="tech-card-row">
+                <span>{{ i18n.t('warrantyClaims.assignDialog.phoneLabel') }}</span
+                ><span>{{ selectedTechnician.phone }}</span>
+            </div>
+        </div>
     </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showAssignDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.assignDialog.assignTechnicianBtn')" class="p-button-info" icon="pi pi-user-plus"
-      [disabled]="!selectedTechnician" (click)="assignTechnician()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showAssignDialog = false"></button>
+        <button pButton type="button" [label]="i18n.t('warrantyClaims.assignDialog.assignTechnicianBtn')" class="p-button-info" icon="pi pi-user-plus" [disabled]="!selectedTechnician" (click)="assignTechnician()"></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== COMPLETE DIALOG ==================== -->
-<p-dialog [(visible)]="showCompleteDialog" [header]="i18n.t('warrantyClaims.completeDialog.header')" [modal]="true"
-  [style]="{ width: '550px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner success-banner">
-      <i class="pi pi-check-circle"></i>
-      <span>{{ i18n.t('warrantyClaims.completeDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
-    </div>
+<p-dialog [(visible)]="showCompleteDialog" [header]="i18n.t('warrantyClaims.completeDialog.header')" [modal]="true" [style]="{ width: '550px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner success-banner">
+            <i class="pi pi-check-circle"></i>
+            <span>{{ i18n.t('warrantyClaims.completeDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
+        </div>
 
-    <div class="dialog-summary">
-      <div class="summary-row"><span>{{ i18n.t('warrantyClaims.completeDialog.part') }}</span><span>{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span></span></div>
-      <div class="summary-row"><span>{{ i18n.t('warrantyClaims.completeDialog.technician') }}</span><span>{{ selectedClaim.technicianName || '—' }}</span></div>
-    </div>
+        <div class="dialog-summary">
+            <div class="summary-row">
+                <span>{{ i18n.t('warrantyClaims.completeDialog.part') }}</span
+                ><span
+                    >{{ selectedClaim.partName }}<span *ngIf="selectedClaim.partLocalName"> — {{ selectedClaim.partLocalName }}</span></span
+                >
+            </div>
+            <div class="summary-row">
+                <span>{{ i18n.t('warrantyClaims.completeDialog.technician') }}</span
+                ><span>{{ selectedClaim.technicianName || '—' }}</span>
+            </div>
+        </div>
 
-    <!-- Service cost entry for REPAIR claims -->
-    <div *ngIf="selectedClaim.serviceType === 'REPAIR'" class="form-row">
-      <div class="form-group">
-        <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.repairCostLabel') }}</label>
-        <p-inputNumber [(ngModel)]="serviceCost" mode="decimal" [min]="0" [minFractionDigits]="2"
-          [maxFractionDigits]="2" placeholder="0.00" styleClass="w-full"></p-inputNumber>
-        <small class="form-hint">{{ i18n.t('warrantyClaims.completeDialog.repairCostHint') }}</small>
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.serviceNotesLabel') }}</label>
-        <input pInputText [(ngModel)]="serviceNotes" class="w-full"
-          [placeholder]="i18n.t('warrantyClaims.completeDialog.serviceNotesPlaceholder')" />
-      </div>
-    </div>
+        <!-- Service cost entry for REPAIR claims -->
+        <div *ngIf="selectedClaim.serviceType === 'REPAIR'" class="form-row">
+            <div class="form-group">
+                <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.repairCostLabel') }}</label>
+                <p-inputNumber [(ngModel)]="serviceCost" mode="decimal" [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2" placeholder="0.00" styleClass="w-full"></p-inputNumber>
+                <small class="form-hint">{{ i18n.t('warrantyClaims.completeDialog.repairCostHint') }}</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.serviceNotesLabel') }}</label>
+                <input pInputText [(ngModel)]="serviceNotes" class="w-full" [placeholder]="i18n.t('warrantyClaims.completeDialog.serviceNotesPlaceholder')" />
+            </div>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.completeDialog.resolutionDetailsLabel') }}</label>
-      <textarea pTextarea [(ngModel)]="resolutionDetails" [placeholder]="i18n.t('warrantyClaims.completeDialog.resolutionDetailsPlaceholder')" rows="4" class="w-full"></textarea>
-      <small class="p-error" *ngIf="completeSubmitted && !resolutionDetails.trim()">{{ i18n.t('warrantyClaims.completeDialog.resolutionDetailsError') }}</small>
-    </div>
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.completeDialog.resolutionDetailsLabel') }}</label>
+            <textarea pTextarea [(ngModel)]="resolutionDetails" [placeholder]="i18n.t('warrantyClaims.completeDialog.resolutionDetailsPlaceholder')" rows="4" class="w-full"></textarea>
+            <small class="p-error" *ngIf="completeSubmitted && !resolutionDetails.trim()">{{ i18n.t('warrantyClaims.completeDialog.resolutionDetailsError') }}</small>
+        </div>
 
-    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="dialog-summary" style="margin-top: 0.75rem;">
-      <div class="summary-row"><span>{{ i18n.t('warrantyClaims.completeDialog.refundTypeSummaryLabel') }}</span><span>{{ refundType === 'CASH_REFUND' ? i18n.t('warrantyClaims.detail.cashRefund') : i18n.t('warrantyClaims.detail.storeCredit') }}</span></div>
-    </div>
+        <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="dialog-summary" style="margin-top: 0.75rem">
+            <div class="summary-row">
+                <span>{{ i18n.t('warrantyClaims.completeDialog.refundTypeSummaryLabel') }}</span
+                ><span>{{ refundType === 'CASH_REFUND' ? i18n.t('warrantyClaims.detail.cashRefund') : i18n.t('warrantyClaims.detail.storeCredit') }}</span>
+            </div>
+        </div>
 
-    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.completeDialog.refundTypeLabel') }}</label>
-      <p-select [(ngModel)]="refundType"
-        [options]="[{label: i18n.t('warrantyClaims.detail.cashRefund'), value:'CASH_REFUND'},{label: i18n.t('warrantyClaims.detail.storeCredit'), value:'STORE_CREDIT'}]"
-        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-    </div>
+        <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.completeDialog.refundTypeLabel') }}</label>
+            <p-select
+                [(ngModel)]="refundType"
+                [options]="[
+                    { label: i18n.t('warrantyClaims.detail.cashRefund'), value: 'CASH_REFUND' },
+                    { label: i18n.t('warrantyClaims.detail.storeCredit'), value: 'STORE_CREDIT' }
+                ]"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                appendTo="body"
+            ></p-select>
+        </div>
 
-    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.completeDialog.refundAmountLabel') }}</label>
-      <p-inputNumber [(ngModel)]="refundAmount" mode="decimal" [min]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
-        [placeholder]="i18n.t('warrantyClaims.completeDialog.refundAmountPlaceholder')" styleClass="w-full"></p-inputNumber>
-      <small class="p-error" *ngIf="completeSubmitted && selectedClaim.serviceType === 'REFUND' && (!refundAmount || refundAmount <= 0)">{{ i18n.t('warrantyClaims.completeDialog.refundAmountError') }}</small>
-    </div>
+        <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.completeDialog.refundAmountLabel') }}</label>
+            <p-inputNumber [(ngModel)]="refundAmount" mode="decimal" [min]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2" [placeholder]="i18n.t('warrantyClaims.completeDialog.refundAmountPlaceholder')" styleClass="w-full"></p-inputNumber>
+            <small class="p-error" *ngIf="completeSubmitted && selectedClaim.serviceType === 'REFUND' && (!refundAmount || refundAmount <= 0)">{{ i18n.t('warrantyClaims.completeDialog.refundAmountError') }}</small>
+        </div>
 
-    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.referenceNumberOptionalLabel') }}</label>
-      <input pInputText [(ngModel)]="refundReferenceNumber" class="w-full" [placeholder]="i18n.t('warrantyClaims.completeDialog.referencePlaceholder')" />
-    </div>
+        <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.referenceNumberOptionalLabel') }}</label>
+            <input pInputText [(ngModel)]="refundReferenceNumber" class="w-full" [placeholder]="i18n.t('warrantyClaims.completeDialog.referencePlaceholder')" />
+        </div>
 
-    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.refundNotesOptionalLabel') }}</label>
-      <textarea pTextarea [(ngModel)]="refundNotes" [placeholder]="i18n.t('warrantyClaims.completeDialog.refundNotesPlaceholder')" rows="3" class="w-full"></textarea>
-    </div>
+        <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.refundNotesOptionalLabel') }}</label>
+            <textarea pTextarea [(ngModel)]="refundNotes" [placeholder]="i18n.t('warrantyClaims.completeDialog.refundNotesPlaceholder')" rows="3" class="w-full"></textarea>
+        </div>
 
-    <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.returnedItemReceivedLabel') }}</label>
-      <p-select [(ngModel)]="refundReturnItemReceived"
-        [options]="[{label: i18n.t('warrantyClaims.completeDialog.returnedYesOption'), value:true},{label: i18n.t('warrantyClaims.completeDialog.returnedNoOption'), value:false}]"
-        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-    </div>
+        <div *ngIf="selectedClaim.serviceType === 'REFUND'" class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.returnedItemReceivedLabel') }}</label>
+            <p-select
+                [(ngModel)]="refundReturnItemReceived"
+                [options]="[
+                    { label: i18n.t('warrantyClaims.completeDialog.returnedYesOption'), value: true },
+                    { label: i18n.t('warrantyClaims.completeDialog.returnedNoOption'), value: false }
+                ]"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                appendTo="body"
+            ></p-select>
+        </div>
 
-    <div *ngIf="selectedClaim.serviceType === 'REFUND' && refundReturnItemReceived" class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.returnedStockHandlingLabel') }}</label>
-      <p-select [(ngModel)]="refundRestockAsSellable"
-        [options]="[{label: i18n.t('warrantyClaims.completeDialog.quarantineOption'), value:false},{label: i18n.t('warrantyClaims.completeDialog.sellableStockOption'), value:true}]"
-        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-      <small class="cell-secondary" style="display:block; margin-top:0.5rem;">
-        {{ i18n.t('warrantyClaims.completeDialog.quarantineHint') }}
-      </small>
-    </div>
+        <div *ngIf="selectedClaim.serviceType === 'REFUND' && refundReturnItemReceived" class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.returnedStockHandlingLabel') }}</label>
+            <p-select
+                [(ngModel)]="refundRestockAsSellable"
+                [options]="[
+                    { label: i18n.t('warrantyClaims.completeDialog.quarantineOption'), value: false },
+                    { label: i18n.t('warrantyClaims.completeDialog.sellableStockOption'), value: true }
+                ]"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                appendTo="body"
+            ></p-select>
+            <small class="cell-secondary" style="display: block; margin-top: 0.5rem">
+                {{ i18n.t('warrantyClaims.completeDialog.quarantineHint') }}
+            </small>
+        </div>
 
-    <!-- Replacement sourcing & defective return -->
-    <div *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.replacementSourceLabel') }}</label>
-      <p-select [(ngModel)]="replacementFromVendor"
-        [options]="[{label: i18n.t('warrantyClaims.completeDialog.dispatchNowOption'), value:false},{label: i18n.t('warrantyClaims.completeDialog.sourceFromVendorOption'), value:true}]"
-        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-      <small class="cell-secondary" style="display:block; margin-top:0.5rem;">
-        {{ i18n.t('warrantyClaims.completeDialog.replacementSourceHint') }}
-      </small>
-    </div>
+        <!-- Replacement sourcing & defective return -->
+        <div *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.replacementSourceLabel') }}</label>
+            <p-select
+                [(ngModel)]="replacementFromVendor"
+                [options]="[
+                    { label: i18n.t('warrantyClaims.completeDialog.dispatchNowOption'), value: false },
+                    { label: i18n.t('warrantyClaims.completeDialog.sourceFromVendorOption'), value: true }
+                ]"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                appendTo="body"
+            ></p-select>
+            <small class="cell-secondary" style="display: block; margin-top: 0.5rem">
+                {{ i18n.t('warrantyClaims.completeDialog.replacementSourceHint') }}
+            </small>
+        </div>
 
-    <div *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.defectiveReceivedLabel') }}</label>
-      <p-select [(ngModel)]="replacementReturnItemReceived"
-        [options]="[{label: i18n.t('warrantyClaims.completeDialog.defectiveYesOption'), value:true},{label: i18n.t('warrantyClaims.completeDialog.defectiveNotYetOption'), value:false}]"
-        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-      <small class="cell-secondary" style="display:block; margin-top:0.5rem;">
-        {{ i18n.t('warrantyClaims.completeDialog.defectiveReceivedHint') }}
-      </small>
+        <div *ngIf="selectedClaim.serviceType === 'REPLACEMENT'" class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.completeDialog.defectiveReceivedLabel') }}</label>
+            <p-select
+                [(ngModel)]="replacementReturnItemReceived"
+                [options]="[
+                    { label: i18n.t('warrantyClaims.completeDialog.defectiveYesOption'), value: true },
+                    { label: i18n.t('warrantyClaims.completeDialog.defectiveNotYetOption'), value: false }
+                ]"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                appendTo="body"
+            ></p-select>
+            <small class="cell-secondary" style="display: block; margin-top: 0.5rem">
+                {{ i18n.t('warrantyClaims.completeDialog.defectiveReceivedHint') }}
+            </small>
+        </div>
     </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showCompleteDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.completeDialog.markAsCompletedBtn')" class="p-button-success" icon="pi pi-check-circle"
-      [disabled]="!resolutionDetails.trim() || (selectedClaim?.serviceType === 'REFUND' && (!refundAmount || refundAmount <= 0))" (click)="completeClaim()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showCompleteDialog = false"></button>
+        <button
+            pButton
+            type="button"
+            [label]="i18n.t('warrantyClaims.completeDialog.markAsCompletedBtn')"
+            class="p-button-success"
+            icon="pi pi-check-circle"
+            [disabled]="!resolutionDetails.trim() || (selectedClaim?.serviceType === 'REFUND' && (!refundAmount || refundAmount <= 0))"
+            (click)="completeClaim()"
+        ></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== SERVICE COST DIALOG ==================== -->
-<p-dialog [(visible)]="showServiceCostDialog" [header]="i18n.t('warrantyClaims.serviceCostDialog.header')" [modal]="true"
-  [style]="{ width: '480px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner info-banner">
-      <i class="pi pi-dollar"></i>
-      <span>{{ i18n.t('warrantyClaims.serviceCostDialog.banner', { claimNumber: selectedClaim.claimNumber, partName: selectedClaim.partName }) }}<span *ngIf="selectedClaim.partLocalName"> ({{ selectedClaim.partLocalName }})</span></span>
-    </div>
+<p-dialog [(visible)]="showServiceCostDialog" [header]="i18n.t('warrantyClaims.serviceCostDialog.header')" [modal]="true" [style]="{ width: '480px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner info-banner">
+            <i class="pi pi-dollar"></i>
+            <span
+                >{{ i18n.t('warrantyClaims.serviceCostDialog.banner', { claimNumber: selectedClaim.claimNumber, partName: selectedClaim.partName }) }}<span *ngIf="selectedClaim.partLocalName"> ({{ selectedClaim.partLocalName }})</span></span
+            >
+        </div>
 
-    <div class="dialog-summary">
-      <div class="summary-row"><span>{{ i18n.t('warrantyClaims.serviceCostDialog.technicianLabel') }}</span><span>{{ selectedClaim.technicianName || '—' }}</span></div>
-      <div class="summary-row"><span>{{ i18n.t('warrantyClaims.serviceCostDialog.currentCostLabel') }}</span><span>{{ selectedClaim.serviceCost ? formatCurrency(selectedClaim.serviceCost) : i18n.t('warrantyClaims.notSet') }}</span></div>
-    </div>
+        <div class="dialog-summary">
+            <div class="summary-row">
+                <span>{{ i18n.t('warrantyClaims.serviceCostDialog.technicianLabel') }}</span
+                ><span>{{ selectedClaim.technicianName || '—' }}</span>
+            </div>
+            <div class="summary-row">
+                <span>{{ i18n.t('warrantyClaims.serviceCostDialog.currentCostLabel') }}</span
+                ><span>{{ selectedClaim.serviceCost ? formatCurrency(selectedClaim.serviceCost) : i18n.t('warrantyClaims.notSet') }}</span>
+            </div>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.serviceCostDialog.repairCostLabel') }}</label>
-      <p-inputNumber [(ngModel)]="serviceCost" mode="decimal" [min]="0" [minFractionDigits]="2"
-        [maxFractionDigits]="2" placeholder="0.00" styleClass="w-full"></p-inputNumber>
-      <small class="form-hint">{{ i18n.t('warrantyClaims.serviceCostDialog.repairCostHint') }}</small>
-    </div>
+        <div class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.serviceCostDialog.repairCostLabel') }}</label>
+            <p-inputNumber [(ngModel)]="serviceCost" mode="decimal" [min]="0" [minFractionDigits]="2" [maxFractionDigits]="2" placeholder="0.00" styleClass="w-full"></p-inputNumber>
+            <small class="form-hint">{{ i18n.t('warrantyClaims.serviceCostDialog.repairCostHint') }}</small>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.serviceCostDialog.serviceNotesLabel') }}</label>
-      <textarea pTextarea [(ngModel)]="serviceNotes"
-        [placeholder]="i18n.t('warrantyClaims.serviceCostDialog.serviceNotesPlaceholder')" rows="4" class="w-full"></textarea>
+        <div class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.serviceCostDialog.serviceNotesLabel') }}</label>
+            <textarea pTextarea [(ngModel)]="serviceNotes" [placeholder]="i18n.t('warrantyClaims.serviceCostDialog.serviceNotesPlaceholder')" rows="4" class="w-full"></textarea>
+        </div>
     </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showServiceCostDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.serviceCostDialog.saveCostBtn')" class="p-button-info" icon="pi pi-save"
-      (click)="updateServiceCost()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showServiceCostDialog = false"></button>
+        <button pButton type="button" [label]="i18n.t('warrantyClaims.serviceCostDialog.saveCostBtn')" class="p-button-info" icon="pi pi-save" (click)="updateServiceCost()"></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== CLOSE DIALOG ==================== -->
-<p-dialog [(visible)]="showCloseDialog" [header]="i18n.t('warrantyClaims.closeDialog.header')" [modal]="true"
-  [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner info-banner">
-      <i class="pi pi-lock"></i>
-      <span>{{ i18n.t('warrantyClaims.closeDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
-    </div>
+<p-dialog [(visible)]="showCloseDialog" [header]="i18n.t('warrantyClaims.closeDialog.header')" [modal]="true" [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner info-banner">
+            <i class="pi pi-lock"></i>
+            <span>{{ i18n.t('warrantyClaims.closeDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label">{{ i18n.t('warrantyClaims.closeDialog.closureNotesLabel') }}</label>
-      <textarea pTextarea [(ngModel)]="closureNotes" [placeholder]="i18n.t('warrantyClaims.closeDialog.closureNotesPlaceholder')" rows="3" class="w-full"></textarea>
+        <div class="form-group">
+            <label class="form-label">{{ i18n.t('warrantyClaims.closeDialog.closureNotesLabel') }}</label>
+            <textarea pTextarea [(ngModel)]="closureNotes" [placeholder]="i18n.t('warrantyClaims.closeDialog.closureNotesPlaceholder')" rows="3" class="w-full"></textarea>
+        </div>
     </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showCloseDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.closeDialog.closeClaimBtn')" class="p-button-secondary" icon="pi pi-lock" (click)="closeClaim()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showCloseDialog = false"></button>
+        <button pButton type="button" [label]="i18n.t('warrantyClaims.closeDialog.closeClaimBtn')" class="p-button-secondary" icon="pi pi-lock" (click)="closeClaim()"></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== SEND DEFECTIVE DIALOG ==================== -->
-<p-dialog [(visible)]="showSendDefectiveDialog" [header]="i18n.t('warrantyClaims.sendDefectiveDialog.header')" [modal]="true"
-  [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner warn-banner">
-      <i class="pi pi-send"></i>
-      <span>{{ i18n.t('warrantyClaims.sendDefectiveDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
-    </div>
+<p-dialog [(visible)]="showSendDefectiveDialog" [header]="i18n.t('warrantyClaims.sendDefectiveDialog.header')" [modal]="true" [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner warn-banner">
+            <i class="pi pi-send"></i>
+            <span>{{ i18n.t('warrantyClaims.sendDefectiveDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendDefectiveDialog.destinationTypeLabel') }}</label>
-      <p-select [(ngModel)]="sendDefectiveForm.partnerType"
-        [options]="[{label: i18n.t('parts.formDialog.warrantySeller'), value:'SELLER'},{label: i18n.t('parts.formDialog.warrantyManufacturer'), value:'MANUFACTURER'}]"
-        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-    </div>
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendDefectiveDialog.destinationTypeLabel') }}</label>
+            <p-select
+                [(ngModel)]="sendDefectiveForm.partnerType"
+                [options]="[
+                    { label: i18n.t('parts.formDialog.warrantySeller'), value: 'SELLER' },
+                    { label: i18n.t('parts.formDialog.warrantyManufacturer'), value: 'MANUFACTURER' }
+                ]"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                appendTo="body"
+            ></p-select>
+        </div>
 
-    <div class="form-group" *ngIf="sendDefectiveForm.partnerType === 'SELLER'">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendDefectiveDialog.sellerLabel') }}</label>
-      <p-select [(ngModel)]="sendDefectiveForm.supplierId" [options]="suppliers"
-        optionLabel="name" optionValue="id" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.sellerPlaceholder')" styleClass="w-full" appendTo="body"
-        [filter]="true" filterBy="name,contactPerson" [emptyMessage]="i18n.t('warrantyClaims.sendDefectiveDialog.noActiveSuppliers')">
-        <ng-template pTemplate="item" let-supplier>
-          <div>
-            <div>{{ supplier.name }}</div>
-            <div class="cell-secondary" style="font-size:0.78rem" *ngIf="supplier.contactPerson || supplier.phone">
-              <span *ngIf="supplier.contactPerson">{{ supplier.contactPerson }}</span>
-              <span *ngIf="supplier.contactPerson && supplier.phone"> · </span>
-              <span *ngIf="supplier.phone">{{ supplier.phone }}</span>
+        <div class="form-group" *ngIf="sendDefectiveForm.partnerType === 'SELLER'">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendDefectiveDialog.sellerLabel') }}</label>
+            <p-select
+                [(ngModel)]="sendDefectiveForm.supplierId"
+                [options]="suppliers"
+                optionLabel="name"
+                optionValue="id"
+                [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.sellerPlaceholder')"
+                styleClass="w-full"
+                appendTo="body"
+                [filter]="true"
+                filterBy="name,contactPerson"
+                [emptyMessage]="i18n.t('warrantyClaims.sendDefectiveDialog.noActiveSuppliers')"
+            >
+                <ng-template pTemplate="item" let-supplier>
+                    <div>
+                        <div>{{ supplier.name }}</div>
+                        <div class="cell-secondary" style="font-size: 0.78rem" *ngIf="supplier.contactPerson || supplier.phone">
+                            <span *ngIf="supplier.contactPerson">{{ supplier.contactPerson }}</span>
+                            <span *ngIf="supplier.contactPerson && supplier.phone"> · </span>
+                            <span *ngIf="supplier.phone">{{ supplier.phone }}</span>
+                        </div>
+                    </div>
+                </ng-template>
+            </p-select>
+            <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.supplierId">{{ i18n.t('warrantyClaims.sendDefectiveDialog.sellerError') }}</small>
+        </div>
+
+        <div class="form-group" *ngIf="sendDefectiveForm.partnerType === 'MANUFACTURER'">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendDefectiveDialog.manufacturerNameLabel') }}</label>
+            <input pInputText [(ngModel)]="sendDefectiveForm.manufacturerName" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.manufacturerNamePlaceholder')" />
+            <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.manufacturerName.trim()">{{ i18n.t('warrantyClaims.sendDefectiveDialog.manufacturerNameError') }}</small>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendDefectiveDialog.responsibleByLabel') }}</label>
+            <input pInputText [(ngModel)]="sendDefectiveForm.responsibleBy" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.responsibleByPlaceholder')" />
+            <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.responsibleBy.trim()">{{ i18n.t('warrantyClaims.sendDefectiveDialog.responsibleByError') }}</small>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">{{ i18n.t('warrantyClaims.sendDefectiveDialog.referenceNumberLabel') }}</label>
+                <input pInputText [(ngModel)]="sendDefectiveForm.referenceNumber" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.referencePlaceholder')" />
             </div>
-          </div>
-        </ng-template>
-      </p-select>
-      <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.supplierId">{{ i18n.t('warrantyClaims.sendDefectiveDialog.sellerError') }}</small>
+            <div class="form-group">
+                <label class="form-label">{{ i18n.t('common.labels.notes') }}</label>
+                <input pInputText [(ngModel)]="sendDefectiveForm.notes" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.notesPlaceholder')" />
+            </div>
+        </div>
     </div>
-
-    <div class="form-group" *ngIf="sendDefectiveForm.partnerType === 'MANUFACTURER'">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendDefectiveDialog.manufacturerNameLabel') }}</label>
-      <input pInputText [(ngModel)]="sendDefectiveForm.manufacturerName" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.manufacturerNamePlaceholder')" />
-      <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.manufacturerName.trim()">{{ i18n.t('warrantyClaims.sendDefectiveDialog.manufacturerNameError') }}</small>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendDefectiveDialog.responsibleByLabel') }}</label>
-      <input pInputText [(ngModel)]="sendDefectiveForm.responsibleBy" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.responsibleByPlaceholder')" />
-      <small class="p-error" *ngIf="sendDefectiveSubmitted && !sendDefectiveForm.responsibleBy.trim()">{{ i18n.t('warrantyClaims.sendDefectiveDialog.responsibleByError') }}</small>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">{{ i18n.t('warrantyClaims.sendDefectiveDialog.referenceNumberLabel') }}</label>
-        <input pInputText [(ngModel)]="sendDefectiveForm.referenceNumber" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.referencePlaceholder')" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ i18n.t('common.labels.notes') }}</label>
-        <input pInputText [(ngModel)]="sendDefectiveForm.notes" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendDefectiveDialog.notesPlaceholder')" />
-      </div>
-    </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showSendDefectiveDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.sendDefectiveDialog.sendDefectiveBtn')" icon="pi pi-send" class="p-button-warning"
-      [disabled]="((sendDefectiveForm.partnerType === 'SELLER' && !sendDefectiveForm.supplierId) || (sendDefectiveForm.partnerType === 'MANUFACTURER' && !sendDefectiveForm.manufacturerName.trim()) || !sendDefectiveForm.responsibleBy.trim())"
-      (click)="submitSendDefective()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showSendDefectiveDialog = false"></button>
+        <button
+            pButton
+            type="button"
+            [label]="i18n.t('warrantyClaims.sendDefectiveDialog.sendDefectiveBtn')"
+            icon="pi pi-send"
+            class="p-button-warning"
+            [disabled]="(sendDefectiveForm.partnerType === 'SELLER' && !sendDefectiveForm.supplierId) || (sendDefectiveForm.partnerType === 'MANUFACTURER' && !sendDefectiveForm.manufacturerName.trim()) || !sendDefectiveForm.responsibleBy.trim()"
+            (click)="submitSendDefective()"
+        ></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== RECEIVE REPLACEMENT DIALOG ==================== -->
-<p-dialog [(visible)]="showReceiveReplacementDialog" [header]="i18n.t('warrantyClaims.receiveReplacementDialog.header')" [modal]="true"
-  [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner success-banner">
-      <i class="pi pi-download"></i>
-      <span>{{ i18n.t('warrantyClaims.receiveReplacementDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
-    </div>
+<p-dialog [(visible)]="showReceiveReplacementDialog" [header]="i18n.t('warrantyClaims.receiveReplacementDialog.header')" [modal]="true" [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner success-banner">
+            <i class="pi pi-download"></i>
+            <span>{{ i18n.t('warrantyClaims.receiveReplacementDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.receiveReplacementDialog.sourceTypeLabel') }}</label>
-      <p-select [(ngModel)]="receiveReplacementForm.partnerType"
-        [options]="[{label: i18n.t('parts.formDialog.warrantySeller'), value:'SELLER'},{label: i18n.t('parts.formDialog.warrantyManufacturer'), value:'MANUFACTURER'}]"
-        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-    </div>
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.receiveReplacementDialog.sourceTypeLabel') }}</label>
+            <p-select
+                [(ngModel)]="receiveReplacementForm.partnerType"
+                [options]="[
+                    { label: i18n.t('parts.formDialog.warrantySeller'), value: 'SELLER' },
+                    { label: i18n.t('parts.formDialog.warrantyManufacturer'), value: 'MANUFACTURER' }
+                ]"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                appendTo="body"
+            ></p-select>
+        </div>
 
-    <div class="form-group" *ngIf="receiveReplacementForm.partnerType === 'SELLER'">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.receiveReplacementDialog.sellerLabel') }}</label>
-      <p-select [(ngModel)]="receiveReplacementForm.supplierId" [options]="suppliers"
-        optionLabel="name" optionValue="id" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.sellerPlaceholder')" styleClass="w-full" appendTo="body"
-        [filter]="true" filterBy="name,contactPerson" [emptyMessage]="i18n.t('warrantyClaims.receiveReplacementDialog.noActiveSuppliers')">
-        <ng-template pTemplate="item" let-supplier>
-          <div>
-            <div>{{ supplier.name }}</div>
-            <div class="cell-secondary" style="font-size:0.78rem" *ngIf="supplier.contactPerson || supplier.phone">
-              <span *ngIf="supplier.contactPerson">{{ supplier.contactPerson }}</span>
-              <span *ngIf="supplier.contactPerson && supplier.phone"> · </span>
-              <span *ngIf="supplier.phone">{{ supplier.phone }}</span>
+        <div class="form-group" *ngIf="receiveReplacementForm.partnerType === 'SELLER'">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.receiveReplacementDialog.sellerLabel') }}</label>
+            <p-select
+                [(ngModel)]="receiveReplacementForm.supplierId"
+                [options]="suppliers"
+                optionLabel="name"
+                optionValue="id"
+                [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.sellerPlaceholder')"
+                styleClass="w-full"
+                appendTo="body"
+                [filter]="true"
+                filterBy="name,contactPerson"
+                [emptyMessage]="i18n.t('warrantyClaims.receiveReplacementDialog.noActiveSuppliers')"
+            >
+                <ng-template pTemplate="item" let-supplier>
+                    <div>
+                        <div>{{ supplier.name }}</div>
+                        <div class="cell-secondary" style="font-size: 0.78rem" *ngIf="supplier.contactPerson || supplier.phone">
+                            <span *ngIf="supplier.contactPerson">{{ supplier.contactPerson }}</span>
+                            <span *ngIf="supplier.contactPerson && supplier.phone"> · </span>
+                            <span *ngIf="supplier.phone">{{ supplier.phone }}</span>
+                        </div>
+                    </div>
+                </ng-template>
+            </p-select>
+            <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.supplierId">{{ i18n.t('warrantyClaims.receiveReplacementDialog.sellerError') }}</small>
+        </div>
+
+        <div class="form-group" *ngIf="receiveReplacementForm.partnerType === 'MANUFACTURER'">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.receiveReplacementDialog.manufacturerNameLabel') }}</label>
+            <input pInputText [(ngModel)]="receiveReplacementForm.manufacturerName" class="w-full" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.manufacturerNamePlaceholder')" />
+            <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.manufacturerName.trim()">{{ i18n.t('warrantyClaims.receiveReplacementDialog.manufacturerNameError') }}</small>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.receiveReplacementDialog.responsibleByLabel') }}</label>
+            <input pInputText [(ngModel)]="receiveReplacementForm.responsibleBy" class="w-full" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.responsibleByPlaceholder')" />
+            <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.responsibleBy.trim()">{{ i18n.t('warrantyClaims.receiveReplacementDialog.responsibleByError') }}</small>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">{{ i18n.t('warrantyClaims.receiveReplacementDialog.referenceNumberLabel') }}</label>
+                <input pInputText [(ngModel)]="receiveReplacementForm.referenceNumber" class="w-full" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.referencePlaceholder')" />
             </div>
-          </div>
-        </ng-template>
-      </p-select>
-      <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.supplierId">{{ i18n.t('warrantyClaims.receiveReplacementDialog.sellerError') }}</small>
+            <div class="form-group">
+                <label class="form-label">{{ i18n.t('common.labels.notes') }}</label>
+                <input pInputText [(ngModel)]="receiveReplacementForm.notes" class="w-full" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.notesPlaceholder')" />
+            </div>
+        </div>
     </div>
-
-    <div class="form-group" *ngIf="receiveReplacementForm.partnerType === 'MANUFACTURER'">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.receiveReplacementDialog.manufacturerNameLabel') }}</label>
-      <input pInputText [(ngModel)]="receiveReplacementForm.manufacturerName" class="w-full" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.manufacturerNamePlaceholder')" />
-      <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.manufacturerName.trim()">{{ i18n.t('warrantyClaims.receiveReplacementDialog.manufacturerNameError') }}</small>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.receiveReplacementDialog.responsibleByLabel') }}</label>
-      <input pInputText [(ngModel)]="receiveReplacementForm.responsibleBy" class="w-full" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.responsibleByPlaceholder')" />
-      <small class="p-error" *ngIf="receiveReplacementSubmitted && !receiveReplacementForm.responsibleBy.trim()">{{ i18n.t('warrantyClaims.receiveReplacementDialog.responsibleByError') }}</small>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">{{ i18n.t('warrantyClaims.receiveReplacementDialog.referenceNumberLabel') }}</label>
-        <input pInputText [(ngModel)]="receiveReplacementForm.referenceNumber" class="w-full" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.referencePlaceholder')" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ i18n.t('common.labels.notes') }}</label>
-        <input pInputText [(ngModel)]="receiveReplacementForm.notes" class="w-full" [placeholder]="i18n.t('warrantyClaims.receiveReplacementDialog.notesPlaceholder')" />
-      </div>
-    </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showReceiveReplacementDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.receiveReplacementDialog.receiveReplacementBtn')" icon="pi pi-download" class="p-button-success"
-      [disabled]="((receiveReplacementForm.partnerType === 'SELLER' && !receiveReplacementForm.supplierId) || (receiveReplacementForm.partnerType === 'MANUFACTURER' && !receiveReplacementForm.manufacturerName.trim()) || !receiveReplacementForm.responsibleBy.trim())"
-      (click)="submitReceiveReplacement()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showReceiveReplacementDialog = false"></button>
+        <button
+            pButton
+            type="button"
+            [label]="i18n.t('warrantyClaims.receiveReplacementDialog.receiveReplacementBtn')"
+            icon="pi pi-download"
+            class="p-button-success"
+            [disabled]="
+                (receiveReplacementForm.partnerType === 'SELLER' && !receiveReplacementForm.supplierId) ||
+                (receiveReplacementForm.partnerType === 'MANUFACTURER' && !receiveReplacementForm.manufacturerName.trim()) ||
+                !receiveReplacementForm.responsibleBy.trim()
+            "
+            (click)="submitReceiveReplacement()"
+        ></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== SEND FOR REPAIR DIALOG ==================== -->
-<p-dialog [(visible)]="showSendForRepairDialog" [header]="i18n.t('warrantyClaims.sendForRepairDialog.header')" [modal]="true"
-  [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
-  <div *ngIf="selectedClaim" class="dialog-body">
-    <div class="dialog-info-banner">
-      <i class="pi pi-truck"></i>
-      <span>{{ i18n.t('warrantyClaims.sendForRepairDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
-    </div>
+<p-dialog [(visible)]="showSendForRepairDialog" [header]="i18n.t('warrantyClaims.sendForRepairDialog.header')" [modal]="true" [style]="{ width: '560px' }" [draggable]="false" [resizable]="false">
+    <div *ngIf="selectedClaim" class="dialog-body">
+        <div class="dialog-info-banner">
+            <i class="pi pi-truck"></i>
+            <span>{{ i18n.t('warrantyClaims.sendForRepairDialog.banner', { claimNumber: selectedClaim.claimNumber }) }}</span>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendForRepairDialog.partnerTypeLabel') }}</label>
-      <p-select [(ngModel)]="sendForRepairForm.partnerType"
-        [options]="[{label: i18n.t('warrantyClaims.sendForRepairDialog.manufacturerOption'), value:'MANUFACTURER'},{label: i18n.t('warrantyClaims.sendForRepairDialog.supplierOption'), value:'SUPPLIER'}]"
-        optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-select>
-    </div>
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendForRepairDialog.partnerTypeLabel') }}</label>
+            <p-select
+                [(ngModel)]="sendForRepairForm.partnerType"
+                [options]="[
+                    { label: i18n.t('warrantyClaims.sendForRepairDialog.manufacturerOption'), value: 'MANUFACTURER' },
+                    { label: i18n.t('warrantyClaims.sendForRepairDialog.supplierOption'), value: 'SUPPLIER' }
+                ]"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                appendTo="body"
+            ></p-select>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendForRepairDialog.partnerNameLabel') }}</label>
-      <input pInputText [(ngModel)]="sendForRepairForm.partnerName" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendForRepairDialog.partnerNamePlaceholder')" />
-      <small class="p-error" *ngIf="sendForRepairSubmitted && !sendForRepairForm.partnerName.trim()">{{ i18n.t('warrantyClaims.sendForRepairDialog.partnerNameError') }}</small>
-    </div>
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendForRepairDialog.partnerNameLabel') }}</label>
+            <input pInputText [(ngModel)]="sendForRepairForm.partnerName" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendForRepairDialog.partnerNamePlaceholder')" />
+            <small class="p-error" *ngIf="sendForRepairSubmitted && !sendForRepairForm.partnerName.trim()">{{ i18n.t('warrantyClaims.sendForRepairDialog.partnerNameError') }}</small>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendForRepairDialog.responsibleByLabel') }}</label>
-      <input pInputText [(ngModel)]="sendForRepairForm.responsibleBy" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendForRepairDialog.responsibleByPlaceholder')" />
-      <small class="p-error" *ngIf="sendForRepairSubmitted && !sendForRepairForm.responsibleBy.trim()">{{ i18n.t('warrantyClaims.sendForRepairDialog.responsibleByError') }}</small>
-    </div>
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.sendForRepairDialog.responsibleByLabel') }}</label>
+            <input pInputText [(ngModel)]="sendForRepairForm.responsibleBy" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendForRepairDialog.responsibleByPlaceholder')" />
+            <small class="p-error" *ngIf="sendForRepairSubmitted && !sendForRepairForm.responsibleBy.trim()">{{ i18n.t('warrantyClaims.sendForRepairDialog.responsibleByError') }}</small>
+        </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">{{ i18n.t('warrantyClaims.sendForRepairDialog.referenceNumberLabel') }}</label>
-        <input pInputText [(ngModel)]="sendForRepairForm.referenceNumber" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendForRepairDialog.referencePlaceholder')" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ i18n.t('warrantyClaims.sendForRepairDialog.expectedReturnLabel') }}</label>
-        <p-datepicker [(ngModel)]="sendForRepairForm.expectedReturnDate" dateFormat="yy-mm-dd" styleClass="w-full" appendTo="body"></p-datepicker>
-      </div>
-    </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">{{ i18n.t('warrantyClaims.sendForRepairDialog.referenceNumberLabel') }}</label>
+                <input pInputText [(ngModel)]="sendForRepairForm.referenceNumber" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendForRepairDialog.referencePlaceholder')" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">{{ i18n.t('warrantyClaims.sendForRepairDialog.expectedReturnLabel') }}</label>
+                <p-datepicker [(ngModel)]="sendForRepairForm.expectedReturnDate" dateFormat="yy-mm-dd" styleClass="w-full" appendTo="body"></p-datepicker>
+            </div>
+        </div>
 
-    <div class="form-group">
-      <label class="form-label">{{ i18n.t('common.labels.notes') }}</label>
-      <input pInputText [(ngModel)]="sendForRepairForm.notes" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendForRepairDialog.notesPlaceholder')" />
+        <div class="form-group">
+            <label class="form-label">{{ i18n.t('common.labels.notes') }}</label>
+            <input pInputText [(ngModel)]="sendForRepairForm.notes" class="w-full" [placeholder]="i18n.t('warrantyClaims.sendForRepairDialog.notesPlaceholder')" />
+        </div>
     </div>
-  </div>
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showSendForRepairDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.sendForRepairDialog.sendForRepairBtn')" icon="pi pi-truck" class="p-button-warning"
-      [disabled]="!sendForRepairForm.partnerName.trim() || !sendForRepairForm.responsibleBy.trim()"
-      (click)="submitSendForRepair()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showSendForRepairDialog = false"></button>
+        <button
+            pButton
+            type="button"
+            [label]="i18n.t('warrantyClaims.sendForRepairDialog.sendForRepairBtn')"
+            icon="pi pi-truck"
+            class="p-button-warning"
+            [disabled]="!sendForRepairForm.partnerName.trim() || !sendForRepairForm.responsibleBy.trim()"
+            (click)="submitSendForRepair()"
+        ></button>
+    </ng-template>
 </p-dialog>
 
 <!-- ==================== CREATE CLAIM DIALOG ==================== -->
-<p-dialog [(visible)]="showCreateDialog" [header]="i18n.t('warrantyClaims.createDialog.header')" [modal]="true"
-  [style]="{ width: '650px' }" [draggable]="false" [resizable]="false">
-  <div class="dialog-body">
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.createDialog.warrantyRegistrationLabel') }}</label>
-      <p-autoComplete [(ngModel)]="selectedWarranty" [suggestions]="filteredWarranties"
-        (completeMethod)="searchWarranties($event)" (onSelect)="onWarrantySelect($event)"
-        field="warrantyNumber" [placeholder]="i18n.t('warrantyClaims.createDialog.searchPlaceholder')"
-        [dropdown]="true" [forceSelection]="true" styleClass="w-full" [appendTo]="'body'">
-        <ng-template let-warranty pTemplate="item">
-          <div class="warranty-suggestion">
-            <div><strong>{{ warranty.warrantyNumber }}</strong> — {{ warranty.partName }}</div>
-            <div class="cell-secondary">{{ warranty.customerName }} · {{ i18n.t('warranties.dialog.certificate') }}: {{ warranty.certificateNumber }}</div>
-            <div class="cell-secondary">{{ i18n.t('warrantyClaims.createDialog.expiresLabel') }} {{ formatDate(warranty.warrantyExpiryDate) }}</div>
-          </div>
-        </ng-template>
-      </p-autoComplete>
-      <small class="form-hint">{{ i18n.t('warrantyClaims.createDialog.hint') }}</small>
-      <small class="p-error" *ngIf="createClaimSubmitted && !selectedWarranty">{{ i18n.t('warrantyClaims.createDialog.warrantyError') }}</small>
+<p-dialog [(visible)]="showCreateDialog" [header]="i18n.t('warrantyClaims.createDialog.header')" [modal]="true" [style]="{ width: '650px' }" [draggable]="false" [resizable]="false">
+    <div class="dialog-body">
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.createDialog.warrantyRegistrationLabel') }}</label>
+            <p-autoComplete
+                [(ngModel)]="selectedWarranty"
+                [suggestions]="filteredWarranties"
+                (completeMethod)="searchWarranties($event)"
+                (onSelect)="onWarrantySelect($event)"
+                field="warrantyNumber"
+                [placeholder]="i18n.t('warrantyClaims.createDialog.searchPlaceholder')"
+                [dropdown]="true"
+                [forceSelection]="true"
+                styleClass="w-full"
+                [appendTo]="'body'"
+            >
+                <ng-template let-warranty pTemplate="item">
+                    <div class="warranty-suggestion">
+                        <div>
+                            <strong>{{ warranty.warrantyNumber }}</strong> — {{ warranty.partName }}
+                        </div>
+                        <div class="cell-secondary">{{ warranty.customerName }} · {{ i18n.t('warranties.dialog.certificate') }}: {{ warranty.certificateNumber }}</div>
+                        <div class="cell-secondary">{{ i18n.t('warrantyClaims.createDialog.expiresLabel') }} {{ formatDate(warranty.warrantyExpiryDate) }}</div>
+                    </div>
+                </ng-template>
+            </p-autoComplete>
+            <small class="form-hint">{{ i18n.t('warrantyClaims.createDialog.hint') }}</small>
+            <small class="p-error" *ngIf="createClaimSubmitted && !selectedWarranty">{{ i18n.t('warrantyClaims.createDialog.warrantyError') }}</small>
+        </div>
+
+        <div *ngIf="selectedWarranty" class="selected-warranty-card">
+            <div class="warranty-card-grid">
+                <div>
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.warrantyLabel') }}</span> {{ selectedWarranty.warrantyNumber }}
+                </div>
+                <div>
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.certificateLabel') }}</span> {{ selectedWarranty.certificateNumber }}
+                </div>
+                <div>
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.partLabel') }}</span> {{ selectedWarranty.partName }} ({{ selectedWarranty.partSKU }})
+                </div>
+                <div>
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.customerLabel') }}</span> {{ selectedWarranty.customerName }}
+                </div>
+                <div>
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.coverageTypeLabel') }}</span> {{ getCoverageTypeLabel(selectedWarranty.warrantyType) }}
+                </div>
+                <div>
+                    <span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.expiresLabel') }}</span> {{ formatDate(selectedWarranty.warrantyExpiryDate) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.createDialog.claimDateLabel') }}</label>
+                <p-datePicker [(ngModel)]="newClaim.claimDate" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full" appendTo="body"></p-datePicker>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.createDialog.resolutionMethodLabel') }}</label>
+                <p-select
+                    [(ngModel)]="newClaim.serviceType"
+                    [options]="serviceTypes"
+                    optionLabel="label"
+                    optionValue="value"
+                    [placeholder]="i18n.t('warrantyClaims.createDialog.resolutionMethodPlaceholder')"
+                    styleClass="w-full"
+                    appendTo="body"
+                ></p-select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.createDialog.issueDescriptionLabel') }}</label>
+            <textarea pTextarea [(ngModel)]="newClaim.issueDescription" [placeholder]="i18n.t('warrantyClaims.createDialog.issueDescriptionPlaceholder')" rows="5" class="w-full"></textarea>
+            <small class="form-hint">{{ i18n.t('warrantyClaims.createDialog.issueDescriptionHint') }}</small>
+            <small class="p-error" *ngIf="createClaimSubmitted && !newClaim.issueDescription.trim()">{{ i18n.t('warrantyClaims.createDialog.issueDescriptionError') }}</small>
+        </div>
     </div>
 
-    <div *ngIf="selectedWarranty" class="selected-warranty-card">
-      <div class="warranty-card-grid">
-        <div><span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.warrantyLabel') }}</span> {{ selectedWarranty.warrantyNumber }}</div>
-        <div><span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.certificateLabel') }}</span> {{ selectedWarranty.certificateNumber }}</div>
-        <div><span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.partLabel') }}</span> {{ selectedWarranty.partName }} ({{ selectedWarranty.partSKU }})</div>
-        <div><span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.customerLabel') }}</span> {{ selectedWarranty.customerName }}</div>
-        <div><span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.coverageTypeLabel') }}</span> {{ getCoverageTypeLabel(selectedWarranty.warrantyType) }}</div>
-        <div><span class="detail-label">{{ i18n.t('warrantyClaims.createDialog.expiresLabel') }}</span> {{ formatDate(selectedWarranty.warrantyExpiryDate) }}</div>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.createDialog.claimDateLabel') }}</label>
-        <p-datePicker [(ngModel)]="newClaim.claimDate" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full" appendTo="body"></p-datePicker>
-      </div>
-      <div class="form-group">
-        <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.createDialog.resolutionMethodLabel') }}</label>
-        <p-select [(ngModel)]="newClaim.serviceType" [options]="serviceTypes" optionLabel="label"
-          optionValue="value" [placeholder]="i18n.t('warrantyClaims.createDialog.resolutionMethodPlaceholder')" styleClass="w-full" appendTo="body"></p-select>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label"><span class="required">*</span> {{ i18n.t('warrantyClaims.createDialog.issueDescriptionLabel') }}</label>
-      <textarea pTextarea [(ngModel)]="newClaim.issueDescription"
-        [placeholder]="i18n.t('warrantyClaims.createDialog.issueDescriptionPlaceholder')" rows="5" class="w-full"></textarea>
-      <small class="form-hint">{{ i18n.t('warrantyClaims.createDialog.issueDescriptionHint') }}</small>
-      <small class="p-error" *ngIf="createClaimSubmitted && !newClaim.issueDescription.trim()">{{ i18n.t('warrantyClaims.createDialog.issueDescriptionError') }}</small>
-    </div>
-  </div>
-
-  <ng-template #footer>
-    <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showCreateDialog = false"></button>
-    <button pButton type="button" [label]="i18n.t('warrantyClaims.createDialog.createClaimBtn')" class="p-button-success" icon="pi pi-plus"
-      [disabled]="!selectedWarranty || !newClaim.issueDescription.trim()" (click)="createClaim()"></button>
-  </ng-template>
+    <ng-template #footer>
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" (click)="showCreateDialog = false"></button>
+        <button pButton type="button" [label]="i18n.t('warrantyClaims.createDialog.createClaimBtn')" class="p-button-success" icon="pi pi-plus" [disabled]="!selectedWarranty || !newClaim.issueDescription.trim()" (click)="createClaim()"></button>
+    </ng-template>
 </p-dialog>

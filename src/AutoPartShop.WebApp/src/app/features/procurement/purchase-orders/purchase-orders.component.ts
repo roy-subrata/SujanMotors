@@ -6,6 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DatePicker } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { MenuModule } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
@@ -16,15 +17,30 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-purchase-orders',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent, HasRoleDirective, PageContainerComponent, PageHeaderComponent, FilterBarComponent, StatusPillFilterComponent, MoreFiltersDialogComponent, TranslatePipe],
+    imports: [
+        CommonModule,
+        FormsModule,
+        ButtonModule,
+        ToastModule,
+        ConfirmDialogModule,
+        DatePicker,
+        SelectModule,
+        MenuModule,
+        TooltipModule,
+        PurchaseOrdersListComponent,
+        PurchaseOrdersFormDialogComponent,
+        HasRoleDirective,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        TranslatePipe
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './purchase-orders.component.html',
     styleUrls: ['./purchase-orders.component.css']
@@ -46,7 +62,6 @@ export class PurchaseOrdersComponent implements OnInit {
     searchTerm = '';
     filterStatus = '';
     dateRange: Date[] | null = null;
-    moreFiltersVisible = false;
 
     /** Getter, not a field: a field freezes the labels in the language active at construction. */
     get statusOptions() {
@@ -181,11 +196,6 @@ export class PurchaseOrdersComponent implements OnInit {
     onFilterChange(): void {
         // TODO: Implement filtering logic with status and date range
         this.loadPurchaseOrders(1, this.rows, this.searchTerm);
-    }
-
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value;
-        this.onFilterChange();
     }
 
     /**

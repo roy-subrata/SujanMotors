@@ -11,6 +11,7 @@ import { MenuModule, Menu } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { SelectModule } from 'primeng/select';
 
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
@@ -21,8 +22,6 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
@@ -41,12 +40,11 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         TooltipModule,
         ToastModule,
         ConfirmDialogModule,
+        SelectModule,
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
-        StatusPillFilterComponent,
-        MoreFiltersDialogComponent,
         TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
@@ -85,17 +83,11 @@ export class DebitNotesListComponent implements OnInit {
     }
 
     actionMenuItems: MenuItem[] = [];
-    moreFiltersVisible = false;
 
     Math = Math;
 
     ngOnInit(): void {
         this.loadData();
-    }
-
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value as CustomerDebitNoteStatus | '';
-        this.onFilterChange();
     }
 
     private buildActionMenuItems(debitNote: CustomerDebitNoteResponse): void {
@@ -278,11 +270,12 @@ export class DebitNotesListComponent implements OnInit {
 
     formatStatus(status: string): string {
         if (!status) return '-';
-        const key = 'debitNotes.statusOptions.' + status.toLowerCase()
-            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const key = 'debitNotes.statusOptions.' + status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
         const label = this.i18n.t(key);
         if (label !== key) return label;
-        return status.split('_')
-            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+        return status
+            .split('_')
+            .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+            .join(' ');
     }
 }

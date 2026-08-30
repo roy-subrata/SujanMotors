@@ -7,128 +7,110 @@
 <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
 
 <app-page-container>
-  <!-- ==================== PAGE HEADER ==================== -->
-  <app-page-header
-    [title]="'purchaseOrders.listTitle' | translate"
-    [subtitle]="'purchaseOrders.subtitle' | translate"
-    [count]="totalRecords" [countLabel]="'purchaseOrders.countLabel' | translate">
-    <ng-container actions>
-      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
-        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-      </button>
-      <button class="btn-icon" [pTooltip]="'purchaseOrders.moreOptions' | translate" tooltipPosition="bottom" (click)="menu.toggle($event)">
-        <i class="pi pi-ellipsis-v"></i>
-      </button>
-      <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
-        <i class="pi pi-plus"></i>
-        <span>{{ 'purchaseOrders.newOrder' | translate }}</span>
-      </button>
-    </ng-container>
-  </app-page-header>
+    <!-- ==================== PAGE HEADER ==================== -->
+    <app-page-header [title]="'purchaseOrders.listTitle' | translate" [subtitle]="'purchaseOrders.subtitle' | translate" [count]="totalRecords" [countLabel]="'purchaseOrders.countLabel' | translate">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="loadPurchaseOrders(currentPage, rows, searchTerm)">
+                <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+            </button>
+            <button class="btn-icon" [pTooltip]="'purchaseOrders.moreOptions' | translate" tooltipPosition="bottom" (click)="menu.toggle($event)">
+                <i class="pi pi-ellipsis-v"></i>
+            </button>
+            <button *appHasRole="['Admin', 'Manager']" class="btn-primary" (click)="onCreateClick()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'purchaseOrders.newOrder' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== FILTER SECTION ==================== -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input
-          type="text"
-          [(ngModel)]="searchTerm"
-          [placeholder]="'purchaseOrders.searchPlaceholder' | translate"
-          (keyup.enter)="onSearch()"
-          class="search-input" />
-        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-    </div>
+    <!-- ==================== FILTER SECTION ==================== -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'purchaseOrders.searchPlaceholder' | translate" (keyup.enter)="onSearch()" class="search-input" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+        </div>
 
-    <div filters class="filter-group">
-      <app-status-pill-filter
-        [options]="statusOptions"
-        [value]="filterStatus"
-        (valueChange)="onStatusFilterChange($event)">
-      </app-status-pill-filter>
-    </div>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'purchaseOrders.statusOptions.all' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
 
-    <div filters class="filter-group">
-      <p-datepicker
-        [(ngModel)]="dateRange"
-        selectionMode="range"
-        [placeholder]="'purchaseOrders.dateRangePlaceholder' | translate"
-        dateFormat="dd M yy"
-        [showIcon]="true"
-        [showButtonBar]="true"
-        (onSelect)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-datepicker">
-      </p-datepicker>
-    </div>
+        <div filters class="filter-group">
+            <p-datepicker
+                [(ngModel)]="dateRange"
+                selectionMode="range"
+                [placeholder]="'purchaseOrders.dateRangePlaceholder' | translate"
+                dateFormat="dd M yy"
+                [showIcon]="true"
+                [showButtonBar]="true"
+                (onSelect)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-datepicker"
+            >
+            </p-datepicker>
+        </div>
 
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()">
-        <i class="pi pi-search"></i>
-        {{ 'common.listPage.searchChip' | translate }}
-      </button>
-      <button class="text-btn" (click)="moreFiltersVisible = true">
-        More filters
-      </button>
-      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i>
-        {{ 'common.actions.clear' | translate }}
-      </button>
-    </div>
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()">
+                <i class="pi pi-search"></i>
+                {{ 'common.listPage.searchChip' | translate }}
+            </button>
+            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+                <i class="pi pi-filter-slash"></i>
+                {{ 'common.actions.clear' | translate }}
+            </button>
+        </div>
 
-    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
-      <span *ngIf="searchTerm" class="filter-chip">
-        {{ 'common.listPage.searchChip' | translate }}: "{{ searchTerm }}"
-        <i class="pi pi-times" (click)="clearSearch()"></i>
-      </span>
-      <span *ngIf="filterStatus" class="filter-chip">
-        {{ 'common.listPage.statusChip' | translate }}: {{ filterStatus }}
-        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
-      </span>
-      <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
-        {{ 'common.listPage.dateRangeChip' | translate }}
-        <i class="pi pi-times" (click)="dateRange = null; onFilterChange()"></i>
-      </span>
-    </div>
-  </app-filter-bar>
+        <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
+            <span *ngIf="searchTerm" class="filter-chip">
+                {{ 'common.listPage.searchChip' | translate }}: "{{ searchTerm }}"
+                <i class="pi pi-times" (click)="clearSearch()"></i>
+            </span>
+            <span *ngIf="filterStatus" class="filter-chip">
+                {{ 'common.listPage.statusChip' | translate }}: {{ filterStatus }}
+                <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+            </span>
+            <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
+                {{ 'common.listPage.dateRangeChip' | translate }}
+                <i class="pi pi-times" (click)="dateRange = null; onFilterChange()"></i>
+            </span>
+        </div>
+    </app-filter-bar>
 
-  <app-more-filters-dialog
-    [options]="statusOptions"
-    [selected]="filterStatus"
-    [previewCount]="totalRecords"
-    [(visible)]="moreFiltersVisible"
-    (apply)="onStatusFilterChange($event)">
-  </app-more-filters-dialog>
-
-  <!-- ==================== TABLE + CARDS ==================== -->
-  <section class="table-section">
-    <app-purchase-orders-list
-      [purchaseOrders]="purchaseOrders"
-      [loading]="loading"
-      [totalRecords]="totalRecords"
-      [rows]="rows"
-      [currentPage]="currentPage"
-      [searchTerm]="searchTerm"
-      (editClick)="onEditClick($event)"
-      (pageChange)="onPageChange($event)"
-      (poDeleted)="onPurchaseOrderDeleted()">
-    </app-purchase-orders-list>
-  </section>
+    <!-- ==================== TABLE + CARDS ==================== -->
+    <section class="table-section">
+        <app-purchase-orders-list
+            [purchaseOrders]="purchaseOrders"
+            [loading]="loading"
+            [totalRecords]="totalRecords"
+            [rows]="rows"
+            [currentPage]="currentPage"
+            [searchTerm]="searchTerm"
+            (editClick)="onEditClick($event)"
+            (pageChange)="onPageChange($event)"
+            (poDeleted)="onPurchaseOrderDeleted()"
+        >
+        </app-purchase-orders-list>
+    </section>
 </app-page-container>
 
 <!-- Create/Edit Dialogs -->
-<app-purchase-orders-form-dialog
-  [(visible)]="displayCreateDialog"
-  [purchaseOrder]="null"
-  (submitted)="onPurchaseOrderCreated($any($event))">
-</app-purchase-orders-form-dialog>
+<app-purchase-orders-form-dialog [(visible)]="displayCreateDialog" [purchaseOrder]="null" (submitted)="onPurchaseOrderCreated($any($event))"> </app-purchase-orders-form-dialog>
 
-<app-purchase-orders-form-dialog
-  [(visible)]="displayUpdateDialog"
-  [purchaseOrder]="selectedPurchaseOrder"
-  (submitted)="onPurchaseOrderUpdated($any($event))">
-</app-purchase-orders-form-dialog>
+<app-purchase-orders-form-dialog [(visible)]="displayUpdateDialog" [purchaseOrder]="selectedPurchaseOrder" (submitted)="onPurchaseOrderUpdated($any($event))"> </app-purchase-orders-form-dialog>

@@ -2,158 +2,154 @@
 <p-confirmDialog></p-confirmDialog>
 
 <app-page-container>
+    <!-- ==================== HEADER ==================== -->
+    <app-page-header [title]="'technicians.title' | translate" [subtitle]="'technicians.subtitle' | translate" [count]="totalRecords" [countLabel]="'technicians.countLabel' | translate" countIcon="pi pi-users">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'technicians.exportCSV' | translate" tooltipPosition="bottom" (click)="exportTechnicians('csv')">
+                <i class="pi pi-file"></i>
+            </button>
+            <button class="btn-icon" [pTooltip]="'technicians.exportJSON' | translate" tooltipPosition="bottom" (click)="exportTechnicians('json')">
+                <i class="pi pi-file-export"></i>
+            </button>
+            <button class="btn-primary" (click)="createTechnician()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'technicians.addTechnician' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== HEADER ==================== -->
-  <app-page-header
-    [title]="'technicians.title' | translate"
-    [subtitle]="'technicians.subtitle' | translate"
-    [count]="totalRecords" [countLabel]="'technicians.countLabel' | translate" countIcon="pi pi-users">
-    <ng-container actions>
-      <button class="btn-icon" [pTooltip]="'technicians.exportCSV' | translate" tooltipPosition="bottom" (click)="exportTechnicians('csv')">
-        <i class="pi pi-file"></i>
-      </button>
-      <button class="btn-icon" [pTooltip]="'technicians.exportJSON' | translate" tooltipPosition="bottom" (click)="exportTechnicians('json')">
-        <i class="pi pi-file-export"></i>
-      </button>
-      <button class="btn-primary" (click)="createTechnician()">
-        <i class="pi pi-plus"></i>
-        <span>{{ 'technicians.addTechnician' | translate }}</span>
-      </button>
-    </ng-container>
-  </app-page-header>
-
-  <!-- ==================== FILTERS ==================== -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input type="text" [(ngModel)]="searchTerm" [placeholder]="'technicians.searchPlaceholder' | translate"
-          class="search-input" (keyup.enter)="onSearch()">
-        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
-      </div>
-    </div>
-
-    <div filters class="filter-group">
-      <app-status-pill-filter
-        [options]="statusOptions"
-        [value]="filterStatus"
-        (valueChange)="onStatusFilterChange($event)">
-      </app-status-pill-filter>
-    </div>
-
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> {{ 'common.actions.search' | translate }}</button>
-      <button class="text-btn" (click)="moreFiltersVisible = true">{{ 'common.labels.moreFilters' | translate }}</button>
-      <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i> {{ 'common.actions.clear' | translate }}
-      </button>
-    </div>
-  </app-filter-bar>
-
-  <app-more-filters-dialog
-    [options]="statusOptions"
-    [selected]="filterStatus"
-    [previewCount]="totalRecords"
-    [(visible)]="moreFiltersVisible"
-    (apply)="onStatusFilterChange($event)">
-  </app-more-filters-dialog>
-
-  <!-- ==================== DATA TABLE (Desktop) ==================== -->
-  <section class="table-section desktop-only">
-    <div class="table-container">
-      <p-table [value]="technicians" [loading]="loading" [lazy]="true" [paginator]="false"
-        [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
-        styleClass="app-table" dataKey="id">
-
-        <ng-template #header>
-          <tr>
-            <th class="col-code">{{ 'technicians.columns.code' | translate }}</th>
-            <th class="col-name">{{ 'technicians.columns.name' | translate }}</th>
-            <th class="col-phone">{{ 'technicians.columns.phone' | translate }}</th>
-            <th class="col-shop">{{ 'technicians.columns.shopName' | translate }}</th>
-            <th class="col-city">{{ 'technicians.columns.city' | translate }}</th>
-            <th class="col-status">{{ 'technicians.columns.status' | translate }}</th>
-            <th class="col-actions">{{ 'technicians.columns.actions' | translate }}</th>
-          </tr>
-        </ng-template>
-
-        <ng-template #body let-technician>
-          <tr class="data-row" (dblclick)="viewTechnician(technician)">
-            <td class="col-code"><span class="code-link" (click)="viewTechnician(technician)">{{ technician.technicianCode }}</span></td>
-            <td class="col-name"><span class="cell-primary">{{ technician.name }}</span></td>
-            <td class="col-phone">{{ technician.phone || '-' }}</td>
-            <td class="col-shop"><span class="text-muted">{{ technician.shopName || '-' }}</span></td>
-            <td class="col-city"><span class="text-muted">{{ technician.city || '-' }}</span></td>
-            <td class="col-status">
-              <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ formatStatus(technician.status) }}</span>
-            </td>
-            <td class="col-actions">
-              <div class="action-cell">
-                <button class="btn-action" [pTooltip]="'common.actions.view' | translate" (click)="viewTechnician(technician)"><i class="pi pi-eye"></i></button>
-                <button class="btn-action" [pTooltip]="'common.actions.edit' | translate" (click)="editTechnician(technician)"><i class="pi pi-pencil"></i></button>
-                <button class="btn-action" [pTooltip]="(technician.status === 'ACTIVE' ? 'common.actions.deactivate' : 'common.actions.activate') | translate" (click)="toggleStatus(technician)">
-                  <i class="pi" [ngClass]="technician.status === 'ACTIVE' ? 'pi-ban' : 'pi-check'"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="7">
-              <div class="empty-state">
-                <div class="empty-icon"><i class="pi pi-users"></i></div>
-                <h3>{{ 'technicians.emptyTitle' | translate }}</h3>
-                <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'technicians.emptyHintCreate') | translate }}</p>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </div>
-  </section>
-
-  <!-- ==================== MOBILE CARDS ==================== -->
-  <section class="cards-section mobile-only">
-    <div *ngIf="!loading && technicians.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-users"></i></div>
-      <h3>{{ 'technicians.emptyTitleMobile' | translate }}</h3>
-      <p>{{ (searchTerm ? 'common.labels.tryDifferentFilters' : 'technicians.emptyHintMobileCreate') | translate }}</p>
-    </div>
-
-    <div *ngIf="technicians.length > 0" class="cards-grid">
-      <div *ngFor="let technician of technicians" class="order-card" (click)="viewTechnician(technician)">
-        <div class="card-header">
-          <span class="card-so-number">{{ technician.technicianCode }}</span>
-          <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ formatStatus(technician.status) }}</span>
+    <!-- ==================== FILTERS ==================== -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'technicians.searchPlaceholder' | translate" class="search-input" (keyup.enter)="onSearch()" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
+            </div>
         </div>
-        <div class="card-body">
-          <div class="card-customer">
-            <span class="customer-name">{{ technician.name }}</span>
-          </div>
-          <div class="card-meta">
-            <span *ngIf="technician.phone" class="card-meta-item"><i class="pi pi-phone"></i> {{ technician.phone }}</span>
-            <span *ngIf="technician.shopName" class="card-meta-item"><i class="pi pi-shop"></i> {{ technician.shopName }}</span>
-            <span *ngIf="technician.city" class="card-meta-item"><i class="pi pi-map-marker"></i> {{ technician.city }}</span>
-          </div>
-        </div>
-        <div class="card-footer">
-          <button class="btn-card-action" (click)="editTechnician(technician); $event.stopPropagation()"><i class="pi pi-pencil"></i></button>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- ==================== PAGINATION ==================== -->
-  <app-data-pagination
-    [first]="(pageNumber - 1) * pageSize"
-    [pageSize]="pageSize"
-    [totalRecords]="totalRecords"
-    [pageSizeOptions]="pageSizeOptions"
-    [itemLabel]="'technicians.itemLabel' | translate"
-    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
-    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
-  </app-data-pagination>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'technicians.statusOptions.allStatuses' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
 
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> {{ 'common.actions.search' | translate }}</button>
+            <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()"><i class="pi pi-filter-slash"></i> {{ 'common.actions.clear' | translate }}</button>
+        </div>
+    </app-filter-bar>
+
+    <!-- ==================== DATA TABLE (Desktop) ==================== -->
+    <section class="table-section desktop-only">
+        <div class="table-container">
+            <p-table [value]="technicians" [loading]="loading" [lazy]="true" [paginator]="false" [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex" styleClass="app-table" dataKey="id">
+                <ng-template #header>
+                    <tr>
+                        <th class="col-code">{{ 'technicians.columns.code' | translate }}</th>
+                        <th class="col-name">{{ 'technicians.columns.name' | translate }}</th>
+                        <th class="col-phone">{{ 'technicians.columns.phone' | translate }}</th>
+                        <th class="col-shop">{{ 'technicians.columns.shopName' | translate }}</th>
+                        <th class="col-city">{{ 'technicians.columns.city' | translate }}</th>
+                        <th class="col-status">{{ 'technicians.columns.status' | translate }}</th>
+                        <th class="col-actions">{{ 'technicians.columns.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
+
+                <ng-template #body let-technician>
+                    <tr class="data-row" (dblclick)="viewTechnician(technician)">
+                        <td class="col-code">
+                            <span class="code-link" (click)="viewTechnician(technician)">{{ technician.technicianCode }}</span>
+                        </td>
+                        <td class="col-name">
+                            <span class="cell-primary">{{ technician.name }}</span>
+                        </td>
+                        <td class="col-phone">{{ technician.phone || '-' }}</td>
+                        <td class="col-shop">
+                            <span class="text-muted">{{ technician.shopName || '-' }}</span>
+                        </td>
+                        <td class="col-city">
+                            <span class="text-muted">{{ technician.city || '-' }}</span>
+                        </td>
+                        <td class="col-status">
+                            <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ formatStatus(technician.status) }}</span>
+                        </td>
+                        <td class="col-actions">
+                            <div class="action-cell">
+                                <button class="btn-action" [pTooltip]="'common.actions.view' | translate" (click)="viewTechnician(technician)"><i class="pi pi-eye"></i></button>
+                                <button class="btn-action" [pTooltip]="'common.actions.edit' | translate" (click)="editTechnician(technician)"><i class="pi pi-pencil"></i></button>
+                                <button class="btn-action" [pTooltip]="(technician.status === 'ACTIVE' ? 'common.actions.deactivate' : 'common.actions.activate') | translate" (click)="toggleStatus(technician)">
+                                    <i class="pi" [ngClass]="technician.status === 'ACTIVE' ? 'pi-ban' : 'pi-check'"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="pi pi-users"></i></div>
+                                <h3>{{ 'technicians.emptyTitle' | translate }}</h3>
+                                <p>{{ (searchTerm ? 'common.listPage.adjustFiltersHint' : 'technicians.emptyHintCreate') | translate }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </section>
+
+    <!-- ==================== MOBILE CARDS ==================== -->
+    <section class="cards-section mobile-only">
+        <div *ngIf="!loading && technicians.length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-users"></i></div>
+            <h3>{{ 'technicians.emptyTitleMobile' | translate }}</h3>
+            <p>{{ (searchTerm ? 'common.labels.tryDifferentFilters' : 'technicians.emptyHintMobileCreate') | translate }}</p>
+        </div>
+
+        <div *ngIf="technicians.length > 0" class="cards-grid">
+            <div *ngFor="let technician of technicians" class="order-card" (click)="viewTechnician(technician)">
+                <div class="card-header">
+                    <span class="card-so-number">{{ technician.technicianCode }}</span>
+                    <span class="status-pill" [attr.data-status]="technician.status.toLowerCase()">{{ formatStatus(technician.status) }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="card-customer">
+                        <span class="customer-name">{{ technician.name }}</span>
+                    </div>
+                    <div class="card-meta">
+                        <span *ngIf="technician.phone" class="card-meta-item"><i class="pi pi-phone"></i> {{ technician.phone }}</span>
+                        <span *ngIf="technician.shopName" class="card-meta-item"><i class="pi pi-shop"></i> {{ technician.shopName }}</span>
+                        <span *ngIf="technician.city" class="card-meta-item"><i class="pi pi-map-marker"></i> {{ technician.city }}</span>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn-card-action" (click)="editTechnician(technician); $event.stopPropagation()"><i class="pi pi-pencil"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== PAGINATION ==================== -->
+    <app-data-pagination
+        [first]="(pageNumber - 1) * pageSize"
+        [pageSize]="pageSize"
+        [totalRecords]="totalRecords"
+        [pageSizeOptions]="pageSizeOptions"
+        [itemLabel]="'technicians.itemLabel' | translate"
+        (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+        (pageSizeChange)="onPageChange({ page: 0, rows: $event })"
+    >
+    </app-data-pagination>
 </app-page-container>

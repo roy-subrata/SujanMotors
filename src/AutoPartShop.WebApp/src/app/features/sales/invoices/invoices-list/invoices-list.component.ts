@@ -28,8 +28,6 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
@@ -54,8 +52,6 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
-        StatusPillFilterComponent,
-        MoreFiltersDialogComponent,
         TranslatePipe
     ],
     providers: [MessageService, ConfirmationService, DialogService],
@@ -92,7 +88,6 @@ export class InvoicesListComponent implements OnInit {
     filterStatus = '';
     dateRange: Date[] = [];
     customerIdFilter: string | null = null;
-    moreFiltersVisible = false;
 
     showPaymentDialog = false;
     selectedInvoice: InvoiceResponse | null = null;
@@ -130,20 +125,20 @@ export class InvoicesListComponent implements OnInit {
                             this.customerIdFilter = params['customerId'];
                         }
                     },
-                    error: (err) => { console.error('Error reading query params:', err); }
+                    error: (err) => {
+                        console.error('Error reading query params:', err);
+                    }
                 })
             )
             .subscribe();
         this.loadInvoices();
     }
 
-
     /** Invoice status is a server enum rendered directly in the table; map it to its
      *  translated label, falling back to the raw value for any unmapped member. */
     formatStatus(status: string): string {
         if (!status) return '';
-        const key = 'invoices.statusOptions.' + status.toLowerCase()
-            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const key = 'invoices.statusOptions.' + status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
         const label = this.i18n.t(key);
         return label === key ? status : label;
     }
@@ -151,12 +146,12 @@ export class InvoicesListComponent implements OnInit {
     private buildStatusOptions(): void {
         this.statusOptions = [
             { label: this.i18n.t('invoices.statusOptions.allStatuses'), value: '' },
-            { label: this.i18n.t('invoices.statusOptions.draft'),        value: 'DRAFT' },
-            { label: this.i18n.t('invoices.statusOptions.issued'),       value: 'ISSUED' },
+            { label: this.i18n.t('invoices.statusOptions.draft'), value: 'DRAFT' },
+            { label: this.i18n.t('invoices.statusOptions.issued'), value: 'ISSUED' },
             { label: this.i18n.t('invoices.statusOptions.partiallyPaid'), value: 'PARTIALLY_PAID' },
-            { label: this.i18n.t('invoices.statusOptions.paid'),         value: 'PAID' },
-            { label: this.i18n.t('invoices.statusOptions.overdue'),      value: 'OVERDUE' },
-            { label: this.i18n.t('invoices.statusOptions.cancelled'),    value: 'CANCELLED' }
+            { label: this.i18n.t('invoices.statusOptions.paid'), value: 'PAID' },
+            { label: this.i18n.t('invoices.statusOptions.overdue'), value: 'OVERDUE' },
+            { label: this.i18n.t('invoices.statusOptions.cancelled'), value: 'CANCELLED' }
         ];
     }
 
@@ -168,7 +163,7 @@ export class InvoicesListComponent implements OnInit {
                     value: p.providerType || 'CASH',
                     id: p.id
                 }));
-                this.paymentMethods = this.paymentProviders.map(p => ({ label: p.label, value: p.value }));
+                this.paymentMethods = this.paymentProviders.map((p) => ({ label: p.label, value: p.value }));
                 const hasCash = this.paymentMethods.some((m) => m.value === 'CASH');
                 if (!hasCash) {
                     this.paymentMethods.unshift({ label: this.i18n.t('invoices.cashLabel'), value: 'CASH' });
@@ -223,11 +218,6 @@ export class InvoicesListComponent implements OnInit {
         this.loadInvoices();
     }
 
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value;
-        this.onFilterChange();
-    }
-
     clearSearch(): void {
         this.searchTerm = '';
         this.pageNumber = 1;
@@ -266,7 +256,7 @@ export class InvoicesListComponent implements OnInit {
 
     private exportToCSV(data: InvoiceResponse[]): void {
         const headers = ['Invoice #', 'Sales Order', 'Customer', 'Invoice Date', 'Due Date', 'Status', 'Total', 'Outstanding'];
-        const csvData = data.map(invoice => [
+        const csvData = data.map((invoice) => [
             invoice.invoiceNumber,
             invoice.salesOrderNumber || '',
             invoice.customerName || '',
@@ -277,7 +267,7 @@ export class InvoicesListComponent implements OnInit {
             invoice.outstandingAmount.toString()
         ]);
 
-        const csvContent = [headers.join(','), ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
+        const csvContent = [headers.join(','), ...csvData.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -487,7 +477,7 @@ export class InvoicesListComponent implements OnInit {
             return;
         }
 
-        const provider = this.paymentProviders.find(p => p.value === this.paymentMethod);
+        const provider = this.paymentProviders.find((p) => p.value === this.paymentMethod);
         const providerId = provider?.id || null;
 
         if (this.paymentAmount > this.selectedInvoice.outstandingAmount) {
@@ -536,9 +526,7 @@ export class InvoicesListComponent implements OnInit {
     }
 
     canCancelInvoice(invoice: InvoiceResponse): boolean {
-        return invoice.status !== 'CANCELLED'
-            && invoice.status !== 'PAID'
-            && invoice.status !== 'PARTIALLY_PAID';
+        return invoice.status !== 'CANCELLED' && invoice.status !== 'PAID' && invoice.status !== 'PARTIALLY_PAID';
     }
 
     viewSalesOrder(invoice: InvoiceResponse): void {

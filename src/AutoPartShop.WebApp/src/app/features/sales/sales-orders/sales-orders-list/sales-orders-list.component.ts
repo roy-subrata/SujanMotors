@@ -8,6 +8,7 @@ import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { PanelModule } from 'primeng/panel';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
@@ -31,8 +32,6 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { GenerateProformaDialogComponent } from '../../proforma-invoices/generate-proforma-dialog/generate-proforma-dialog.component';
 import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service';
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
@@ -60,13 +59,12 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         SkeletonModule,
         InputGroupModule,
         InputGroupAddonModule,
+        SelectModule,
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
         StatStripComponent,
-        StatusPillFilterComponent,
-        MoreFiltersDialogComponent,
         GenerateProformaDialogComponent,
         TranslatePipe
     ],
@@ -109,9 +107,7 @@ export class SalesOrdersListComponent implements OnInit {
     generateProformaDialogVisible = false;
     selectedOrderForProforma: SalesOrderResponse | null = null;
 
-    moreFiltersVisible = false;
     stats: StatStripItem[] = [];
-
     Math = Math;
 
     ngOnInit(): void {
@@ -153,23 +149,20 @@ export class SalesOrdersListComponent implements OnInit {
                     { label: this.i18n.t('salesOrders.stats.delivered'), value: String(delivered.pagination.totalCount) }
                 ];
             },
-            error: () => { /* strip just stays empty — not worth a toast */ }
+            error: () => {
+                /* strip just stays empty — not worth a toast */
+            }
         });
-    }
-
-    onStatusFilterChange(value: string): void {
-        this.filterStatus = value as SalesOrderStatus | '';
-        this.onFilterChange();
     }
 
     private buildStatusOptions(): void {
         this.statusOptions = [
             { label: this.i18n.t('salesOrders.statusOptions.allStatuses'), value: '' },
-            { label: this.i18n.t('salesOrders.statusOptions.pending'),      value: 'PENDING' },
-            { label: this.i18n.t('salesOrders.statusOptions.confirmed'),     value: 'CONFIRMED' },
+            { label: this.i18n.t('salesOrders.statusOptions.pending'), value: 'PENDING' },
+            { label: this.i18n.t('salesOrders.statusOptions.confirmed'), value: 'CONFIRMED' },
             { label: this.i18n.t('salesOrders.statusOptions.readyForDelivery'), value: 'READY_FOR_DELIVERY' },
-            { label: this.i18n.t('salesOrders.statusOptions.delivered'),     value: 'DELIVERED' },
-            { label: this.i18n.t('salesOrders.statusOptions.cancelled'),     value: 'CANCELLED' }
+            { label: this.i18n.t('salesOrders.statusOptions.delivered'), value: 'DELIVERED' },
+            { label: this.i18n.t('salesOrders.statusOptions.cancelled'), value: 'CANCELLED' }
         ];
     }
 
@@ -450,20 +443,25 @@ export class SalesOrdersListComponent implements OnInit {
 
     formatStatus(status: string): string {
         const labels: Record<string, string> = {
-            PENDING:            this.i18n.t('salesOrders.statusOptions.pending'),
-            DRAFT:              this.i18n.t('salesOrders.statusOptions.pending'),
-            CONFIRMED:          this.i18n.t('salesOrders.statusOptions.confirmed'),
+            PENDING: this.i18n.t('salesOrders.statusOptions.pending'),
+            DRAFT: this.i18n.t('salesOrders.statusOptions.pending'),
+            CONFIRMED: this.i18n.t('salesOrders.statusOptions.confirmed'),
             READY_FOR_DELIVERY: this.i18n.t('salesOrders.statusOptions.readyForDelivery'),
-            DELIVERED:          this.i18n.t('salesOrders.statusOptions.delivered'),
-            CANCELLED:          this.i18n.t('salesOrders.statusOptions.cancelled'),
-            PAID:               this.i18n.t('salesOrders.statusOptions.paid'),
-            PACKED:             this.i18n.t('salesOrders.statusOptions.packed'),
-            PARTIALLY_SHIPPED:  this.i18n.t('salesOrders.statusOptions.partiallyShipped'),
-            SHIPPED:            this.i18n.t('salesOrders.statusOptions.shipped'),
-            COMPLETED:          this.i18n.t('salesOrders.statusOptions.completed'),
-            RETURNED:           this.i18n.t('salesOrders.statusOptions.returned')
+            DELIVERED: this.i18n.t('salesOrders.statusOptions.delivered'),
+            CANCELLED: this.i18n.t('salesOrders.statusOptions.cancelled'),
+            PAID: this.i18n.t('salesOrders.statusOptions.paid'),
+            PACKED: this.i18n.t('salesOrders.statusOptions.packed'),
+            PARTIALLY_SHIPPED: this.i18n.t('salesOrders.statusOptions.partiallyShipped'),
+            SHIPPED: this.i18n.t('salesOrders.statusOptions.shipped'),
+            COMPLETED: this.i18n.t('salesOrders.statusOptions.completed'),
+            RETURNED: this.i18n.t('salesOrders.statusOptions.returned')
         };
-        return labels[status] ?? (status ?? '-').split('_')
-            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+        return (
+            labels[status] ??
+            (status ?? '-')
+                .split('_')
+                .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+                .join(' ')
+        );
     }
 }

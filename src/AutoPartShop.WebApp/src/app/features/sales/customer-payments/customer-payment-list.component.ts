@@ -18,8 +18,6 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -54,8 +52,6 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
-        StatusPillFilterComponent,
-        MoreFiltersDialogComponent,
         TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
@@ -82,7 +78,6 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     searchTerm: string = '';
     statusFilter: CustomerPaymentStatus | null = null;
     dateRange: Date[] = [];
-    moreFiltersVisible = false;
     pageSize: number = 25;
     pageSizeOptions = [10, 25, 50, 100];
     totalCount: number = 0;
@@ -128,15 +123,15 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     private buildStatusOptions(): void {
         this.statusOptions = [
             { label: this.i18n.t('customerPayments.statusOptions.allStatuses'), value: '' },
-            { label: this.i18n.t('customerPayments.statusOptions.pending'),     value: 'PENDING' },
-            { label: this.i18n.t('customerPayments.statusOptions.processing'),  value: 'PROCESSING' },
-            { label: this.i18n.t('customerPayments.statusOptions.completed'),   value: 'COMPLETED' },
-            { label: this.i18n.t('customerPayments.statusOptions.failed'),      value: 'FAILED' },
-            { label: this.i18n.t('customerPayments.statusOptions.cancelled'),   value: 'CANCELLED' },
-            { label: this.i18n.t('customerPayments.statusOptions.refunded'),    value: 'REFUNDED' }
+            { label: this.i18n.t('customerPayments.statusOptions.pending'), value: 'PENDING' },
+            { label: this.i18n.t('customerPayments.statusOptions.processing'), value: 'PROCESSING' },
+            { label: this.i18n.t('customerPayments.statusOptions.completed'), value: 'COMPLETED' },
+            { label: this.i18n.t('customerPayments.statusOptions.failed'), value: 'FAILED' },
+            { label: this.i18n.t('customerPayments.statusOptions.cancelled'), value: 'CANCELLED' },
+            { label: this.i18n.t('customerPayments.statusOptions.refunded'), value: 'REFUNDED' }
         ];
         this.reconciledOptions = [
-            { label: this.i18n.t('customerPayments.reconciledOptions.reconciled'),    value: true },
+            { label: this.i18n.t('customerPayments.reconciledOptions.reconciled'), value: true },
             { label: this.i18n.t('customerPayments.reconciledOptions.notReconciled'), value: false }
         ];
     }
@@ -158,57 +153,75 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
             {
                 label: this.i18n.t('common.actions.viewDetails'),
                 icon: 'pi pi-eye',
-                command: () => { if (p) this.viewDetails(p); }
+                command: () => {
+                    if (p) this.viewDetails(p);
+                }
             },
             {
                 label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
-                command: () => { if (p) this.edit(p); },
+                command: () => {
+                    if (p) this.edit(p);
+                },
                 visible: p ? p.status !== 'COMPLETED' && p.status !== 'REFUNDED' : false
             },
             { separator: true },
             {
                 label: this.i18n.t('common.actions.markAsAdvance'),
                 icon: 'pi pi-arrow-up',
-                command: () => { if (p) this.markAsAdvance(p); },
+                command: () => {
+                    if (p) this.markAsAdvance(p);
+                },
                 visible: p ? p.paymentType !== 'ADVANCE' : false
             },
             {
                 label: this.i18n.t('common.actions.markAsRegular'),
                 icon: 'pi pi-arrow-down',
-                command: () => { if (p) this.markAsRegular(p); },
+                command: () => {
+                    if (p) this.markAsRegular(p);
+                },
                 visible: p ? p.paymentType === 'ADVANCE' : false
             },
             { separator: true },
             {
                 label: this.i18n.t('common.actions.confirm'),
                 icon: 'pi pi-check',
-                command: () => { if (p) this.confirmPayment(p); },
+                command: () => {
+                    if (p) this.confirmPayment(p);
+                },
                 visible: p ? p.status === 'PENDING' : false
             },
             {
                 label: this.i18n.t('common.actions.reconcile'),
                 icon: 'pi pi-check-square',
-                command: () => { if (p) this.reconcilePayment(p); },
+                command: () => {
+                    if (p) this.reconcilePayment(p);
+                },
                 visible: p ? p.status === 'COMPLETED' && !p.isReconciled : false
             },
             {
                 label: this.i18n.t('common.actions.refund'),
                 icon: 'pi pi-replay',
-                command: () => { if (p) this.refundPayment(p); },
+                command: () => {
+                    if (p) this.refundPayment(p);
+                },
                 visible: p ? p.status === 'COMPLETED' && !p.isReconciled : false
             },
             { separator: true },
             {
                 label: this.i18n.t('common.actions.cancel'),
                 icon: 'pi pi-times',
-                command: () => { if (p) this.cancelPayment(p); },
+                command: () => {
+                    if (p) this.cancelPayment(p);
+                },
                 visible: p ? p.status !== 'COMPLETED' && p.status !== 'REFUNDED' : false
             },
             {
                 label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
-                command: () => { if (p) this.deletePayment(p); },
+                command: () => {
+                    if (p) this.deletePayment(p);
+                },
                 visible: p ? p.status !== 'COMPLETED' && p.status !== 'REFUNDED' : false
             }
         ];
@@ -263,11 +276,6 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     onFilterChange(): void {
         this.first = 0;
         this.loadCustomerPayments();
-    }
-
-    onStatusFilterChange(value: string): void {
-        this.statusFilter = (value || null) as CustomerPaymentStatus | null;
-        this.onFilterChange();
     }
 
     onDateRangeSelect(): void {
@@ -347,7 +355,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.confirmFailed'))
+                            detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('customerPayments.messages.confirmFailed')
                         });
                         console.error('Error confirming payment:', error);
                     }
@@ -375,7 +383,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.markAsAdvanceFailed'))
+                            detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('customerPayments.messages.markAsAdvanceFailed')
                         });
                         console.error('Error marking payment as advance:', error);
                     }
@@ -403,7 +411,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.markAsRegularFailed'))
+                            detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('customerPayments.messages.markAsRegularFailed')
                         });
                         console.error('Error marking payment as regular:', error);
                     }
@@ -431,7 +439,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.reconcileFailed'))
+                            detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('customerPayments.messages.reconcileFailed')
                         });
                         console.error('Error reconciling payment:', error);
                     }
@@ -459,7 +467,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.refundFailed'))
+                            detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('customerPayments.messages.refundFailed')
                         });
                         console.error('Error refunding payment:', error);
                     }
@@ -487,7 +495,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.cancelFailed'))
+                            detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('customerPayments.messages.cancelFailed')
                         });
                         console.error('Error cancelling payment:', error);
                     }
@@ -515,7 +523,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('customerPayments.messages.deleteFailed'))
+                            detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('customerPayments.messages.deleteFailed')
                         });
                         console.error('Error deleting payment:', error);
                     }
@@ -535,7 +543,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.i18n.t('common.messages.error'),
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || 'Failed to generate receipt')
+                    detail: typeof error?.error === 'string' ? error.error : error?.error?.message || 'Failed to generate receipt'
                 });
                 console.error('Error generating receipt:', error);
             }
@@ -637,8 +645,7 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
     /** Payment status is a server enum rendered directly in tags; map it to its label. */
     formatStatus(status: string): string {
         if (!status) return '';
-        const key = 'customerPayments.statusOptions.' + status.toLowerCase()
-            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const key = 'customerPayments.statusOptions.' + status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
         const label = this.i18n.t(key);
         return label === key ? status : label;
     }
@@ -657,17 +664,24 @@ export class CustomerPaymentListComponent implements OnInit, OnDestroy {
 
     getMethodSeverity(method: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
         switch (method?.toUpperCase()) {
-            case 'CASH': return 'success';
+            case 'CASH':
+                return 'success';
             case 'CARD':
             case 'CREDIT_CARD':
-            case 'DEBIT_CARD': return 'info';
-            case 'UPI': return 'contrast';
+            case 'DEBIT_CARD':
+                return 'info';
+            case 'UPI':
+                return 'contrast';
             case 'BANK_TRANSFER':
             case 'NEFT':
-            case 'RTGS': return 'warn';
-            case 'CHEQUE': return 'secondary';
-            case 'REFUND': return 'danger';
-            default: return 'secondary';
+            case 'RTGS':
+                return 'warn';
+            case 'CHEQUE':
+                return 'secondary';
+            case 'REFUND':
+                return 'danger';
+            default:
+                return 'secondary';
         }
     }
 

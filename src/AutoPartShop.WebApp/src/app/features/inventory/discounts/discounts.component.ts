@@ -15,367 +15,345 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
-import { StatusPillFilterComponent } from '@/shared/components/status-pill-filter/status-pill-filter.component';
-import { MoreFiltersDialogComponent } from '@/shared/components/more-filters-dialog/more-filters-dialog.component';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'app-discounts',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ToastModule,
-    ConfirmDialogModule,
-    ButtonModule,
-    Select,
-    TooltipModule,
-    DiscountsListComponent,
-    DiscountFormDialogComponent,
-    PageContainerComponent,
-    PageHeaderComponent,
-    FilterBarComponent,
-    StatStripComponent,
-    StatusPillFilterComponent,
-    MoreFiltersDialogComponent,
-    TranslatePipe
-  ],
-  providers: [DiscountService, MessageService, ConfirmationService],
-  templateUrl: './discounts.component.html',
-  styleUrls: ['./discounts.component.css']
+    selector: 'app-discounts',
+    standalone: true,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ToastModule,
+        ConfirmDialogModule,
+        ButtonModule,
+        Select,
+        TooltipModule,
+        DiscountsListComponent,
+        DiscountFormDialogComponent,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        StatStripComponent,
+        TranslatePipe
+    ],
+    providers: [DiscountService, MessageService, ConfirmationService],
+    templateUrl: './discounts.component.html',
+    styleUrls: ['./discounts.component.css']
 })
 export class DiscountsComponent implements OnInit {
-  private readonly discountService = inject(DiscountService);
-  private readonly confirmationService = inject(ConfirmationService);
-  private readonly messageService = inject(MessageService);
-  private readonly i18n = inject(I18nService);
-  private readonly destroyRef = inject(DestroyRef);
+    private readonly discountService = inject(DiscountService);
+    private readonly confirmationService = inject(ConfirmationService);
+    private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
-  // Data
-  discounts: DiscountResponse[] = [];
-  filteredDiscounts: DiscountResponse[] = [];
-  public selectedDiscount: DiscountResponse | null = null;
+    // Data
+    discounts: DiscountResponse[] = [];
+    filteredDiscounts: DiscountResponse[] = [];
+    public selectedDiscount: DiscountResponse | null = null;
 
-  // Dialog visibility
-  public displayCreateDialog: boolean = false;
-  public displayUpdateDialog: boolean = false;
+    // Dialog visibility
+    public displayCreateDialog: boolean = false;
+    public displayUpdateDialog: boolean = false;
 
-  // Pagination & Loading
-  loading = false;
-  totalRecords = 0;
-  rows = 10;
-  currentPage = 1;
+    // Pagination & Loading
+    loading = false;
+    totalRecords = 0;
+    rows = 10;
+    currentPage = 1;
 
-  // Filters
-  searchTerm = '';
-  filterScope: 'VARIANT' | 'PRODUCT' | 'CART' | null = null;
-  filterStatus: boolean | null = null;
+    // Filters
+    searchTerm = '';
+    filterScope: 'VARIANT' | 'PRODUCT' | 'CART' | null = null;
+    filterStatus: boolean | null = null;
 
-  // Scope options for dropdown
-  scopeOptions: { label: string; value: 'VARIANT' | 'PRODUCT' | 'CART' | null }[] = [];
+    // Scope options for dropdown
+    scopeOptions: { label: string; value: 'VARIANT' | 'PRODUCT' | 'CART' | null }[] = [];
 
-  // Status options for dropdown
-  statusOptions: { label: string; value: boolean | null }[] = [];
+    // Status options for dropdown
+    statusOptions: { label: string; value: boolean | null }[] = [];
 
-  // String-valued mirror of statusOptions for <app-status-pill-filter>/<app-more-filters-dialog>
-  statusPillOptions: { label: string; value: string }[] = [];
+    stats: StatStripItem[] = [];
 
-  moreFiltersVisible = false;
-  stats: StatStripItem[] = [];
+    private buildFilterOptions(): void {
+        this.scopeOptions = [
+            { label: this.i18n.t('discounts.scopeFilterAll'), value: null },
+            { label: this.i18n.t('discounts.scopeFilterVariant'), value: 'VARIANT' },
+            { label: this.i18n.t('discounts.scopeFilterProduct'), value: 'PRODUCT' },
+            { label: this.i18n.t('discounts.scopeFilterCart'), value: 'CART' }
+        ];
 
-  private buildFilterOptions(): void {
-    this.scopeOptions = [
-      { label: this.i18n.t('discounts.scopeFilterAll'), value: null },
-      { label: this.i18n.t('discounts.scopeFilterVariant'), value: 'VARIANT' },
-      { label: this.i18n.t('discounts.scopeFilterProduct'), value: 'PRODUCT' },
-      { label: this.i18n.t('discounts.scopeFilterCart'), value: 'CART' }
-    ];
-
-    this.statusOptions = [
-      { label: this.i18n.t('common.status.allStatuses'), value: null },
-      { label: this.i18n.t('common.status.active'), value: true },
-      { label: this.i18n.t('common.status.inactive'), value: false }
-    ];
-
-    this.statusPillOptions = [
-      { label: this.i18n.t('common.status.allStatuses'), value: '' },
-      { label: this.i18n.t('common.status.active'), value: 'true' },
-      { label: this.i18n.t('common.status.inactive'), value: 'false' }
-    ];
-  }
-
-  ngOnInit(): void {
-    this.buildFilterOptions();
-    this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.buildFilterOptions();
-      this.updateStats();
-    });
-    this.loadDiscounts();
-  }
-
-  /**
-   * Load all discounts and apply client-side filters
-   */
-  loadDiscounts(): void {
-    this.loading = true;
-    this.discountService.getAllDiscounts().subscribe({
-      next: (response: DiscountResponse[]) => {
-        this.discounts = response || [];
-        this.applyFilters();
-        this.updateStats();
-        this.loading = false;
-      },
-      error: (error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: this.i18n.t('common.messages.error'),
-          detail: this.i18n.t('discounts.messages.loadFailed')
-        });
-        console.error('Error loading discounts:', error);
-        this.loading = false;
-      }
-    });
-  }
-
-  /**
-   * Apply client-side filters and update pagination
-   */
-  applyFilters(): void {
-    let result = [...this.discounts];
-
-    if (this.searchTerm && this.searchTerm.trim()) {
-      const term = this.searchTerm.trim().toLowerCase();
-      result = result.filter(d =>
-        d.name.toLowerCase().includes(term) ||
-        (d.description && d.description.toLowerCase().includes(term)) ||
-        (d.promoCode && d.promoCode.toLowerCase().includes(term))
-      );
+        this.statusOptions = [
+            { label: this.i18n.t('common.status.allStatuses'), value: null },
+            { label: this.i18n.t('common.status.active'), value: true },
+            { label: this.i18n.t('common.status.inactive'), value: false }
+        ];
     }
 
-    if (this.filterScope !== null) {
-      result = result.filter(d => d.scope === this.filterScope);
-    }
-
-    if (this.filterStatus !== null) {
-      result = result.filter(d => d.isActive === this.filterStatus);
-    }
-
-    this.totalRecords = result.length;
-    const start = (this.currentPage - 1) * this.rows;
-    this.filteredDiscounts = result.slice(start, start + this.rows);
-  }
-
-  private updateStats(): void {
-    const active = this.discounts.filter(d => d.isActive).length;
-    this.stats = [
-      { label: this.i18n.t('discounts.totalDiscounts'), value: String(this.discounts.length) },
-      { label: this.i18n.t('common.status.active'), value: String(active) },
-      { label: this.i18n.t('common.status.inactive'), value: String(this.discounts.length - active) }
-    ];
-  }
-
-  onStatusFilterChange(value: string): void {
-    this.filterStatus = value === '' ? null : value === 'true';
-    this.onFilterChange();
-  }
-
-  /**
-   * Handle search button click
-   */
-  onSearch(): void {
-    this.currentPage = 1;
-    this.applyFilters();
-  }
-
-  /**
-   * Handle filter changes
-   */
-  onFilterChange(): void {
-    this.currentPage = 1;
-    this.applyFilters();
-  }
-
-  /**
-   * Clear search input only
-   */
-  clearSearchInput(): void {
-    this.searchTerm = '';
-  }
-
-  /**
-   * Clear all filters and reload
-   */
-  clearFilters(): void {
-    this.searchTerm = '';
-    this.filterScope = null;
-    this.filterStatus = null;
-    this.currentPage = 1;
-    this.applyFilters();
-  }
-
-  /**
-   * Refresh current data
-   */
-  refreshData(): void {
-    this.loadDiscounts();
-  }
-
-  /**
-   * Check if any filters are active
-   */
-  hasActiveFilters(): boolean {
-    return !!this.searchTerm || this.filterScope !== null || this.filterStatus !== null;
-  }
-
-  /**
-   * Status label helper
-   */
-  getStatusLabel(isActive: boolean | null): string {
-    if (isActive === true) return this.i18n.t('common.status.active');
-    if (isActive === false) return this.i18n.t('common.status.inactive');
-    return this.i18n.t('common.status.all');
-  }
-
-  /**
-   * Scope label helper
-   */
-  getScopeLabel(scope: 'VARIANT' | 'PRODUCT' | 'CART' | null): string {
-    if (scope === 'VARIANT') return this.i18n.t('discounts.scopeVariant');
-    if (scope === 'PRODUCT') return this.i18n.t('discounts.scopeProduct');
-    if (scope === 'CART') return this.i18n.t('discounts.scopeCart');
-    return this.i18n.t('common.status.all');
-  }
-
-  /**
-   * Handle page change from list component
-   */
-  onPageChange(event: { page: number; rows: number }): void {
-    this.currentPage = event.page;
-    this.rows = event.rows;
-    this.applyFilters();
-  }
-
-  /**
-   * Trigger create dialog
-   */
-  createDiscount(): void {
-    this.displayCreateDialog = true;
-    this.displayUpdateDialog = false;
-  }
-
-  /**
-   * Handle create success
-   */
-  onCreateSuccess(): void {
-    this.loadDiscounts();
-  }
-
-  /**
-   * Handle update success
-   */
-  onUpdateSuccess(): void {
-    this.loadDiscounts();
-  }
-
-  /**
-   * Handle edit discount
-   */
-  selectAndOpenUpdate(discount: DiscountResponse): void {
-    this.selectedDiscount = discount;
-    this.displayUpdateDialog = true;
-  }
-
-  /**
-   * Handle toggle active/inactive
-   */
-  selectAndToggleActive(discount: DiscountResponse): void {
-    const updatedRequest = {
-      id: discount.id,
-      name: discount.name,
-      description: discount.description,
-      type: discount.type,
-      value: discount.value,
-      promoCode: discount.promoCode,
-      minimumCartAmount: discount.minimumCartAmount,
-      startDate: discount.startDate,
-      endDate: discount.endDate,
-      isActive: !discount.isActive
-    };
-
-    this.discountService.updateDiscount(discount.id, updatedRequest).subscribe({
-      next: () => {
-        const detailKey = !discount.isActive ? 'discounts.messages.activateSuccess' : 'discounts.messages.deactivateSuccess';
-        this.messageService.add({
-          severity: 'success',
-          summary: this.i18n.t('common.messages.success'),
-          detail: this.i18n.t(detailKey, { name: discount.name })
+    ngOnInit(): void {
+        this.buildFilterOptions();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildFilterOptions();
+            this.updateStats();
         });
         this.loadDiscounts();
-      },
-      error: (err) => {
-        console.error('Failed to toggle discount status', err);
-        this.messageService.add({
-          severity: 'error',
-          summary: this.i18n.t('common.messages.error'),
-          detail: this.i18n.t('discounts.messages.toggleFailed')
-        });
-      }
-    });
-  }
+    }
 
-  /**
-   * Handle delete discount
-   */
-  selectAndDelete(discount: DiscountResponse): void {
-    this.selectedDiscount = discount;
-    this.confirmationService.confirm({
-      message: this.i18n.t('discounts.messages.deleteConfirm', { name: discount.name }),
-      header: this.i18n.t('common.messages.confirmDeletion'),
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        this.discountService.deleteDiscount(discount.id)
-          .pipe(
-            tap(() => {
-              this.messageService.add({
-                severity: 'success',
-                summary: this.i18n.t('common.messages.success'),
-                detail: this.i18n.t('discounts.messages.deleteSuccess')
-              });
-              this.selectedDiscount = null;
-              this.loadDiscounts();
-            })
-          )
-          .subscribe({
-            error: (err) => {
-              console.error('Failed to delete discount', err);
-              this.messageService.add({
-                severity: 'error',
-                summary: this.i18n.t('common.messages.error'),
-                detail: this.i18n.t('discounts.messages.deleteFailed')
-              });
+    /**
+     * Load all discounts and apply client-side filters
+     */
+    loadDiscounts(): void {
+        this.loading = true;
+        this.discountService.getAllDiscounts().subscribe({
+            next: (response: DiscountResponse[]) => {
+                this.discounts = response || [];
+                this.applyFilters();
+                this.updateStats();
+                this.loading = false;
+            },
+            error: (error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('discounts.messages.loadFailed')
+                });
+                console.error('Error loading discounts:', error);
+                this.loading = false;
             }
-          });
-      }
-    });
-  }
-
-  /**
-   * Handle create dialog visibility change
-   */
-  onDisplayCreateDialogChange(isVisible: boolean): void {
-    if (!isVisible) {
-      this.displayCreateDialog = false;
+        });
     }
-  }
 
-  /**
-   * Handle update dialog visibility change
-   */
-  onDisplayUpdateDialogChange(isVisible: boolean): void {
-    if (!isVisible) {
-      this.displayUpdateDialog = false;
+    /**
+     * Apply client-side filters and update pagination
+     */
+    applyFilters(): void {
+        let result = [...this.discounts];
+
+        if (this.searchTerm && this.searchTerm.trim()) {
+            const term = this.searchTerm.trim().toLowerCase();
+            result = result.filter((d) => d.name.toLowerCase().includes(term) || (d.description && d.description.toLowerCase().includes(term)) || (d.promoCode && d.promoCode.toLowerCase().includes(term)));
+        }
+
+        if (this.filterScope !== null) {
+            result = result.filter((d) => d.scope === this.filterScope);
+        }
+
+        if (this.filterStatus !== null) {
+            result = result.filter((d) => d.isActive === this.filterStatus);
+        }
+
+        this.totalRecords = result.length;
+        const start = (this.currentPage - 1) * this.rows;
+        this.filteredDiscounts = result.slice(start, start + this.rows);
     }
-  }
+
+    private updateStats(): void {
+        const active = this.discounts.filter((d) => d.isActive).length;
+        this.stats = [
+            { label: this.i18n.t('discounts.totalDiscounts'), value: String(this.discounts.length) },
+            { label: this.i18n.t('common.status.active'), value: String(active) },
+            { label: this.i18n.t('common.status.inactive'), value: String(this.discounts.length - active) }
+        ];
+    }
+
+    /**
+     * Handle search button click
+     */
+    onSearch(): void {
+        this.currentPage = 1;
+        this.applyFilters();
+    }
+
+    /**
+     * Handle filter changes
+     */
+    onFilterChange(): void {
+        this.currentPage = 1;
+        this.applyFilters();
+    }
+
+    /**
+     * Clear search input only
+     */
+    clearSearchInput(): void {
+        this.searchTerm = '';
+    }
+
+    /**
+     * Clear all filters and reload
+     */
+    clearFilters(): void {
+        this.searchTerm = '';
+        this.filterScope = null;
+        this.filterStatus = null;
+        this.currentPage = 1;
+        this.applyFilters();
+    }
+
+    /**
+     * Refresh current data
+     */
+    refreshData(): void {
+        this.loadDiscounts();
+    }
+
+    /**
+     * Check if any filters are active
+     */
+    hasActiveFilters(): boolean {
+        return !!this.searchTerm || this.filterScope !== null || this.filterStatus !== null;
+    }
+
+    /**
+     * Status label helper
+     */
+    getStatusLabel(isActive: boolean | null): string {
+        if (isActive === true) return this.i18n.t('common.status.active');
+        if (isActive === false) return this.i18n.t('common.status.inactive');
+        return this.i18n.t('common.status.all');
+    }
+
+    /**
+     * Scope label helper
+     */
+    getScopeLabel(scope: 'VARIANT' | 'PRODUCT' | 'CART' | null): string {
+        if (scope === 'VARIANT') return this.i18n.t('discounts.scopeVariant');
+        if (scope === 'PRODUCT') return this.i18n.t('discounts.scopeProduct');
+        if (scope === 'CART') return this.i18n.t('discounts.scopeCart');
+        return this.i18n.t('common.status.all');
+    }
+
+    /**
+     * Handle page change from list component
+     */
+    onPageChange(event: { page: number; rows: number }): void {
+        this.currentPage = event.page;
+        this.rows = event.rows;
+        this.applyFilters();
+    }
+
+    /**
+     * Trigger create dialog
+     */
+    createDiscount(): void {
+        this.displayCreateDialog = true;
+        this.displayUpdateDialog = false;
+    }
+
+    /**
+     * Handle create success
+     */
+    onCreateSuccess(): void {
+        this.loadDiscounts();
+    }
+
+    /**
+     * Handle update success
+     */
+    onUpdateSuccess(): void {
+        this.loadDiscounts();
+    }
+
+    /**
+     * Handle edit discount
+     */
+    selectAndOpenUpdate(discount: DiscountResponse): void {
+        this.selectedDiscount = discount;
+        this.displayUpdateDialog = true;
+    }
+
+    /**
+     * Handle toggle active/inactive
+     */
+    selectAndToggleActive(discount: DiscountResponse): void {
+        const updatedRequest = {
+            id: discount.id,
+            name: discount.name,
+            description: discount.description,
+            type: discount.type,
+            value: discount.value,
+            promoCode: discount.promoCode,
+            minimumCartAmount: discount.minimumCartAmount,
+            startDate: discount.startDate,
+            endDate: discount.endDate,
+            isActive: !discount.isActive
+        };
+
+        this.discountService.updateDiscount(discount.id, updatedRequest).subscribe({
+            next: () => {
+                const detailKey = !discount.isActive ? 'discounts.messages.activateSuccess' : 'discounts.messages.deactivateSuccess';
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t(detailKey, { name: discount.name })
+                });
+                this.loadDiscounts();
+            },
+            error: (err) => {
+                console.error('Failed to toggle discount status', err);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('discounts.messages.toggleFailed')
+                });
+            }
+        });
+    }
+
+    /**
+     * Handle delete discount
+     */
+    selectAndDelete(discount: DiscountResponse): void {
+        this.selectedDiscount = discount;
+        this.confirmationService.confirm({
+            message: this.i18n.t('discounts.messages.deleteConfirm', { name: discount.name }),
+            header: this.i18n.t('common.messages.confirmDeletion'),
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                this.discountService
+                    .deleteDiscount(discount.id)
+                    .pipe(
+                        tap(() => {
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: this.i18n.t('common.messages.success'),
+                                detail: this.i18n.t('discounts.messages.deleteSuccess')
+                            });
+                            this.selectedDiscount = null;
+                            this.loadDiscounts();
+                        })
+                    )
+                    .subscribe({
+                        error: (err) => {
+                            console.error('Failed to delete discount', err);
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: this.i18n.t('common.messages.error'),
+                                detail: this.i18n.t('discounts.messages.deleteFailed')
+                            });
+                        }
+                    });
+            }
+        });
+    }
+
+    /**
+     * Handle create dialog visibility change
+     */
+    onDisplayCreateDialogChange(isVisible: boolean): void {
+        if (!isVisible) {
+            this.displayCreateDialog = false;
+        }
+    }
+
+    /**
+     * Handle update dialog visibility change
+     */
+    onDisplayUpdateDialogChange(isVisible: boolean): void {
+        if (!isVisible) {
+            this.displayUpdateDialog = false;
+        }
+    }
 }
