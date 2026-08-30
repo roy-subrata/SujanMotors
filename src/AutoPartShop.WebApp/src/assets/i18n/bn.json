@@ -5991,6 +5991,11 @@
         "manualDiscountPlaceholder": "ম্যানুয়াল ছাড়...",
         "promoCode": "প্রোমো কোড",
         "promoCodePlaceholder": "প্রোমো কোড লিখুন...",
+        "promoApply": "প্রয়োগ করুন",
+        "promoReapply": "আবার প্রয়োগ করুন",
+        "promoChecking": "প্রোমো কোড যাচাই করা হচ্ছে...",
+        "promoDiscount": "প্রোমো ছাড়",
+        "promoInvalid": "প্রোমো কোডটি অবৈধ, মেয়াদোত্তীর্ণ, অথবা ন্যূনতম কার্ট পরিমাণ পূরণ করে না।",
         "customer": "কাস্টমার",
         "customerPlaceholder": "কাস্টমার খুঁজুন...",
         "vehiclePlaceholder": "গাড়ি (ঐচ্ছিক)",
@@ -6137,7 +6142,8 @@
             "customerRequiredDue": "বাকি/ক্রেডিট বিক্রয়ের জন্য একজন নিবন্ধিত কাস্টমার আবশ্যক।",
             "saleCompleted": "বিক্রয় সম্পন্ন",
             "saleFailed": "বিক্রয় ব্যর্থ",
-            "genericFailed": "ব্যর্থ"
+            "genericFailed": "ব্যর্থ",
+            "promoApplied": "প্রোমো কোড প্রয়োগ হয়েছে"
         },
         "registerOpen": "রেজিস্টার খোলা",
         "switchToLight": "লাইট মোডে যান",

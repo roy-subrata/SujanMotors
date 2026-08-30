@@ -6032,6 +6032,11 @@
         "manualDiscountPlaceholder": "Manual discount...",
         "promoCode": "Promo Code",
         "promoCodePlaceholder": "Enter promo code...",
+        "promoApply": "Apply",
+        "promoReapply": "Re-apply",
+        "promoChecking": "Checking promo code...",
+        "promoDiscount": "Promo Discount",
+        "promoInvalid": "This promo code is invalid, expired, or does not meet the cart minimum.",
         "customer": "Customer",
         "customerPlaceholder": "Search customer...",
         "vehiclePlaceholder": "Vehicle (optional)",
@@ -6178,7 +6183,8 @@
             "customerRequiredDue": "A registered customer is required for due/credit sales.",
             "saleCompleted": "Sale Completed",
             "saleFailed": "Sale Failed",
-            "genericFailed": "Failed"
+            "genericFailed": "Failed",
+            "promoApplied": "Promo Code Applied"
         },
         "registerOpen": "Register open",
         "switchToLight": "Switch to light",
