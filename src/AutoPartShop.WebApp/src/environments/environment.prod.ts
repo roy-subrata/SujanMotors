@@ -33,4 +33,7 @@ export const environment = {
     // nginx reverse-proxies /api/* to the API container.
     // Previous value was Azure App Service URL — changed for VPS Docker deployment.
     apiUrl: '/api',
+
+    // Drives the "TEST ENVIRONMENT" banner in the app shell — see environment.staging.ts.
+    envName: 'production',
 };

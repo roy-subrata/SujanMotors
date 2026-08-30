@@ -299,9 +299,12 @@ builder.Services.AddSwaggerGen(options =>
     {
         options.IncludeXmlComments(xmlPath);
     }
+    // Test and prod otherwise look identical in Swagger — flag it in the title so nobody
+    // mistakes which /docs tab they're looking at.
+    var envSuffix = builder.Environment.IsProduction() ? "" : $" [{builder.Environment.EnvironmentName.ToUpperInvariant()}]";
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "AutoPart Shop",
+        Title = $"AutoPart Shop{envSuffix}",
         Version = "v1",
         Description = "AutoPart Shop API with Swagger & JWT"
     });
@@ -350,6 +353,19 @@ if (app.Environment.IsDevelopment())
 }
 
 await app.ApplyMigration();
+
+// Test and prod are otherwise indistinguishable once you're just looking at API responses
+// (same relative /api URL, same JSON shapes). This makes the environment visible in the
+// Network tab for any request, without needing Swagger (which is Development-only above).
+if (!app.Environment.IsProduction())
+{
+    var envName = app.Environment.EnvironmentName;
+    app.Use(async (context, next) =>
+    {
+        context.Response.Headers["X-Environment"] = envName;
+        await next();
+    });
+}
 
 // Must run before anything reads the client IP (rate limiting, request logs): rewrites
 // RemoteIpAddress from X-Forwarded-For so it is the caller, not the reverse proxy.

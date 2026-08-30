@@ -23,6 +23,7 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 interface StaffNotification {
     id: string;
@@ -58,6 +59,9 @@ export class AppTopbar implements OnInit, OnDestroy {
     @ViewChild('notifPanel') notifPanel!: Popover;
 
     currentUser = computed(() => this.authService.currentUser());
+    // Test and prod are built from otherwise-identical bundles (both `production: true`) —
+    // this is the only visual cue distinguishing them, so staff don't mistake one for the other.
+    isTestEnv = environment.envName === 'staging';
     pageTitle = signal('Dashboard');
     notifications = signal<StaffNotification[]>([]);
     inboxUnread = signal(0);

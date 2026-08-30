@@ -103,6 +103,9 @@ services:
       # tier immediately, and a locked-out admin account cannot be cleared from the UI.
       # Set RATE_LIMIT_ENABLED=true when specifically exercising the limits.
       - RateLimiting__Enabled=${RATE_LIMIT_ENABLED:-false}
+      # This stack is served over plain HTTP (no TLS cert on the test domain/IP), so the auth
+      # cookies must not be marked Secure or browsers will silently drop them after login.
+      - Auth__AllowInsecureCookies=${AUTH_ALLOW_INSECURE_COOKIES:-true}
       - RateLimiting__AuthPermitLimit=${RATE_LIMIT_AUTH:-10}
       - RateLimiting__SessionPermitLimit=${RATE_LIMIT_SESSION:-60}
       - RateLimiting__PublicPermitLimit=${RATE_LIMIT_PUBLIC:-60}

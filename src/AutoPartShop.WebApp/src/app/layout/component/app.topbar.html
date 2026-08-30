@@ -8,6 +8,9 @@
         <!-- Page Title -->
         <div class="topbar-title">
             <h1>{{ pageTitle() }}</h1>
+            @if (isTestEnv) {
+                <span class="test-env-badge" pTooltip="This is the TEST environment — data here is not production data" tooltipPosition="bottom">TEST</span>
+            }
         </div>
 
         <!-- Presentational global search (no search backend wired up yet — visual only,
