@@ -472,6 +472,7 @@
         "searchPlaceholder": "Search by supplier name, code, email, phone...",
         "contactPerson": "Contact Person",
         "paymentTerms": "Payment Terms",
+        "paymentTermsEditableHint": "Pick a preset or type your own (e.g. \"50% advance\").",
         "rating": "Rating",
         "paymentAccounts": "Payment Accounts",
         "accountSummary": "Account Summary",
@@ -737,6 +738,7 @@
             "companyPlaceholder": "e.g., ABC Auto Parts Inc.",
             "paymentTermsLabel": "Payment Terms",
             "paymentTermsPlaceholder": "Select payment terms...",
+            "paymentTermsEditableHint": "Pick a preset or type your own (e.g. \"50% advance\").",
             "paymentTerms": {
                 "NET15": "Net 15",
                 "NET30": "Net 30",

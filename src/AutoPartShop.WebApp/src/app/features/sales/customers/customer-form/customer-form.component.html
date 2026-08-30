@@ -102,8 +102,10 @@
           <div class="form-group">
             <label>{{ 'customers.form.paymentTermsLabel' | translate }}</label>
             <p-select formControlName="paymentTerms" [options]="paymentTermsOptions" optionLabel="label" optionValue="value"
+              [editable]="true"
               [placeholder]="'customers.form.paymentTermsPlaceholder' | translate" [showClear]="true" [style]="{ width: '100%' }">
             </p-select>
+            <small class="field-hint">{{ 'customers.form.paymentTermsEditableHint' | translate }}</small>
           </div>
           <div class="form-group">
             <!-- Empty for alignment -->

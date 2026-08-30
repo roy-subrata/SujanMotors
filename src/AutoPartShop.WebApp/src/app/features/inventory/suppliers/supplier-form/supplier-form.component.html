@@ -130,8 +130,13 @@
                       [options]="paymentTermsOptions"
                       optionLabel="label"
                       optionValue="value"
+                      [editable]="true"
                       [placeholder]="'suppliers.placeholders.selectPaymentTerms' | translate">
             </p-select>
+            <span class="field-hint">
+              <i class="pi pi-info-circle"></i>
+              {{ 'suppliers.paymentTermsEditableHint' | translate }}
+            </span>
           </div>
           <div class="form-group">
             <label>{{ 'suppliers.creditLimit' | translate }}</label>
