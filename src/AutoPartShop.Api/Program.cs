@@ -374,7 +374,15 @@ app.UseAuthentication();
 // it, a caller spraying requests with a bogus token would never reach the limiter at all.
 // UseAuthentication itself never short-circuits: it just leaves User unauthenticated, which
 // falls back to the per-IP partition — exactly what an anonymous abuser should get.
-app.UseRateLimiter();
+//
+// Guarded the same way AddApiRateLimiting decides whether to register the limiter services at
+// all: with RateLimiting:Enabled=false (the test environment's default), calling UseRateLimiter()
+// unconditionally throws at startup ("Unable to find the required services") because there's
+// nothing registered for it to find.
+if (RateLimitSettings.FromConfiguration(app.Configuration).Enabled)
+{
+    app.UseRateLimiter();
+}
 
 app.UseAuthorization();
 app.MapControllers();
