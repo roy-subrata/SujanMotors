@@ -154,7 +154,7 @@ public class PurchaseOrderController : ControllerBase
         var supplier = po.Supplier;
         var supplierAddress = supplier is null
             ? string.Empty
-            : string.Join(", ", new[] { supplier.Address, supplier.City, supplier.PostalCode }
+            : string.Join(", ", new[] { supplier.Address, supplier.Country }
                 .Where(s => !string.IsNullOrWhiteSpace(s)));
         // Supplier has no tax/BIN field; the contact person is the more useful second line.
         var supplierContact = supplier?.ContactPerson is { Length: > 0 } cp ? $"Attn: {cp}" : string.Empty;

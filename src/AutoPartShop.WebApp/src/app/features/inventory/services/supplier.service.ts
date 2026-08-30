@@ -12,10 +12,7 @@ export interface SupplierResponse {
   email: string;
   phone: string;
   address: string;
-  city: string;
-  state: string;
   country: string;
-  postalCode: string;
   paymentTerms: string;
   creditLimit: number;
   currentBalance: number;
@@ -33,10 +30,7 @@ export interface CreateSupplierRequest {
   email: string;
   phone: string;
   address: string;
-  city: string;
-  state: string;
   country: string;
-  postalCode: string;
   paymentTerms: string;
   creditLimit: number;
 }
@@ -48,10 +42,7 @@ export interface UpdateSupplierRequest {
   email: string;
   phone: string;
   address: string;
-  city: string;
-  state: string;
   country: string;
-  postalCode: string;
   paymentTerms: string;
   creditLimit: number;
   isActive: boolean;

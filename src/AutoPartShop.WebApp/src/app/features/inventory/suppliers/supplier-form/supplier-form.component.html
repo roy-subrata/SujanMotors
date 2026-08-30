@@ -73,7 +73,7 @@
             </small>
           </div>
           <div class="form-group">
-            <label>{{ 'common.labels.email' | translate }} <span class="required">*</span></label>
+            <label>{{ 'common.labels.email' | translate }}</label>
             <input pInputText type="email" formControlName="email" [placeholder]="'suppliers.placeholders.email' | translate" />
             <small class="p-error" *ngIf="supplierForm.get('email')?.invalid && supplierForm.get('email')?.touched">
               {{ 'suppliers.messages.emailInvalid' | translate }}
@@ -108,35 +108,10 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>{{ 'common.labels.city' | translate }} <span class="required">*</span></label>
-            <input pInputText formControlName="city" [placeholder]="'suppliers.placeholders.city' | translate" />
-            <small class="p-error" *ngIf="supplierForm.get('city')?.invalid && supplierForm.get('city')?.touched">
-              {{ 'suppliers.messages.cityRequired' | translate }}
-            </small>
-          </div>
-          <div class="form-group">
-            <label>{{ 'suppliers.stateProvince' | translate }} <span class="required">*</span></label>
-            <input pInputText formControlName="state" [placeholder]="'suppliers.placeholders.state' | translate" />
-            <small class="p-error" *ngIf="supplierForm.get('state')?.invalid && supplierForm.get('state')?.touched">
-              {{ 'suppliers.messages.stateRequired' | translate }}
-            </small>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
             <label>{{ 'common.labels.country' | translate }} <span class="required">*</span></label>
-            <p-select formControlName="country"
-                      [options]="countries"
-                      optionLabel="label"
-                      optionValue="value"
-                      [placeholder]="'suppliers.placeholders.selectCountry' | translate">
-            </p-select>
-          </div>
-          <div class="form-group">
-            <label>{{ 'suppliers.postalCode' | translate }} <span class="required">*</span></label>
-            <input pInputText formControlName="postalCode" [placeholder]="'suppliers.placeholders.postalCode' | translate" />
-            <small class="p-error" *ngIf="supplierForm.get('postalCode')?.invalid && supplierForm.get('postalCode')?.touched">
-              {{ 'suppliers.messages.postalCodeInvalid' | translate }}
+            <input pInputText formControlName="country" [placeholder]="'suppliers.placeholders.selectCountry' | translate" />
+            <small class="p-error" *ngIf="supplierForm.get('country')?.invalid && supplierForm.get('country')?.touched">
+              {{ 'suppliers.messages.countryRequired' | translate }}
             </small>
           </div>
         </div>

@@ -32,10 +32,7 @@ public class SupplierRepository(AutoPartDbContext _db) : ISupplierRepository
                 entity.Email,
                 entity.Phone,
                 entity.Address,
-                entity.City,
-                entity.State,
                 entity.Country,
-                entity.PostalCode,
                 entity.IsActive,
                 string.IsNullOrEmpty(entity.PaymentTerms) ? existing.PaymentTerms : entity.PaymentTerms,
                 entity.CreditLimit == 0 ? existing.CreditLimit : entity.CreditLimit

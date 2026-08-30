@@ -18,8 +18,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                  (EF.Functions.Like(x.Name, $"%{term}%") ||
                  EF.Functions.Like(x.Country, $"%{term}%") ||
                  EF.Functions.Like(x.Phone, $"%{term}%") ||
-                 EF.Functions.Like(x.Email, $"%{term}%") ||
-                 EF.Functions.Like(x.City, $"%{term}%")
+                 EF.Functions.Like(x.Email, $"%{term}%")
                 )));
 
 
@@ -47,10 +46,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                     Email = supplier.Email,
                     Phone = supplier.Phone,
                     Address = supplier.Address,
-                    City = supplier.City,
-                    State = supplier.State,
                     Country = supplier.Country,
-                    PostalCode = supplier.PostalCode,
                     CurrentBalance = supplier.CurrentBalance,
                     IsActive = supplier.IsActive,
                     Rating = supplier.Rating,

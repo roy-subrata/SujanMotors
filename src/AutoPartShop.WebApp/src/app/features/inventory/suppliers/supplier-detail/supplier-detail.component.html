@@ -84,11 +84,8 @@
       <div class="contact-item">
         <i class="pi pi-map-marker"></i>
         <span>
-          <ng-container *ngIf="sup.address || sup.city || sup.state || sup.postalCode">
-            {{ sup.address }}{{ sup.address && sup.city ? ', ' : '' }}{{ sup.city }}{{ sup.city &&
-            sup.state ? ', ' : '' }}{{ sup.state }} {{ sup.postalCode }}
-          </ng-container>
-          <ng-container *ngIf="!sup.address && !sup.city && !sup.state && !sup.postalCode">{{ 'common.labels.notAvailable' | translate }}</ng-container>
+          <ng-container *ngIf="sup.address">{{ sup.address }}</ng-container>
+          <ng-container *ngIf="!sup.address">{{ 'common.labels.notAvailable' | translate }}</ng-container>
         </span>
       </div>
       <div class="contact-divider" *ngIf="sup.country">|</div>

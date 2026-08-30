@@ -25,7 +25,7 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
 
             builder.Property(x => x.Email)
               .HasMaxLength(50)
-              .IsRequired();
+              .IsRequired(false);
 
             builder.Property(x => x.Phone)
             .HasMaxLength(50)
@@ -35,21 +35,9 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
            .HasMaxLength(150)
            .IsRequired();
 
-            builder.Property(x => x.City)
-           .HasMaxLength(50)
-           .IsRequired();
-
-            builder.Property(x => x.State)
-                .HasMaxLength(50)
-                .IsRequired();
-
             builder.Property(x => x.Country)
                 .HasMaxLength(50)
                 .IsRequired();
-
-            builder.Property(x => x.PostalCode)
-               .HasMaxLength(50)
-               .IsRequired(false);
 
             builder.Property(x => x.PaymentTerms)
                 .HasMaxLength(20)

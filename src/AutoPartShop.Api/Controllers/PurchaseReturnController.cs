@@ -140,7 +140,7 @@ public class PurchaseReturnController : ControllerBase
         var supplier = purchaseReturn.Supplier;
         var supplierAddress = supplier is null
             ? string.Empty
-            : string.Join(", ", new[] { supplier.Address, supplier.City, supplier.PostalCode }
+            : string.Join(", ", new[] { supplier.Address, supplier.Country }
                 .Where(s => !string.IsNullOrWhiteSpace(s)));
 
         var data = new PurchaseReturnDocumentData(

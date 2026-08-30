@@ -167,7 +167,7 @@ public class SuppliersController : ControllerBase
             }
 
             var supplier = Supplier.Create(request.Name, supplierCode, request.ContactPerson, request.Email, request.Phone,
-                request.Address, request.City, request.State, request.Country, request.PostalCode,
+                request.Address, request.Country,
                 request.PaymentTerms, request.CreditLimit);
 
             var currentUser = _currentUserService.GetCurrentUsername();
@@ -199,7 +199,7 @@ public class SuppliersController : ControllerBase
             if (supplier is null) return NotFound(new { message = "Supplier not found" });
 
             supplier.Update(request.Name, request.ContactPerson, request.Email, request.Phone,
-                request.Address, request.City, request.State, request.Country, request.PostalCode,
+                request.Address, request.Country,
                 request.IsActive,
                 string.IsNullOrEmpty(request.PaymentTerms) ? supplier.PaymentTerms : request.PaymentTerms,
                 request.CreditLimit == 0 ? supplier.CreditLimit : request.CreditLimit);
@@ -282,7 +282,7 @@ public class SuppliersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Supplier is still referenced by procurement/stock records — surface a clean 409.
+            // Supplier is still referenced by procurement/stock records ï¿½ surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
@@ -329,10 +329,7 @@ public class SuppliersController : ControllerBase
             Email = supplier.Email,
             Phone = supplier.Phone,
             Address = supplier.Address,
-            City = supplier.City,
-            State = supplier.State,
             Country = supplier.Country,
-            PostalCode = supplier.PostalCode,
             PaymentTerms = supplier.PaymentTerms,
             CreditLimit = supplier.CreditLimit,
             CurrentBalance = supplier.CurrentBalance,

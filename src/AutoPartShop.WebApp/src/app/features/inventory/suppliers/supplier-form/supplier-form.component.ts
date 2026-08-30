@@ -63,19 +63,6 @@ export class SupplierFormComponent implements OnInit {
     { label: 'Prepaid', value: 'PREPAID' }
   ];
 
-  countries = [
-    { label: 'India', value: 'India' },
-    { label: 'USA', value: 'USA' },
-    { label: 'Canada', value: 'Canada' },
-    { label: 'UK', value: 'UK' },
-    { label: 'Germany', value: 'Germany' },
-    { label: 'France', value: 'France' },
-    { label: 'China', value: 'China' },
-    { label: 'Japan', value: 'Japan' },
-    { label: 'Australia', value: 'Australia' },
-    { label: 'Other', value: 'Other' }
-  ];
-
   ngOnInit(): void {
     this.initializeForm();
 
@@ -115,13 +102,10 @@ export class SupplierFormComponent implements OnInit {
       code: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(20)]],
       name: ['', [Validators.required, Validators.minLength(2)]],
       contactPerson: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.email]],
       phone: ['', [Validators.required, Validators.pattern(/^[0-9\s\-\+\(\)]{7,}$/)]],
       address: ['', [Validators.required, Validators.minLength(5)]],
-      city: ['', [Validators.required, Validators.minLength(2)]],
-      state: ['', [Validators.required, Validators.minLength(2)]],
-      country: ['India', Validators.required],
-      postalCode: ['', [Validators.required, Validators.pattern(/^[0-9\-\s]{3,}$/)]],
+      country: ['', Validators.required],
       paymentTerms: ['NET30'],
       creditLimit: [0, [Validators.min(0)]]
     });
@@ -139,10 +123,7 @@ export class SupplierFormComponent implements OnInit {
           email: supplier.email,
           phone: supplier.phone,
           address: supplier.address,
-          city: supplier.city,
-          state: supplier.state,
           country: supplier.country,
-          postalCode: supplier.postalCode,
           paymentTerms: supplier.paymentTerms || 'NET30',
           creditLimit: supplier.creditLimit ?? 0
         });
@@ -193,10 +174,7 @@ export class SupplierFormComponent implements OnInit {
       email: formValue.email,
       phone: formValue.phone,
       address: formValue.address,
-      city: formValue.city,
-      state: formValue.state,
       country: formValue.country,
-      postalCode: formValue.postalCode,
       paymentTerms: formValue.paymentTerms,
       creditLimit: formValue.creditLimit
     };
@@ -230,10 +208,7 @@ export class SupplierFormComponent implements OnInit {
       email: formValue.email,
       phone: formValue.phone,
       address: formValue.address,
-      city: formValue.city,
-      state: formValue.state,
       country: formValue.country,
-      postalCode: formValue.postalCode,
       paymentTerms: formValue.paymentTerms,
       creditLimit: formValue.creditLimit,
       isActive: this.loadedIsActive
