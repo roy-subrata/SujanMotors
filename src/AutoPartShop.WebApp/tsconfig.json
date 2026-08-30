@@ -17,13 +17,14 @@
         "importHelpers": true,
         "target": "ES2022",
         "module": "ES2022",
-        "rootDir": "./src",
         "ignoreDeprecations": "5.0",
         "paths": {
             "@/*": ["./src/app/*"],
             "src/*": ["./src/*"]
         }
     },
+    "include": ["src/**/*"],
+    "exclude": ["src/**/*.spec.ts", "e2e/**/*", "e2e-mobile/**/*", "playwright.config.ts", "playwright.mobile.config.ts"],
     "angularCompilerOptions": {
         "enableI18nLegacyMessageIdFormat": false,
         "strictInjectionParameters": true,
