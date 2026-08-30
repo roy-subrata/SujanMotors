@@ -12,7 +12,7 @@ namespace AutoPartShop.Api.Auth;
 /// switches to cookies entirely — tokens never leave the server once set.
 ///
 /// Cookie names: ap_access (short-lived), ap_refresh (session lifetime).
-/// Both: HttpOnly, SameSite=Lax, Secure outside Development, path-scoped.
+/// Both: HttpOnly, SameSite=Lax, Secure unless explicitly allowed insecure, path-scoped.
 /// </summary>
 public static class AuthCookie
 {
@@ -29,9 +29,9 @@ public static class AuthCookie
         int accessExpiryMinutes,
         string refreshToken,
         DateTime refreshExpiresAt,
-        bool isDevelopment)
+        bool allowInsecureCookies)
     {
-        var secure = !isDevelopment;
+        var secure = !allowInsecureCookies;
 
         response.Cookies.Append(AccessName, accessToken, new CookieOptions
         {
@@ -57,9 +57,9 @@ public static class AuthCookie
     /// <summary>
     /// Expires both auth cookies (logout, password change, session compromise).
     /// </summary>
-    public static void ClearAuthCookies(HttpResponse response, bool isDevelopment)
+    public static void ClearAuthCookies(HttpResponse response, bool allowInsecureCookies)
     {
-        var secure = !isDevelopment;
+        var secure = !allowInsecureCookies;
         var epoch = DateTimeOffset.UnixEpoch;
 
         response.Cookies.Append(AccessName, string.Empty, new CookieOptions

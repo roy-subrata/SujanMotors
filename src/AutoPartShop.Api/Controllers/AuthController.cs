@@ -57,6 +57,12 @@ public class AuthController : ControllerBase
 
     private bool IsDev => HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
 
+    // Secure cookies are dropped by browsers on plain-HTTP origins. Dev always allows insecure
+    // cookies; other environments (e.g. a test VPS stack with no TLS cert) opt in explicitly via
+    // Auth:AllowInsecureCookies rather than by environment name, so prod can never do this by accident.
+    private bool AllowInsecureCookies =>
+        IsDev || _configuration.GetValue<bool>("Auth:AllowInsecureCookies");
+
     /// <summary>Best-effort client IP for the refresh-token audit trail.</summary>
     private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
 
@@ -134,7 +140,7 @@ public class AuthController : ControllerBase
 
             // Web SPA picks up tokens via httpOnly cookies (SameSite=Lax, HttpOnly).
             // Mobile continues using the body — cookies are invisible to non-browser clients.
-            AuthCookie.SetAuthCookies(Response, token, AccessExpiryMinutes, refreshToken, refreshExpiresAt, IsDev);
+            AuthCookie.SetAuthCookies(Response, token, AccessExpiryMinutes, refreshToken, refreshExpiresAt, AllowInsecureCookies);
 
             return Ok(loginResponse);
         }
@@ -262,7 +268,7 @@ public class AuthController : ControllerBase
                 Permissions = permissions
             };
 
-            AuthCookie.SetAuthCookies(Response, newToken, AccessExpiryMinutes, result.RefreshToken!, result.ExpiresAt!.Value, IsDev);
+            AuthCookie.SetAuthCookies(Response, newToken, AccessExpiryMinutes, result.RefreshToken!, result.ExpiresAt!.Value, AllowInsecureCookies);
 
             return Ok(refreshResponse);
         }
@@ -295,7 +301,7 @@ public class AuthController : ControllerBase
                 await _refreshTokens.RevokeAsync(rawToken, "logout", cancellationToken);
 
             // Expire both cookies so the browser stops sending them immediately.
-            AuthCookie.ClearAuthCookies(Response, IsDev);
+            AuthCookie.ClearAuthCookies(Response, AllowInsecureCookies);
 
             return Ok(new { message = "Logged out" });
         }
@@ -342,7 +348,7 @@ public class AuthController : ControllerBase
             await _refreshTokens.RevokeAllForUserAsync(user.Id, "password-change");
 
             // Expire the caller's cookies so the browser stops presenting them immediately.
-            AuthCookie.ClearAuthCookies(Response, IsDev);
+            AuthCookie.ClearAuthCookies(Response, AllowInsecureCookies);
 
             return Ok(new { message = "Password changed successfully. Please sign in again on your other devices." });
         }
