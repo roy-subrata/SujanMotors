@@ -13,13 +13,14 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-shifts',
     standalone: true,
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, InputNumberModule,
         DialogModule, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent],
+        PageContainerComponent, PageHeaderComponent, TranslatePipe],
     providers: [MessageService, ConfirmationService],
     templateUrl: './shifts.component.html',
     styleUrls: ['./shifts.component.css']

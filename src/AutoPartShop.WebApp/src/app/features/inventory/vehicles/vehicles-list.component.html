@@ -24,12 +24,12 @@
 
       <ng-template #header>
         <tr>
-          <th class="col-name">Vehicle</th>
-          <th class="col-year">Year</th>
-          <th class="col-engine">Engine</th>
-          <th class="col-desc">Description</th>
-          <th class="col-status">Status</th>
-          <th class="col-actions">Actions</th>
+          <th class="col-name">{{ 'common.labels.name' | translate }}</th>
+          <th class="col-year">{{ 'vehicles.year' | translate }}</th>
+          <th class="col-engine">{{ 'vehicles.engineType' | translate }}</th>
+          <th class="col-desc">{{ 'common.labels.description' | translate }}</th>
+          <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+          <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -54,12 +54,12 @@
           </td>
           <td class="col-status">
             <span class="status-pill" [attr.data-status]="vehicle.isActive ? 'active' : 'inactive'">
-              {{ vehicle.isActive ? 'Active' : 'Inactive' }}
+              {{ (vehicle.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
             </span>
           </td>
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="More" (click)="showContextMenu($event, vehicle)">
+              <button class="btn-action" [pTooltip]="'common.labels.actions' | translate" (click)="showContextMenu($event, vehicle)">
                 <i class="pi pi-ellipsis-v"></i>
               </button>
             </div>
@@ -74,8 +74,8 @@
               <div class="empty-icon">
                 <i class="pi pi-car"></i>
               </div>
-              <h3>No Vehicles Found</h3>
-              <p>Try adjusting your filters or create a new vehicle</p>
+              <h3>{{ 'vehicles.noResultsTitle' | translate }}</h3>
+              <p>{{ 'vehicles.noResultsHint' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -133,8 +133,8 @@
     <div class="empty-icon">
       <i class="pi pi-car"></i>
     </div>
-    <h3>No Vehicles</h3>
-    <p>Try different filters or create a new vehicle</p>
+    <h3>{{ 'vehicles.noResultsTitle' | translate }}</h3>
+    <p>{{ 'vehicles.noResultsHint' | translate }}</p>
   </div>
 
   <div *ngIf="!loading && vehicles.length > 0" class="cards-grid">
@@ -142,7 +142,7 @@
       <div class="card-header">
         <span class="card-so-number">{{ vehicle.make }} {{ vehicle.model }}</span>
         <span class="status-pill" [attr.data-status]="vehicle.isActive ? 'active' : 'inactive'">
-          {{ vehicle.isActive ? 'Active' : 'Inactive' }}
+          {{ (vehicle.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
         </span>
       </div>
 
@@ -164,7 +164,7 @@
 
       <div class="card-footer">
         <div class="card-amount">
-          <span class="amount-label">Description</span>
+          <span class="amount-label">{{ 'common.labels.description' | translate }}</span>
           <span class="amount-value">{{ vehicle.description || '-' }}</span>
         </div>
         <button class="btn-card-action" (click)="showContextMenu($event, vehicle); $event.stopPropagation()">

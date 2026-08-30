@@ -2,9 +2,9 @@
 
 <app-page-container>
   <app-page-header
-    title="Audit Logs"
-    subtitle="Track every change made across the system"
-    [count]="totalRecords" countLabel="records">
+    [title]="'audit.logs.title' | translate"
+    [subtitle]="'audit.logs.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'audit.logs.itemLabel' | translate">
   </app-page-header>
 
   <div class="audit-logs-container">
@@ -14,7 +14,7 @@
     <div search class="filter-item search-filter">
       <div class="search-container">
         <i class="pi pi-search search-icon"></i>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Search across all fields..."
+        <input type="text" [(ngModel)]="searchTerm" [placeholder]="'audit.logs.searchPlaceholder' | translate"
           class="audit-search-input" (keyup.enter)="onSearch()">
         <i *ngIf="searchTerm" class="pi pi-times clear-icon" (click)="clearSearch()"></i>
       </div>
@@ -22,36 +22,36 @@
 
     <!-- Entity Filter -->
     <div filters class="filter-item">
-      <p-select [options]="entities" [(ngModel)]="selectedEntity" placeholder="Entity"
+      <p-select [options]="entities" [(ngModel)]="selectedEntity" [placeholder]="'audit.logs.entityPlaceholder' | translate"
         [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
     </div>
 
     <!-- Action Filter -->
     <div filters class="filter-item">
-      <p-select [options]="actions" [(ngModel)]="selectedAction" placeholder="Action"
+      <p-select [options]="actions" [(ngModel)]="selectedAction" [placeholder]="'audit.logs.actionPlaceholder' | translate"
         [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
     </div>
 
     <!-- User Filter -->
     <div filters class="filter-item">
-      <p-select [options]="users" [(ngModel)]="selectedUser" placeholder="User"
+      <p-select [options]="users" [(ngModel)]="selectedUser" [placeholder]="'audit.logs.userPlaceholder' | translate"
         [showClear]="true" (onChange)="onFilterChange()" class="w-full"></p-select>
     </div>
 
     <!-- Date Range -->
     <div filters class="filter-item date-filter">
       <p-datepicker [(ngModel)]="dateRange" selectionMode="range" [showIcon]="true"
-        placeholder="Date range" dateFormat="M dd, yy" [showButtonBar]="true"
+        [placeholder]="'audit.logs.dateRangePlaceholder' | translate" dateFormat="M dd, yy" [showButtonBar]="true"
         (onSelect)="onFilterChange()" (onClear)="onFilterChange()" class="w-full"></p-datepicker>
     </div>
 
     <!-- Filter Actions -->
     <div filterActions class="filter-actions">
-      <button pButton type="button" label="Search" icon="pi pi-search" (click)="onSearch()"></button>
-      <button pButton type="button" label="Clear" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
+      <button pButton type="button" [label]="'audit.logs.search' | translate" icon="pi pi-search" (click)="onSearch()"></button>
+      <button pButton type="button" [label]="'common.actions.clear' | translate" icon="pi pi-times" class="p-button-outlined" (click)="clearFilters()"></button>
       <div class="export-divider"></div>
-      <button pButton type="button" label="Export CSV" icon="pi pi-file" class="p-button-outlined p-button-secondary" (click)="exportLogs('csv')"></button>
-      <button pButton type="button" label="Export JSON" icon="pi pi-file-export" class="p-button-outlined p-button-secondary" (click)="exportLogs('json')"></button>
+      <button pButton type="button" [label]="'audit.logs.exportCsv' | translate" icon="pi pi-file" class="p-button-outlined p-button-secondary" (click)="exportLogs('csv')"></button>
+      <button pButton type="button" [label]="'audit.logs.exportJson' | translate" icon="pi pi-file-export" class="p-button-outlined p-button-secondary" (click)="exportLogs('json')"></button>
     </div>
   </app-filter-bar>
 
@@ -71,22 +71,22 @@
       styleClass="p-datatable-sm p-datatable-striped p-datatable-gridlines"
       [tableStyle]="{'min-width': '80rem'}">
 
-      <ng-template pTemplate="header">
+      <ng-template #header>
         <tr>
-          <th style="width: 160px">Timestamp</th>
-          <th style="width: 140px">Entity</th>
-          <th style="width: 100px">Entity ID</th>
-          <th style="width: 100px">Action</th>
-          <th style="width: 140px">Property</th>
-          <th style="width: 180px">Old Value</th>
-          <th style="width: 180px">New Value</th>
-          <th style="width: 120px">User</th>
-          <th style="width: 100px">IP Address</th>
-          <th style="width: 80px">Actions</th>
+          <th style="width: 160px">{{ 'audit.logs.columns.timestamp' | translate }}</th>
+          <th style="width: 140px">{{ 'audit.logs.columns.entity' | translate }}</th>
+          <th style="width: 100px">{{ 'audit.logs.columns.entityId' | translate }}</th>
+          <th style="width: 100px">{{ 'audit.logs.columns.action' | translate }}</th>
+          <th style="width: 140px">{{ 'audit.logs.columns.property' | translate }}</th>
+          <th style="width: 180px">{{ 'audit.logs.columns.oldValue' | translate }}</th>
+          <th style="width: 180px">{{ 'audit.logs.columns.newValue' | translate }}</th>
+          <th style="width: 120px">{{ 'audit.logs.columns.user' | translate }}</th>
+          <th style="width: 100px">{{ 'audit.logs.columns.ipAddress' | translate }}</th>
+          <th style="width: 80px">{{ 'audit.logs.columns.actions' | translate }}</th>
         </tr>
       </ng-template>
 
-      <ng-template pTemplate="body" let-log>
+      <ng-template #body let-log>
         <tr>
           <td>
             <span class="timestamp" [pTooltip]="formatDate(log.performedAt)">
@@ -127,18 +127,18 @@
           </td>
           <td>
             <button pButton type="button" icon="pi pi-eye" class="p-button-text p-button-sm p-button-rounded"
-              pTooltip="View Timeline" (click)="viewTimeline(log)"></button>
+              [pTooltip]="'audit.logs.viewTimelineTooltip' | translate" (click)="viewTimeline(log)"></button>
           </td>
         </tr>
       </ng-template>
 
-      <ng-template pTemplate="emptymessage">
+      <ng-template #emptymessage>
         <tr>
           <td colspan="10" class="text-center p-6">
             <div class="empty-state">
               <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-              <h3>No audit logs found</h3>
-              <p>Try adjusting your filters or search criteria</p>
+              <h3>{{ 'audit.logs.emptyTitle' | translate }}</h3>
+              <p>{{ 'audit.logs.emptySubtitle' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -165,8 +165,8 @@
 
     <div *ngIf="!loading && logs.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-      <h3>No audit logs found</h3>
-      <p>Try adjusting your filters or search criteria</p>
+      <h3>{{ 'audit.logs.emptyTitle' | translate }}</h3>
+      <p>{{ 'audit.logs.emptySubtitle' | translate }}</p>
     </div>
 
     <div *ngIf="!loading && logs.length > 0" class="cards-grid">
@@ -191,7 +191,7 @@
         </div>
 
         <div class="card-footer">
-          <button class="btn-card-action" pTooltip="View Timeline" (click)="viewTimeline(log); $event.stopPropagation()">
+          <button class="btn-card-action" [pTooltip]="'audit.logs.viewTimelineTooltip' | translate" (click)="viewTimeline(log); $event.stopPropagation()">
             <i class="pi pi-eye"></i>
           </button>
         </div>
@@ -205,7 +205,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
-    itemLabel="records"
+    [itemLabel]="'audit.logs.itemLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>

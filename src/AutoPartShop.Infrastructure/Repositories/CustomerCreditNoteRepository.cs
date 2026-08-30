@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,9 +32,9 @@ public class CustomerCreditNoteRepository(AutoPartDbContext dbContext) : ICustom
         return await dbContext.CustomerCreditNotes
             .Include(cn => cn.Customer)
             .Where(cn => cn.CustomerId == customerId
-                      && cn.Status != "CANCELLED"
-                      && cn.Status != "EXPIRED"
-                      && cn.Status != "FULLY_USED"
+                      && cn.Status != CustomerCreditNoteStatus.CANCELLED
+                      && cn.Status != CustomerCreditNoteStatus.EXPIRED
+                      && cn.Status != CustomerCreditNoteStatus.FULLY_USED
                       && (!cn.ExpiryDate.HasValue || cn.ExpiryDate.Value >= DateTime.UtcNow))
             .OrderBy(cn => cn.ExpiryDate)
             .ThenBy(cn => cn.IssueDate)
@@ -68,8 +69,8 @@ public class CustomerCreditNoteRepository(AutoPartDbContext dbContext) : ICustom
         if (query.CustomerId.HasValue)
             dbQuery = dbQuery.Where(cn => cn.CustomerId == query.CustomerId.Value);
 
-        if (!string.IsNullOrWhiteSpace(query.Status))
-            dbQuery = dbQuery.Where(cn => cn.Status == query.Status);
+        if (query.Status.HasValue)
+            dbQuery = dbQuery.Where(cn => cn.Status == query.Status.Value);
 
         var totalCount = await dbQuery.CountAsync(cancellationToken);
         var creditNotes = await dbQuery
@@ -97,9 +98,9 @@ public class CustomerCreditNoteRepository(AutoPartDbContext dbContext) : ICustom
     {
         return await dbContext.CustomerCreditNotes
             .Where(cn => cn.CustomerId == customerId
-                      && cn.Status != "CANCELLED"
-                      && cn.Status != "EXPIRED"
-                      && cn.Status != "FULLY_USED"
+                      && cn.Status != CustomerCreditNoteStatus.CANCELLED
+                      && cn.Status != CustomerCreditNoteStatus.EXPIRED
+                      && cn.Status != CustomerCreditNoteStatus.FULLY_USED
                       && (!cn.ExpiryDate.HasValue || cn.ExpiryDate.Value >= DateTime.UtcNow))
             .SumAsync(cn => cn.TotalAmount - cn.UsedAmount, cancellationToken);
     }

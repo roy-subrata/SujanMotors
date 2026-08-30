@@ -5,8 +5,8 @@ import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { MenuModule } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
@@ -17,17 +17,37 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-purchase-orders',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, ToastModule, ConfirmDialogModule, Select, DatePicker, MenuModule, TooltipModule, PurchaseOrdersListComponent, PurchaseOrdersFormDialogComponent, HasRoleDirective, PageContainerComponent, PageHeaderComponent, FilterBarComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        ButtonModule,
+        ToastModule,
+        ConfirmDialogModule,
+        DatePicker,
+        SelectModule,
+        MenuModule,
+        TooltipModule,
+        PurchaseOrdersListComponent,
+        PurchaseOrdersFormDialogComponent,
+        HasRoleDirective,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        TranslatePipe
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './purchase-orders.component.html',
     styleUrls: ['./purchase-orders.component.css']
 })
 export class PurchaseOrdersComponent implements OnInit {
     private readonly poService = inject(PurchaseOrderService);
+    private readonly i18n = inject(I18nService);
     private readonly messageService = inject(MessageService);
     private readonly router = inject(Router);
 
@@ -40,36 +60,42 @@ export class PurchaseOrdersComponent implements OnInit {
     rows = 10;
     currentPage = 1;
     searchTerm = '';
-    filterStatus: string | null = null;
+    filterStatus = '';
     dateRange: Date[] | null = null;
 
-    statusOptions = [
-        { label: 'All', value: null },
-        { label: 'Draft', value: 'DRAFT' },
-        { label: 'Submitted', value: 'SUBMITTED' },
-        { label: 'Confirmed', value: 'CONFIRMED' },
-        { label: 'Cancelled', value: 'CANCELLED' },
-        { label: 'Completed', value: 'COMPLETED' }
-    ];
+    /** Getter, not a field: a field freezes the labels in the language active at construction. */
+    get statusOptions() {
+        return [
+            { label: this.i18n.t('purchaseOrders.statusOptions.all'), value: '' },
+            { label: this.i18n.t('purchaseOrders.statusOptions.draft'), value: 'DRAFT' },
+            { label: this.i18n.t('purchaseOrders.statusOptions.submitted'), value: 'SUBMITTED' },
+            { label: this.i18n.t('purchaseOrders.statusOptions.confirmed'), value: 'CONFIRMED' },
+            { label: this.i18n.t('purchaseOrders.statusOptions.cancelled'), value: 'CANCELLED' },
+            { label: this.i18n.t('purchaseOrders.statusOptions.completed'), value: 'COMPLETED' }
+        ];
+    }
 
-    menuItems: MenuItem[] = [
-        {
-            label: 'Export CSV',
-            icon: 'pi pi-file',
-            command: () => this.exportOrders('csv')
-        },
-        {
-            label: 'Export JSON',
-            icon: 'pi pi-file-export',
-            command: () => this.exportOrders('json')
-        },
-        { separator: true },
-        {
-            label: 'Clear Filters',
-            icon: 'pi pi-filter-slash',
-            command: () => this.clearFilters()
-        }
-    ];
+    /** Getter, not a field: same reason as statusOptions above. */
+    get menuItems(): MenuItem[] {
+        return [
+            {
+                label: this.i18n.t('purchaseOrders.exportCSV'),
+                icon: 'pi pi-file',
+                command: () => this.exportOrders('csv')
+            },
+            {
+                label: this.i18n.t('purchaseOrders.exportJSON'),
+                icon: 'pi pi-file-export',
+                command: () => this.exportOrders('json')
+            },
+            { separator: true },
+            {
+                label: this.i18n.t('common.actions.clearFilters'),
+                icon: 'pi pi-filter-slash',
+                command: () => this.clearFilters()
+            }
+        ];
+    }
 
     constructor() {}
 
@@ -126,8 +152,8 @@ export class PurchaseOrdersComponent implements OnInit {
                 error: (error) => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load purchase orders'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('purchaseOrders.listMessages.loadFailed')
                     });
                     console.error('Error loading purchase orders:', error);
                     this.loading = false;
@@ -177,7 +203,7 @@ export class PurchaseOrdersComponent implements OnInit {
      */
     clearFilters(): void {
         this.searchTerm = '';
-        this.filterStatus = null;
+        this.filterStatus = '';
         this.dateRange = null;
         this.loadPurchaseOrders(1, this.rows);
     }
@@ -189,8 +215,8 @@ export class PurchaseOrdersComponent implements OnInit {
         if (this.purchaseOrders.length === 0) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'No Data',
-                detail: 'No purchase orders to export'
+                summary: this.i18n.t('purchaseOrders.listMessages.noData'),
+                detail: this.i18n.t('purchaseOrders.listMessages.noDataExport')
             });
             return;
         }
@@ -229,8 +255,8 @@ export class PurchaseOrdersComponent implements OnInit {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Purchase orders exported to CSV'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('purchaseOrders.listMessages.exportCSVSuccess')
         });
     }
 
@@ -249,8 +275,8 @@ export class PurchaseOrdersComponent implements OnInit {
 
         this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Purchase orders exported to JSON'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('purchaseOrders.listMessages.exportJSONSuccess')
         });
     }
 
@@ -275,7 +301,7 @@ export class PurchaseOrdersComponent implements OnInit {
     onPurchaseOrderCreated(po: PurchaseOrderResponse): void {
         this.messageService.add({
             severity: 'success',
-            summary: 'Success',
+            summary: this.i18n.t('common.messages.success'),
             detail: `Purchase Order '${po.poNumber}' created successfully`
         });
         this.loadPurchaseOrders(1, this.rows, this.searchTerm);
@@ -287,7 +313,7 @@ export class PurchaseOrdersComponent implements OnInit {
     onPurchaseOrderUpdated(po: PurchaseOrderResponse): void {
         this.messageService.add({
             severity: 'success',
-            summary: 'Success',
+            summary: this.i18n.t('common.messages.success'),
             detail: `Purchase Order '${po.poNumber}' updated successfully`
         });
         this.loadPurchaseOrders(this.currentPage, this.rows, this.searchTerm);

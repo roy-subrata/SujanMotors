@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { GoodsReceiptStatus } from '@/shared/models/status.types';
 
 export interface GoodsReceiptLineResponse {
   id: string;
@@ -51,7 +52,7 @@ export interface GoodsReceiptResponse {
   warehouseId: string;
   warehouseName?: string;
   receivedDate: string;
-  status: string; // PENDING, VERIFIED, ACCEPTED, REJECTED
+  status: GoodsReceiptStatus;
   notes: string;
   totalItemsReceived: number;
   discrepancyCount: number;
@@ -197,7 +198,7 @@ export class GoodsReceiptService {
   /**
    * Get goods receipts by status
    */
-  getGoodsReceiptsByStatus(status: string): Observable<GoodsReceiptResponse[]> {
+  getGoodsReceiptsByStatus(status: GoodsReceiptStatus): Observable<GoodsReceiptResponse[]> {
     return this.http.get<GoodsReceiptResponse[]>(`${this.apiUrl}/status/${status}`);
   }
 

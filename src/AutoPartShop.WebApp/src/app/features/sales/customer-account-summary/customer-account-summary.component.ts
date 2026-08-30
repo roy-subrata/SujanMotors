@@ -10,8 +10,8 @@ import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { SkeletonModule } from 'primeng/skeleton';
-import { Observable, Subject, takeUntil } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, Subject, forkJoin, of, takeUntil } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete/lazy-autocomplete.component';
 import { CustomerService, CustomerResponse } from '../services/customer.service';
 import { CustomerVehicleService, CustomerVehicleResponse } from '../services/customer-vehicle.service';
@@ -20,10 +20,21 @@ import {
     CustomerAccountSummary,
     CustomerAccountSummaryQuery
 } from '../services/customer-account-summary.service';
+import {
+    CustomerLedgerService,
+    CustomerLedgerSummaryDto,
+    CustomerLedgerEntryDto,
+    CustomerLedgerQueryDto,
+    CustomerLedgerTransactionType,
+    ReceivablesAgingRow
+} from '../services/customer-ledger.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-customer-account-summary',
@@ -41,7 +52,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         LazyAutocompleteComponent,
         PageHeaderComponent,
         PageContainerComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './customer-account-summary.component.html',
@@ -51,9 +63,12 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
     private readonly customerService = inject(CustomerService);
     private readonly vehicleService = inject(CustomerVehicleService);
     private readonly summaryService = inject(CustomerAccountSummaryService);
+    private readonly ledgerService = inject(CustomerLedgerService);
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
     private readonly destroy$ = new Subject<void>();
 
     // Filter state
@@ -77,6 +92,17 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
     pageNumber = 1;
     pageSize = 20;
     first = 0;
+
+    // Ledger state (separate from the purchase-items list/pagination above)
+    ledgerSummary = signal<CustomerLedgerSummaryDto | null>(null);
+    ledgerEntries = signal<CustomerLedgerEntryDto[]>([]);
+    ledgerTotalCount = signal(0);
+    ledgerPageNumber = 1;
+    ledgerPageSize = 20;
+    ledgerFirst = 0;
+
+    // Ageing state
+    agingRow = signal<ReceivablesAgingRow | null>(null);
 
     // Label of the vehicle the statement is currently scoped to (empty = all vehicles)
     get selectedVehicleLabel(): string {
@@ -122,8 +148,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
         if (!this.selectedCustomer) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Warning',
-                detail: 'Please select a customer',
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('customerAccountSummary.messages.selectCustomer'),
                 life: 3000
             });
             return;
@@ -131,7 +157,10 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
 
         this.pageNumber = 1;
         this.first = 0;
+        this.ledgerPageNumber = 1;
+        this.ledgerFirst = 0;
         this.loadReport();
+        this.loadLedger();
     }
 
     private loadReport(): void {
@@ -159,12 +188,12 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                 },
                 error: (err) => {
                     console.error('Error loading account summary:', err);
-                    this.error.set('Failed to load account summary. Please try again.');
+                    this.error.set(this.i18n.t('customerAccountSummary.messages.loadSummaryFailed'));
                     this.loading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load customer account summary',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customerAccountSummary.messages.loadFailed'),
                         life: 5000
                     });
                 }
@@ -185,6 +214,66 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
     onPageSizeChange(size: number): void {
         this.pageSize = size;
         this.onPageChange({ page: 0, rows: size, first: 0 } as PaginatorState);
+    }
+
+    /**
+     * Ledger + ageing are fetched separately from the purchase-history report above (own
+     * endpoints, own pagination) and fail soft — a ledger/ageing error shouldn't block the
+     * purchase-history summary that already worked before this feature existed.
+     */
+    private loadLedger(): void {
+        if (!this.selectedCustomer) return;
+        const customer = this.selectedCustomer;
+
+        const ledgerQuery: CustomerLedgerQueryDto = {
+            customerId: customer.id,
+            pageNumber: this.ledgerPageNumber,
+            pageSize: this.ledgerPageSize,
+            fromDate: this.fromDate ? this.toLocalDateString(this.fromDate) : undefined,
+            toDate: this.toDate ? this.toLocalDateString(this.toDate) : undefined
+        };
+
+        forkJoin({
+            summary: this.ledgerService.getLedgerSummary(customer.id).pipe(catchError(() => of(null))),
+            entries: this.ledgerService.getLedgerEntries(ledgerQuery).pipe(catchError(() => of(null))),
+            aging: this.ledgerService.getAgingForCustomer(customer.id, customer.customerCode).pipe(catchError(() => of(null)))
+        })
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(({ summary, entries, aging }) => {
+                this.ledgerSummary.set(summary);
+                this.ledgerEntries.set(entries?.entries ?? []);
+                this.ledgerTotalCount.set(entries?.totalCount ?? 0);
+                this.agingRow.set(aging);
+            });
+    }
+
+    onLedgerPageChange(event: PaginatorState): void {
+        this.ledgerPageNumber = (event.page ?? 0) + 1;
+        this.ledgerPageSize = event.rows ?? 20;
+        this.ledgerFirst = event.first ?? 0;
+        this.loadLedger();
+    }
+
+    goToLedgerPage(page: number): void {
+        this.onLedgerPageChange({ page: page - 1, rows: this.ledgerPageSize, first: (page - 1) * this.ledgerPageSize } as PaginatorState);
+    }
+
+    onLedgerPageSizeChange(size: number): void {
+        this.ledgerPageSize = size;
+        this.onLedgerPageChange({ page: 0, rows: size, first: 0 } as PaginatorState);
+    }
+
+    getLedgerTransactionTypeLabel(type: CustomerLedgerTransactionType): string {
+        return this.ledgerService.getTransactionTypeLabel(type);
+    }
+
+    getLedgerTransactionTypeStatus(type: CustomerLedgerTransactionType): string {
+        return this.ledgerService.getTransactionTypeStatus(type);
+    }
+
+    /** Widest ageing bucket amount, used to scale the bucket bars in the panel. */
+    agingMaxBucket(row: ReceivablesAgingRow): number {
+        return Math.max(row.currentAmount, row.days1To30, row.days31To60, row.days61To90, row.days90Plus, 1);
     }
 
     onDownloadPdf(): void {
@@ -217,8 +306,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Success',
-                        detail: 'PDF downloaded successfully',
+                        summary: this.i18n.t('common.messages.success'),
+                        detail: this.i18n.t('customerAccountSummary.messages.pdfSuccess'),
                         life: 3000
                     });
                 },
@@ -226,8 +315,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to generate PDF. Please try again.',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customerAccountSummary.messages.pdfFailed'),
                         life: 5000
                     });
                 }
@@ -260,8 +349,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                     if (!printWindow) {
                         this.messageService.add({
                             severity: 'warn',
-                            summary: 'Pop-up blocked',
-                            detail: 'Please allow pop-ups for this site and try again.',
+                            summary: this.i18n.t('customerAccountSummary.messages.popupBlocked'),
+                            detail: this.i18n.t('customerAccountSummary.messages.popupBlockedDetail'),
                             life: 6000
                         });
                     }
@@ -270,8 +359,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
                     this.pdfLoading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to generate PDF for printing. Please try again.',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customerAccountSummary.messages.printFailed'),
                         life: 5000
                     });
                 }
@@ -301,21 +390,8 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
         });
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        switch (status) {
-            case 'PAID':
-                return 'success';
-            case 'ISSUED':
-                return 'info';
-            case 'PARTIALLY_PAID':
-                return 'warn';
-            case 'OVERDUE':
-                return 'danger';
-            case 'CANCELLED':
-                return 'secondary';
-            default:
-                return 'info';
-        }
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'invoice');
     }
 
     ngOnDestroy(): void {

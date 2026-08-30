@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Domain.Entities.HR;
 
 /// <summary>
@@ -30,10 +32,15 @@ public class Employee : AuditableEntity
     public decimal MonthlyTaxDeduction { get; private set; }  // Fixed monthly income-tax deduction (v1: no tax engine)
     public decimal CommissionRate { get; private set; }  // % of own monthly sales added to payslip (0 = none)
 
+    // Paid-leave entitlements in days per year (null = not configured; treated as 0 available)
+    public decimal? AnnualLeaveEntitlement { get; private set; }
+    public decimal? CasualLeaveEntitlement { get; private set; }
+    public decimal? SickLeaveEntitlement { get; private set; }
+
     public string EmergencyContactName { get; private set; } = string.Empty;
     public string EmergencyContactPhone { get; private set; } = string.Empty;
 
-    public string Status { get; private set; } = "ACTIVE";  // ACTIVE, INACTIVE
+    public EmployeeStatus Status { get; private set; } = EmployeeStatus.ACTIVE;
     public string Notes { get; private set; } = string.Empty;
 
     public string? PhotoUrl { get; private set; }  // Profile photo (uploaded via FilesController)
@@ -86,7 +93,7 @@ public class Employee : AuditableEntity
             EmergencyContactName = emergencyContactName?.Trim() ?? string.Empty,
             EmergencyContactPhone = emergencyContactPhone?.Trim() ?? string.Empty,
             Notes = notes?.Trim() ?? string.Empty,
-            Status = "ACTIVE"
+            Status = EmployeeStatus.ACTIVE
         };
     }
 
@@ -140,15 +147,41 @@ public class Employee : AuditableEntity
 
     public void Activate()
     {
-        Status = "ACTIVE";
+        Status = EmployeeStatus.ACTIVE;
         EndDate = null;
     }
 
     public void Deactivate(DateTime? endDate = null)
     {
-        Status = "INACTIVE";
+        Status = EmployeeStatus.INACTIVE;
         EndDate = (endDate ?? DateTime.UtcNow).Date;
     }
+
+    public void UpdateLeaveEntitlements(decimal? annualLeave, decimal? casualLeave, decimal? sickLeave)
+    {
+        if (annualLeave is < 0)
+            throw new ArgumentException("Annual leave entitlement cannot be negative", nameof(annualLeave));
+
+        if (casualLeave is < 0)
+            throw new ArgumentException("Casual leave entitlement cannot be negative", nameof(casualLeave));
+
+        if (sickLeave is < 0)
+            throw new ArgumentException("Sick leave entitlement cannot be negative", nameof(sickLeave));
+
+        AnnualLeaveEntitlement = annualLeave;
+        CasualLeaveEntitlement = casualLeave;
+        SickLeaveEntitlement = sickLeave;
+    }
+
+    /// <summary>Leave entitlement (days) for a paid leave type, or null when not configured.</summary>
+    public decimal? GetLeaveEntitlement(string leaveType) =>
+        (leaveType?.Trim().ToUpper()) switch
+        {
+            "ANNUAL" => AnnualLeaveEntitlement,
+            "CASUAL" => CasualLeaveEntitlement,
+            "SICK" => SickLeaveEntitlement,
+            _ => null
+        };
 
     public void LinkUserAccount(Guid userId)
     {

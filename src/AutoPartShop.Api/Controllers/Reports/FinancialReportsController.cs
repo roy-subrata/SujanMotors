@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.DashboardDtos;
 using AutoPartShop.Application.DTOs.ReportDtos;
@@ -16,7 +17,6 @@ namespace AutoPartShop.Api.Controllers.Reports;
 /// AddReportProcsBatch3 migration header for why).
 /// </summary>
 [ApiController]
-[Route("api/reports/financial")]
 [Route("api/v1/reports/financial")]
 [HasPermission(Permissions.ReportsView)]
 public class FinancialReportsController(
@@ -26,11 +26,29 @@ public class FinancialReportsController(
     IShopClock shopClock,
     ILogger<FinancialReportsController> logger) : ReportsControllerBase(exportService, shopClock)
 {
+    /// <summary>
+    /// Aging is an as-of snapshot, not a period report — it buckets what is outstanding on a single
+    /// date. fromDate/toDate were accepted and silently discarded, so callers could not tell that
+    /// the range they passed had no effect on the numbers they got back.
+    /// </summary>
+    private IActionResult? RejectDateRange(ReportQuery query)
+    {
+        if (query.FromDate.HasValue || query.ToDate.HasValue)
+        {
+            return BadRequest(ApiError.Validation(
+                "Aging reports are an as-of snapshot and do not take a date range. Use asOfDate instead of fromDate/toDate."));
+        }
+
+        return null;
+    }
+
     /// <summary>Outstanding customer invoices bucketed by age (Current / 1-30 / 31-60 / 61-90 / 90+ days).</summary>
     [HttpPost("receivables-aging")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReportPage<ReceivablesAgingRowDto, AgingTotalsDto>))]
     public async Task<IActionResult> GetReceivablesAging([FromBody] ReportQuery query, CancellationToken cancellationToken)
     {
+        if (RejectDateRange(query) is { } rangeError) return rangeError;
+
         try
         {
             var page = await reportRepository.GetReceivablesAgingAsync(query, cancellationToken: cancellationToken);
@@ -53,10 +71,13 @@ public class FinancialReportsController(
     public async Task<IActionResult> ExportReceivablesAging(
         [FromBody] ReportQuery query, [FromQuery] string format = "xlsx", CancellationToken cancellationToken = default)
     {
+        if (RejectDateRange(query) is { } rangeError) return rangeError;
+
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetReceivablesAgingAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Receivables Aging", BuildFilterSummary(query), page.Data, ReportColumnMaps.ReceivablesAging, "receivables-aging");
+            return ExportFile(format, DocStrings.T("report.titles.receivablesAging", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.ReceivablesAging(lang), "receivables-aging");
         }
         catch (ArgumentException ex)
         {
@@ -74,6 +95,8 @@ public class FinancialReportsController(
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReportPage<PayablesAgingRowDto, AgingTotalsDto>))]
     public async Task<IActionResult> GetPayablesAging([FromBody] ReportQuery query, CancellationToken cancellationToken)
     {
+        if (RejectDateRange(query) is { } rangeError) return rangeError;
+
         try
         {
             var page = await reportRepository.GetPayablesAgingAsync(query, cancellationToken: cancellationToken);
@@ -96,10 +119,13 @@ public class FinancialReportsController(
     public async Task<IActionResult> ExportPayablesAging(
         [FromBody] ReportQuery query, [FromQuery] string format = "xlsx", CancellationToken cancellationToken = default)
     {
+        if (RejectDateRange(query) is { } rangeError) return rangeError;
+
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetPayablesAgingAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Payables Aging", BuildFilterSummary(query), page.Data, ReportColumnMaps.PayablesAging, "payables-aging");
+            return ExportFile(format, DocStrings.T("report.titles.payablesAging", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.PayablesAging(lang), "payables-aging");
         }
         catch (ArgumentException ex)
         {
@@ -141,8 +167,9 @@ public class FinancialReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var rows = await reportRepository.GetExpensesAsync(query, cancellationToken);
-            return ExportFile(format, "Expense Report", BuildFilterSummary(query), rows, ReportColumnMaps.Expenses, "expense-report");
+            return ExportFile(format, DocStrings.T("report.titles.expenseReport", lang), BuildFilterSummary(query), rows, ReportColumnMaps.Expenses(lang), "expense-report");
         }
         catch (ArgumentException ex)
         {
@@ -184,9 +211,10 @@ public class FinancialReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var summary = await financialSummaryService.GetFinancialSummaryAsync(ToSummaryRequest(query), cancellationToken);
-            var lines = BuildStatementLines(summary);
-            return ExportFile(format, "Profit & Loss Statement", BuildFilterSummary(query), lines, StatementColumns, "profit-loss");
+            var lines = BuildStatementLines(summary, lang);
+            return ExportFile(format, DocStrings.T("report.titles.profitLossStatement", lang), BuildFilterSummary(query), lines, StatementColumns(lang), "profit-loss");
         }
         catch (ArgumentException ex)
         {
@@ -199,10 +227,10 @@ public class FinancialReportsController(
         }
     }
 
-    private static readonly IReadOnlyList<ReportColumn<StatementLineDto>> StatementColumns =
+    private static IReadOnlyList<ReportColumn<StatementLineDto>> StatementColumns(string lang) =>
     [
-        new("Line Item", r => r.Label),
-        new("Amount", r => r.Value, ReportColumnFormat.Money)
+        new(DocStrings.T("report.common.lineItem", lang), r => r.Label),
+        new(DocStrings.T("report.common.amount", lang), r => r.Value, ReportColumnFormat.Money)
     ];
 
     private static FinancialSummaryRequest ToSummaryRequest(ReportQuery query)
@@ -250,13 +278,16 @@ public class FinancialReportsController(
     public async Task<IActionResult> DownloadVatReportPdf(
         [FromBody] ReportQuery query,
         [FromServices] IShopProfileProvider shopProfiles,
+        [FromServices] AutoPartShop.Domain.Repositories.IApplicationSettingsRepository settingsRepository,
         CancellationToken cancellationToken)
     {
         try
         {
             var report = await reportRepository.GetVatReportAsync(query, cancellationToken);
             var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
-            var rate = query.VatRatePercent ?? 15m;
+            var configuredRate = await settingsRepository.GetValueAsync("VAT_RATE", cancellationToken);
+            var rate = query.VatRatePercent
+                ?? (decimal.TryParse(configuredRate, out var parsedRate) ? parsedRate : 15m);
 
             var data = new AutoPartShop.Api.Pdf.VatReportDocumentData(
                 ReportNumber: $"VAT-{query.FromDate:yyyyMMdd}",
@@ -273,7 +304,7 @@ public class FinancialReportsController(
                 PurchaseOrderCount: report.PurchaseOrderCount,
                 NetVatPayable: report.NetVatPayable);
 
-            var pdfBytes = new AutoPartShop.Api.Pdf.VatReportDocument(data, shop).GeneratePdf();
+            var pdfBytes = new AutoPartShop.Api.Pdf.VatReportDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
             return File(pdfBytes, "application/pdf", $"vat-report-{query.FromDate:yyyyMMdd}-{query.ToDate:yyyyMMdd}.pdf");
         }
         catch (ArgumentException ex)
@@ -287,26 +318,31 @@ public class FinancialReportsController(
         }
     }
 
-    private static List<StatementLineDto> BuildStatementLines(FinancialSummaryResponse s) =>
-    [
-        new() { Label = "Total Sales", Value = s.TotalSales },
-        new() { Label = "Cash Sales", Value = s.CashSales },
-        new() { Label = "Credit Sales", Value = s.CreditSales },
-        new() { Label = "Customer Payments Received", Value = s.CustomerPaymentsReceived },
-        new() { Label = "Total Purchases", Value = s.TotalPurchases },
-        new() { Label = "Supplier Payments Made", Value = s.SupplierPaymentsMade },
-        new() { Label = "Daily Expenses", Value = s.DailyExpenses },
-        new() { Label = "Total Expenses", Value = s.TotalExpenses },
-        new() { Label = "Gross Profit", Value = s.GrossProfit },
-        new() { Label = "Net Profit", Value = s.NetProfit },
-        new() { Label = "Profit Margin %", Value = s.ProfitMargin },
-        new() { Label = "Customer Due Amount", Value = s.CustomerDueAmount },
-        new() { Label = "Customer Overdue Amount", Value = s.CustomerOverdueAmount },
-        new() { Label = "Supplier Due Amount", Value = s.SupplierDueAmount },
-        new() { Label = "Supplier Overdue Amount", Value = s.SupplierOverdueAmount },
-        new() { Label = "Inventory Value", Value = s.InventoryValue },
-        new() { Label = "Cash Inflow", Value = s.CashInflow },
-        new() { Label = "Cash Outflow", Value = s.CashOutflow },
-        new() { Label = "Closing Balance", Value = s.ClosingBalance }
-    ];
+    private static List<StatementLineDto> BuildStatementLines(FinancialSummaryResponse s, string lang)
+    {
+        string T(string key) => DocStrings.T($"report.profitLoss.{key}", lang);
+
+        return
+        [
+            new() { Label = T("totalSales"), Value = s.TotalSales },
+            new() { Label = T("cashSales"), Value = s.CashSales },
+            new() { Label = T("creditSales"), Value = s.CreditSales },
+            new() { Label = T("customerPaymentsReceived"), Value = s.CustomerPaymentsReceived },
+            new() { Label = T("totalPurchases"), Value = s.TotalPurchases },
+            new() { Label = T("supplierPaymentsMade"), Value = s.SupplierPaymentsMade },
+            new() { Label = T("dailyExpenses"), Value = s.DailyExpenses },
+            new() { Label = T("totalExpenses"), Value = s.TotalExpenses },
+            new() { Label = T("grossProfit"), Value = s.GrossProfit },
+            new() { Label = T("netProfit"), Value = s.NetProfit },
+            new() { Label = T("profitMarginPercent"), Value = s.ProfitMargin },
+            new() { Label = T("customerDueAmount"), Value = s.CustomerDueAmount },
+            new() { Label = T("customerOverdueAmount"), Value = s.CustomerOverdueAmount },
+            new() { Label = T("supplierDueAmount"), Value = s.SupplierDueAmount },
+            new() { Label = T("supplierOverdueAmount"), Value = s.SupplierOverdueAmount },
+            new() { Label = T("inventoryValue"), Value = s.InventoryValue },
+            new() { Label = T("cashInflow"), Value = s.CashInflow },
+            new() { Label = T("cashOutflow"), Value = s.CashOutflow },
+            new() { Label = T("closingBalance"), Value = s.ClosingBalance }
+        ];
+    }
 }

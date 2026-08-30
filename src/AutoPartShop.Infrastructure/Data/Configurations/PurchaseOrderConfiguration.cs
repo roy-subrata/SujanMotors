@@ -17,10 +17,12 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                 .HasMaxLength(50);
 
             builder.Property(p => p.Status)
+                .HasConversion<string>()
                 .IsRequired()
                 .HasMaxLength(20);
 
             builder.Property(p => p.PaymentStatus)
+                .HasConversion<string>()
                 .IsRequired()
                 .HasMaxLength(20);
 
@@ -39,6 +41,9 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(3)
                 .HasDefaultValue("BDT");
+
+            builder.Property(p => p.BaseTotalAmount).HasColumnType("decimal(18,2)");
+            builder.Property(p => p.FxRateToBase).HasColumnType("decimal(18,6)");
 
             // Supplier
             builder.HasOne(p => p.Supplier)
@@ -127,6 +132,7 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
                 .HasMaxLength(50);
 
             builder.Property(g => g.Status)
+                .HasConversion<string>()
                 .IsRequired()
                 .HasMaxLength(20);
 

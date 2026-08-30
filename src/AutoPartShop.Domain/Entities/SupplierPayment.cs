@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -17,10 +19,12 @@ public class SupplierPayment : AuditableEntity
     public decimal Amount { get; private set; }
     public decimal PaymentFee { get; private set; } = 0;  // Fee charged by provider
     public decimal NetAmount { get; private set; }  // Amount - Fee
-    public string Currency { get; private set; } = "USD";
+    public string Currency { get; private set; } = "BDT";
+    public decimal? BaseAmount { get; private set; }  // Amount converted to base currency at payment time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseAmount was captured (1 = same as base)
     public DateTime PaymentDate { get; private set; }
     public string PaymentMethod { get; private set; } = string.Empty;  // BANK_TRANSFER, CHECK, CASH, CRYPTO, etc.
-    public string Status { get; private set; } = "PENDING";  // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED, RETURNED
+    public SupplierPaymentStatus Status { get; private set; } = SupplierPaymentStatus.PENDING;
     public string ReferenceNumber { get; private set; } = string.Empty;  // Check number, transfer ref, etc.
     public string AuthorizationCode { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
@@ -47,7 +51,8 @@ public class SupplierPayment : AuditableEntity
     private SupplierPayment() { }
 
     public static SupplierPayment Create(Guid supplierId, Guid paymentProviderId, decimal amount,
-        string paymentMethod, string transactionNumber = "", string referenceNumber = "", DateTime? paymentDate = null)
+        string paymentMethod, string transactionNumber = "", string referenceNumber = "", DateTime? paymentDate = null,
+        string currency = "BDT")
     {
         if (supplierId == Guid.Empty)
             throw new ArgumentException("SupplierId cannot be empty", nameof(supplierId));
@@ -76,7 +81,8 @@ public class SupplierPayment : AuditableEntity
             TransactionNumber = finalTransactionNumber,
             ReferenceNumber = referenceNumber?.Trim() ?? string.Empty,
             PaymentDate = paymentDate ?? DateTime.UtcNow,
-            Status = "PENDING"
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
+            Status = SupplierPaymentStatus.PENDING
         };
     }
 
@@ -104,6 +110,22 @@ public class SupplierPayment : AuditableEntity
         NetAmount = Amount - PaymentFee;
     }
 
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="Amount"/> at payment time so balances
+    /// and reports stay stable even if exchange rates change later.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        if (baseAmount < 0)
+            throw new ArgumentException("Base amount cannot be negative", nameof(baseAmount));
+
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseAmount = baseAmount;
+        FxRateToBase = rateToBase;
+    }
+
     public void SetAuthorizationCode(string code)
     {
         AuthorizationCode = code?.Trim() ?? string.Empty;
@@ -121,27 +143,27 @@ public class SupplierPayment : AuditableEntity
 
     public void MarkAsProcessing()
     {
-        if (Status != "PENDING")
+        if (Status != SupplierPaymentStatus.PENDING)
             throw new InvalidOperationException("Only pending payments can be marked as processing");
-        Status = "PROCESSING";
+        Status = SupplierPaymentStatus.PROCESSING;
     }
 
     public void MarkAsProcessed(string processedBy)
     {
-        if (Status != "PROCESSING" && Status != "PENDING")
+        if (Status != SupplierPaymentStatus.PROCESSING && Status != SupplierPaymentStatus.PENDING)
             throw new InvalidOperationException("Only pending or processing payments can be marked as processed");
 
         if (string.IsNullOrWhiteSpace(processedBy))
             throw new ArgumentException("ProcessedBy cannot be empty", nameof(processedBy));
 
-        Status = "COMPLETED";
+        Status = SupplierPaymentStatus.COMPLETED;
         ProcessedDate = DateTime.UtcNow;
         ProcessedBy = processedBy.Trim();
     }
 
     public void ConfirmReceipt(string confirmedBy)
     {
-        if (Status != "COMPLETED")
+        if (Status != SupplierPaymentStatus.COMPLETED)
             throw new InvalidOperationException("Only completed payments can be confirmed as received");
 
         if (string.IsNullOrWhiteSpace(confirmedBy))
@@ -153,26 +175,26 @@ public class SupplierPayment : AuditableEntity
 
     public void MarkAsFailed()
     {
-        Status = "FAILED";
+        Status = SupplierPaymentStatus.FAILED;
     }
 
     public void MarkAsReturned()
     {
-        if (Status != "COMPLETED")
+        if (Status != SupplierPaymentStatus.COMPLETED)
             throw new InvalidOperationException("Only completed payments can be marked as returned");
-        Status = "RETURNED";
+        Status = SupplierPaymentStatus.RETURNED;
     }
 
     public void Cancel()
     {
-        if (Status == "COMPLETED" || Status == "RETURNED" || Status == "CANCELLED")
+        if (Status == SupplierPaymentStatus.COMPLETED || Status == SupplierPaymentStatus.RETURNED || Status == SupplierPaymentStatus.CANCELLED)
             throw new InvalidOperationException($"Cannot cancel a {Status} payment");
-        Status = "CANCELLED";
+        Status = SupplierPaymentStatus.CANCELLED;
     }
 
     public void Reconcile()
     {
-        if (Status != "COMPLETED")
+        if (Status != SupplierPaymentStatus.COMPLETED)
             throw new InvalidOperationException("Only completed payments can be reconciled");
 
         IsReconciled = true;
@@ -232,7 +254,8 @@ public class SupplierPayment : AuditableEntity
         Guid sourceAdvancePaymentId,
         Guid paymentProviderId,
         decimal amount,
-        string description)
+        string description,
+        string currency = "BDT")
     {
         if (supplierId == Guid.Empty)
             throw new ArgumentException("SupplierId cannot be empty", nameof(supplierId));
@@ -259,10 +282,11 @@ public class SupplierPayment : AuditableEntity
             PaymentMethod = "ADVANCE_CREDIT",
             TransactionNumber = transactionNumber,
             PaymentDate = DateTime.UtcNow,
-            Status = "COMPLETED",  // Applied advances are immediately completed
+            Status = SupplierPaymentStatus.COMPLETED,  // Applied advances are immediately completed
             PaymentType = PaymentType.REGULAR,
             Description = description.Trim(),
-            RemainingAmount = 0
+            RemainingAmount = 0,
+            Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
     }
 }

@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -7,7 +9,7 @@ public class PaymentProvider : AuditableEntity
 {
     public string ProviderName { get; private set; } = string.Empty;  // PayPal, Stripe, Bank Transfer, Cash, Check, etc.
     public string ProviderType { get; private set; } = string.Empty;  // ONLINE_GATEWAY, BANK_TRANSFER, CASH, CHECK, CRYPTO, MOBILE_BANKING, etc.
-    public string Status { get; private set; } = "ACTIVE";  // ACTIVE, INACTIVE, SUSPENDED
+    public PaymentProviderStatus Status { get; private set; } = PaymentProviderStatus.ACTIVE;
     public string ApiKey { get; private set; } = string.Empty;  // Encrypted API key if needed
     public string MerchantId { get; private set; } = string.Empty;  // Merchant or account ID
     public string BankName { get; private set; } = string.Empty;  // For bank transfers
@@ -34,7 +36,7 @@ public class PaymentProvider : AuditableEntity
 
     private PaymentProvider() { }
 
-    public static PaymentProvider Create(string providerName, string providerType, string status = "ACTIVE")
+    public static PaymentProvider Create(string providerName, string providerType, PaymentProviderStatus status = PaymentProviderStatus.ACTIVE)
     {
         if (string.IsNullOrWhiteSpace(providerName))
             throw new ArgumentException("ProviderName cannot be empty", nameof(providerName));
@@ -111,14 +113,18 @@ public class PaymentProvider : AuditableEntity
         IsDefault = isDefault;
     }
 
+    public void SetProviderName(string name) => ProviderName = name?.Trim() ?? string.Empty;
+
+    public void SetProviderType(string type) => ProviderType = type?.Trim().ToUpper() ?? string.Empty;
+
     public void Activate()
     {
-        Status = "ACTIVE";
+        Status = PaymentProviderStatus.ACTIVE;
     }
 
     public void Deactivate()
     {
-        Status = "INACTIVE";
+        Status = PaymentProviderStatus.INACTIVE;
     }
 
     public void TestConnection()

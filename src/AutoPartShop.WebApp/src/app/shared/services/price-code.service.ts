@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, of, tap } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { I18nService } from './i18n.service';
 
 const SETTING_KEY = 'PRICE_CODE_WORD';
 const PREFIX_KEY = 'PRICE_CODE_PREFIX';
@@ -12,6 +13,7 @@ const SUFFIX_KEY = 'PRICE_CODE_SUFFIX';
 })
 export class PriceCodeService {
   private readonly http = inject(HttpClient);
+  private readonly i18n = inject(I18nService);
   private readonly apiUrl = `${environment.apiUrl}/v1/applicationsettings`;
 
   /** The magic word (10 unique letters mapping to digits 1-9, 0) */
@@ -187,14 +189,14 @@ export class PriceCodeService {
    * Validate a magic word: must be exactly 10 unique A-Z letters.
    */
   validateMagicWord(word: string): { valid: boolean; error?: string } {
-    if (!word) return { valid: false, error: 'Magic word is required' };
+    if (!word) return { valid: false, error: this.i18n.t('adminSettings.priceCode.errors.required') };
 
     const upper = word.toUpperCase();
-    if (upper.length !== 10) return { valid: false, error: 'Must be exactly 10 letters' };
-    if (!/^[A-Z]+$/.test(upper)) return { valid: false, error: 'Only letters A-Z allowed' };
+    if (upper.length !== 10) return { valid: false, error: this.i18n.t('adminSettings.priceCode.errors.exactly10') };
+    if (!/^[A-Z]+$/.test(upper)) return { valid: false, error: this.i18n.t('adminSettings.priceCode.errors.lettersOnly') };
 
     const unique = new Set(upper);
-    if (unique.size !== 10) return { valid: false, error: 'All 10 letters must be unique' };
+    if (unique.size !== 10) return { valid: false, error: this.i18n.t('adminSettings.priceCode.errors.unique') };
 
     return { valid: true };
   }

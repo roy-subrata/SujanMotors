@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { PaginatedResponse } from '@/features/sales/services/customer.service';
 import { PdfDownloadService } from '@/shared/services/pdf-download.service';
 import { environment } from 'src/environments/environment';
+import { PurchaseOrderStatus, PurchaseOrderPaymentStatus } from '@/shared/models/status.types';
 
 export interface PurchaseOrderLineResponse {
     id: string;
@@ -35,11 +36,12 @@ export interface PurchaseOrderResponse {
     supplierId: string;
     supplierName?: string;
     supplierCode?: string;
+    warehouseId?: string | null;
     orderDate: string;
     deliveryDate: string;
     paymentTerms?: string;
-    pymentStatus:string;
-    status: string; // DRAFT, SUBMITTED, CONFIRMED, PARTIAL, DELIVERED, CANCELLED
+    pymentStatus: PurchaseOrderPaymentStatus;
+    status: PurchaseOrderStatus;
     subTotal: number;
     taxAmount: number;
     taxPercentage: number;
@@ -100,12 +102,20 @@ export interface PurchaeOrderQuery {
     search: string;
     pageSize: number;
     pageNumber: number;
-    status?:string,
+    /**
+     * Not a single PurchaseOrderStatus value — the backend list endpoint also accepts a
+     * comma-separated CSV of statuses here (see goods-receipt-form.component.ts's PO picker,
+     * which filters on `'CONFIRMED,PARTIAL'`), so this stays a plain `string` rather than the
+     * narrower union.
+     */
+    status?: string,
     supplierId?: string;
     fromDate?:string;
     toDate?:string;
     /** GRN picker: only POs with at least one line still receivable. */
     hasReceivableQuantity?: boolean;
+    /** Supplier Payment picker: comma-separated payment statuses (e.g. 'PENDING,PARTIAL'). */
+    paymentStatus?: string;
 }
 
 @Injectable({
@@ -154,7 +164,7 @@ export class PurchaseOrderService {
     /**
      * Get purchase orders by status
      */
-    getPurchaseOrdersByStatus(status: string): Observable<PurchaseOrderResponse[]> {
+    getPurchaseOrdersByStatus(status: PurchaseOrderStatus): Observable<PurchaseOrderResponse[]> {
         return this.http.get<PurchaseOrderResponse[]>(`${this.apiUrl}/status/${status}`);
     }
 

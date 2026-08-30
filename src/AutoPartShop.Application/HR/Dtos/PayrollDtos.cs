@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Application.HR.Dtos
 {
     public class GeneratePayrollRequest
@@ -37,7 +39,7 @@ namespace AutoPartShop.Application.HR.Dtos
         public string RunCode { get; set; } = string.Empty;
         public int Year { get; set; }
         public int Month { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public PayrollRunStatus Status { get; set; }
         public string Currency { get; set; } = string.Empty;
         public decimal TotalGross { get; set; }
         public decimal TotalDeductions { get; set; }

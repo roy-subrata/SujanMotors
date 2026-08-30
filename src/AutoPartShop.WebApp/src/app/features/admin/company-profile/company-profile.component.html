@@ -1,0 +1,235 @@
+    <p-toast></p-toast>
+
+    <app-page-container>
+      <app-page-header
+        [title]="i18n.t('companyProfile.title')"
+        [subtitle]="i18n.t('companyProfile.subtitle')">
+      </app-page-header>
+
+      <div class="w-full px-4 py-6">
+
+      <div *ngIf="loading()" class="flex justify-center py-16">
+        <i class="pi pi-spin pi-spinner text-3xl text-gray-400"></i>
+      </div>
+
+      <form *ngIf="!loading()" [formGroup]="form" (ngSubmit)="save()">
+
+        <!-- Application branding (white-label) -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-desktop text-indigo-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.branding.title') }}</h2>
+            </div>
+          </ng-template>
+
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1"><span class="required">*</span> {{ i18n.t('companyProfile.branding.appName') }}</label>
+              <input pInputText formControlName="appName"
+                [placeholder]="i18n.t('companyProfile.branding.appNamePlaceholder')" class="w-full" />
+              <small class="text-gray-400">{{ i18n.t('companyProfile.branding.appNameHint') }}</small>
+              <small class="p-error block mt-1" *ngIf="form.get('appName')?.invalid && form.get('appName')?.touched">
+                {{ i18n.t('companyProfile.branding.appNameRequired') }}
+              </small>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.branding.appLogoUrl') }}</label>
+              <input pInputText formControlName="appLogoUrl"
+                placeholder="https://... or assets/logo.png" class="w-full" />
+              <small class="text-gray-400">{{ i18n.t('companyProfile.branding.appLogoUrlHint') }}</small>
+
+              <div *ngIf="form.get('appLogoUrl')?.value && !form.get('appLogoUrl')?.value?.startsWith('assets')"
+                   class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg inline-block">
+                <img [src]="form.get('appLogoUrl')?.value" alt="preview"
+                     class="max-h-16 object-contain" (error)="onLogoError($event)">
+              </div>
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Identity -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-building text-blue-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.identity.title') }}</h2>
+            </div>
+          </ng-template>
+
+          <div class="flex flex-col gap-4">
+            <ng-container *ngFor="let f of identityFields">
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">
+                  <span class="required" *ngIf="f.control === 'name'">*</span> {{ i18n.t(f.label) }}
+                </label>
+                <textarea *ngIf="f.type === 'textarea'"
+                  pTextarea
+                  [formControlName]="f.control"
+                  [placeholder]="i18n.t(f.placeholder)"
+                  rows="2"
+                  class="w-full">
+                </textarea>
+                <input *ngIf="f.type !== 'textarea'"
+                  pInputText
+                  [formControlName]="f.control"
+                  [placeholder]="i18n.t(f.placeholder)"
+                  [type]="f.type === 'url' ? 'url' : 'text'"
+                  class="w-full" />
+                <small class="text-gray-400">{{ i18n.t(f.hint) }}</small>
+                <small class="p-error block mt-1" *ngIf="form.get(f.control)?.invalid && form.get(f.control)?.touched">
+                  {{ f.control === 'email' ? i18n.t('companyProfile.identity.emailInvalid') : i18n.t('common.messages.fieldRequired', { field: i18n.t(f.label) }) }}
+                </small>
+              </div>
+            </ng-container>
+          </div>
+        </p-card>
+
+        <!-- Logo -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-image text-purple-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.logo.title') }}</h2>
+            </div>
+          </ng-template>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.logo.url') }}</label>
+            <input
+              pInputText
+              formControlName="logoUrl"
+              placeholder="https://... or assets/logo.png"
+              class="w-full" />
+            <small class="text-gray-400">
+              {{ i18n.t('companyProfile.logo.hint') }}
+            </small>
+
+            <!-- Live preview -->
+            <div *ngIf="form.get('logoUrl')?.value && !form.get('logoUrl')?.value?.startsWith('assets')"
+                 class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg inline-block">
+              <img [src]="form.get('logoUrl')?.value" alt="preview"
+                   class="max-h-16 object-contain"
+                   (error)="onLogoError($event)">
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Document footers -->
+        <p-card styleClass="mb-6">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-file-edit text-green-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.footers.title') }}</h2>
+            </div>
+          </ng-template>
+
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.footers.invoiceFooter') }}</label>
+              <textarea pTextarea formControlName="invoiceFooter"
+                [placeholder]="i18n.t('companyProfile.footers.invoiceFooterPlaceholder')"
+                rows="2" class="w-full">
+              </textarea>
+              <small class="text-gray-400">{{ i18n.t('companyProfile.footers.invoiceFooterHint') }}</small>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.footers.challanFooter') }}</label>
+              <textarea pTextarea formControlName="challanFooter"
+                [placeholder]="i18n.t('companyProfile.footers.challanFooterPlaceholder')"
+                rows="2" class="w-full">
+              </textarea>
+              <small class="text-gray-400">{{ i18n.t('companyProfile.footers.challanFooterHint') }}</small>
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Tax & VAT -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-percentage text-orange-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.tax.title') }}</h2>
+            </div>
+          </ng-template>
+
+          <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-2">
+              <p-checkbox formControlName="vatEnabled" [binary]="true" inputId="vatEnabled"></p-checkbox>
+              <label for="vatEnabled" class="text-sm font-medium text-gray-600">{{ i18n.t('companyProfile.tax.vatEnabled') }}</label>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.tax.vatRate') }}</label>
+              <input pInputText type="number" min="0" max="100" step="0.01"
+                formControlName="vatRate" placeholder="15" class="w-full" />
+              <small class="text-gray-400">{{ i18n.t('companyProfile.tax.vatRateHint') }}</small>
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Document Numbering -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-hashtag text-cyan-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('companyProfile.numbering.title') }}</h2>
+            </div>
+          </ng-template>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.invoicePrefix') }}</label>
+              <input pInputText formControlName="invoiceNumberPrefix" placeholder="INV" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.salesOrderPrefix') }}</label>
+              <input pInputText formControlName="salesOrderNumberPrefix" placeholder="SO" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.purchaseOrderPrefix') }}</label>
+              <input pInputText formControlName="purchaseOrderNumberPrefix" placeholder="PO" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.quotationPrefix') }}</label>
+              <input pInputText formControlName="quotationNumberPrefix" placeholder="QT" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-1">{{ i18n.t('companyProfile.numbering.skuPrefix') }}</label>
+              <input pInputText formControlName="skuPrefix" placeholder="SKU" class="w-full" />
+            </div>
+          </div>
+          <small class="text-gray-400 block mt-2">{{ i18n.t('companyProfile.numbering.hint') }}</small>
+        </p-card>
+
+        <!-- Live preview strip -->
+        <div class="bg-white border border-gray-200 rounded-lg p-5 mb-6 shadow-sm">
+          <p class="text-xs text-gray-400 uppercase font-semibold mb-3 tracking-wide">{{ i18n.t('companyProfile.preview.label') }}</p>
+          <div class="flex items-start gap-4">
+            <img *ngIf="form.get('logoUrl')?.value && !form.get('logoUrl')?.value?.startsWith('assets')"
+                 [src]="form.get('logoUrl')?.value" alt=""
+                 class="max-h-12 object-contain">
+            <div>
+              <div class="text-xl font-bold text-gray-800">{{ form.get('name')?.value || i18n.t('companyProfile.preview.placeholderName') }}</div>
+              <div class="text-sm text-gray-500 italic" *ngIf="form.get('tagline')?.value">{{ form.get('tagline')?.value }}</div>
+              <div class="text-xs text-gray-400 mt-1">{{ form.get('address')?.value }}</div>
+              <div class="text-xs text-gray-400">{{ form.get('phone')?.value }}  {{ form.get('email')?.value }}</div>
+              <div class="text-xs text-gray-400" *ngIf="form.get('taxNo')?.value">{{ i18n.t('companyProfile.preview.taxRegPrefix') }} {{ form.get('taxNo')?.value }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button
+            pButton
+            type="submit"
+            [label]="i18n.t('companyProfile.saveButton')"
+            icon="pi pi-save"
+            [loading]="saving()"
+            [disabled]="form.invalid || saving()"
+            class="p-button-success">
+          </button>
+        </div>
+
+      </form>
+      </div>
+    </app-page-container>

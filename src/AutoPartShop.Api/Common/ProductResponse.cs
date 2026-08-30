@@ -36,6 +36,9 @@ public sealed class ProductResponse
 
     public List<ProductVariantSummary> Variants { get; init; } = [];
 
+    /// <summary>Product-scoped EAV attribute values (e.g. Material). Variant-scoped values live on each variant.</summary>
+    public List<ProductAttributeValueSummary> AttributeValues { get; init; } = [];
+
     public string? CreatedBy { get; init; }
     public string? ModifiedBy { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -98,6 +101,19 @@ public sealed class ProductVariantSummary
 }
 
 public sealed class VariantAttributeSummary
+{
+    public Guid AttributeId { get; init; }
+    public string AttributeName { get; init; } = string.Empty;
+    public string? DataType { get; init; }
+    public Guid? OptionId { get; init; }
+    public string? OptionValue { get; init; }
+    public string? ValueText { get; init; }
+    public decimal? ValueNumber { get; init; }
+    public bool? ValueBool { get; init; }
+}
+
+/// <summary>Same shape as <see cref="VariantAttributeSummary"/>, for product-scoped attribute values.</summary>
+public sealed class ProductAttributeValueSummary
 {
     public Guid AttributeId { get; init; }
     public string AttributeName { get; init; } = string.Empty;

@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Application.HR.Dtos
 {
     /// <summary>One row of the daily attendance sheet: an active employee plus their (optional) mark for the day.</summary>
@@ -10,7 +12,18 @@ namespace AutoPartShop.Application.HR.Dtos
         public string Department { get; set; } = string.Empty;
         public string? ShiftName { get; set; }
         public bool IsMarked { get; set; }
-        public string Status { get; set; } = string.Empty;
+
+        /// <summary>
+        /// True when the date is a declared company holiday. Independent of <see cref="Status"/>:
+        /// a holiday is a property of the date, not of an attendance record, and declaring one no
+        /// longer requires someone to hand-mark every employee HOLIDAY for it to be visible.
+        /// </summary>
+        public bool IsHoliday { get; set; }
+
+        /// <summary>Name of the declared holiday, when the date is one.</summary>
+        public string? HolidayName { get; set; }
+
+        public AttendanceStatus? Status { get; set; }
         public TimeSpan? CheckInTime { get; set; }
         public TimeSpan? CheckOutTime { get; set; }
         public string Notes { get; set; } = string.Empty;
@@ -25,7 +38,7 @@ namespace AutoPartShop.Application.HR.Dtos
     public class MarkAttendanceEntry
     {
         public Guid EmployeeId { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public AttendanceStatus? Status { get; set; }
         public TimeSpan? CheckInTime { get; set; }
         public TimeSpan? CheckOutTime { get; set; }
         public string Notes { get; set; } = string.Empty;
@@ -59,7 +72,7 @@ namespace AutoPartShop.Application.HR.Dtos
         public DateTime Date { get; set; }
         public TimeSpan? CheckInTime { get; set; }
         public TimeSpan? CheckOutTime { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public AttendanceStatus Status { get; set; }
         public string Notes { get; set; } = string.Empty;
     }
 }

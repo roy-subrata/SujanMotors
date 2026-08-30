@@ -5,11 +5,13 @@ import { FormsModule } from '@angular/forms';
 import { ChallanService, ChallanResponse } from '../../services/challan.service';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { AppSettingsService, ShopProfile } from '@/shared/services/app-settings.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-challan-print',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, TranslatePipe],
   templateUrl: './challan-print.component.html',
   styleUrls: ['./challan-print.component.css']
 })
@@ -18,6 +20,7 @@ export class ChallanPrintComponent implements OnInit {
   private readonly svc         = inject(ChallanService);
   private readonly fxSvc       = inject(CurrencyService);
   private readonly appSettings = inject(AppSettingsService);
+  private readonly i18n        = inject(I18nService);
 
   challan  = signal<ChallanResponse | null>(null);
   loading  = signal(true);
@@ -32,7 +35,7 @@ export class ChallanPrintComponent implements OnInit {
 
     this.svc.getById(id).subscribe({
       next: c => { this.challan.set(c); this.loading.set(false); },
-      error: () => { this.error.set('Challan not found'); this.loading.set(false); }
+      error: () => { this.error.set(this.i18n.t('challanPrint.notFound')); this.loading.set(false); }
     });
   }
 
@@ -49,8 +52,11 @@ export class ChallanPrintComponent implements OnInit {
   }
 
   get statusLabel(): string {
-    const m: Record<string, string> = { DRAFT: 'Draft', ISSUED: 'Issued', DELIVERED: 'Delivered' };
-    return m[this.challan()?.status ?? ''] ?? (this.challan()?.status ?? '');
+    const status = this.challan()?.status ?? '';
+    if (!status) return '';
+    const key = 'challanPrint.statusOptions.' + status.toLowerCase();
+    const label = this.i18n.t(key);
+    return label === key ? status : label;
   }
 
   get isDelivered(): boolean { return this.challan()?.status === 'DELIVERED'; }

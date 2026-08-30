@@ -1,22 +1,22 @@
 <!-- Create Dialog -->
 <p-dialog [(visible)]="displayCreateDialog" (visibleChange)="displayCreateDialogChange.emit($event)"
-  [header]="'Create New Unit Conversion'" [modal]="true" [style]="{width: '100%', maxWidth: '550px'}" [draggable]="true"
+  [header]="'conversions.addConversion' | translate" [modal]="true" [style]="{width: '100%', maxWidth: '550px'}" [draggable]="true"
   [resizable]="false" (onHide)="onCreateDialogHide()">
 
   <form [formGroup]="createForm" class="form-container">
     <!-- From Unit Field -->
     <div class="form-group">
       <label for="create-from-unit" class="form-label">
-        <span class="required">*</span> From Unit
+        <span class="required">*</span> {{ 'conversions.fromUnit' | translate }}
       </label>
       <p-autocomplete
         id="create-from-unit"
         formControlName="fromUnit"
         [suggestions]="filteredFromUnits"
         [(ngModel)]="selectedFromUnit"
-        placeholder="Search by name or code..."
+        [placeholder]="'conversions.unitSearchPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No units found"
+        [emptyMessage]="'common.messages.noRecordsFound' | translate"
         (onClear)="onFromUnitCleared()"
         (onSelect)="onFromUnitSelect($event.value)"
         [virtualScroll]="true"
@@ -40,7 +40,7 @@
     <!-- Conversion Arrow Display -->
     <div class="conversion-display">
       <div class="arrow-section">
-        <span class="conversion-label">Conversion Rate</span>
+        <span class="conversion-label">{{ 'conversions.conversionRate' | translate }}</span>
         <i class="pi pi-arrow-right arrow-icon"></i>
       </div>
     </div>
@@ -48,16 +48,16 @@
     <!-- To Unit Field -->
     <div class="form-group">
       <label for="create-to-unit" class="form-label">
-        <span class="required">*</span> To Unit
+        <span class="required">*</span> {{ 'conversions.toUnit' | translate }}
       </label>
       <p-autocomplete
         id="create-to-unit"
         formControlName="toUnit"
         [suggestions]="filteredToUnits"
         [(ngModel)]="selectedToUnit"
-        placeholder="Search by name or code..."
+        [placeholder]="'conversions.unitSearchPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No units found"
+        [emptyMessage]="'common.messages.noRecordsFound' | translate"
         (onClear)="onToUnitCleared()"
         (onSelect)="onToUnitSelect($event.value)"
         [virtualScroll]="true"
@@ -81,40 +81,40 @@
     <!-- Conversion Factor Field -->
     <div class="form-group">
       <label for="create-factor" class="form-label">
-        <span class="required">*</span> Conversion Factor
+        <span class="required">*</span> {{ 'units.conversionFactor' | translate }}
       </label>
       <div class="factor-input-group">
-        <span class="factor-prefix">1 (from unit) =</span>
+        <span class="factor-prefix">{{ 'conversions.factorPrefix' | translate }}</span>
         <input id="create-factor" pInputNumber formControlName="conversionFactor" placeholder="0.00" [min]="0.000001"
           [step]="0.01" [class.error]="hasError(createForm, 'conversionFactor')"
           [class.success]="isFieldValid(createForm, 'conversionFactor')" />
-        <span class="factor-suffix">(to unit)</span>
+        <span class="factor-suffix">{{ 'conversions.factorSuffix' | translate }}</span>
       </div>
       <small class="error-message" *ngIf="hasError(createForm, 'conversionFactor')">
         {{ getErrorMessage(createForm, 'conversionFactor') }}
       </small>
-      <small class="hint-message">Example: 1 kg = 1000 grams, so enter 1000</small>
+      <small class="hint-message">{{ 'conversions.factorHint' | translate }}</small>
     </div>
 
     <!-- Description Field (Optional) -->
     <div class="form-group">
       <label for="create-description" class="form-label">
-        Description <span class="optional-label">(Optional)</span>
+        {{ 'common.labels.description' | translate }} <span class="optional-label">({{ 'common.labels.optional' | translate }})</span>
       </label>
       <textarea id="create-description" pInputTextarea formControlName="description"
-        placeholder="Optional description or notes" rows="2" class="form-input"
+        [placeholder]="'conversions.placeholders.description' | translate" rows="2" class="form-input"
         [class.error]="hasError(createForm, 'description')" [class.success]="isFieldValid(createForm, 'description')">
       </textarea>
-      <small class="hint-message">Max 500 characters</small>
+      <small class="hint-message">{{ 'common.labels.max500CharsHint' | translate }}</small>
     </div>
   </form>
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
-      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
+      <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text p-button-secondary"
         (click)="onCreateDialogHide()" [disabled]="isSubmitting">
       </button>
-      <button pButton type="button" label="Create" icon="pi pi-check" class="p-button p-button-success"
+      <button pButton type="button" [label]="'common.actions.create' | translate" icon="pi pi-check" class="p-button p-button-success"
         (click)="onCreateSubmit()" [loading]="isSubmitting" [disabled]="createForm.invalid || isSubmitting">
       </button>
     </div>
@@ -123,13 +123,13 @@
 
 <!-- Update Dialog -->
 <p-dialog [(visible)]="displayUpdateDialog" (visibleChange)="displayUpdateDialogChange.emit($event)"
-  [header]="'Edit Unit Conversion'" [modal]="true" [style]="{width: '100%', maxWidth: '550px'}" [draggable]="true"
+  [header]="'conversions.editConversion' | translate" [modal]="true" [style]="{width: '100%', maxWidth: '550px'}" [draggable]="true"
   [resizable]="false" (onHide)="onUpdateDialogHide()">
 
   <form [formGroup]="updateForm" class="form-container">
     <!-- From Unit (Read-only) -->
     <div class="form-group">
-      <label class="form-label">From Unit</label>
+      <label class="form-label">{{ 'conversions.fromUnit' | translate }}</label>
       <div class="read-only-field">
         <span>{{ selectedUpdateFromUnit?.name }} ({{ selectedUpdateFromUnit?.symbol }})</span>
       </div>
@@ -138,14 +138,14 @@
     <!-- Conversion Arrow Display -->
     <div class="conversion-display">
       <div class="arrow-section">
-        <span class="conversion-label">Conversion Rate</span>
+        <span class="conversion-label">{{ 'conversions.conversionRate' | translate }}</span>
         <i class="pi pi-arrow-right arrow-icon"></i>
       </div>
     </div>
 
     <!-- To Unit (Read-only) -->
     <div class="form-group">
-      <label class="form-label">To Unit</label>
+      <label class="form-label">{{ 'conversions.toUnit' | translate }}</label>
       <div class="read-only-field">
         <span>{{ selectedUpdateToUnit?.name }} ({{ selectedUpdateToUnit?.symbol }})</span>
       </div>
@@ -154,14 +154,14 @@
     <!-- Conversion Factor Field -->
     <div class="form-group">
       <label for="update-factor" class="form-label">
-        <span class="required">*</span> Conversion Factor
+        <span class="required">*</span> {{ 'units.conversionFactor' | translate }}
       </label>
       <div class="factor-input-group">
-        <span class="factor-prefix">1 (from unit) =</span>
+        <span class="factor-prefix">{{ 'conversions.factorPrefix' | translate }}</span>
         <input id="update-factor" pInputNumber formControlName="conversionFactor" placeholder="0.00" [min]="0.000001"
           [step]="0.01" [class.error]="hasError(updateForm, 'conversionFactor')"
           [class.success]="isFieldValid(updateForm, 'conversionFactor')" />
-        <span class="factor-suffix">(to unit)</span>
+        <span class="factor-suffix">{{ 'conversions.factorSuffix' | translate }}</span>
       </div>
       <small class="error-message" *ngIf="hasError(updateForm, 'conversionFactor')">
         {{ getErrorMessage(updateForm, 'conversionFactor') }}
@@ -171,26 +171,26 @@
     <!-- Description Field (Optional) -->
     <div class="form-group">
       <label for="update-description" class="form-label">
-        Description <span class="optional-label">(Optional)</span>
+        {{ 'common.labels.description' | translate }} <span class="optional-label">({{ 'common.labels.optional' | translate }})</span>
       </label>
       <textarea id="update-description" pInputTextarea formControlName="description"
-        placeholder="Optional description or notes" rows="2" class="form-input"
+        [placeholder]="'conversions.placeholders.description' | translate" rows="2" class="form-input"
         [class.error]="hasError(updateForm, 'description')" [class.success]="isFieldValid(updateForm, 'description')">
       </textarea>
-      <small class="hint-message">Max 500 characters</small>
+      <small class="hint-message">{{ 'common.labels.max500CharsHint' | translate }}</small>
     </div>
 
     <!-- Status Field -->
     <div class="form-group">
-      <label for="update-status" class="form-label">Status</label>
+      <label for="update-status" class="form-label">{{ 'common.labels.status' | translate }}</label>
       <div class="status-toggle">
         <input id="update-status" type="checkbox" formControlName="isActive" class="status-checkbox" />
         <label for="update-status" class="status-label">
           <span *ngIf="updateForm.get('isActive')?.value" class="status-active">
-            <i class="pi pi-check-circle"></i> Active
+            <i class="pi pi-check-circle"></i> {{ 'common.status.active' | translate }}
           </span>
           <span *ngIf="!updateForm.get('isActive')?.value" class="status-inactive">
-            <i class="pi pi-times-circle"></i> Inactive
+            <i class="pi pi-times-circle"></i> {{ 'common.status.inactive' | translate }}
           </span>
         </label>
       </div>
@@ -199,10 +199,10 @@
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
-      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
+      <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text p-button-secondary"
         (click)="onUpdateDialogHide()" [disabled]="isSubmitting">
       </button>
-      <button pButton type="button" label="Update" icon="pi pi-check" class="p-button p-button-info"
+      <button pButton type="button" [label]="'common.actions.update' | translate" icon="pi pi-check" class="p-button p-button-info"
         (click)="onUpdateSubmit()" [loading]="isSubmitting" [disabled]="updateForm.invalid || isSubmitting">
       </button>
     </div>

@@ -1,24 +1,15 @@
-<p-toast></p-toast>
+<app-page-container>
+  <p-toast></p-toast>
 
-<div class="dash">
-
-  <!-- ══════════════════ Page header ══════════════════ -->
-  <div class="dash-header">
-    <div class="dash-header-left">
-      <h1 class="dash-title">Dashboard</h1>
-      <span class="dash-subtitle">
-        Business performance
-        @if (resolvedStartDate && resolvedEndDate) {
-          <span>&middot; {{ getPeriodLabel() }}</span>
-        }
-      </span>
-    </div>
-    <div class="dash-header-right">
+  <app-page-header
+    [title]="'dashboard.title' | translate"
+    [subtitle]="'dashboard.subtitle' | translate">
+    <ng-container actions>
       <div class="period-pill">
         <i class="pi pi-calendar"></i>
         <p-select
           [(ngModel)]="selectedPeriod"
-          [options]="periodOptions"
+          [options]="periodOptions()"
           optionLabel="label"
           optionValue="value"
           (onChange)="onPeriodChange()"
@@ -29,7 +20,7 @@
       @if (showCustomDateRange) {
         <p-datepicker
           [(ngModel)]="startDate"
-          placeholder="Start Date"
+          [placeholder]="'dashboard.startDatePlaceholder' | translate"
           dateFormat="M dd, yy"
           [showIcon]="true"
           appendTo="body"
@@ -37,27 +28,27 @@
         </p-datepicker>
         <p-datepicker
           [(ngModel)]="endDate"
-          placeholder="End Date"
+          [placeholder]="'dashboard.endDatePlaceholder' | translate"
           dateFormat="M dd, yy"
           [showIcon]="true"
           appendTo="body"
           styleClass="date-input">
         </p-datepicker>
-        <button class="shell-btn shell-btn-icon" (click)="loadDashboard()" pTooltip="Apply range" tooltipPosition="bottom">
+        <button class="shell-btn shell-btn-icon" (click)="loadDashboard()" [pTooltip]="'dashboard.applyRangeTooltip' | translate" tooltipPosition="bottom">
           <i class="pi pi-check"></i>
         </button>
       }
       <button class="shell-btn shell-btn-icon" (click)="loadDashboard()" [disabled]="loading()"
-        pTooltip="Refresh" tooltipPosition="bottom">
+        [pTooltip]="'dashboard.refreshTooltip' | translate" tooltipPosition="bottom">
         <i class="pi pi-refresh" [class.pi-spin]="loading()"></i>
       </button>
       <button class="shell-btn">
-        <i class="pi pi-download"></i> Export
+        <i class="pi pi-download"></i> {{ 'dashboard.export' | translate }}
       </button>
-    </div>
-  </div>
+    </ng-container>
+  </app-page-header>
 
-  <!-- ══════════════════ Loading skeleton ══════════════════ -->
+  <!-- Loading skeleton -->
   @if (loading()) {
     <div class="kpi-row">
       @for (i of [1,2,3,4]; track i) {
@@ -75,134 +66,188 @@
     </div>
   }
 
-  <!-- ══════════════════ Error state ══════════════════ -->
+  <!-- Error state -->
   @if (!loading() && hasError()) {
     <div class="empty-full-state">
       <i class="pi pi-exclamation-circle"></i>
-      <h3>Failed to load dashboard</h3>
-      <p>Could not retrieve data from the server. Check your connection and try again.</p>
+      <h3>{{ 'dashboard.failedToLoadTitle' | translate }}</h3>
+      <p>{{ 'dashboard.failedToLoadDetail' | translate }}</p>
       <button class="shell-btn shell-btn-accent" (click)="loadDashboard()">
-        <i class="pi pi-refresh"></i> Retry
+        <i class="pi pi-refresh"></i> {{ 'dashboard.retry' | translate }}
       </button>
     </div>
   }
 
-  <!-- ══════════════════ Dashboard content ══════════════════ -->
+  <!-- Dashboard content -->
   @if (!loading() && !hasError() && dashboardData(); as data) {
 
-    <!-- Alert strip (existing feature — kept, restyled) -->
+    <!-- Alert strip -->
     @if (hasAlerts) {
       <div class="alert-strip">
         @if (data.summary.lowStockItemsCount > 0) {
-          <div class="alert-item alert-amber" pTooltip="Parts below minimum stock level" tooltipPosition="bottom">
+          <div class="alert-item alert-amber" [pTooltip]="'dashboard.alerts.lowStockTooltip' | translate" tooltipPosition="bottom">
             <i class="pi pi-exclamation-triangle"></i>
-            <span><strong>{{ data.summary.lowStockItemsCount }}</strong> low stock items</span>
+            <span><strong>{{ data.summary.lowStockItemsCount }}</strong> {{ 'dashboard.alerts.lowStockItems' | translate }}</span>
           </div>
         }
         @if (data.summary.customerOverdueAmount > 0) {
-          <div class="alert-item alert-red" pTooltip="Customers with unpaid invoices older than 30 days" tooltipPosition="bottom">
+          <div class="alert-item alert-red" [pTooltip]="'dashboard.alerts.customerOverdueTooltip' | translate" tooltipPosition="bottom">
             <i class="pi pi-users"></i>
-            <span>Customer overdue: <strong>{{ formatCurrency(data.summary.customerOverdueAmount) }}</strong>
+            <span>{{ 'dashboard.alerts.customerOverduePrefix' | translate }} <strong>{{ formatCurrency(data.summary.customerOverdueAmount) }}</strong>
               ({{ data.summary.customerOverdueCount }})</span>
           </div>
         }
         @if (data.summary.supplierOverdueAmount > 0) {
-          <div class="alert-item alert-red" pTooltip="Suppliers with delivered goods past expected payment date" tooltipPosition="bottom">
+          <div class="alert-item alert-red" [pTooltip]="'dashboard.alerts.supplierOverdueTooltip' | translate" tooltipPosition="bottom">
             <i class="pi pi-truck"></i>
-            <span>Supplier overdue: <strong>{{ formatCurrency(data.summary.supplierOverdueAmount) }}</strong>
+            <span>{{ 'dashboard.alerts.supplierOverduePrefix' | translate }} <strong>{{ formatCurrency(data.summary.supplierOverdueAmount) }}</strong>
               ({{ data.summary.supplierOverdueCount }})</span>
           </div>
         }
       </div>
     }
 
-    <!-- ══════════════════ KPI row ══════════════════ -->
+    <!-- KPI row -->
     <div class="kpi-row">
       <div class="kpi-card">
         <div class="kpi-top">
-          <span class="kpi-label">Total Sales</span>
+          <span class="kpi-label">{{ 'dashboard.kpi.totalSales' | translate }}</span>
         </div>
         <div class="kpi-value">{{ formatCurrency(data.summary.totalSales) }}</div>
-        <div class="kpi-sub">{{ data.summary.totalSalesCount }} orders &middot; avg {{ formatCurrency(data.summary.averageSaleValue) }}</div>
+        <div class="kpi-sub">{{ data.summary.totalSalesCount }} {{ 'dashboard.kpi.ordersSuffix' | translate }} &middot; {{ 'dashboard.kpi.avgPrefix' | translate }} {{ formatCurrency(data.summary.averageSaleValue) }}</div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-top">
-          <span class="kpi-label">Revenue Collected</span>
+          <span class="kpi-label">{{ 'dashboard.kpi.revenueCollected' | translate }}</span>
         </div>
         <div class="kpi-value">{{ formatCurrency(data.summary.totalRevenue) }}</div>
-        <div class="kpi-sub">Cash {{ formatCurrency(data.summary.cashSales) }} &middot; credit {{ formatCurrency(data.summary.creditSales) }}</div>
+        <div class="kpi-sub">{{ 'dashboard.kpi.cashPrefix' | translate }} {{ formatCurrency(data.summary.cashSales) }} &middot; {{ 'dashboard.kpi.creditPrefix' | translate }} {{ formatCurrency(data.summary.creditSales) }}</div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-top">
-          <span class="kpi-label">Total Expenses</span>
+          <span class="kpi-label">{{ 'dashboard.kpi.totalExpenses' | translate }}</span>
         </div>
         <div class="kpi-value">{{ formatCurrency(data.summary.totalExpenses) }}</div>
-        <div class="kpi-sub">Purchases + daily expenses</div>
+        <div class="kpi-sub">{{ 'dashboard.kpi.totalExpensesSub' | translate }}</div>
       </div>
 
       <div class="kpi-card">
         <div class="kpi-top">
-          <span class="kpi-label">Net Profit</span>
+          <span class="kpi-label">{{ 'dashboard.kpi.netProfit' | translate }}</span>
         </div>
         <div class="kpi-value" [class.kpi-value-red]="data.summary.netProfit < 0">{{ formatCurrency(data.summary.netProfit) }}</div>
-        <div class="kpi-sub">{{ formatPercent(data.summary.profitMargin) }} margin</div>
+        <div class="kpi-sub">{{ formatPercent(data.summary.profitMargin) }} {{ 'dashboard.kpi.marginSuffix' | translate }}</div>
       </div>
     </div>
 
-    <!-- ══════════════════ Insight strip ══════════════════ -->
+    <!-- Work Queue + Low Stock -->
+    <div class="tables-row">
+      <div class="dash-card table-card">
+        <div class="table-card-header">
+          <span class="dash-card-title">{{ 'dashboard.workQueue.title' | translate }}</span>
+          <span class="dash-card-sub">{{ 'dashboard.workQueue.subtitle' | translate }}</span>
+        </div>
+        <div class="queue-grid">
+          @for (item of workQueueItems(); track item.label) {
+            <a class="queue-item" [routerLink]="item.link" [queryParams]="item.queryParams">
+              <span class="queue-item-icon"><i [class]="item.icon"></i></span>
+              <span class="queue-item-text">
+                <span class="queue-item-label">{{ item.label }}</span>
+                <span class="queue-item-sub">{{ item.sub }}</span>
+              </span>
+              <span class="queue-item-count">{{ item.count }}</span>
+            </a>
+          } @empty {
+            <div class="dash-table-empty">
+              <i class="pi pi-check-circle"></i>
+              <span>{{ 'dashboard.workQueue.empty' | translate }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="dash-card table-card">
+        <div class="table-card-header">
+          <span class="dash-card-title">{{ 'dashboard.lowStock.title' | translate }}</span>
+          <a class="dash-card-link" [routerLink]="['/inventory/stock']" [queryParams]="{ tab: 'low' }">{{ 'dashboard.lowStock.viewAll' | translate }}</a>
+        </div>
+        <div class="dash-table-head dash-table-head-lowstock">
+          <span>{{ 'dashboard.lowStock.colPart' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.lowStock.colWarehouse' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.lowStock.colQty' | translate }}</span>
+        </div>
+        @for (row of lowStockRows(); track row.id) {
+          <div class="dash-table-row dash-table-head-lowstock">
+            <div class="cell-primary">
+              <span class="cell-title">{{ row.partName }}</span>
+              <span class="cell-sub">{{ row.partSku }}</span>
+            </div>
+            <span class="col-right cell-muted small">{{ row.warehouseName }}</span>
+            <span class="col-right cell-red">{{ row.quantity }}</span>
+          </div>
+        } @empty {
+          <div class="dash-table-empty">
+            <i class="pi pi-check-circle"></i>
+            <span>{{ 'dashboard.lowStock.empty' | translate }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Insight strip -->
     <div class="insight-strip">
       <div class="insight-cell">
-        <span class="insight-label">Gross Profit</span>
+        <span class="insight-label">{{ 'dashboard.insights.grossProfit' | translate }}</span>
         <span class="insight-value" [class.insight-value-red]="data.summary.grossProfit < 0">{{ formatCurrency(data.summary.grossProfit) }}</span>
-        <span class="insight-sub">Before daily expenses</span>
+        <span class="insight-sub">{{ 'dashboard.insights.grossProfitSub' | translate }}</span>
       </div>
       <div class="insight-cell">
-        <span class="insight-label">Avg Sale Value</span>
+        <span class="insight-label">{{ 'dashboard.insights.avgSaleValue' | translate }}</span>
         <span class="insight-value">{{ formatCurrency(data.summary.averageSaleValue) }}</span>
-        <span class="insight-sub">Per order</span>
+        <span class="insight-sub">{{ 'dashboard.insights.avgSaleValueSub' | translate }}</span>
       </div>
       <div class="insight-cell">
-        <span class="insight-label">New Customers</span>
+        <span class="insight-label">{{ 'dashboard.insights.newCustomers' | translate }}</span>
         <span class="insight-value">{{ data.summary.newCustomers }}</span>
-        <span class="insight-sub">of {{ data.summary.totalCustomers }} total</span>
+        <span class="insight-sub">{{ 'dashboard.insights.newCustomersSubPrefix' | translate }} {{ data.summary.totalCustomers }} {{ 'dashboard.insights.newCustomersSubSuffix' | translate }}</span>
       </div>
       <div class="insight-cell">
-        <span class="insight-label">Low Stock Items</span>
+        <span class="insight-label">{{ 'dashboard.insights.lowStockItems' | translate }}</span>
         <span class="insight-value">{{ data.summary.lowStockItemsCount }}</span>
-        <span class="insight-sub">As of today</span>
+        <span class="insight-sub">{{ 'dashboard.insights.lowStockItemsSub' | translate }}</span>
       </div>
       <div class="insight-cell">
-        <span class="insight-label">Customer Due</span>
+        <span class="insight-label">{{ 'dashboard.insights.customerDue' | translate }}</span>
         <span class="insight-value" [class.insight-value-amber]="data.summary.customerDueAmount > 0">{{ formatCurrency(data.summary.customerDueAmount) }}</span>
-        <span class="insight-sub">{{ data.summary.customerDueCount }} customer{{ data.summary.customerDueCount === 1 ? '' : 's' }}</span>
+        <span class="insight-sub">{{ data.summary.customerDueCount }} {{ (data.summary.customerDueCount === 1 ? 'dashboard.insights.customerDueSub' : 'dashboard.insights.customerDueSubPlural') | translate }}</span>
       </div>
       <div class="insight-cell insight-cell-last">
-        <span class="insight-label">Supplier Due</span>
+        <span class="insight-label">{{ 'dashboard.insights.supplierDue' | translate }}</span>
         <span class="insight-value">{{ formatCurrency(data.summary.supplierDueAmount) }}</span>
-        <span class="insight-sub">{{ data.summary.supplierDueCount }} supplier{{ data.summary.supplierDueCount === 1 ? '' : 's' }}</span>
+        <span class="insight-sub">{{ data.summary.supplierDueCount }} {{ (data.summary.supplierDueCount === 1 ? 'dashboard.insights.supplierDueSub' : 'dashboard.insights.supplierDueSubPlural') | translate }}</span>
       </div>
     </div>
 
-    <!-- ══════════════════ Chart + Cash Flow ══════════════════ -->
+    <!-- Chart + Cash Flow -->
     <div class="chart-row">
       <div class="dash-card chart-card">
         <div class="chart-card-header">
           <div class="chart-card-title-block">
-            <span class="dash-card-title">Sales &amp; Profit Trend</span>
-            <span class="dash-card-sub">Daily totals, this period</span>
+            <span class="dash-card-title">{{ 'dashboard.chart.title' | translate }}</span>
+            <span class="dash-card-sub">{{ 'dashboard.chart.subtitle' | translate }}</span>
           </div>
           <div class="chart-legend">
-            <span class="legend-item"><span class="legend-swatch legend-sales"></span>Sales</span>
-            <span class="legend-item"><span class="legend-swatch legend-purch"></span>Purchases</span>
-            <span class="legend-item"><span class="legend-swatch legend-profit"></span>Profit</span>
+            <span class="legend-item"><span class="legend-swatch legend-sales"></span>{{ 'dashboard.chart.sales' | translate }}</span>
+            <span class="legend-item"><span class="legend-swatch legend-purch"></span>{{ 'dashboard.chart.purchases' | translate }}</span>
+            <span class="legend-item"><span class="legend-swatch legend-profit"></span>{{ 'dashboard.chart.profit' | translate }}</span>
           </div>
         </div>
         @if (!hasChartData) {
           <div class="chart-empty-state">
             <i class="pi pi-chart-line"></i>
-            <p>No trend data for this period</p>
+            <p>{{ 'dashboard.chart.empty' | translate }}</p>
           </div>
         } @else {
           <div class="chart-container">
@@ -212,38 +257,38 @@
       </div>
 
       <div class="dash-card cashflow-card">
-        <span class="dash-card-title">Cash Flow</span>
+        <span class="dash-card-title">{{ 'dashboard.cashFlow.title' | translate }}</span>
         <div class="cashflow-row">
-          <span class="cashflow-label">Opening Balance</span>
+          <span class="cashflow-label">{{ 'dashboard.cashFlow.openingBalance' | translate }}</span>
           <span class="cashflow-value">{{ formatCurrency(data.summary.openingBalance) }}</span>
         </div>
         <div class="cashflow-row">
-          <span class="cashflow-label">Cash Inflow</span>
+          <span class="cashflow-label">{{ 'dashboard.cashFlow.cashInflow' | translate }}</span>
           <span class="cashflow-value cashflow-value-green">+{{ formatCurrency(data.summary.cashInflow) }}</span>
         </div>
         <div class="cashflow-row">
-          <span class="cashflow-label">Cash Outflow</span>
+          <span class="cashflow-label">{{ 'dashboard.cashFlow.cashOutflow' | translate }}</span>
           <span class="cashflow-value">&minus;{{ formatCurrency(data.summary.cashOutflow) }}</span>
         </div>
         <div class="cashflow-footer">
-          <span>Closing Balance</span>
+          <span>{{ 'dashboard.cashFlow.closingBalance' | translate }}</span>
           <span class="cashflow-footer-value">{{ formatCurrency(data.summary.closingBalance) }}</span>
         </div>
       </div>
     </div>
 
-    <!-- ══════════════════ Tables ══════════════════ -->
+    <!-- Tables -->
     <div class="tables-row">
       <div class="dash-card table-card">
         <div class="table-card-header">
-          <span class="dash-card-title">Top Products</span>
+          <span class="dash-card-title">{{ 'dashboard.topProducts.title' | translate }}</span>
         </div>
         <div class="dash-table-head dash-table-head-products">
-          <span>Product</span>
-          <span class="col-right">Qty</span>
-          <span class="col-right">Revenue</span>
-          <span class="col-right">Profit</span>
-          <span class="col-right">Margin</span>
+          <span>{{ 'dashboard.topProducts.colProduct' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.topProducts.colQty' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.topProducts.colRevenue' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.topProducts.colProfit' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.topProducts.colMargin' | translate }}</span>
         </div>
         @for (product of data.topProducts; track product.partId) {
           <div class="dash-table-row dash-table-head-products">
@@ -263,20 +308,20 @@
         } @empty {
           <div class="dash-table-empty">
             <i class="pi pi-inbox"></i>
-            <span>No product sales in this period</span>
+            <span>{{ 'dashboard.topProducts.empty' | translate }}</span>
           </div>
         }
       </div>
 
       <div class="dash-card table-card">
         <div class="table-card-header">
-          <span class="dash-card-title">Top Customers</span>
+          <span class="dash-card-title">{{ 'dashboard.topCustomers.title' | translate }}</span>
         </div>
         <div class="dash-table-head dash-table-head-customers">
-          <span>Customer</span>
-          <span class="col-right">Orders</span>
-          <span class="col-right">Revenue</span>
-          <span class="col-right">Last</span>
+          <span>{{ 'dashboard.topCustomers.colCustomer' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.topCustomers.colOrders' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.topCustomers.colRevenue' | translate }}</span>
+          <span class="col-right">{{ 'dashboard.topCustomers.colLast' | translate }}</span>
         </div>
         @for (customer of data.topCustomers; track customer.customerId) {
           <div class="dash-table-row dash-table-head-customers">
@@ -294,23 +339,23 @@
         } @empty {
           <div class="dash-table-empty">
             <i class="pi pi-inbox"></i>
-            <span>No customer activity in this period</span>
+            <span>{{ 'dashboard.topCustomers.empty' | translate }}</span>
           </div>
         }
       </div>
     </div>
   }
 
-  <!-- ══════════════════ Empty state (no data, no error) ══════════════════ -->
+  <!-- Empty state (no data, no error) -->
   @if (!loading() && !hasError() && !dashboardData()) {
     <div class="empty-full-state">
       <i class="pi pi-chart-bar"></i>
-      <h3>No data available</h3>
-      <p>Select a period and click refresh to load your business overview.</p>
+      <h3>{{ 'dashboard.noDataTitle' | translate }}</h3>
+      <p>{{ 'dashboard.noDataDetail' | translate }}</p>
       <button class="shell-btn shell-btn-accent" (click)="loadDashboard()">
-        <i class="pi pi-refresh"></i> Load Dashboard
+        <i class="pi pi-refresh"></i> {{ 'dashboard.loadDashboard' | translate }}
       </button>
     </div>
   }
 
-</div>
+</app-page-container>

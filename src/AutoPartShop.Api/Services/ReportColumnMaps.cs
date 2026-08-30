@@ -1,239 +1,243 @@
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Application.DTOs.ReportDtos;
 
 namespace AutoPartShop.Api.Services;
 
 /// <summary>
-/// Export column definitions, one list per report — the single source of truth for what an
-/// exported file contains. Keep in sync with the frontend report-page column configs.
+/// Export column definitions, one method per report — the single source of truth for what an
+/// exported file contains. Headers are resolved per-language via <see cref="DocStrings"/> under the
+/// report.common.* namespace. Keep in sync with the frontend report-page column configs.
 /// </summary>
 public static class ReportColumnMaps
 {
-    public static readonly IReadOnlyList<ReportColumn<SalesSummaryRowDto>> SalesSummary =
+    private static string T(string key, string lang) => DocStrings.T($"report.common.{key}", lang);
+
+    public static IReadOnlyList<ReportColumn<SalesSummaryRowDto>> SalesSummary(string lang) =>
     [
-        new("Period", r => r.PeriodStart, ReportColumnFormat.Date),
-        new("Orders", r => r.OrderCount, ReportColumnFormat.Integer),
-        new("Gross", r => r.GrossAmount, ReportColumnFormat.Money),
-        new("Discount", r => r.DiscountAmount, ReportColumnFormat.Money),
-        new("Tax", r => r.TaxAmount, ReportColumnFormat.Money),
-        new("Net", r => r.NetAmount, ReportColumnFormat.Money),
-        new("Grand Total", r => r.GrandTotal, ReportColumnFormat.Money),
-        new("Avg Order", r => r.AverageOrderValue, ReportColumnFormat.Money)
+        new(T("period", lang), r => r.PeriodStart, ReportColumnFormat.Date),
+        new(T("orders", lang), r => r.OrderCount, ReportColumnFormat.Integer),
+        new(T("gross", lang), r => r.GrossAmount, ReportColumnFormat.Money),
+        new(T("discount", lang), r => r.DiscountAmount, ReportColumnFormat.Money),
+        new(T("tax", lang), r => r.TaxAmount, ReportColumnFormat.Money),
+        new(T("net", lang), r => r.NetAmount, ReportColumnFormat.Money),
+        new(T("grandTotal", lang), r => r.GrandTotal, ReportColumnFormat.Money),
+        new(T("avgOrder", lang), r => r.AverageOrderValue, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<SalesByProductRowDto>> SalesByProduct =
+    public static IReadOnlyList<ReportColumn<SalesByProductRowDto>> SalesByProduct(string lang) =>
     [
-        new("Part No.", r => r.PartNumber),
-        new("Product", r => r.PartName),
-        new("SKU", r => r.Sku),
-        new("Category", r => r.CategoryName),
-        new("Brand", r => r.BrandName),
-        new("Qty Sold", r => r.QuantitySold, ReportColumnFormat.Integer),
-        new("Gross Revenue", r => r.GrossRevenue, ReportColumnFormat.Money),
-        new("Discount", r => r.DiscountAmount, ReportColumnFormat.Money),
-        new("Net Revenue", r => r.NetRevenue, ReportColumnFormat.Money)
+        new(T("partNo", lang), r => r.PartNumber),
+        new(T("product", lang), r => r.PartName),
+        new(T("sku", lang), r => r.Sku),
+        new(T("category", lang), r => r.CategoryName),
+        new(T("brand", lang), r => r.BrandName),
+        new(T("qtySold", lang), r => r.QuantitySold, ReportColumnFormat.Integer),
+        new(T("grossRevenue", lang), r => r.GrossRevenue, ReportColumnFormat.Money),
+        new(T("discount", lang), r => r.DiscountAmount, ReportColumnFormat.Money),
+        new(T("netRevenue", lang), r => r.NetRevenue, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<StockSummaryRowDto>> StockSummary =
+    public static IReadOnlyList<ReportColumn<StockSummaryRowDto>> StockSummary(string lang) =>
     [
-        new("Part No.", r => r.PartNumber),
-        new("Product", r => r.PartName),
-        new("Variant", r => r.VariantName),
-        new("SKU", r => r.Sku),
-        new("Category", r => r.CategoryName),
-        new("Warehouse", r => r.WarehouseName),
-        new("On Hand", r => r.QuantityOnHand, ReportColumnFormat.Integer),
-        new("Reserved", r => r.QuantityReserved, ReportColumnFormat.Integer),
-        new("Damaged", r => r.QuantityDamaged, ReportColumnFormat.Integer),
-        new("Available", r => r.QuantityAvailable, ReportColumnFormat.Integer),
-        new("Avg Cost", r => r.AverageCost, ReportColumnFormat.Money),
-        new("Stock Value", r => r.StockValue, ReportColumnFormat.Money)
+        new(T("partNo", lang), r => r.PartNumber),
+        new(T("product", lang), r => r.PartName),
+        new(T("variant", lang), r => r.VariantName),
+        new(T("sku", lang), r => r.Sku),
+        new(T("category", lang), r => r.CategoryName),
+        new(T("warehouse", lang), r => r.WarehouseName),
+        new(T("onHand", lang), r => r.QuantityOnHand, ReportColumnFormat.Integer),
+        new(T("reserved", lang), r => r.QuantityReserved, ReportColumnFormat.Integer),
+        new(T("damaged", lang), r => r.QuantityDamaged, ReportColumnFormat.Integer),
+        new(T("available", lang), r => r.QuantityAvailable, ReportColumnFormat.Integer),
+        new(T("avgCost", lang), r => r.AverageCost, ReportColumnFormat.Money),
+        new(T("stockValue", lang), r => r.StockValue, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<SalesByCategoryRowDto>> SalesByCategory =
+    public static IReadOnlyList<ReportColumn<SalesByCategoryRowDto>> SalesByCategory(string lang) =>
     [
-        new("Category", r => r.CategoryName),
-        new("Orders", r => r.OrderCount, ReportColumnFormat.Integer),
-        new("Qty Sold", r => r.QuantitySold, ReportColumnFormat.Integer),
-        new("Net Revenue", r => r.NetRevenue, ReportColumnFormat.Money),
-        new("% of Total", r => r.PercentOfTotal, ReportColumnFormat.Percent)
+        new(T("category", lang), r => r.CategoryName),
+        new(T("orders", lang), r => r.OrderCount, ReportColumnFormat.Integer),
+        new(T("qtySold", lang), r => r.QuantitySold, ReportColumnFormat.Integer),
+        new(T("netRevenue", lang), r => r.NetRevenue, ReportColumnFormat.Money),
+        new(T("percentOfTotal", lang), r => r.PercentOfTotal, ReportColumnFormat.Percent)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<SalesByCustomerRowDto>> SalesByCustomer =
+    public static IReadOnlyList<ReportColumn<SalesByCustomerRowDto>> SalesByCustomer(string lang) =>
     [
-        new("Customer Code", r => r.CustomerCode),
-        new("Customer", r => r.CustomerName),
-        new("Type", r => r.CustomerType),
-        new("Orders", r => r.OrderCount, ReportColumnFormat.Integer),
-        new("Revenue", r => r.Revenue, ReportColumnFormat.Money),
-        new("Paid", r => r.PaidAmount, ReportColumnFormat.Money),
-        new("Outstanding", r => r.Outstanding, ReportColumnFormat.Money),
-        new("Last Purchase", r => r.LastPurchaseDate, ReportColumnFormat.Date)
+        new(T("customerCode", lang), r => r.CustomerCode),
+        new(T("customer", lang), r => r.CustomerName),
+        new(T("type", lang), r => r.CustomerType),
+        new(T("orders", lang), r => r.OrderCount, ReportColumnFormat.Integer),
+        new(T("revenue", lang), r => r.Revenue, ReportColumnFormat.Money),
+        new(T("paid", lang), r => r.PaidAmount, ReportColumnFormat.Money),
+        new(T("outstanding", lang), r => r.Outstanding, ReportColumnFormat.Money),
+        new(T("lastPurchase", lang), r => r.LastPurchaseDate, ReportColumnFormat.Date)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<SalesBySalespersonRowDto>> SalesBySalesperson =
+    public static IReadOnlyList<ReportColumn<SalesBySalespersonRowDto>> SalesBySalesperson(string lang) =>
     [
-        new("Salesperson", r => r.TechnicianName),
-        new("Orders", r => r.OrderCount, ReportColumnFormat.Integer),
-        new("Qty Sold", r => r.QuantitySold, ReportColumnFormat.Integer),
-        new("Revenue", r => r.Revenue, ReportColumnFormat.Money),
-        new("Avg Order", r => r.AverageOrderValue, ReportColumnFormat.Money)
+        new(T("salesperson", lang), r => r.TechnicianName),
+        new(T("orders", lang), r => r.OrderCount, ReportColumnFormat.Integer),
+        new(T("qtySold", lang), r => r.QuantitySold, ReportColumnFormat.Integer),
+        new(T("revenue", lang), r => r.Revenue, ReportColumnFormat.Money),
+        new(T("avgOrder", lang), r => r.AverageOrderValue, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<SalesByCashierRowDto>> SalesByCashier =
+    public static IReadOnlyList<ReportColumn<SalesByCashierRowDto>> SalesByCashier(string lang) =>
     [
-        new("Cashier", r => r.CashierName),
-        new("Orders", r => r.OrderCount, ReportColumnFormat.Integer),
-        new("Qty Sold", r => r.QuantitySold, ReportColumnFormat.Integer),
-        new("Revenue", r => r.Revenue, ReportColumnFormat.Money),
-        new("Avg Order", r => r.AverageOrderValue, ReportColumnFormat.Money)
+        new(T("cashier", lang), r => r.CashierName),
+        new(T("orders", lang), r => r.OrderCount, ReportColumnFormat.Integer),
+        new(T("qtySold", lang), r => r.QuantitySold, ReportColumnFormat.Integer),
+        new(T("revenue", lang), r => r.Revenue, ReportColumnFormat.Money),
+        new(T("avgOrder", lang), r => r.AverageOrderValue, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<SalesReturnRowDto>> SalesReturns =
+    public static IReadOnlyList<ReportColumn<SalesReturnRowDto>> SalesReturns(string lang) =>
     [
-        new("Return Date", r => r.ReturnDate, ReportColumnFormat.Date),
-        new("Return No.", r => r.ReturnNumber),
-        new("SO Number", r => r.SoNumber),
-        new("Customer", r => r.CustomerName),
-        new("Status", r => r.Status),
-        new("Refund Type", r => r.RefundType),
-        new("Refund Amount", r => r.RefundAmount, ReportColumnFormat.Money),
-        new("Currency", r => r.Currency),
-        new("Reason", r => r.Reason)
+        new(T("returnDate", lang), r => r.ReturnDate, ReportColumnFormat.Date),
+        new(T("returnNo", lang), r => r.ReturnNumber),
+        new(T("soNumber", lang), r => r.SoNumber),
+        new(T("customer", lang), r => r.CustomerName),
+        new(T("status", lang), r => r.Status),
+        new(T("refundType", lang), r => r.RefundType),
+        new(T("refundAmount", lang), r => r.RefundAmount, ReportColumnFormat.Money),
+        new(T("currency", lang), r => r.Currency),
+        new(T("reason", lang), r => r.Reason)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<PaymentCollectionRowDto>> PaymentCollections =
+    public static IReadOnlyList<ReportColumn<PaymentCollectionRowDto>> PaymentCollections(string lang) =>
     [
-        new("Group", r => r.GroupKey),
-        new("Payments", r => r.PaymentCount, ReportColumnFormat.Integer),
-        new("Total Amount", r => r.TotalAmount, ReportColumnFormat.Money)
+        new(T("group", lang), r => r.GroupKey),
+        new(T("payments", lang), r => r.PaymentCount, ReportColumnFormat.Integer),
+        new(T("totalAmount", lang), r => r.TotalAmount, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<ProfitByProductRowDto>> ProfitByProduct =
+    public static IReadOnlyList<ReportColumn<ProfitByProductRowDto>> ProfitByProduct(string lang) =>
     [
-        new("Part No.", r => r.PartNumber),
-        new("Product", r => r.PartName),
-        new("Qty Sold", r => r.QuantitySold, ReportColumnFormat.Integer),
-        new("Net Revenue", r => r.NetRevenue, ReportColumnFormat.Money),
-        new("COGS", r => r.Cogs, ReportColumnFormat.Money),
-        new("Gross Profit", r => r.GrossProfit, ReportColumnFormat.Money),
-        new("Margin %", r => r.MarginPercent, ReportColumnFormat.Percent)
+        new(T("partNo", lang), r => r.PartNumber),
+        new(T("product", lang), r => r.PartName),
+        new(T("qtySold", lang), r => r.QuantitySold, ReportColumnFormat.Integer),
+        new(T("netRevenue", lang), r => r.NetRevenue, ReportColumnFormat.Money),
+        new(T("cogs", lang), r => r.Cogs, ReportColumnFormat.Money),
+        new(T("grossProfit", lang), r => r.GrossProfit, ReportColumnFormat.Money),
+        new(T("marginPercent", lang), r => r.MarginPercent, ReportColumnFormat.Percent)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<LowStockRowDto>> LowStock =
+    public static IReadOnlyList<ReportColumn<LowStockRowDto>> LowStock(string lang) =>
     [
-        new("Part No.", r => r.PartNumber),
-        new("Product", r => r.PartName),
-        new("SKU", r => r.Sku),
-        new("Variant", r => r.VariantName),
-        new("Category", r => r.CategoryName),
-        new("Warehouse", r => r.WarehouseName),
-        new("On Hand", r => r.QuantityOnHand, ReportColumnFormat.Integer),
-        new("Minimum", r => r.MinimumStock, ReportColumnFormat.Integer),
-        new("Reorder Level", r => r.ReorderLevel, ReportColumnFormat.Integer),
-        new("Reorder Qty", r => r.ReorderQuantity, ReportColumnFormat.Integer),
-        new("Shortfall", r => r.Shortfall, ReportColumnFormat.Integer)
+        new(T("partNo", lang), r => r.PartNumber),
+        new(T("product", lang), r => r.PartName),
+        new(T("sku", lang), r => r.Sku),
+        new(T("variant", lang), r => r.VariantName),
+        new(T("category", lang), r => r.CategoryName),
+        new(T("warehouse", lang), r => r.WarehouseName),
+        new(T("onHand", lang), r => r.QuantityOnHand, ReportColumnFormat.Integer),
+        new(T("minimum", lang), r => r.MinimumStock, ReportColumnFormat.Integer),
+        new(T("reorderLevel", lang), r => r.ReorderLevel, ReportColumnFormat.Integer),
+        new(T("reorderQty", lang), r => r.ReorderQuantity, ReportColumnFormat.Integer),
+        new(T("shortfall", lang), r => r.Shortfall, ReportColumnFormat.Integer)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<StockMovementRowDto>> StockMovements =
+    public static IReadOnlyList<ReportColumn<StockMovementRowDto>> StockMovements(string lang) =>
     [
-        new("Date", r => r.MovementDate, ReportColumnFormat.DateTime),
-        new("Part No.", r => r.PartNumber),
-        new("Product", r => r.PartName),
-        new("Variant", r => r.VariantName),
-        new("Warehouse", r => r.WarehouseName),
-        new("Type", r => r.MovementType),
-        new("Quantity", r => r.Quantity, ReportColumnFormat.Integer),
-        new("Reason", r => r.Reason),
-        new("Reference", r => r.ReferenceNumber)
+        new(T("date", lang), r => r.MovementDate, ReportColumnFormat.DateTime),
+        new(T("partNo", lang), r => r.PartNumber),
+        new(T("product", lang), r => r.PartName),
+        new(T("variant", lang), r => r.VariantName),
+        new(T("warehouse", lang), r => r.WarehouseName),
+        new(T("type", lang), r => r.MovementType),
+        new(T("quantity", lang), r => r.Quantity, ReportColumnFormat.Integer),
+        new(T("reason", lang), r => r.Reason),
+        new(T("reference", lang), r => r.ReferenceNumber)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<ExpiringLotRowDto>> ExpiringLots =
+    public static IReadOnlyList<ReportColumn<ExpiringLotRowDto>> ExpiringLots(string lang) =>
     [
-        new("Lot No.", r => r.LotNumber),
-        new("Part No.", r => r.PartNumber),
-        new("Product", r => r.PartName),
-        new("Warehouse", r => r.WarehouseName),
-        new("Supplier", r => r.SupplierName),
-        new("Received", r => r.ReceivingDate, ReportColumnFormat.Date),
-        new("Expiry", r => r.ExpiryDate, ReportColumnFormat.Date),
-        new("Days to Expiry", r => r.DaysToExpiry, ReportColumnFormat.Integer),
-        new("Qty Available", r => r.QuantityAvailable, ReportColumnFormat.Integer),
-        new("Stock Value", r => r.StockValue, ReportColumnFormat.Money)
+        new(T("lotNo", lang), r => r.LotNumber),
+        new(T("partNo", lang), r => r.PartNumber),
+        new(T("product", lang), r => r.PartName),
+        new(T("warehouse", lang), r => r.WarehouseName),
+        new(T("supplier", lang), r => r.SupplierName),
+        new(T("received", lang), r => r.ReceivingDate, ReportColumnFormat.Date),
+        new(T("expiry", lang), r => r.ExpiryDate, ReportColumnFormat.Date),
+        new(T("daysToExpiry", lang), r => r.DaysToExpiry, ReportColumnFormat.Integer),
+        new(T("qtyAvailable", lang), r => r.QuantityAvailable, ReportColumnFormat.Integer),
+        new(T("stockValue", lang), r => r.StockValue, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<SlowMovingStockRowDto>> SlowMovingStock =
+    public static IReadOnlyList<ReportColumn<SlowMovingStockRowDto>> SlowMovingStock(string lang) =>
     [
-        new("Part No.", r => r.PartNumber),
-        new("Product", r => r.PartName),
-        new("Category", r => r.CategoryName),
-        new("Warehouse", r => r.WarehouseName),
-        new("On Hand", r => r.QuantityOnHand, ReportColumnFormat.Integer),
-        new("Stock Value", r => r.StockValue, ReportColumnFormat.Money),
-        new("Last Sale", r => r.LastSaleDate, ReportColumnFormat.Date),
-        new("Days Since Sale", r => r.DaysSinceLastSale, ReportColumnFormat.Integer)
+        new(T("partNo", lang), r => r.PartNumber),
+        new(T("product", lang), r => r.PartName),
+        new(T("category", lang), r => r.CategoryName),
+        new(T("warehouse", lang), r => r.WarehouseName),
+        new(T("onHand", lang), r => r.QuantityOnHand, ReportColumnFormat.Integer),
+        new(T("stockValue", lang), r => r.StockValue, ReportColumnFormat.Money),
+        new(T("lastSale", lang), r => r.LastSaleDate, ReportColumnFormat.Date),
+        new(T("daysSinceSale", lang), r => r.DaysSinceLastSale, ReportColumnFormat.Integer)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<PurchaseSummaryRowDto>> PurchaseSummary =
+    public static IReadOnlyList<ReportColumn<PurchaseSummaryRowDto>> PurchaseSummary(string lang) =>
     [
-        new("Period", r => r.PeriodStart, ReportColumnFormat.Date),
-        new("POs", r => r.PoCount, ReportColumnFormat.Integer),
-        new("Total Amount", r => r.TotalAmount, ReportColumnFormat.Money),
-        new("Paid", r => r.PaidAmount, ReportColumnFormat.Money),
-        new("Outstanding", r => r.Outstanding, ReportColumnFormat.Money)
+        new(T("period", lang), r => r.PeriodStart, ReportColumnFormat.Date),
+        new(T("poCount", lang), r => r.PoCount, ReportColumnFormat.Integer),
+        new(T("totalAmount", lang), r => r.TotalAmount, ReportColumnFormat.Money),
+        new(T("paid", lang), r => r.PaidAmount, ReportColumnFormat.Money),
+        new(T("outstanding", lang), r => r.Outstanding, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<PurchasesBySupplierRowDto>> PurchasesBySupplier =
+    public static IReadOnlyList<ReportColumn<PurchasesBySupplierRowDto>> PurchasesBySupplier(string lang) =>
     [
-        new("Supplier Code", r => r.SupplierCode),
-        new("Supplier", r => r.SupplierName),
-        new("POs", r => r.PoCount, ReportColumnFormat.Integer),
-        new("Total Amount", r => r.TotalAmount, ReportColumnFormat.Money),
-        new("Received Value", r => r.ReceivedValue, ReportColumnFormat.Money),
-        new("Paid", r => r.PaidAmount, ReportColumnFormat.Money),
-        new("Returned Value", r => r.ReturnedValue, ReportColumnFormat.Money),
-        new("Balance", r => r.Balance, ReportColumnFormat.Money)
+        new(T("supplierCode", lang), r => r.SupplierCode),
+        new(T("supplier", lang), r => r.SupplierName),
+        new(T("poCount", lang), r => r.PoCount, ReportColumnFormat.Integer),
+        new(T("totalAmount", lang), r => r.TotalAmount, ReportColumnFormat.Money),
+        new(T("receivedValue", lang), r => r.ReceivedValue, ReportColumnFormat.Money),
+        new(T("paid", lang), r => r.PaidAmount, ReportColumnFormat.Money),
+        new(T("returnedValue", lang), r => r.ReturnedValue, ReportColumnFormat.Money),
+        new(T("balance", lang), r => r.Balance, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<PurchaseReturnRowDto>> PurchaseReturns =
+    public static IReadOnlyList<ReportColumn<PurchaseReturnRowDto>> PurchaseReturns(string lang) =>
     [
-        new("Return Date", r => r.ReturnDate, ReportColumnFormat.Date),
-        new("Return No.", r => r.ReturnNumber),
-        new("PO Number", r => r.PoNumber),
-        new("Supplier", r => r.SupplierName),
-        new("Status", r => r.Status),
-        new("Settlement", r => r.SettlementStatus),
-        new("Refund Amount", r => r.RefundAmount, ReportColumnFormat.Money),
-        new("Currency", r => r.Currency)
+        new(T("returnDate", lang), r => r.ReturnDate, ReportColumnFormat.Date),
+        new(T("returnNo", lang), r => r.ReturnNumber),
+        new(T("poNumber", lang), r => r.PoNumber),
+        new(T("supplier", lang), r => r.SupplierName),
+        new(T("status", lang), r => r.Status),
+        new(T("settlement", lang), r => r.SettlementStatus),
+        new(T("refundAmount", lang), r => r.RefundAmount, ReportColumnFormat.Money),
+        new(T("currency", lang), r => r.Currency)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<ReceivablesAgingRowDto>> ReceivablesAging =
+    public static IReadOnlyList<ReportColumn<ReceivablesAgingRowDto>> ReceivablesAging(string lang) =>
     [
-        new("Customer Code", r => r.CustomerCode),
-        new("Customer", r => r.CustomerName),
-        new("Current", r => r.CurrentAmount, ReportColumnFormat.Money),
-        new("1-30 Days", r => r.Days1To30, ReportColumnFormat.Money),
-        new("31-60 Days", r => r.Days31To60, ReportColumnFormat.Money),
-        new("61-90 Days", r => r.Days61To90, ReportColumnFormat.Money),
-        new("90+ Days", r => r.Days90Plus, ReportColumnFormat.Money),
-        new("Total", r => r.Total, ReportColumnFormat.Money)
+        new(T("customerCode", lang), r => r.CustomerCode),
+        new(T("customer", lang), r => r.CustomerName),
+        new(T("current", lang), r => r.CurrentAmount, ReportColumnFormat.Money),
+        new(T("days1to30", lang), r => r.Days1To30, ReportColumnFormat.Money),
+        new(T("days31to60", lang), r => r.Days31To60, ReportColumnFormat.Money),
+        new(T("days61to90", lang), r => r.Days61To90, ReportColumnFormat.Money),
+        new(T("days90plus", lang), r => r.Days90Plus, ReportColumnFormat.Money),
+        new(T("total", lang), r => r.Total, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<PayablesAgingRowDto>> PayablesAging =
+    public static IReadOnlyList<ReportColumn<PayablesAgingRowDto>> PayablesAging(string lang) =>
     [
-        new("Supplier Code", r => r.SupplierCode),
-        new("Supplier", r => r.SupplierName),
-        new("Current", r => r.CurrentAmount, ReportColumnFormat.Money),
-        new("1-30 Days", r => r.Days1To30, ReportColumnFormat.Money),
-        new("31-60 Days", r => r.Days31To60, ReportColumnFormat.Money),
-        new("61-90 Days", r => r.Days61To90, ReportColumnFormat.Money),
-        new("90+ Days", r => r.Days90Plus, ReportColumnFormat.Money),
-        new("Total", r => r.Total, ReportColumnFormat.Money)
+        new(T("supplierCode", lang), r => r.SupplierCode),
+        new(T("supplier", lang), r => r.SupplierName),
+        new(T("current", lang), r => r.CurrentAmount, ReportColumnFormat.Money),
+        new(T("days1to30", lang), r => r.Days1To30, ReportColumnFormat.Money),
+        new(T("days31to60", lang), r => r.Days31To60, ReportColumnFormat.Money),
+        new(T("days61to90", lang), r => r.Days61To90, ReportColumnFormat.Money),
+        new(T("days90plus", lang), r => r.Days90Plus, ReportColumnFormat.Money),
+        new(T("total", lang), r => r.Total, ReportColumnFormat.Money)
     ];
 
-    public static readonly IReadOnlyList<ReportColumn<ExpenseReportRowDto>> Expenses =
+    public static IReadOnlyList<ReportColumn<ExpenseReportRowDto>> Expenses(string lang) =>
     [
-        new("Group", r => r.GroupKey),
-        new("Count", r => r.ExpenseCount, ReportColumnFormat.Integer),
-        new("Total Amount", r => r.TotalAmount, ReportColumnFormat.Money)
+        new(T("group", lang), r => r.GroupKey),
+        new(T("count", lang), r => r.ExpenseCount, ReportColumnFormat.Integer),
+        new(T("totalAmount", lang), r => r.TotalAmount, ReportColumnFormat.Money)
     ];
 }

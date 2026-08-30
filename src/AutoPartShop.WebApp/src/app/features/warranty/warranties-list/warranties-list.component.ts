@@ -18,13 +18,18 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
 import { WarrantyService, WarrantyRegistrationResponse, CreateWarrantyRegistrationRequest } from '../services/warranty.service';
 import { SalesOrderService, SalesOrderResponse, SalesOrderLineResponse } from '../../sales/services/sales-order.service';
 import { InvoiceService } from '../../sales/services/invoice.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-warranties-list',
@@ -47,7 +52,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         ConfirmDialogModule,
         PageContainerComponent,
         PageHeaderComponent,
-        FilterBarComponent
+        FilterBarComponent,
+        DataPaginationComponent,
+        StatStripComponent,
+        TranslatePipe,
+        MoneyFormatPipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './warranties-list.component.html',
@@ -61,8 +70,9 @@ export class WarrantiesListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     readonly currencyService = inject(CurrencyService);
     private readonly authService = inject(AuthService);
-    private readonly i18n = inject(I18nService);
+    readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     /** Voiding and deleting warranties are manager-only (mirrors the API). */
     get isManager(): boolean {
@@ -74,6 +84,22 @@ export class WarrantiesListComponent implements OnInit {
     isLoading = false;
     searchText = '';
     selectedStatus = '';
+    stats: StatStripItem[] = [];
+
+    first = 0;
+    pageSize = 10;
+    get pagedWarranties(): WarrantyRegistrationResponse[] {
+        return this.filteredWarranties.slice(this.first, this.first + this.pageSize);
+    }
+
+    goToPage(page: number): void {
+        this.first = (page - 1) * this.pageSize;
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize = size;
+        this.first = 0;
+    }
 
     totalActive = 0;
     totalExpiringSoon = 0;
@@ -88,11 +114,7 @@ export class WarrantiesListComponent implements OnInit {
     isLoadingOrder = false;
     selectedOrder: SalesOrderResponse | null = null;
     selectedLineId = '';
-    warrantyTypes = [
-        { label: 'Manufacturer Coverage', value: 'MANUFACTURER' },
-        { label: 'Seller Coverage', value: 'SELLER' },
-        { label: 'Extended Coverage', value: 'EXTENDED' }
-    ];
+    warrantyTypes: { label: string; value: string }[] = [];
     newWarranty = {
         warrantyStartDate: new Date(),
         warrantyPeriodMonths: 12,
@@ -111,8 +133,11 @@ export class WarrantiesListComponent implements OnInit {
 
     ngOnInit(): void {
         this.buildStatuses();
+        this.buildWarrantyTypes();
         this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.buildStatuses();
+            this.buildWarrantyTypes();
+            this.buildStats();
         });
         this.loadWarranties();
     }
@@ -120,11 +145,28 @@ export class WarrantiesListComponent implements OnInit {
     private buildStatuses(): void {
         this.statuses = [
             { label: this.i18n.t('warranties.statuses.allStatuses'), value: '' },
-            { label: this.i18n.t('warranties.statuses.active'),      value: 'ACTIVE' },
-            { label: this.i18n.t('warranties.statuses.expired'),     value: 'EXPIRED' },
-            { label: this.i18n.t('warranties.statuses.claimed'),     value: 'CLAIMED' },
-            { label: this.i18n.t('warranties.statuses.void'),        value: 'VOID' }
+            { label: this.i18n.t('warranties.statuses.active'), value: 'ACTIVE' },
+            { label: this.i18n.t('warranties.statuses.expired'), value: 'EXPIRED' },
+            { label: this.i18n.t('warranties.statuses.claimed'), value: 'CLAIMED' },
+            { label: this.i18n.t('warranties.statuses.void'), value: 'VOID' }
         ];
+    }
+
+    private buildWarrantyTypes(): void {
+        this.warrantyTypes = [
+            { label: this.i18n.t('warranties.warrantyTypes.manufacturer'), value: 'MANUFACTURER' },
+            { label: this.i18n.t('warranties.warrantyTypes.seller'), value: 'SELLER' },
+            { label: this.i18n.t('warranties.warrantyTypes.extended'), value: 'EXTENDED' }
+        ];
+    }
+
+    getWarrantyTypeLabel(type: string | null | undefined): string {
+        const map: Record<string, string> = {
+            MANUFACTURER: this.i18n.t('warranties.warrantyTypes.manufacturer'),
+            SELLER: this.i18n.t('warranties.warrantyTypes.seller'),
+            EXTENDED: this.i18n.t('warranties.warrantyTypes.extended')
+        };
+        return map[(type || '').toUpperCase()] || type || '';
     }
 
     loadWarranties(): void {
@@ -140,7 +182,7 @@ export class WarrantiesListComponent implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.i18n.t('common.messages.error'),
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.loadFailed'))
+                    detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('warranties.messages.loadFailed')
                 });
                 this.isLoading = false;
             }
@@ -148,16 +190,28 @@ export class WarrantiesListComponent implements OnInit {
     }
 
     updateMetrics(): void {
-        this.totalActive = this.warranties.filter(w => w.status === 'ACTIVE').length;
-        this.totalExpiringSoon = this.warranties.filter(w => w.status === 'ACTIVE' && w.daysUntilExpiry >= 0 && w.daysUntilExpiry <= 30).length;
-        this.totalClaimed = this.warranties.filter(w => w.status === 'CLAIMED').length;
-        this.totalVoid = this.warranties.filter(w => w.status === 'VOID').length;
+        this.totalActive = this.warranties.filter((w) => w.status === 'ACTIVE').length;
+        this.totalExpiringSoon = this.warranties.filter((w) => w.status === 'ACTIVE' && w.daysUntilExpiry >= 0 && w.daysUntilExpiry <= 30).length;
+        this.totalClaimed = this.warranties.filter((w) => w.status === 'CLAIMED').length;
+        this.totalVoid = this.warranties.filter((w) => w.status === 'VOID').length;
+        this.buildStats();
+    }
+
+    /** Re-labels the stat strip from cached counts — called on load and on language switch. */
+    private buildStats(): void {
+        this.stats = [
+            { label: this.i18n.t('warranties.statuses.active'), value: String(this.totalActive) },
+            { label: this.i18n.t('warranties.stats.expiringSoon'), value: String(this.totalExpiringSoon) },
+            { label: this.i18n.t('warranties.statuses.claimed'), value: String(this.totalClaimed) },
+            { label: this.i18n.t('warranties.stats.voided'), value: String(this.totalVoid) }
+        ];
     }
 
     applyFilters(): void {
         const search = this.searchText.toLowerCase();
-        this.filteredWarranties = this.warranties.filter(warranty => {
-            const matchesSearch = !search ||
+        this.filteredWarranties = this.warranties.filter((warranty) => {
+            const matchesSearch =
+                !search ||
                 warranty.warrantyNumber.toLowerCase().includes(search) ||
                 warranty.partName.toLowerCase().includes(search) ||
                 warranty.customerName.toLowerCase().includes(search) ||
@@ -168,6 +222,7 @@ export class WarrantiesListComponent implements OnInit {
 
             return matchesSearch && matchesStatus;
         });
+        this.first = 0;
     }
 
     onSearch(): void {
@@ -183,14 +238,8 @@ export class WarrantiesListComponent implements OnInit {
         this.applyFilters();
     }
 
-    getStatusSeverity(status: string): 'success' | 'warn' | 'info' | 'danger' | 'secondary' {
-        switch (status) {
-            case 'ACTIVE': return 'success';
-            case 'EXPIRED': return 'warn';
-            case 'CLAIMED': return 'info';
-            case 'VOID': return 'danger';
-            default: return 'secondary';
-        }
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'warranty-registration');
     }
 
     getDaysUntilExpiryClass(warranty: WarrantyRegistrationResponse): string {
@@ -279,7 +328,7 @@ export class WarrantiesListComponent implements OnInit {
 
     getSelectedLine(): SalesOrderLineResponse | null {
         if (!this.selectedOrder || !this.selectedLineId) return null;
-        return this.selectedOrder.lines.find(l => l.id === this.selectedLineId) || null;
+        return this.selectedOrder.lines.find((l) => l.id === this.selectedLineId) || null;
     }
 
     onLineSelect(): void {
@@ -290,11 +339,7 @@ export class WarrantiesListComponent implements OnInit {
     }
 
     canCreateWarranty(): boolean {
-        return !!this.selectedOrder &&
-            !!this.selectedLineId &&
-            this.newWarranty.warrantyPeriodMonths > 0 &&
-            !!this.newWarranty.warrantyType &&
-            !!this.newWarranty.warrantyTerms.trim();
+        return !!this.selectedOrder && !!this.selectedLineId && this.newWarranty.warrantyPeriodMonths > 0 && !!this.newWarranty.warrantyType && !!this.newWarranty.warrantyTerms.trim();
     }
 
     createWarranty(): void {
@@ -333,7 +378,7 @@ export class WarrantiesListComponent implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.i18n.t('common.messages.error'),
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.createFailed'))
+                    detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('warranties.messages.createFailed')
                 });
                 this.isCreating = false;
             }
@@ -370,7 +415,7 @@ export class WarrantiesListComponent implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.i18n.t('common.messages.error'),
-                    detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.voidFailed'))
+                    detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('warranties.messages.voidFailed')
                 });
             }
         });
@@ -405,7 +450,7 @@ export class WarrantiesListComponent implements OnInit {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.i18n.t('common.messages.error'),
-                            detail: typeof error?.error === 'string' ? error.error : (error?.error?.message || this.i18n.t('warranties.messages.deleteFailed'))
+                            detail: typeof error?.error === 'string' ? error.error : error?.error?.message || this.i18n.t('warranties.messages.deleteFailed')
                         });
                     }
                 });

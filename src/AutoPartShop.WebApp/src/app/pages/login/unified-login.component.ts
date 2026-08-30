@@ -1,31 +1,26 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
-import { CommonModule, DOCUMENT } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
-import { CustomerAuthService } from '../../features/ecommerce/services/customer-auth.service';
 import { AppBrandingService } from '../../shared/services/app-branding.service';
 import { extractApiError } from '../../shared/utils/api-error.util';
-
-type LoginMode = 'customer' | 'staff';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { I18nService } from '../../shared/services/i18n.service';
 
 @Component({
   selector: 'app-unified-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, TranslatePipe],
   templateUrl: './unified-login.component.html',
   styleUrls: ['./unified-login.component.css'],
 })
-export class UnifiedLoginComponent implements OnInit, OnDestroy {
+export class UnifiedLoginComponent implements OnInit {
   private readonly authService = inject(AuthService);
-  private readonly customerAuthService = inject(CustomerAuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly doc = inject(DOCUMENT);
   protected readonly branding = inject(AppBrandingService);
-
-  // Determined by route data — never changed by the user
-  mode: LoginMode = 'customer';
+  protected readonly i18n = inject(I18nService);
 
   /** Up-to-2-letter monogram derived from the configured application name. */
   get brandInitials(): string {
@@ -47,47 +42,26 @@ export class UnifiedLoginComponent implements OnInit, OnDestroy {
   returnUrl = '';
 
   ngOnInit(): void {
-    this.doc.body.classList.add('storefront-scroll');
-    this.doc.documentElement.classList.add('storefront-scroll');
-
-    // Mode comes from route data; /login → staff, /shop/login → customer
-    this.mode = (this.route.snapshot.data?.['mode'] as LoginMode) ?? 'customer';
-
-    if (this.mode === 'staff' && this.authService.isLoggedIn()) {
+    if (this.authService.isLoggedIn()) {
       this.router.navigate(['/']);
       return;
     }
-    if (this.mode === 'customer' && this.customerAuthService.isCustomerLoggedIn()) {
-      this.router.navigateByUrl('/shop');
-      return;
-    }
 
-    this.returnUrl =
-      this.route.snapshot.queryParams['returnUrl'] ??
-      (this.mode === 'staff' ? '/' : '/shop');
-  }
-
-  ngOnDestroy(): void {
-    this.doc.body.classList.remove('storefront-scroll');
-    this.doc.documentElement.classList.remove('storefront-scroll');
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] ?? '/';
   }
 
   get identifierLabel(): string {
-    return this.mode === 'customer' ? 'Phone Number or Email' : 'Username or Email';
+    return this.i18n.t('login.usernameOrEmail');
   }
 
   get identifierPlaceholder(): string {
-    return this.mode === 'customer'
-      ? '01712345678 or your@email.com'
-      : 'Enter your username or email';
+    return this.i18n.t('login.usernamePlaceholder');
   }
 
   validate(): boolean {
     this.errors = {};
-    if (!this.identifier.trim())
-      this.errors['identifier'] =
-        this.mode === 'customer' ? 'Phone or email is required' : 'Username is required';
-    if (!this.password.trim()) this.errors['password'] = 'Password is required';
+    if (!this.identifier.trim()) this.errors['identifier'] = this.i18n.t('login.validation.usernameRequired');
+    if (!this.password.trim()) this.errors['password'] = this.i18n.t('login.validation.passwordRequired');
     return Object.keys(this.errors).length === 0;
   }
 
@@ -98,31 +72,18 @@ export class UnifiedLoginComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
 
-    if (this.mode === 'customer') {
-      this.customerAuthService.login(this.identifier.trim(), this.password).subscribe({
-        next: () => {
-          this.loading.set(false);
-          this.router.navigateByUrl(this.returnUrl || '/shop');
-        },
-        error: (err) => {
-          this.loading.set(false);
-          this.error.set(extractApiError(err, 'Invalid credentials. Please try again.'));
-        },
-      });
-    } else {
-      this.authService.login({ username: this.identifier.trim(), password: this.password }).subscribe({
-        next: () => {
-          this.loading.set(false);
-          this.router.navigateByUrl(this.returnUrl || '/');
-        },
-        error: (err) => {
-          this.loading.set(false);
-          const msg = err?.status === 0
-            ? 'Unable to connect to server. Please try again.'
-            : extractApiError(err, 'Invalid username or password');
-          this.error.set(msg);
-        },
-      });
-    }
+    this.authService.login({ username: this.identifier.trim(), password: this.password }).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.router.navigateByUrl(this.returnUrl || '/');
+      },
+      error: (err) => {
+        this.loading.set(false);
+        const msg = err?.status === 0
+          ? 'Unable to connect to server. Please try again.'
+          : extractApiError(err, 'Invalid username or password');
+        this.error.set(msg);
+      },
+    });
   }
 }

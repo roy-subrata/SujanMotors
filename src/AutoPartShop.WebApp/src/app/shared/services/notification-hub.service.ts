@@ -69,7 +69,7 @@ export class NotificationHubService implements OnDestroy {
     const hubUrl = `${environment.apiUrl.replace('/api', '')}/hubs/sale-notifications`;
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, { accessTokenFactory: () => localStorage.getItem('auth_token') ?? '' })
+      .withUrl(hubUrl, { withCredentials: true })
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning)
       .build();

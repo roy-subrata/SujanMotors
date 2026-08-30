@@ -10,7 +10,7 @@ This project deploys as Docker containers on a Hostinger VPS using Docker Compos
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Hostinger VPS                              │
 │                                                                 │
-│  ┌─── PRODUCTION (/opt/sujanmotors/) ────────────────────────┐  │
+│  ┌─── PRODUCTION (/opt/sujanmotors-prod/) ────────────────────────┐  │
 │  │  web:4200 ← nginx (public)                                │  │
 │  │    └── /api → autopartshop.api:8080 (internal)            │  │
 │  │    └── /hubs → autopartshop.api:8080 (internal)           │  │
@@ -57,11 +57,11 @@ curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
 
 # Create deployment directories
-sudo mkdir -p /opt/sujanmotors /opt/sujanmotors-test
-sudo chown $USER:$USER /opt/sujanmotors /opt/sujanmotors-test
+sudo mkdir -p /opt/sujanmotors-prod /opt/sujanmotors-test
+sudo chown $USER:$USER /opt/sujanmotors-prod /opt/sujanmotors-test
 
 # Clone the repository into each directory
-cd /opt/sujanmotors
+cd /opt/sujanmotors-prod
 git clone <YOUR_REPO_URL> .
 git checkout main
 
@@ -70,7 +70,7 @@ git clone <YOUR_REPO_URL> .
 git checkout test
 
 # Create .env files with real secrets
-cd /opt/sujanmotors
+cd /opt/sujanmotors-prod
 cp deployment/.env.prod.example deployment/.env
 nano deployment/.env    # Edit with real production secrets
 
@@ -111,7 +111,7 @@ cat github-actions-deploy
 
 Each environment has its own `.env` file:
 
-- **Production:** `/opt/sujanmotors/deployment/.env`
+- **Production:** `/opt/sujanmotors-prod/deployment/.env`
 - **Test:** `/opt/sujanmotors-test/deployment/.env`
 
 See `.env.prod.example` and `.env.test.example` for all available variables.

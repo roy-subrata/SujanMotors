@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums.HR;
+
 namespace AutoPartShop.Domain.Entities.HR;
 
 /// <summary>
@@ -10,14 +12,12 @@ public class AttendanceRecord : AuditableEntity
     public DateTime Date { get; private set; }
     public TimeSpan? CheckInTime { get; private set; }
     public TimeSpan? CheckOutTime { get; private set; }
-    public string Status { get; private set; } = "PRESENT";  // PRESENT, LATE, HALF_DAY, ABSENT, LEAVE, HOLIDAY
+    public AttendanceStatus Status { get; private set; } = AttendanceStatus.PRESENT;
     public string Notes { get; private set; } = string.Empty;
-
-    private static readonly string[] ValidStatuses = ["PRESENT", "LATE", "HALF_DAY", "ABSENT", "LEAVE", "HOLIDAY"];
 
     private AttendanceRecord() { }
 
-    public static AttendanceRecord Create(Guid employeeId, DateTime date, string status,
+    public static AttendanceRecord Create(Guid employeeId, DateTime date, AttendanceStatus status,
         TimeSpan? checkInTime = null, TimeSpan? checkOutTime = null, string notes = "")
     {
         if (employeeId == Guid.Empty)
@@ -35,16 +35,12 @@ public class AttendanceRecord : AuditableEntity
         return record;
     }
 
-    public void Mark(string status, TimeSpan? checkInTime, TimeSpan? checkOutTime, string notes)
+    public void Mark(AttendanceStatus status, TimeSpan? checkInTime, TimeSpan? checkOutTime, string notes)
     {
-        var normalized = status?.Trim().ToUpper() ?? string.Empty;
-        if (!ValidStatuses.Contains(normalized))
-            throw new ArgumentException($"Invalid attendance status '{status}'", nameof(status));
-
         if (checkInTime.HasValue && checkOutTime.HasValue && checkOutTime < checkInTime)
             throw new ArgumentException("Check-out time cannot be before check-in time", nameof(checkOutTime));
 
-        Status = normalized;
+        Status = status;
         CheckInTime = checkInTime;
         CheckOutTime = checkOutTime;
         Notes = notes?.Trim() ?? string.Empty;

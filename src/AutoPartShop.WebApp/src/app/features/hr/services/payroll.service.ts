@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { PayrollRunStatus } from 'src/app/shared/models/status.types';
+import { PdfDownloadService } from '@/shared/services/pdf-download.service';
 
 export interface PayslipResponse {
     id: string;
@@ -38,7 +40,7 @@ export interface PayrollRunResponse {
     runCode: string;
     year: number;
     month: number;
-    status: string;
+    status: PayrollRunStatus;
     currency: string;
     totalGross: number;
     totalDeductions: number;
@@ -75,6 +77,7 @@ export interface SendPayslipsResponse {
 @Injectable({ providedIn: 'root' })
 export class PayrollService {
     private readonly http = inject(HttpClient);
+    private readonly pdfDownload = inject(PdfDownloadService);
     private readonly apiUrl = `${environment.apiUrl}/v1/payroll`;
 
     getRuns(): Observable<PayrollRunResponse[]> {
@@ -107,5 +110,10 @@ export class PayrollService {
 
     deleteRun(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
+
+    /** Download the server-rendered Payslip PDF and trigger the browser save dialog. */
+    downloadPayslipPdf(runId: string, payslipId: string, employeeCode: string): Observable<void> {
+        return this.pdfDownload.downloadGet(`${this.apiUrl}/${runId}/payslips/${payslipId}/pdf`, `payslip-${employeeCode}.pdf`);
     }
 }

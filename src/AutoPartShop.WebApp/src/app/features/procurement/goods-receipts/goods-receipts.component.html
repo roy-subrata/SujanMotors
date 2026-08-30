@@ -2,108 +2,106 @@
 <p-confirmDialog></p-confirmDialog>
 
 <app-page-container>
-  <!-- ==================== PAGE HEADER ==================== -->
-  <app-page-header
-    title="Goods Receipts"
-    subtitle="Record and track incoming inventory from suppliers"
-    [count]="totalRecords" countLabel="receipts">
-    <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-      </button>
-      <button class="btn-icon" pTooltip="Export CSV" tooltipPosition="bottom" (click)="exportReceipts('csv')">
-        <i class="pi pi-file"></i>
-      </button>
-      <button class="btn-icon" pTooltip="Export JSON" tooltipPosition="bottom" (click)="exportReceipts('json')">
-        <i class="pi pi-file-export"></i>
-      </button>
-      <button *appHasRole="['Admin','Manager']" class="btn-primary" (click)="onCreateClick()">
-        <i class="pi pi-plus"></i>
-        <span>New Receipt</span>
-      </button>
-    </ng-container>
-  </app-page-header>
+    <!-- ==================== PAGE HEADER ==================== -->
+    <app-page-header [title]="'goodsReceipts.listTitle' | translate" [subtitle]="'goodsReceipts.subtitle' | translate" [count]="totalRecords" [countLabel]="'goodsReceipts.countLabel' | translate">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
+                <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+            </button>
+            <button class="btn-icon" [pTooltip]="'goodsReceipts.exportCSV' | translate" tooltipPosition="bottom" (click)="exportReceipts('csv')">
+                <i class="pi pi-file"></i>
+            </button>
+            <button class="btn-icon" [pTooltip]="'goodsReceipts.exportJSON' | translate" tooltipPosition="bottom" (click)="exportReceipts('json')">
+                <i class="pi pi-file-export"></i>
+            </button>
+            <button *appHasRole="['Admin', 'Manager']" class="btn-primary" (click)="onCreateClick()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'goodsReceipts.newReceipt' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== FILTER SECTION ==================== -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input
-          type="text"
-          [(ngModel)]="searchTerm"
-          placeholder="Search by GRN number, PO number, warehouse..."
-          (keyup.enter)="onSearch()"
-          class="search-input" />
-        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-    </div>
+    <!-- ==================== FILTER SECTION ==================== -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'goodsReceipts.searchPlaceholder' | translate" (keyup.enter)="onSearch()" class="search-input" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+        </div>
 
-    <div filters class="filter-group">
-      <p-select
-        [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        (onChange)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
-    </div>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'goodsReceipts.statusOptions.all' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
 
-    <div filters class="filter-group">
-      <p-datepicker
-        [(ngModel)]="dateRange"
-        selectionMode="range"
-        placeholder="Select date range"
-        dateFormat="dd M yy"
-        [showIcon]="true"
-        [showButtonBar]="true"
-        (onSelect)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-datepicker">
-      </p-datepicker>
-    </div>
+        <div filters class="filter-group">
+            <p-datepicker
+                [(ngModel)]="dateRange"
+                selectionMode="range"
+                [placeholder]="'goodsReceipts.dateRangePlaceholder' | translate"
+                dateFormat="dd M yy"
+                [showIcon]="true"
+                [showButtonBar]="true"
+                (onSelect)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-datepicker"
+            >
+            </p-datepicker>
+        </div>
 
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()">
-        <i class="pi pi-search"></i>
-        Search
-      </button>
-      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i>
-        Clear
-      </button>
-    </div>
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()">
+                <i class="pi pi-search"></i>
+                {{ 'common.listPage.searchChip' | translate }}
+            </button>
 
-    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
-      <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
-        <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
-      </span>
-      <span *ngIf="filterStatus" class="filter-chip">
-        Status: {{ filterStatus }}
-        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
-      </span>
-      <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
-        Date Range
-        <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
-      </span>
-    </div>
-  </app-filter-bar>
+            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+                <i class="pi pi-filter-slash"></i>
+                {{ 'common.actions.clear' | translate }}
+            </button>
+        </div>
 
-  <app-goods-receipts-list
-    [goodsReceipts]="goodsReceipts"
-    [loading]="loading"
-    [totalRecords]="totalRecords"
-    [rows]="rows"
-    [currentPage]="currentPage"
-    [searchTerm]="searchTerm"
-    [hasActiveFilters]="hasActiveFilters()"
-    (pageChange)="onPageChange($event)"
-    (grnDeleted)="onGoodsReceiptDeleted()">
-  </app-goods-receipts-list>
+        <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
+            <span *ngIf="searchTerm" class="filter-chip">
+                {{ 'common.listPage.searchChip' | translate }}: "{{ searchTerm }}"
+                <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
+            </span>
+            <span *ngIf="filterStatus" class="filter-chip">
+                {{ 'common.listPage.statusChip' | translate }}: {{ filterStatus }}
+                <i class="pi pi-times" (click)="onStatusFilterChange('')"></i>
+            </span>
+            <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
+                {{ 'common.listPage.dateRangeChip' | translate }}
+                <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
+            </span>
+        </div>
+    </app-filter-bar>
+
+    <app-goods-receipts-list
+        [goodsReceipts]="goodsReceipts"
+        [loading]="loading"
+        [totalRecords]="totalRecords"
+        [rows]="rows"
+        [currentPage]="currentPage"
+        [searchTerm]="searchTerm"
+        [hasActiveFilters]="hasActiveFilters()"
+        (pageChange)="onPageChange($event)"
+        (grnDeleted)="onGoodsReceiptDeleted()"
+    >
+    </app-goods-receipts-list>
 </app-page-container>

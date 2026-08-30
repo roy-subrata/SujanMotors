@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { BackupRecordStatus } from 'src/app/shared/models/status.types';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 
@@ -9,7 +10,7 @@ export interface BackupRecord {
   id: string;
   fileName: string;
   sizeBytes: number;
-  status: 'Pending' | 'Running' | 'Succeeded' | 'UploadFailed' | 'Failed';
+  status: BackupRecordStatus;
   triggerType: 'Manual' | 'Scheduled' | 'PreRestore';
   uploadedToDrive: boolean;
   localFileExists: boolean;

@@ -1,18 +1,20 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.LedgerDtos;
 using AutoPartShop.Application.DTOs.PurchaseReturnDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -28,6 +30,7 @@ public class PurchaseReturnController : ControllerBase
     private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ICodeGenerateService _codeGenerateService;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<PurchaseReturnController> _logger;
 
@@ -41,6 +44,7 @@ public class PurchaseReturnController : ControllerBase
         ISupplierPaymentRepository supplierPaymentRepository,
         ICurrentUserService currentUserService,
         ICodeGenerateService codeGenerateService,
+        ICurrencyConversionService currencyConversionService,
         AutoPartDbContext dbContext,
         ILogger<PurchaseReturnController> logger)
     {
@@ -53,6 +57,7 @@ public class PurchaseReturnController : ControllerBase
         _supplierPaymentRepository = supplierPaymentRepository;
         _currentUserService = currentUserService;
         _codeGenerateService = codeGenerateService;
+        _currencyConversionService = currencyConversionService;
         _dbContext = dbContext;
         _logger = logger;
     }
@@ -115,6 +120,58 @@ public class PurchaseReturnController : ControllerBase
             _logger.LogError(ex, "Error getting purchase return by ID: {ReturnId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the purchase return");
         }
+    }
+
+    /// <summary>Download the Purchase Return as a PDF (cost pricing).</summary>
+    [HttpGet("{id:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPdf(
+        Guid id,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
+        if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
+
+        var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+        var supplier = purchaseReturn.Supplier;
+        var supplierAddress = supplier is null
+            ? string.Empty
+            : string.Join(", ", new[] { supplier.Address, supplier.Country }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        var data = new PurchaseReturnDocumentData(
+            ReturnNumber: purchaseReturn.ReturnNumber,
+            ReturnDate: purchaseReturn.ReturnDate,
+            PONumber: purchaseReturn.PurchaseOrder?.PONumber ?? string.Empty,
+            Reason: purchaseReturn.Reason,
+            Status: purchaseReturn.Status.ToString(),
+            SupplierName: supplier?.Name ?? string.Empty,
+            SupplierAddress: supplierAddress,
+            SupplierPhone: supplier?.Phone ?? string.Empty,
+            Lines: purchaseReturn.LineItems
+                .Select((l, i) =>
+                {
+                    var variantName = purchaseReturn.PurchaseOrder?.LineItems
+                        .FirstOrDefault(pol => pol.Id == l.PurchaseOrderLineId)?.Variant?.Name;
+                    return new PurchaseReturnDocumentLine(
+                        SlNo: i + 1,
+                        PartNumber: l.Part?.PartNumber?.Value ?? l.Part?.SKU ?? string.Empty,
+                        DisplayName: VariantNaming.Compose(l.Part?.Name ?? string.Empty, variantName),
+                        LocalName: l.Part?.LocalName,
+                        Quantity: l.Quantity - l.RejectedQuantity,
+                        UnitPrice: l.UnitPrice,
+                        RefundAmount: l.RefundAmount);
+                })
+                .ToList(),
+            RefundAmount: purchaseReturn.RefundAmount,
+            Notes: purchaseReturn.Notes);
+
+        var pdfBytes = new PurchaseReturnDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"purchase-return-{purchaseReturn.ReturnNumber}.pdf");
     }
 
     [HttpGet("number/{returnNumber}")]
@@ -276,7 +333,7 @@ public class PurchaseReturnController : ControllerBase
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            if (purchaseReturn.Status != "PENDING")
+            if (purchaseReturn.Status != PurchaseReturnStatus.PENDING)
                 return BadRequest(new { message = "Only pending purchase returns can be edited" });
 
             if (request.Lines == null || request.Lines.Count == 0)
@@ -379,8 +436,9 @@ public class PurchaseReturnController : ControllerBase
 
                 var variantId = purchaseReturn.PurchaseOrder?.LineItems
                     .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
-                var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, variantId, cancellationToken);
-                var stockLevel = stockLevels.FirstOrDefault();
+                var (stockLevel, stockLevelError) = await ResolveStockLevelForLineAsync(purchaseReturn, line, variantId, cancellationToken);
+                if (stockLevelError != null)
+                    return BadRequest(new { message = stockLevelError });
                 if (stockLevel == null)
                     return BadRequest(new { message = $"No stock level found for part {line.PartId}. Cannot process return." });
 
@@ -419,8 +477,9 @@ public class PurchaseReturnController : ControllerBase
 
                         var variantId = purchaseReturn.PurchaseOrder?.LineItems
                             .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
-                        var stockLevels = await _stockLevelRepository.GetByPartAndVariantAsync(line.PartId, variantId, cancellationToken);
-                        var stockLevel = stockLevels.FirstOrDefault();
+                        var (stockLevel, stockLevelError) = await ResolveStockLevelForLineAsync(purchaseReturn, line, variantId, cancellationToken);
+                        if (stockLevelError != null)
+                            throw new InvalidOperationException(stockLevelError);
 
                         if (stockLevel != null)
                         {
@@ -494,12 +553,12 @@ public class PurchaseReturnController : ControllerBase
                                 // This ensures we return items from the same supplier we purchased from
                                 // No lot selected => sellable Available bucket only (Damaged/Quarantine returns must pick a lot).
                                 var supplierLots = allLots
-                                    .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
+                                    .Where(l => l.SupplierId == purchaseReturn.SupplierId && l.VariantId == variantId && l.QuantityAvailable > 0 && l.Status == StockLotStatus.AVAILABLE)
                                     .OrderBy(l => l.ReceivingDate)  // FIFO - oldest lots first
                                     .ToList();
 
                                 // Must have enough AVAILABLE stock from THIS supplier. We never draw a return
-                                // from another supplier's lots â€” that would destroy lot/supplier traceability.
+                                // from another supplier's lots — that would destroy lot/supplier traceability.
                                 // If the originating supplier's lots are short, the operator must pick specific
                                 // lots on the return lines instead.
                                 int totalAvailableFromSupplier = supplierLots.Sum(l => l.QuantityAvailable);
@@ -641,21 +700,10 @@ public class PurchaseReturnController : ControllerBase
             var currency = linkedPO?.Currency ?? "NPR";
             var defaultProvider = await _dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
 
-            var creditNoteNumber = await _codeGenerateService.GenerateAsync("CN", cancellationToken);
             var currentUser = _currentUserService.GetCurrentUsername();
+            CreditNote creditNote = null!;
 
-            var creditNote = CreditNote.Create(
-                creditNoteNumber: creditNoteNumber,
-                supplierId: purchaseReturn.SupplierId,
-                purchaseReturnId: purchaseReturn.Id,
-                amount: creditAmount,
-                currency: currency,
-                issueDate: DateTime.UtcNow,
-                notes: $"Credit note for return {purchaseReturn.ReturnNumber}",
-                issuedBy: currentUser
-            );
-
-            // All writes in one transaction â€” if the SupplierPayment insert fails, the
+            // All writes in one transaction — if the SupplierPayment insert fails, the
             // credit note and return status update are rolled back together. Runs under the EF
             // execution strategy (EnableRetryOnFailure is on) or BeginTransaction would throw.
             var strategy = _dbContext.Database.CreateExecutionStrategy();
@@ -664,6 +712,22 @@ public class PurchaseReturnController : ControllerBase
                 await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
+                    // Allocated inside the transaction so a failed issue rolls the sequence back
+                    // instead of burning a number. CodeGenerateService enlists in the ambient
+                    // transaction; allocating above it left CN001/CN002 permanently missing.
+                    var creditNoteNumber = await _codeGenerateService.GenerateAsync("CN", cancellationToken);
+
+                    creditNote = CreditNote.Create(
+                        creditNoteNumber: creditNoteNumber,
+                        supplierId: purchaseReturn.SupplierId,
+                        purchaseReturnId: purchaseReturn.Id,
+                        amount: creditAmount,
+                        currency: currency,
+                        issueDate: DateTime.UtcNow,
+                        notes: $"Credit note for return {purchaseReturn.ReturnNumber}",
+                        issuedBy: currentUser
+                    );
+
                     purchaseReturn.IssueCreditNote(creditAmount);
                     purchaseReturn.ModifiedBy = currentUser;
                     await _purchaseReturnRepository.UpdateAsync(purchaseReturn, cancellationToken);
@@ -680,10 +744,13 @@ public class PurchaseReturnController : ControllerBase
                             paymentProviderId: defaultProvider.Id,
                             amount: creditAmount,
                             paymentMethod: "CREDIT_NOTE",
-                            transactionNumber: creditNoteNumber,
+                            transactionNumber: creditNote.CreditNoteNumber,
                             referenceNumber: purchaseReturn.ReturnNumber,
-                            paymentDate: DateTime.UtcNow
+                            paymentDate: DateTime.UtcNow,
+                            currency: currency
                         );
+                        var creditNoteFx = await _currencyConversionService.ConvertToBaseWithRateAsync(supplierPayment.Amount, supplierPayment.Currency, supplierPayment.PaymentDate, cancellationToken);
+                        supplierPayment.SetFxBaseAmount(creditNoteFx.BaseAmount, creditNoteFx.RateToBase);
                         supplierPayment.MarkAsAdvance();
                         supplierPayment.MarkAsProcessed(currentUser);
                         supplierPayment.ConfirmReceipt(currentUser); // advance to COMPLETED so it surfaces in GetAvailableAdvanceCreditAsync
@@ -701,7 +768,7 @@ public class PurchaseReturnController : ControllerBase
 
             _logger.LogInformation(
                 "Credit note {CreditNoteNumber} issued for return {ReturnId}, amount: {Amount}, supplier: {SupplierId}",
-                creditNoteNumber, id, creditAmount, purchaseReturn.SupplierId);
+                creditNote.CreditNoteNumber, id, creditAmount, purchaseReturn.SupplierId);
 
             var response = MapToPurchaseReturnResponse(purchaseReturn);
             response.CreditNoteId = creditNote.Id;
@@ -768,7 +835,7 @@ public class PurchaseReturnController : ControllerBase
             var purchaseReturn = await _purchaseReturnRepository.GetByIdAsync(id, cancellationToken);
             if (purchaseReturn is null) return NotFound(new { message = "Purchase return not found" });
 
-            if (purchaseReturn.SettlementStatus == "SETTLED")
+            if (purchaseReturn.SettlementStatus == PurchaseReturnSettlementStatus.SETTLED)
                 return BadRequest(new { message = "Purchase return has already been settled" });
 
             // Settle the return
@@ -807,13 +874,24 @@ public class PurchaseReturnController : ControllerBase
         Guid partId,
         [FromQuery] Guid? supplierId = null,
         [FromQuery] string? bucket = null,
+        [FromQuery] Guid? warehouseId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            // Get stock levels for the part to find the warehouse
-            var stockLevels = await _stockLevelRepository.GetByPartAsync(partId, cancellationToken);
-            var stockLevel = stockLevels.FirstOrDefault();
+            // Get stock levels for the part to find the warehouse.
+            // Prefer the caller-supplied warehouse (the return's GRN/PO warehouse); otherwise fall back
+            // to the first available stock level (legacy behaviour when the warehouse is not yet known).
+            StockLevel? stockLevel;
+            if (warehouseId.HasValue && warehouseId != Guid.Empty)
+            {
+                stockLevel = await _stockLevelRepository.GetByPartAndWarehouseAsync(partId, warehouseId.Value, cancellationToken);
+            }
+            else
+            {
+                var stockLevels = await _stockLevelRepository.GetByPartAsync(partId, cancellationToken);
+                stockLevel = stockLevels.FirstOrDefault();
+            }
 
             if (stockLevel == null)
             {
@@ -845,10 +923,10 @@ public class PurchaseReturnController : ControllerBase
                     CostPrice = l.CostPrice,
                     ReceivingDate = l.ReceivingDate,
                     ExpiryDate = l.ExpiryDate,
-                    IsFromSameSupplier = supplierId.HasValue && l.SupplierId == supplierId.Value,
+                    IsFromSameSupplier = supplierId.HasValue ? l.SupplierId == supplierId.Value : null,
                     Status = NormalizeBucket(l.Status)
                 })
-                .OrderByDescending(l => l.IsFromSameSupplier)  // Same supplier lots first
+                .OrderByDescending(l => l.IsFromSameSupplier == true)  // Same supplier lots first
                 .ThenBy(l => l.ReceivingDate)  // Then FIFO
                 .ToList();
 
@@ -986,7 +1064,7 @@ public class PurchaseReturnController : ControllerBase
             if (purchaseReturn is null)
                 return NotFound(new { message = "Purchase return not found" });
 
-            if (purchaseReturn.Status != "PENDING")
+            if (purchaseReturn.Status != PurchaseReturnStatus.PENDING)
                 return BadRequest(new { message = $"Only PENDING returns can be deleted. Current status: {purchaseReturn.Status}" });
 
             await _purchaseReturnRepository.DeleteAsync(id, cancellationToken);
@@ -1035,13 +1113,57 @@ public class PurchaseReturnController : ControllerBase
     }
 
     /// <summary>
-    /// Normalises a StockLot.Status into one of the three inventory buckets.
+    /// Resolves the stock level a return line must draw down, keyed to the line's warehouse:
+    /// - lines with a selected lot use the lot's own warehouse (physical stock lives there);
+    /// - lines without a lot draw from the warehouse the goods were received into (the originating
+    ///   GoodsReceipt, falling back to the PurchaseOrder's expected-delivery warehouse for manual returns).
+    /// Returns a non-null error string when the warehouse cannot be determined or no stock level exists there,
+    /// so callers never fall back to an arbitrary warehouse (which corrupts multi-warehouse stock).
+    /// </summary>
+    private async Task<(StockLevel? StockLevel, string? Error)> ResolveStockLevelForLineAsync(
+        PurchaseReturn purchaseReturn, PurchaseReturnLine line, Guid? variantId, CancellationToken cancellationToken)
+    {
+        Guid? warehouseId;
+        if (line.StockLotId.HasValue)
+        {
+            var lot = await _stockLotRepository.GetByIdAsync(line.StockLotId.Value, cancellationToken);
+            if (lot == null)
+                return (null, $"Selected stock lot not found for part {line.Part?.Name ?? line.PartId.ToString()}.");
+            warehouseId = lot.WarehouseId;
+        }
+        else
+        {
+            warehouseId = purchaseReturn.GoodsReceipt?.WarehouseId
+                ?? purchaseReturn.PurchaseOrder?.WarehouseId;
+        }
+
+        if (warehouseId == null || warehouseId == Guid.Empty)
+            return (null, $"Could not determine the return warehouse for part {line.Part?.Name ?? line.PartId.ToString()}. Link the return to a goods receipt or set a warehouse on the purchase order.");
+
+        var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+            line.PartId, variantId, warehouseId.Value, cancellationToken);
+        if (stockLevel == null)
+            return (null, $"No stock level found for part {line.Part?.Name ?? line.PartId.ToString()} at the return warehouse. Cannot process return.");
+
+        return (stockLevel, null);
+    }
+
+    /// <summary>
+    /// Normalises a raw (query-string) bucket value into one of the three inventory buckets.
     /// Anything that isn't DAMAGED/QUARANTINE is treated as the sellable AVAILABLE bucket.
     /// </summary>
     private static string NormalizeBucket(string? status) => status?.Trim().ToUpper() switch
     {
         "DAMAGED" => "DAMAGED",
         "QUARANTINE" => "QUARANTINE",
+        _ => "AVAILABLE"
+    };
+
+    /// <summary>Normalises a StockLot.Status into one of the three inventory bucket labels.</summary>
+    private static string NormalizeBucket(StockLotStatus status) => status switch
+    {
+        StockLotStatus.DAMAGED => "DAMAGED",
+        StockLotStatus.QUARANTINE => "QUARANTINE",
         _ => "AVAILABLE"
     };
 

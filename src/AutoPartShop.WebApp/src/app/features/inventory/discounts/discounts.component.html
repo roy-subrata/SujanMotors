@@ -6,117 +6,109 @@
 <p-confirmDialog></p-confirmDialog>
 
 <app-page-container>
-  <!-- ==================== PAGE HEADER ==================== -->
-  <app-page-header
-    title="Discounts"
-    subtitle="Manage discount rules and promotions"
-    [count]="totalRecords" countLabel="discounts">
-    <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-      </button>
-      <button class="btn-primary" (click)="createDiscount()">
-        <i class="pi pi-plus"></i>
-        <span>New Discount</span>
-      </button>
-    </ng-container>
-  </app-page-header>
+    <!-- ==================== PAGE HEADER ==================== -->
+    <app-page-header [title]="'discounts.title' | translate" [subtitle]="'discounts.subtitle' | translate" [count]="totalRecords" [countLabel]="'discounts.countLabel' | translate">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
+                <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+            </button>
+            <button class="btn-primary" (click)="createDiscount()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'discounts.addDiscount' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== FILTER SECTION ==================== -->
-  <app-filter-bar>
-    <!-- Search Input -->
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input
-          type="text"
-          [(ngModel)]="searchTerm"
-          placeholder="Search discounts..."
-          (keyup.enter)="onSearch()"
-          class="search-input" />
-        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-    </div>
+    <!-- ==================== STATS ==================== -->
+    <app-stat-strip [stats]="stats"></app-stat-strip>
 
-    <!-- Scope Filter -->
-    <div filters class="filter-group">
-      <p-select
-        [options]="scopeOptions"
-        [(ngModel)]="filterScope"
-        placeholder="All Scopes"
-        [showClear]="true"
-        appendTo="body"
-        (onChange)="onFilterChange()"
-        styleClass="filter-dropdown">
-      </p-select>
-    </div>
+    <!-- ==================== FILTER SECTION ==================== -->
+    <app-filter-bar>
+        <!-- Search Input -->
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'discounts.searchPlaceholder' | translate" (keyup.enter)="onSearch()" class="search-input" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="clearSearchInput(); onSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+        </div>
 
-    <!-- Status Filter -->
-    <div filters class="filter-group">
-      <p-select
-        [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        appendTo="body"
-        (onChange)="onFilterChange()"
-        styleClass="filter-dropdown">
-      </p-select>
-    </div>
+        <!-- Scope Filter -->
+        <div filters class="filter-group">
+            <p-select [options]="scopeOptions" [(ngModel)]="filterScope" [placeholder]="'discounts.scopeFilterAll' | translate" [showClear]="true" appendTo="body" (onChange)="onFilterChange()" styleClass="filter-dropdown"> </p-select>
+        </div>
 
-    <!-- Filter Actions -->
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()">
-        <i class="pi pi-search"></i>
-        Apply
-      </button>
-      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i>
-        Clear
-      </button>
-    </div>
+        <!-- Status Filter -->
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'common.status.allStatuses' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
 
-    <!-- Active Filters Display -->
-    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
-      <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
-        <i class="pi pi-times" (click)="clearSearchInput(); onSearch()"></i>
-      </span>
-      <span *ngIf="filterScope !== null" class="filter-chip">
-        Scope: {{ getScopeLabel(filterScope) }}
-        <i class="pi pi-times" (click)="filterScope = null; onFilterChange()"></i>
-      </span>
-      <span *ngIf="filterStatus !== null" class="filter-chip">
-        Status: {{ getStatusLabel(filterStatus) }}
-        <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
-      </span>
-    </div>
-  </app-filter-bar>
+        <!-- Filter Actions -->
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()">
+                <i class="pi pi-search"></i>
+                {{ 'common.actions.apply' | translate }}
+            </button>
+            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+                <i class="pi pi-filter-slash"></i>
+                {{ 'common.actions.clear' | translate }}
+            </button>
+        </div>
 
-  <!-- ==================== LIST SECTION ==================== -->
-  <app-discounts-list
-    [discounts]="filteredDiscounts"
-    [loading]="loading"
-    [totalRecords]="totalRecords"
-    [rows]="rows"
-    [currentPage]="currentPage"
-    (editDiscount)="selectAndOpenUpdate($event)"
-    (deleteDiscount)="selectAndDelete($event)"
-    (toggleActive)="selectAndToggleActive($event)"
-    (pageChange)="onPageChange($event)">
-  </app-discounts-list>
+        <!-- Active Filters Display -->
+        <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
+            <span *ngIf="searchTerm" class="filter-chip">
+                {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
+                <i class="pi pi-times" (click)="clearSearchInput(); onSearch()"></i>
+            </span>
+            <span *ngIf="filterScope !== null" class="filter-chip">
+                {{ 'discounts.scope' | translate }}: {{ getScopeLabel(filterScope) }}
+                <i class="pi pi-times" (click)="filterScope = null; onFilterChange()"></i>
+            </span>
+            <span *ngIf="filterStatus !== null" class="filter-chip">
+                {{ 'common.labels.status' | translate }}: {{ getStatusLabel(filterStatus) }}
+                <i class="pi pi-times" (click)="filterStatus = null; onFilterChange()"></i>
+            </span>
+        </div>
+    </app-filter-bar>
+
+    <!-- ==================== LIST SECTION ==================== -->
+    <app-discounts-list
+        [discounts]="filteredDiscounts"
+        [loading]="loading"
+        [totalRecords]="totalRecords"
+        [rows]="rows"
+        [currentPage]="currentPage"
+        (editDiscount)="selectAndOpenUpdate($event)"
+        (deleteDiscount)="selectAndDelete($event)"
+        (toggleActive)="selectAndToggleActive($event)"
+        (pageChange)="onPageChange($event)"
+    >
+    </app-discounts-list>
 </app-page-container>
 
 <!-- ==================== FORM DIALOG ==================== -->
 <app-discount-form-dialog
-  [displayCreateDialog]="displayCreateDialog"
-  [displayUpdateDialog]="displayUpdateDialog"
-  [selectedDiscount]="selectedDiscount"
-  (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
-  (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
-  (createSuccess)="onCreateSuccess()"
-  (updateSuccess)="onUpdateSuccess()">
+    [displayCreateDialog]="displayCreateDialog"
+    [displayUpdateDialog]="displayUpdateDialog"
+    [selectedDiscount]="selectedDiscount"
+    (displayCreateDialogChange)="onDisplayCreateDialogChange($event)"
+    (displayUpdateDialogChange)="onDisplayUpdateDialogChange($event)"
+    (createSuccess)="onCreateSuccess()"
+    (updateSuccess)="onUpdateSuccess()"
+>
 </app-discount-form-dialog>

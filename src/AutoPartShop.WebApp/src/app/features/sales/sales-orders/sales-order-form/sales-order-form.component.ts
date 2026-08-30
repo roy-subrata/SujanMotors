@@ -34,7 +34,10 @@ import { WarehouseService, WarehouseResponse } from '../../../inventory/services
 import { StockLotService } from '../../../inventory/services/stock-lot.service';
 import { ApplyCustomerCreditNotesComponent } from '../../credits/apply-customer-credit-notes.component';
 import { CustomerCreditNoteService } from '../../services/customer-credit-note.service';
-import { AppBrandingService } from '../../../../shared/services/app-branding.service';
+import { ProformaInvoiceService } from '../../services/proforma-invoice.service';
+import { StatusDisplayService } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-sales-order-form',
@@ -58,7 +61,8 @@ import { AppBrandingService } from '../../../../shared/services/app-branding.ser
         TooltipModule,
         DatePickerModule,
         LazyAutocompleteComponent,
-        ApplyCustomerCreditNotesComponent
+        ApplyCustomerCreditNotesComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './sales-order-form.component.html',
@@ -83,7 +87,9 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     private readonly unitConversionService = inject(UnitConversionService);
     private readonly warehouseService = inject(WarehouseService);
     private readonly stockLotService = inject(StockLotService);
-    private readonly branding = inject(AppBrandingService);
+    private readonly proformaInvoiceService = inject(ProformaInvoiceService);
+    private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
 
     // Credit note state
     totalCreditApplied = 0;
@@ -614,10 +620,15 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     this.lines.clear();
                     this.linePricingErrors.clear();
                     order.lines.forEach((line) => {
-                        // Create a minimal part object for the form control
+                        // Create a minimal part object for the form control.
+                        // displayName is REQUIRED: the per-line lazy-autocomplete uses
+                        // optionLabel="displayName" and PrimeNG renders [object Object]
+                        // when that key is missing on the prefilled value.
                         const partObj = {
                             id: line.partId,
                             name: line.partName || '',
+                            displayName: line.displayName || line.partName || '',
+                            localName: line.partLocalName || null,
                             partNumber: line.partSku || '',
                             sku: line.partSku || '',
                             unitName: line.unitName || ''
@@ -638,7 +649,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     this.loading.set(false);
                 },
                 error: (err: Error) => {
-                    this.error.set('Failed to load sales order');
+                    this.error.set(this.i18n.t('salesOrders.form.messages.loadFailed'));
                     this.loading.set(false);
                     console.error('Error loading sales order:', err);
                 }
@@ -648,20 +659,20 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     onSubmit(): void {
         // Validate customer selection
         if (!this.selectedCustomerId) {
-            this.error.set('Please select a customer from the dropdown');
+            this.error.set(this.i18n.t('salesOrders.form.messages.selectCustomerFirst'));
             return;
         }
 
         // Validate order-level discount
         if (this.orderDiscount() > 100) {
-            this.error.set('Order discount cannot exceed 100%');
+            this.error.set(this.i18n.t('salesOrders.form.messages.discountTooHigh'));
             return;
         }
 
         // Validate warehouse selection
         const warehouseId = this.salesOrderForm.get('warehouseId')?.value;
         if (!warehouseId) {
-            this.error.set('Please select a warehouse');
+            this.error.set(this.i18n.t('salesOrders.form.messages.selectWarehouse'));
             return;
         }
 
@@ -681,7 +692,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     }
                 });
             });
-            this.error.set('Please fill in all required fields');
+            this.error.set(this.i18n.t('salesOrders.form.messages.fillRequired'));
             return;
         }
 
@@ -702,13 +713,13 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         this.validatePricingBeforeSubmit().pipe(takeUntil(this.destroy$)).subscribe({
             next: (isValid) => {
                 if (!isValid) {
-                    this.error.set('One or more line items violate pricing rules.');
+                    this.error.set(this.i18n.t('salesOrders.form.messages.pricingViolation'));
                     return;
                 }
                 this.submitSalesOrder();
             },
             error: () => {
-                this.error.set('Failed to validate pricing rules.');
+                this.error.set(this.i18n.t('salesOrders.form.messages.pricingValidationFailed'));
             }
         });
     }
@@ -759,13 +770,13 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Sales order ${this.mode() === 'edit' ? 'updated' : 'created'} successfully!`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t(this.mode() === 'edit' ? 'salesOrders.form.messages.updateSuccess' : 'salesOrders.form.messages.createSuccess')
                 });
                 this.router.navigate(['/sales/sales-orders']);
             },
             error: (err) => {
-                let errorMessage = `Failed to ${this.mode() === 'edit' ? 'update' : 'create'} sales order`;
+                let errorMessage = this.i18n.t(this.mode() === 'edit' ? 'salesOrders.form.messages.updateFailed' : 'salesOrders.form.messages.createFailed');
 
                 if (err.error?.message) {
                     errorMessage = err.error.message;
@@ -862,8 +873,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     console.error('Error converting unit price:', err);
                     this.messageService.add({
                         severity: 'warn',
-                        summary: 'Unit Conversion Missing',
-                        detail: 'No conversion configured between the selected units.'
+                        summary: this.i18n.t('salesOrders.form.messages.unitConversionMissing'),
+                        detail: this.i18n.t('salesOrders.form.messages.unitConversionMissingDetail')
                     });
                 }
             });
@@ -947,283 +958,57 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         this.router.navigate(['/sales/sales-orders']);
     }
 
+    /**
+     * Downloads the server-rendered Proforma Invoice PDF for the current sales order. Reuses an
+     * existing proforma for this order if one was already generated, otherwise creates one first
+     * (mirrors GenerateProformaDialogComponent.submit()).
+     */
     printProformaInvoice(): void {
-        if (this.salesOrderForm.invalid || !this.selectedCustomerId) {
+        if (this.salesOrderForm.invalid || !this.selectedCustomerId || !this.currentSO) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Incomplete Form',
-                detail: 'Please complete all required fields before printing'
+                summary: this.i18n.t('salesOrders.form.messages.incompleteForm'),
+                detail: this.i18n.t('salesOrders.form.messages.incompleteFormDetail')
             });
             return;
         }
 
-        const formValue = this.salesOrderForm.value;
-        const customer = this.selectedCustomer;
-        const technician = this.selectedTechnecian;
-        const vehicleLabel = this.selectedVehicleLabel;
-
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        if (!printWindow) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Print Failed',
-                detail: 'Please allow pop-ups to print the proforma invoice'
-            });
-            return;
-        }
-
-        const today = new Date();
-        const invoiceDate = today.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        const deliveryDate = formValue.deliveryDate ? new Date(formValue.deliveryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBD';
-        const invoiceNo = this.currentSO?.soNumber || `PI-${Date.now().toString().slice(-6)}`;
-        const orderDiscount = this.orderDiscount();
-        const orderDiscountAmount = this.orderDiscountAmount();
-
-        // Company identity from the configured business profile (SHOP_* settings).
-        const shop = this.branding.profile();
-        const shopName = this.escapeHtml(shop?.name) || 'Your Company';
-        const shopTagline = this.escapeHtml(shop?.tagline);
-        const shopAddress = this.escapeHtml(shop?.address);
-        const shopInitials = shopName.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-
-        let lineItemsHTML = '';
-        this.lines.controls.forEach((line) => {
-            const part = line.get('part')?.value as PublicPartResponse | null;
-            const quantity = line.get('quantity')?.value || 0;
-            const unitPrice = line.get('unitPrice')?.value || 0;
-            const discount = line.get('discount')?.value || 0;
-            const lineTotal = quantity * unitPrice * (1 - discount / 100);
-            const partMetaParts: string[] = [];
-            if (part?.partNumber) partMetaParts.push(part.partNumber);
-            if (part?.brandName) partMetaParts.push(part.brandName);
-            if (part?.unitName) partMetaParts.push(part.unitName);
-            const partMeta = partMetaParts.length ? partMetaParts.join(' | ') : '';
-
-            lineItemsHTML += `
-                <tr>
-                    <td class="desc-cell">
-                        <div class="item-name">${this.escapeHtml(part?.name) || 'N/A'}</div>
-                        ${partMeta ? `<div class="item-desc">${this.escapeHtml(partMeta)}</div>` : `<div class="item-desc">-</div>`}
-                    </td>
-                    <td class="num-cell">${this.formatCurrency(unitPrice)}</td>
-                    <td class="num-cell">${quantity}</td>
-                    <td class="num-cell">${discount > 0 ? discount + '%' : '-'}</td>
-                    <td class="num-cell">${this.formatCurrency(lineTotal)}</td>
-                </tr>`;
+        const salesOrderId = this.currentSO.id;
+        this.proformaInvoiceService.getBySalesOrder(salesOrderId).subscribe({
+            next: (proformas) => {
+                const existing = proformas?.[0];
+                if (existing) {
+                    this.downloadProformaPdf(existing.id, existing.proformaNumber);
+                } else {
+                    this.proformaInvoiceService.create({ salesOrderId, validUntil: null, notes: '' }).subscribe({
+                        next: (proforma) => this.downloadProformaPdf(proforma.id, proforma.proformaNumber),
+                        error: (error) => this.handleProformaPdfError(error)
+                    });
+                }
+            },
+            error: (error) => this.handleProformaPdfError(error)
         });
+    }
 
-        const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-    <title>Pro Forma Invoice - ${invoiceNo}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; padding: 20px; max-width: 800px; margin: 0 auto; }
+    private downloadProformaPdf(id: string, proformaNumber: string): void {
+        this.proformaInvoiceService.downloadPdf(id, proformaNumber).subscribe({
+            error: (error) => this.handleProformaPdfError(error)
+        });
+    }
 
-        /* Header */
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-        .logo-section { display: flex; align-items: center; gap: 10px; }
-        .logo { width: 60px; height: 60px; background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
-        .company-name { font-size: 22px; font-weight: 700; color: #1976d2; }
-        .title-section { text-align: right; }
-        .title-section h1 { font-size: 28px; color: #1976d2; font-weight: 300; margin-bottom: 8px; }
-        .invoice-meta { font-size: 11px; color: #666; }
-        .invoice-meta span { display: inline-block; min-width: 80px; }
-        .invoice-meta .value { color: #333; font-weight: 500; }
-
-        /* Address Section */
-        .address-section { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; }
-        .address-block { flex: 1; }
-        .address-block.right { text-align: right; }
-        .address-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .address-name { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px; }
-        .address-detail { font-size: 11px; color: #666; line-height: 1.5; }
-
-        /* Table */
-        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .items-table th { background: #1976d2; color: white; padding: 10px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
-        .items-table th:first-child { text-align: left; border-radius: 4px 0 0 0; }
-        .items-table th:last-child { border-radius: 0 4px 0 0; }
-        .items-table th.num-col { text-align: right; }
-        .items-table td { padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
-        .items-table tr:last-child td { border-bottom: none; }
-        .desc-cell { width: 40%; }
-        .num-cell { text-align: right; width: 15%; }
-        .item-name { font-weight: 500; color: #333; }
-        .item-desc { font-size: 10px; color: #999; margin-top: 2px; }
-
-        /* Summary Section */
-        .summary-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .payment-info { flex: 1; padding-right: 40px; }
-        .payment-info h4 { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-        .payment-info p { font-size: 11px; color: #666; line-height: 1.6; }
-        .totals-box { width: 250px; }
-        .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11px; }
-        .totals-row.total { border-top: 2px solid #1976d2; margin-top: 8px; padding-top: 10px; font-size: 14px; font-weight: 600; color: #1976d2; }
-        .totals-label { color: #666; }
-        .totals-value { font-weight: 500; }
-
-        /* Notes & Footer */
-        .notes-section { background: #f9f9f9; padding: 12px; border-radius: 4px; margin-bottom: 20px; }
-        .notes-section h4 { font-size: 11px; color: #1976d2; margin-bottom: 6px; }
-        .notes-section p { font-size: 11px; color: #666; line-height: 1.5; }
-        .disclaimer { text-align: center; padding: 15px; background: #fff3e0; border-radius: 4px; margin-bottom: 15px; }
-        .disclaimer p { font-size: 10px; color: #e65100; }
-        .disclaimer strong { display: block; font-size: 11px; margin-bottom: 4px; }
-        .footer { text-align: center; color: #999; font-size: 10px; padding-top: 10px; border-top: 1px solid #eee; }
-
-        /* Print */
-        .no-print { margin-top: 20px; text-align: center; }
-        .no-print button { padding: 10px 30px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin: 0 5px; }
-        .btn-print { background: #1976d2; color: white; }
-        .btn-close { background: #666; color: white; }
-        @media print {
-            body { padding: 10px; }
-            .no-print { display: none; }
-            .disclaimer { background: #fff; border: 1px solid #e65100; }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="logo-section">
-            <div class="logo">${shopInitials}</div>
-            <div class="company-name">${shopName}</div>
-        </div>
-        <div class="title-section">
-            <h1>Pro Forma Invoice</h1>
-            <div class="invoice-meta">
-                <div><span>Invoice no.:</span> <span class="value">${invoiceNo}</span></div>
-                <div><span>Invoice date:</span> <span class="value">${invoiceDate}</span></div>
-                <div><span>Delivery:</span> <span class="value">${deliveryDate}</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="address-section">
-        <div class="address-block">
-            <div class="address-label">From</div>
-            <div class="address-name">${shopName}</div>
-            <div class="address-detail">
-                ${shopTagline ? shopTagline + '<br>' : ''}
-                ${shopAddress}
-            </div>
-        </div>
-        <div class="address-block right">
-            <div class="address-label">Bill to</div>
-            <div class="address-name">${this.escapeHtml(customer?.fullName || formValue.customerName)}</div>
-            <div class="address-detail">
-                ${this.escapeHtml(customer?.email || formValue.customerEmail)}<br>
-                ${this.escapeHtml(customer?.phone || formValue.customerPhone)}<br>
-                ${this.escapeHtml(customer?.city || formValue.customerCity)}
-            </div>
-            ${
-                technician
-                    ? `
-            <div style="margin-top: 10px;">
-                <div class="address-label">Technician</div>
-                <div class="address-detail">${this.escapeHtml(technician.name)} | ${this.escapeHtml(technician.phone) || 'N/A'}</div>
-            </div>`
-                    : ''
-            }
-            ${
-                vehicleLabel
-                    ? `
-            <div style="margin-top: 10px;">
-                <div class="address-label">Vehicle</div>
-                <div class="address-detail">${this.escapeHtml(vehicleLabel)}</div>
-            </div>`
-                    : ''
-            }
-        </div>
-    </div>
-
-    <table class="items-table">
-        <thead>
-            <tr>
-                <th>Description</th>
-                <th class="num-col">Unit Price</th>
-                <th class="num-col">Qty</th>
-                <th class="num-col">Disc</th>
-                <th class="num-col">Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${lineItemsHTML}
-        </tbody>
-    </table>
-
-    <div class="summary-section">
-        <div class="payment-info">
-            ${
-                formValue.notes
-                    ? `
-            <h4>Notes</h4>
-            <p>${this.escapeHtml(formValue.notes)}</p>`
-                    : ''
-            }
-        </div>
-        <div class="totals-box">
-            <div class="totals-row">
-                <span class="totals-label">Subtotal:</span>
-                <span class="totals-value">${this.formatCurrency(this.subTotal())}</span>
-            </div>
-            ${
-                orderDiscount > 0
-                    ? `
-            <div class="totals-row">
-                <span class="totals-label">Discount (${orderDiscount}%):</span>
-                <span class="totals-value">-${this.formatCurrency(orderDiscountAmount)}</span>
-            </div>`
-                    : ''
-            }
-            <div class="totals-row total">
-                <span class="totals-label">Total:</span>
-                <span class="totals-value">${this.formatCurrency(this.grandTotal())}</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="disclaimer">
-        <strong>THIS IS A PRO FORMA INVOICE</strong>
-        <p>This is for estimation purposes only. An official invoice will be issued upon order confirmation.</p>
-    </div>
-
-    <div class="footer">
-        <p>Thank you for choosing ${shopName} | For inquiries, please contact us</p>
-    </div>
-
-    <div class="no-print">
-        <button class="btn-print" onclick="window.print()">Print Invoice</button>
-        <button class="btn-close" onclick="window.close()">Close</button>
-    </div>
-</body>
-</html>`;
-
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-
+    private handleProformaPdfError(error: any): void {
         this.messageService.add({
-            severity: 'success',
-            summary: 'Print Ready',
-            detail: 'Proforma invoice opened in new window'
+            severity: 'error',
+            summary: this.i18n.t('salesOrders.form.messages.printFailed'),
+            detail: error?.error?.message || this.i18n.t('salesOrders.form.messages.printFailedDetail')
         });
+        console.error('Error downloading proforma invoice PDF:', error);
     }
 
     formatCurrency(amount: number | null | undefined): string {
         if (amount == null || isNaN(amount)) return '—';
         const currencyCode = this.salesOrderForm?.get('currency')?.value || this.currencyService.selectedCurrency();
         return this.currencyService.formatCurrency(amount, currencyCode);
-    }
-
-    private escapeHtml(value: string | null | undefined): string {
-        if (!value) return '';
-        return value
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
     }
 
     /**
@@ -1233,8 +1018,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         if (!this.salesOrderId() || !this.currentSO) return;
 
         this.confirmationService.confirm({
-            message: `Are you sure you want to confirm Sales Order ${this.currentSO.soNumber}? This action will make the order official and binding.`,
-            header: 'Confirm Sales Order',
+            message: this.i18n.t('salesOrders.form.messages.confirmMessage', { number: this.currentSO.soNumber }),
+            header: this.i18n.t('salesOrders.form.messages.confirmHeader'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-success',
             accept: () => {
@@ -1245,16 +1030,16 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                         next: () => {
                             this.messageService.add({
                                 severity: 'success',
-                                summary: 'Success',
-                                detail: `Sales Order ${this.currentSO!.soNumber} confirmed successfully`
+                                summary: this.i18n.t('common.messages.success'),
+                                detail: this.i18n.t('salesOrders.form.messages.confirmSuccess', { number: this.currentSO!.soNumber })
                             });
                             this.loadSalesOrder(this.salesOrderId()!);
                         },
                         error: (error) => {
                             this.messageService.add({
                                 severity: 'error',
-                                summary: 'Error',
-                                detail: error?.error?.message || 'Failed to confirm sales order'
+                                summary: this.i18n.t('common.messages.error'),
+                                detail: error?.error?.message || this.i18n.t('salesOrders.form.messages.confirmFailed')
                             });
                             console.error('Error confirming sales order:', error);
                         }
@@ -1267,8 +1052,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     markReadyForDelivery(): void {
         if (!this.salesOrderId() || !this.currentSO) return;
         this.confirmationService.confirm({
-            message: `Mark ${this.currentSO.soNumber} as Ready for Delivery? A challan can then be generated before dispatch.`,
-            header: 'Ready for Delivery',
+            message: this.i18n.t('salesOrders.form.messages.readyMessage', { number: this.currentSO.soNumber }),
+            header: this.i18n.t('salesOrders.form.messages.readyHeader'),
             icon: 'pi pi-truck',
             acceptButtonStyleClass: 'p-button-warning',
             accept: () => {
@@ -1276,10 +1061,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     .pipe(takeUntil(this.destroy$))
                     .subscribe({
                         next: () => {
-                            this.messageService.add({ severity: 'success', summary: 'Updated', detail: `${this.currentSO!.soNumber} is now Ready for Delivery` });
+                            this.messageService.add({ severity: 'success', summary: this.i18n.t('salesOrders.form.messages.updated'), detail: this.i18n.t('salesOrders.form.messages.readySuccess', { number: this.currentSO!.soNumber }) });
                             this.loadSalesOrder(this.salesOrderId()!);
                         },
-                        error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to update status' })
+                        error: err => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.detail || this.i18n.t('salesOrders.form.messages.statusFailed') })
                     });
             }
         });
@@ -1289,8 +1074,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     deliverDirect(): void {
         if (!this.salesOrderId() || !this.currentSO) return;
         this.confirmationService.confirm({
-            message: `Mark ${this.currentSO.soNumber} as Delivered now? The invoice will be issued automatically.`,
-            header: 'Direct Delivery',
+            message: this.i18n.t('salesOrders.form.messages.deliverMessage', { number: this.currentSO.soNumber }),
+            header: this.i18n.t('salesOrders.form.messages.deliverHeader'),
             icon: 'pi pi-check-circle',
             acceptButtonStyleClass: 'p-button-success',
             accept: () => {
@@ -1298,10 +1083,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
                     .pipe(takeUntil(this.destroy$))
                     .subscribe({
                         next: () => {
-                            this.messageService.add({ severity: 'success', summary: 'Delivered', detail: `${this.currentSO!.soNumber} marked as Delivered` });
+                            this.messageService.add({ severity: 'success', summary: this.i18n.t('salesOrders.form.messages.delivered'), detail: this.i18n.t('salesOrders.form.messages.deliverSuccess', { number: this.currentSO!.soNumber }) });
                             this.loadSalesOrder(this.salesOrderId()!);
                         },
-                        error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to deliver order' })
+                        error: err => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.detail || this.i18n.t('salesOrders.form.messages.deliverFailed') })
                     });
             }
         });
@@ -1344,11 +1129,11 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: challan => {
-                    this.messageService.add({ severity: 'success', summary: 'Challan Generated', detail: `Challan ${challan.challanNumber} created` });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('salesOrders.form.messages.challanGenerated'), detail: this.i18n.t('salesOrders.form.messages.challanGeneratedDetail', { number: challan.challanNumber }) });
                     this.loadSalesOrder(this.salesOrderId()!);
                     window.open(`/sales/challans/${challan.id}/print`, '_blank');
                 },
-                error: err => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed to generate challan' })
+                error: err => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.detail || this.i18n.t('salesOrders.form.messages.challanFailed') })
             });
     }
 
@@ -1366,8 +1151,8 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
         this.totalCreditApplied += amount;
         this.messageService.add({
             severity: 'success',
-            summary: 'Credit Applied',
-            detail: `${this.formatCurrency(amount)} credit applied to this sales order`
+            summary: this.i18n.t('salesOrders.form.messages.creditAppliedSummary'),
+            detail: this.i18n.t('salesOrders.form.messages.creditAppliedDetail', { amount: this.formatCurrency(amount) })
         });
 
         // Reload SO to get updated data
@@ -1400,15 +1185,7 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
      * Get status badge severity
      */
     getStatusSeverity(status: string): string {
-        const severityMap: Record<string, string> = {
-            DRAFT: 'secondary',
-            CONFIRMED: 'info',
-            PARTIALLY_SHIPPED: 'warning',
-            SHIPPED: 'primary',
-            DELIVERED: 'success',
-            CANCELLED: 'danger'
-        };
-        return severityMap[status] || 'secondary';
+        return this.statusDisplay.getSeverity(status, 'sales-order');
     }
 
     private ensureCompatibleUnitsForLine(part: PublicPartResponse, line: FormGroup | null, preservePrice: boolean): void {

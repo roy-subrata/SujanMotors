@@ -144,6 +144,9 @@ class Product {
     this.variants = const [],
     this.unitName,
     this.totalStock,
+    this.attributeValues = const [],
+    this.matchedAttributeLabel,
+    this.matchedVariantCount,
   });
 
   final String id;
@@ -163,6 +166,18 @@ class Product {
   final List<ProductVariant> variants;
   final String? unitName;
   final int? totalStock;
+
+  /// Product-scoped attribute values (as opposed to per-variant ones), from
+  /// the `attributeValues` field of the product detail/list response.
+  final List<ProductAttributeValue> attributeValues;
+
+  /// Set by the backend search only when the search term matched an attribute value and did NOT
+  /// also match a visible field (name/sku/etc.) — e.g. "Color: White". Null outside of search, or
+  /// when the visible fields already explain the match.
+  final String? matchedAttributeLabel;
+
+  /// Set alongside [matchedAttributeLabel] only when more than one variant matched.
+  final int? matchedVariantCount;
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
         id: asString(json['id']),
@@ -208,5 +223,11 @@ class Product {
             asStringOrNull(asMapOrNull(json['unit'])?['name']),
         totalStock:
             json['totalStock'] != null ? asInt(json['totalStock']) : null,
+        attributeValues:
+            asList(json['attributeValues'], ProductAttributeValue.fromJson),
+        matchedAttributeLabel: asStringOrNull(json['matchedAttributeLabel']),
+        matchedVariantCount: json['matchedVariantCount'] != null
+            ? asInt(json['matchedVariantCount'])
+            : null,
       );
 }

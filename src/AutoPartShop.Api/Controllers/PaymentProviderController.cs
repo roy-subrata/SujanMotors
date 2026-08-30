@@ -1,13 +1,13 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.CustomerPayment.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Api.Authorization;
+using AutoPartShop.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/payment-provider")]
 [Route("api/v1/payment-provider")]
 [ApiController]
 [Produces("application/json")]
@@ -15,12 +15,14 @@ namespace AutoPartShop.Api.Controllers;
 public class PaymentProviderController : ControllerBase
 {
     private readonly IPaymentProviderRepository _repository;
+    private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<PaymentProviderController> _logger;
     private readonly ICurrentUserService _currentUserService;
 
-    public PaymentProviderController(IPaymentProviderRepository repository, ICurrentUserService currentUserService, ILogger<PaymentProviderController> logger)
+    public PaymentProviderController(IPaymentProviderRepository repository, AutoPartDbContext dbContext, ICurrentUserService currentUserService, ILogger<PaymentProviderController> logger)
     {
         _repository = repository;
+        _dbContext = dbContext;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -135,6 +137,9 @@ public class PaymentProviderController : ControllerBase
         {
             var provider = await _repository.GetByIdAsync(id, cancellationToken);
             if (provider is null) return NotFound();
+
+            provider.SetProviderName(request.ProviderName);
+            provider.SetProviderType(request.ProviderType);
 
             if (!string.IsNullOrWhiteSpace(request.BankName))
                 provider.SetBankDetails(request.BankName, request.BankAccountNumber, request.BankRoutingNumber, request.BeneficiaryName);
@@ -315,6 +320,11 @@ public class PaymentProviderController : ControllerBase
         {
             var provider = await _repository.GetByIdAsync(id, cancellationToken);
             if (provider is null) return NotFound(new { message = "Payment provider not found" });
+
+            var inUse = await _dbContext.SupplierPayments.AnyAsync(p => p.PaymentProviderId == id && !p.Isdeleted, cancellationToken)
+                || await _dbContext.CustomerPayments.AnyAsync(p => p.PaymentProviderId == id && !p.Isdeleted, cancellationToken);
+            if (inUse)
+                return Conflict(new { message = "Cannot delete payment provider that is in use by existing payments" });
 
             await _repository.DeleteAsync(id, cancellationToken);
             return Ok(new { message = "Payment provider deleted successfully" });

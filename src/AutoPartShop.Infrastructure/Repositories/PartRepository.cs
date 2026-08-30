@@ -18,6 +18,8 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
             .Include(p => p.VehicleCompatibilities).ThenInclude(vc => vc.Vehicle)
+            .Include(p => p.AttributeValues).ThenInclude(av => av.Attribute)
+            .Include(p => p.AttributeValues).ThenInclude(av => av.Option)
             .FirstOrDefaultAsync(p => p.Id == id && !p.Isdeleted, cancellationToken);
     }
 
@@ -56,7 +58,6 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
                 entity.IsPerishable,
                 entity.WeightKg,
                 entity.TaxCode,
-                entity.RichDescription,
                 entity.OemNumber,
                 entity.LocalName);
 
@@ -73,10 +74,10 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
             // In-use guards — a product still holding physical stock or cost layers can't be removed
             // without orphaning inventory/valuation. (Past sales keep pointing at the soft-deleted
             // product, which is fine for history.)
-            if (await _db.StockLevels.AnyAsync(sl => sl.PartId == id && !sl.Isdeleted, cancellationToken))
+            if (await _db.StockLevels.AnyAsync(sl => sl.PartId == id && !sl.Isdeleted && (sl.QuantityOnHandInBaseUnit > 0 || sl.QuantityReservedInBaseUnit > 0 || sl.QuantityDamagedInBaseUnit > 0 || sl.QuantityQuarantineInBaseUnit > 0), cancellationToken))
                 throw new InvalidOperationException("Cannot delete a product that has stock records. Remove its stock first.");
 
-            if (await _db.StockLots.AnyAsync(l => l.PartId == id && !l.Isdeleted, cancellationToken))
+            if (await _db.StockLots.AnyAsync(l => l.PartId == id && !l.Isdeleted && l.QuantityAvailable > 0, cancellationToken))
                 throw new InvalidOperationException("Cannot delete a product that has stock lots (purchase/cost history).");
 
             // Soft delete, consistent with the rest of the model.
@@ -162,6 +163,11 @@ public class ProductRepository(AutoPartDbContext _db) : IProductRepository
 
         if (variant?.Part is null) return null;
         return (variant.Part, variant);
+    }
+
+    public async Task<bool> VariantBelongsToPartAsync(Guid partId, Guid variantId, CancellationToken cancellationToken = default)
+    {
+        return await _db.ProductVariants.AnyAsync(v => v.Id == variantId && v.PartId == partId && !v.Isdeleted, cancellationToken);
     }
 }
 

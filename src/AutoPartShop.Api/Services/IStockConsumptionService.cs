@@ -7,11 +7,7 @@ namespace AutoPartShop.Api.Services;
 /// and recording a StockLotMovement per lot touched.
 ///
 /// This is the single shared implementation for every channel that sells stock (POS quick
-/// sale, ecommerce checkout, in-store ecommerce checkout) — previously each channel had its
-/// own copy, which had drifted: the ecommerce copy ignored expiry when choosing lots (pure
-/// FIFO instead of FEFO) and recorded stock-lot movements against the part's id instead of
-/// the sales order's id, breaking movement-to-order traceability for online orders. Extracted
-/// from the POS quick-sale implementation, which didn't have either bug.
+/// sale, in-store handover) — previously each channel had its own copy, which had drifted.
 /// </summary>
 public interface IStockConsumptionService
 {
@@ -23,8 +19,8 @@ public interface IStockConsumptionService
     /// </summary>
     /// <param name="reason">Human-readable audit text, e.g. "Quick Sale INV-2026-0001".</param>
     /// <param name="referenceNumber">Short code for the StockMovement record, e.g. the invoice/SO number.</param>
-    /// <param name="sourceType">StockLotMovement.ReferenceType — e.g. "QuickSale", "EcommerceOrder".</param>
-    /// <param name="actor">CreatedBy/ModifiedBy and the StockMovement approver — cashier username, or "ECOMMERCE".</param>
+    /// <param name="sourceType">StockLotMovement.ReferenceType — e.g. "QuickSale".</param>
+    /// <param name="actor">CreatedBy/ModifiedBy and the StockMovement approver — cashier username.</param>
     Task ConsumeStockAsync(
         Guid partId,
         Guid? variantId,

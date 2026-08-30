@@ -285,20 +285,32 @@
   overflow-x: auto;
 }
 
-/* Responsive */
+/* Responsive
+   The header markup lives inside the shared <app-page-header> component, so
+   scoped rules on .header-content/.header-actions/.date-range-picker never apply;
+   pierce with :host ::ng-deep to make the projected filter controls fit narrow
+   screens (datepicker + entity select + 2 buttons are ~630px min-width). */
 @media (max-width: 768px) {
-  .header-content {
+  :host ::ng-deep .page-header .header-content {
     flex-direction: column;
+    align-items: stretch;
   }
 
-  .header-actions {
+  :host ::ng-deep .page-header .header-actions {
     width: 100%;
-    justify-content: flex-start;
+    margin-left: 0;
+    justify-content: stretch;
   }
 
-  .date-range-picker,
-  .entity-dropdown {
-    min-width: 100%;
+  :host ::ng-deep .page-header .header-actions .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  :host ::ng-deep .page-header .header-actions .action-buttons > * {
+    width: 100%;
+    min-width: 0;
   }
 
   .col-property {

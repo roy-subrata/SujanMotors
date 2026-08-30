@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.CustomerDebitNoteDtos;
 
 public class CreateCustomerDebitNoteRequest
@@ -8,6 +10,12 @@ public class CreateCustomerDebitNoteRequest
     public string Reason { get; set; } = string.Empty;
     public string Currency { get; set; } = "BDT";
     public string Notes { get; set; } = string.Empty;
+}
+
+public class SettleCustomerDebitNoteRequest
+{
+    public string? PaymentMethod { get; set; }
+    public string? ReferenceNumber { get; set; }
 }
 
 public class CustomerDebitNoteResponse
@@ -22,7 +30,7 @@ public class CustomerDebitNoteResponse
     public string Currency { get; set; } = string.Empty;
     public DateTime IssueDate { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public CustomerDebitNoteStatus Status { get; set; }
     public string Notes { get; set; } = string.Empty;
     public string IssuedBy { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

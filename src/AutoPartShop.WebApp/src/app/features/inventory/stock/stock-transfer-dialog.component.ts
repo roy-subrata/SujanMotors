@@ -12,6 +12,8 @@ import { MessageService } from 'primeng/api';
 import { StockService, StockLevelResponse } from '../services/stock.service';
 import { PartService, PartResponse } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-stock-transfer-dialog',
@@ -24,278 +26,12 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     InputNumberModule,
     SelectModule,
     CardModule,
-    ToastModule
+    ToastModule,
+    TranslatePipe
   ],
   providers: [MessageService],
-  template: `
-    <p-toast></p-toast>
-    <div class="transfer-dialog">
-      <h2 class="dialog-title">Stock Transfer</h2>
-
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="transfer-form">
-        <!-- Current Stock Info -->
-        <p-card class="info-card">
-          <div class="info-row">
-            <div class="info-item">
-              <label>Part</label>
-              <span class="value">{{ currentStock?.displayName || part?.name }} ({{ currentStock?.variantSku || part?.sku }})</span>
-            </div>
-            <div class="info-item">
-              <label>From Warehouse</label>
-              <span class="value">{{ fromWarehouse?.name }}</span>
-            </div>
-          </div>
-          <div class="info-row">
-            <div class="info-item">
-              <label>Current Stock</label>
-              <span class="value stock-value">{{ currentStock?.quantity }} units</span>
-            </div>
-            <div class="info-item">
-              <label>Available</label>
-              <span class="value">{{ currentStock?.availableQuantity }} units</span>
-            </div>
-          </div>
-        </p-card>
-
-        <!-- Transfer Form -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="toWarehouseId">To Warehouse *</label>
-            <p-select
-              id="toWarehouseId"
-              [options]="warehouses"
-              optionLabel="name"
-              optionValue="id"
-              formControlName="toWarehouseId"
-              placeholder="Select destination warehouse"
-              [filter]="true"
-              filterBy="name,code"
-              [showClear]="true">
-              <ng-template let-warehouse pTemplate="item">
-                <div class="flex align-items-center gap-2">
-                  <div>{{ warehouse.name }} ({{ warehouse.code }})</div>
-                </div>
-              </ng-template>
-            </p-select>
-            <small class="text-danger" *ngIf="form.get('toWarehouseId')?.invalid && form.get('toWarehouseId')?.touched">
-              Destination warehouse is required
-            </small>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="quantity">Quantity *</label>
-            <p-inputNumber
-              id="quantity"
-              formControlName="quantity"
-              [min]="1"
-              [max]="currentStock?.availableQuantity || 999999"
-              placeholder="Enter quantity to transfer"
-              class="w-full">
-            </p-inputNumber>
-            <small class="text-muted">Max available: {{ currentStock?.availableQuantity }} units</small>
-            <small class="text-danger" *ngIf="form.get('quantity')?.invalid && form.get('quantity')?.touched">
-              Valid quantity is required (max: {{ currentStock?.availableQuantity }})
-            </small>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group full">
-            <label for="notes">Notes</label>
-            <textarea
-              id="notes"
-              formControlName="notes"
-              placeholder="Enter reason for transfer (e.g., Replenishment, Rebalancing)"
-              rows="3"
-              class="w-full textarea-input">
-            </textarea>
-          </div>
-        </div>
-
-        <!-- Transfer Preview -->
-        <p-card class="preview-card" *ngIf="form.get('toWarehouseId')?.value && form.get('quantity')?.value > 0">
-          <div class="preview-row">
-            <div class="preview-item">
-              <label>From:</label>
-              <span class="warehouse-name">{{ fromWarehouse?.name }}</span>
-              <span class="stock-change decrease">-{{ form.get('quantity')?.value }} units</span>
-            </div>
-            <div class="arrow">
-              <i class="pi pi-arrow-right"></i>
-            </div>
-            <div class="preview-item">
-              <label>To:</label>
-              <span class="warehouse-name">{{ getToWarehouseName() }}</span>
-              <span class="stock-change increase">+{{ form.get('quantity')?.value }} units</span>
-            </div>
-          </div>
-        </p-card>
-
-        <!-- Action Buttons -->
-        <div class="button-group">
-          <button
-            pButton
-            type="button"
-            label="Cancel"
-            icon="pi pi-times"
-            class="p-button-outlined"
-            (click)="onCancel()"
-            [disabled]="isSubmitting">
-          </button>
-          <button
-            pButton
-            type="submit"
-            label="Transfer Stock"
-            icon="pi pi-arrow-right"
-            class="p-button-success"
-            [loading]="isSubmitting"
-            [disabled]="!form.valid || isSubmitting">
-          </button>
-        </div>
-      </form>
-    </div>
-  `,
-  styles: [`
-    .transfer-dialog {
-      padding: 1.5rem;
-      min-width: 550px;
-    }
-
-    .dialog-title {
-      margin-bottom: 1.5rem;
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-
-    .info-card, .preview-card {
-      margin-bottom: 1.5rem;
-    }
-
-    .info-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      margin-bottom: 1rem;
-    }
-
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .info-item label {
-      font-size: 0.875rem;
-      color: var(--text-color-secondary);
-      font-weight: 500;
-    }
-
-    .info-item .value {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-color);
-    }
-
-    .stock-value {
-      color: var(--color-success);
-      font-size: 1.1rem;
-    }
-
-    .form-row {
-      margin-bottom: 1rem;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
-
-    .form-group label {
-      font-weight: 500;
-      font-size: 0.875rem;
-    }
-
-    .text-muted {
-      font-size: 0.75rem;
-      color: var(--text-color-secondary);
-    }
-
-    .textarea-input {
-      border: 1px solid var(--surface-border);
-      border-radius: 4px;
-      padding: 0.5rem;
-      font-family: inherit;
-      resize: vertical;
-      background: var(--surface-card);
-      color: var(--text-color);
-    }
-
-    .preview-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .preview-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      flex: 1;
-    }
-
-    .preview-item label {
-      font-size: 0.75rem;
-      color: var(--text-color-secondary);
-      font-weight: 500;
-    }
-
-    .warehouse-name {
-      font-weight: 600;
-      color: var(--text-color);
-    }
-
-    .stock-change {
-      font-size: 1.1rem;
-      font-weight: 700;
-    }
-
-    .stock-change.increase {
-      color: var(--color-success);
-    }
-
-    .stock-change.decrease {
-      color: var(--color-danger);
-    }
-
-    .arrow {
-      font-size: 1.5rem;
-      color: var(--color-info);
-    }
-
-    .text-danger {
-      color: var(--color-danger);
-      font-size: 0.75rem;
-    }
-
-    .button-group {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-      justify-content: flex-end;
-    }
-
-    .w-full {
-      width: 100%;
-    }
-  `]
+  templateUrl: './stock-transfer-dialog.component.html',
+  styleUrl: './stock-transfer-dialog.component.scss',
 })
 export class StockTransferDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -305,6 +41,7 @@ export class StockTransferDialogComponent implements OnInit {
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   form: FormGroup;
   isSubmitting = false;
@@ -388,8 +125,8 @@ export class StockTransferDialogComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Stock transferred successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('stockTransfer.messages.success')
         });
         this.isSubmitting = false;
         setTimeout(() => {
@@ -399,8 +136,8 @@ export class StockTransferDialogComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to transfer stock'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('stockTransfer.messages.failed')
         });
         this.isSubmitting = false;
       }

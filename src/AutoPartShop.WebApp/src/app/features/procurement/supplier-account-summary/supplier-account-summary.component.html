@@ -3,20 +3,16 @@
 
     <!-- HEADER -->
     <app-page-header
-        title="Supplier Account Summary"
-        subtitle="Ledger entries and outstanding balance">
+        [title]="'supplierAccountSummary.title' | translate"
+        [subtitle]="'supplierAccountSummary.subtitle' | translate">
         <ng-container actions>
-            <button class="btn-icon" pTooltip="Back" tooltipPosition="bottom" (click)="goBack()">
+            <button class="btn-icon" [pTooltip]="'common.actions.back' | translate" tooltipPosition="bottom" (click)="goBack()">
                 <i class="pi pi-arrow-left"></i>
             </button>
             @if (summary()) {
-                <button class="btn-icon" pTooltip="Download PDF" tooltipPosition="bottom"
+                <button class="btn-icon" [pTooltip]="'supplierAccountSummary.downloadPdf' | translate" tooltipPosition="bottom"
                     [disabled]="pdfLoading()" (click)="onDownloadPdf()">
                     <i class="pi" [ngClass]="pdfLoading() ? 'pi-spin pi-spinner' : 'pi-file-pdf'"></i>
-                </button>
-                <button class="btn-icon" pTooltip="Print" tooltipPosition="bottom"
-                    [disabled]="pdfLoading()" (click)="onPrint()">
-                    <i class="pi pi-print"></i>
                 </button>
             }
         </ng-container>
@@ -25,12 +21,12 @@
     <!-- FILTER BAR -->
     <div class="as-filter-bar">
         <div class="filter-field supplier-field">
-            <label class="filter-label">Supplier</label>
+            <label class="filter-label">{{ 'common.labels.name' | translate }}</label>
             <app-lazy-autocomplete
                 [(ngModel)]="selectedSupplier"
                 [fetchFn]="fetchSuppliersLazy"
                 optionLabel="name"
-                placeholder="Search supplier..."
+                [placeholder]="'supplierAccountSummary.searchSupplierPlaceholder' | translate"
                 [minLength]="0"
                 [pageSize]="20"
                 scrollHeight="300px"
@@ -45,26 +41,26 @@
             </app-lazy-autocomplete>
         </div>
         <div class="filter-field date-field">
-            <label class="filter-label">From</label>
+            <label class="filter-label">{{ 'common.labels.from' | translate }}</label>
             <p-datepicker
                 [(ngModel)]="fromDate"
                 [showIcon]="true"
                 dateFormat="dd M yy"
-                placeholder="Start date"
+                [placeholder]="'supplierAccountSummary.startDatePlaceholder' | translate"
                 styleClass="w-full">
             </p-datepicker>
         </div>
         <div class="filter-field date-field">
-            <label class="filter-label">To</label>
+            <label class="filter-label">{{ 'common.labels.to' | translate }}</label>
             <p-datepicker
                 [(ngModel)]="toDate"
                 [showIcon]="true"
                 dateFormat="dd M yy"
-                placeholder="End date"
+                [placeholder]="'supplierAccountSummary.endDatePlaceholder' | translate"
                 styleClass="w-full">
             </p-datepicker>
         </div>
-        <button pButton type="button" icon="pi pi-search" label="Generate"
+        <button pButton type="button" icon="pi pi-search" [label]="'supplierAccountSummary.generate' | translate"
             class="generate-btn" (click)="generateReport()" [loading]="loading()"></button>
     </div>
 
@@ -72,8 +68,8 @@
     <div class="as-info-bar" *ngIf="summary()">
         <span class="info-item"><i class="pi pi-truck"></i> {{ summary()!.supplierName }}</span>
         <span class="info-item"><i class="pi pi-hashtag"></i> {{ summary()!.supplierCode }}</span>
-        <span class="info-item"><i class="pi pi-list"></i> {{ summary()!.transactionCount }} transactions</span>
-        <span class="info-item" *ngIf="summary()!.lastTransactionDate"><i class="pi pi-calendar"></i> Last: {{ formatDate(summary()!.lastTransactionDate) }}</span>
+        <span class="info-item"><i class="pi pi-list"></i> {{ summary()!.transactionCount }} {{ 'supplierAccountSummary.transactions' | translate }}</span>
+        <span class="info-item" *ngIf="summary()!.lastTransactionDate"><i class="pi pi-calendar"></i> {{ 'supplierAccountSummary.last' | translate }}: {{ formatDate(summary()!.lastTransactionDate) }}</span>
     </div>
 
     <!-- CONTENT AREA -->
@@ -81,8 +77,8 @@
         <!-- Empty State -->
         <div *ngIf="!loading() && !summary()" class="as-empty-state">
             <i class="pi pi-file-check"></i>
-            <p>No report generated</p>
-            <span>Select a supplier and click Generate to view account summary</span>
+            <p>{{ 'supplierAccountSummary.noReport' | translate }}</p>
+            <span>{{ 'supplierAccountSummary.noReportHint' | translate }}</span>
         </div>
 
         <!-- Loading State -->
@@ -106,26 +102,26 @@
                 <div class="metric-card metric-primary">
                     <div class="metric-icon"><i class="pi pi-shopping-cart"></i></div>
                     <div class="metric-body">
-                        <span class="metric-label">Total Purchases</span>
+                        <span class="metric-label">{{ 'supplierAccountSummary.totalPurchases' | translate }}</span>
                         <span class="metric-value">{{ formatCurrency(summary()!.totalPurchases) }}</span>
-                        <span class="metric-helper">{{ summary()!.transactionCount }} transaction(s)</span>
+                        <span class="metric-helper">{{ summary()!.transactionCount }} {{ 'supplierAccountSummary.transactions' | translate }}</span>
                     </div>
                 </div>
                 <div class="metric-card metric-success">
                     <div class="metric-icon"><i class="pi pi-check-circle"></i></div>
                     <div class="metric-body">
-                        <span class="metric-label">Total Payments</span>
+                        <span class="metric-label">{{ 'supplierAccountSummary.totalPayments' | translate }}</span>
                         <span class="metric-value">{{ formatCurrency(summary()!.totalPayments) }}</span>
-                        <span class="metric-helper" *ngIf="summary()!.totalRefunds > 0">Refunds: {{ formatCurrency(summary()!.totalRefunds) }}</span>
+                        <span class="metric-helper" *ngIf="summary()!.totalRefunds > 0">{{ 'supplierAccountSummary.refunds' | translate }}: {{ formatCurrency(summary()!.totalRefunds) }}</span>
                     </div>
                 </div>
                 <div class="metric-card" [ngClass]="summary()!.currentBalance > 0 ? 'metric-danger' : 'metric-success'">
                     <div class="metric-icon"><i class="pi pi-exclamation-triangle"></i></div>
                     <div class="metric-body">
-                        <span class="metric-label">Current Balance</span>
+                        <span class="metric-label">{{ 'supplierAccountSummary.currentBalance' | translate }}</span>
                         <span class="metric-value">{{ formatCurrency(summary()!.currentBalance) }}</span>
-                        <span class="metric-helper" *ngIf="summary()!.availableAdvanceCredit > 0">Advance: {{ formatCurrency(summary()!.availableAdvanceCredit) }}</span>
-                        <span class="metric-helper" *ngIf="summary()!.currentBalance <= 0">All settled!</span>
+                        <span class="metric-helper" *ngIf="summary()!.availableAdvanceCredit > 0">{{ 'supplierAccountSummary.advance' | translate }}: {{ formatCurrency(summary()!.availableAdvanceCredit) }}</span>
+                        <span class="metric-helper" *ngIf="summary()!.currentBalance <= 0">{{ 'supplierAccountSummary.allSettled' | translate }}</span>
                     </div>
                 </div>
             </div>
@@ -133,20 +129,20 @@
             <!-- Ledger Entries Table -->
             <div class="as-table-section">
                 <div class="table-header-row">
-                    <h3 class="table-title">Ledger Entries</h3>
-                    <span class="table-count">{{ totalEntryCount() }} entries</span>
+                    <h3 class="table-title">{{ 'supplierAccountSummary.ledgerEntries' | translate }}</h3>
+                    <span class="table-count">{{ totalEntryCount() }} {{ 'supplierAccountSummary.entries' | translate }}</span>
                 </div>
 
                 <!-- Desktop Table -->
                 <div class="desktop-view">
                     <div class="as-list-header">
-                        <span class="col-date">Date</span>
-                        <span class="col-type">Type</span>
-                        <span class="col-ref">Reference #</span>
-                        <span class="col-desc">Description</span>
-                        <span class="col-debit">Debit</span>
-                        <span class="col-credit">Credit</span>
-                        <span class="col-balance">Balance</span>
+                        <span class="col-date">{{ 'common.labels.date' | translate }}</span>
+                        <span class="col-type">{{ 'common.labels.type' | translate }}</span>
+                        <span class="col-ref">{{ 'supplierAccountSummary.referenceNo' | translate }}</span>
+                        <span class="col-desc">{{ 'common.labels.description' | translate }}</span>
+                        <span class="col-debit">{{ 'supplierAccountSummary.debit' | translate }}</span>
+                        <span class="col-credit">{{ 'supplierAccountSummary.credit' | translate }}</span>
+                        <span class="col-balance">{{ 'supplierAccountSummary.balance' | translate }}</span>
                     </div>
                     <div class="as-list-body">
                         <div class="as-list-item" *ngFor="let entry of entries()">
@@ -167,7 +163,7 @@
                             <div class="col-balance bold">{{ formatCurrency(entry.runningBalance) }}</div>
                         </div>
                         <div *ngIf="entries().length === 0" class="as-list-empty">
-                            No ledger entries found for the selected criteria
+                            {{ 'supplierAccountSummary.noEntriesFiltered' | translate }}
                         </div>
                     </div>
                 </div>
@@ -186,25 +182,25 @@
                         </div>
                         <div class="mobile-card-body">
                             <div class="mobile-field">
-                                <label>Date</label>
+                                <label>{{ 'common.labels.date' | translate }}</label>
                                 <span>{{ formatDate(entry.transactionDate) }}</span>
                             </div>
                             <div class="mobile-field">
-                                <label>Debit</label>
+                                <label>{{ 'supplierAccountSummary.debit' | translate }}</label>
                                 <span [class.text-debit]="entry.debitAmount > 0">{{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}</span>
                             </div>
                             <div class="mobile-field">
-                                <label>Credit</label>
+                                <label>{{ 'supplierAccountSummary.credit' | translate }}</label>
                                 <span [class.text-credit]="entry.creditAmount > 0">{{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}</span>
                             </div>
                             <div class="mobile-field total">
-                                <label>Balance</label>
+                                <label>{{ 'supplierAccountSummary.balance' | translate }}</label>
                                 <strong>{{ formatCurrency(entry.runningBalance) }}</strong>
                             </div>
                         </div>
                     </div>
                     <div *ngIf="entries().length === 0" class="as-list-empty">
-                        No ledger entries found
+                        {{ 'supplierAccountSummary.noEntries' | translate }}
                     </div>
                 </div>
 
@@ -213,7 +209,7 @@
                     [first]="first"
                     [pageSize]="pageSize"
                     [totalRecords]="totalEntryCount()"
-                    itemLabel="entries"
+                    [itemLabel]="'supplierAccountSummary.entries' | translate"
                     (pageChange)="goToPage($event)"
                     (pageSizeChange)="onPageSizeChange($event)">
                 </app-data-pagination>
@@ -225,95 +221,17 @@
     <div class="as-footer" *ngIf="summary()">
         <div class="as-footer-summary">
             <div class="summary-row">
-                <span>Total Purchases</span>
+                <span>{{ 'supplierAccountSummary.totalPurchases' | translate }}</span>
                 <span class="value">{{ formatCurrency(summary()!.totalPurchases) }}</span>
             </div>
             <div class="summary-row">
-                <span>Total Payments</span>
+                <span>{{ 'supplierAccountSummary.totalPayments' | translate }}</span>
                 <span class="value paid">{{ formatCurrency(summary()!.totalPayments) }}</span>
             </div>
             <div class="summary-row total-row" [class.due]="summary()!.currentBalance > 0">
-                <span>Current Balance</span>
+                <span>{{ 'supplierAccountSummary.currentBalance' | translate }}</span>
                 <span class="value total-value">{{ formatCurrency(summary()!.currentBalance) }}</span>
             </div>
         </div>
     </div>
 </app-page-container>
-
-<!-- ==================== HIDDEN PRINT-OPTIMIZED SECTION ==================== -->
-@if (allEntriesLoaded() && summary()) {
-    <div id="supplier-account-summary-print" class="print-container">
-        <div class="print-header">
-            <div class="print-company-name">{{ companyConfig.companyName }}</div>
-            <div class="print-company-info">
-                {{ companyConfig.companyAddress }} | {{ companyConfig.companyPhone }} | {{ companyConfig.companyEmail }}
-            </div>
-            <div class="print-title">Supplier Account Summary</div>
-        </div>
-        <div class="print-supplier-info">
-            <div>
-                <div class="print-supplier-name">{{ summary()!.supplierName }}</div>
-                <div>Code: {{ summary()!.supplierCode }}</div>
-                <div>Transactions: {{ summary()!.transactionCount }}</div>
-            </div>
-            <div style="text-align: right;">
-                <div>Report Date: {{ formatDate(today) }}</div>
-                <div *ngIf="fromDate">From: {{ formatDate(fromDate.toISOString()) }}</div>
-                <div *ngIf="toDate">To: {{ formatDate(toDate.toISOString()) }}</div>
-            </div>
-        </div>
-        <div class="print-metrics">
-            <div class="print-metric">
-                <div class="print-metric-label">Total Purchases</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPurchases) }}</div>
-            </div>
-            <div class="print-metric paid">
-                <div class="print-metric-label">Total Payments</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.totalPayments) }}</div>
-            </div>
-            <div class="print-metric" [class.due]="summary()!.currentBalance > 0">
-                <div class="print-metric-label">Current Balance</div>
-                <div class="print-metric-value">{{ formatCurrency(summary()!.currentBalance) }}</div>
-            </div>
-        </div>
-        <div class="print-table-title">Ledger Entries ({{ allEntries().length }} entries)</div>
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 12%;">Date</th>
-                    <th style="width: 12%;">Type</th>
-                    <th style="width: 12%;">Reference #</th>
-                    <th>Description</th>
-                    <th class="text-right" style="width: 12%;">Debit</th>
-                    <th class="text-right" style="width: 12%;">Credit</th>
-                    <th class="text-right" style="width: 12%;">Balance</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (entry of allEntries(); track entry.id; let i = $index) {
-                    <tr>
-                        <td>{{ i + 1 }}</td>
-                        <td>{{ formatDate(entry.transactionDate) }}</td>
-                        <td>{{ getTransactionTypeLabel(entry.transactionType) }}</td>
-                        <td>{{ entry.referenceNumber || '-' }}</td>
-                        <td>{{ entry.description || '-' }}</td>
-                        <td class="text-right" [class.text-debit]="entry.debitAmount > 0">{{ entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : '-' }}</td>
-                        <td class="text-right" [class.text-credit]="entry.creditAmount > 0">{{ entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : '-' }}</td>
-                        <td class="text-right font-bold">{{ formatCurrency(entry.runningBalance) }}</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        @if (summary()!.currentBalance > 0) {
-            <div class="print-due-box">
-                <span class="label">Outstanding Balance: </span>
-                <span class="value">{{ formatCurrency(summary()!.currentBalance) }}</span>
-            </div>
-        }
-        <div class="print-footer">
-            <p>This is a computer-generated document. Generated on {{ formatDate(today) }} by {{ companyConfig.companyName }}.</p>
-            <p style="margin-top: 4px;">Thank you for your business!</p>
-        </div>
-    </div>
-}

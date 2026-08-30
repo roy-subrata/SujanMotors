@@ -1,5 +1,6 @@
 using AutoPartShop.Application.DTOs.DashboardDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,8 +30,9 @@ public class FinancialSummaryService : IFinancialSummaryService
     private readonly IShopClock _shopClock;
 
     // Statuses that represent no real economic activity and must be excluded from every metric.
-    private static readonly string[] ExcludedSalesStatuses = ["CANCELLED", "RETURNED", "DRAFT"];
-    private static readonly string[] ExcludedPOStatuses = ["DRAFT", "SUBMITTED", "CANCELLED"];
+    private static readonly SalesOrderStatus[] ExcludedSalesStatuses = [SalesOrderStatus.CANCELLED, SalesOrderStatus.RETURNED, SalesOrderStatus.DRAFT];
+    private static readonly PurchaseOrderStatus[] ExcludedPOStatuses =
+        [PurchaseOrderStatus.DRAFT, PurchaseOrderStatus.SUBMITTED, PurchaseOrderStatus.CANCELLED];
 
     public FinancialSummaryService(
         AutoPartDbContext dbContext,
@@ -60,6 +62,9 @@ public class FinancialSummaryService : IFinancialSummaryService
 
     public async Task<FinancialSummaryResponse> GetFinancialSummaryAsync(FinancialSummaryRequest request, CancellationToken cancellationToken = default)
     {
+        if (request.StartDate > request.EndDate)
+            throw new ArgumentException("fromDate must not be after toDate");
+
         // Shop-local calendar range → UTC instant window. All queries use >= startDate && < endDate.
         var (startDate, endDate) = _shopClock.DayWindowUtc(request.StartDate, request.EndDate);
 
@@ -78,10 +83,10 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         foreach (var so in salesOrders)
         {
-            var converted = await _currencyService.ConvertToBaseAsync(so.TotalAmount, so.Currency, so.SODate, cancellationToken);
+            var converted = so.BaseGrandTotal ?? await _currencyService.ConvertToBaseAsync(so.TotalAmount, so.Currency, so.SODate, cancellationToken);
             totalSales += converted;
 
-            if (so.PaymentStatus == "PAID")
+            if (so.PaymentStatus == SalesOrderPaymentStatus.PAID)
                 cashSales += converted;
             else
                 creditSales += converted;
@@ -91,17 +96,19 @@ public class FinancialSummaryService : IFinancialSummaryService
         // Only COMPLETED payments represent cash actually received.
         // Advance-credit re-applications (SourceAdvancePaymentId != null, REGULAR type) are
         // excluded: the original advance deposit is the cash event; its later application to
-        // an invoice is an internal ledger transfer, not a new inflow.
+        // an invoice is an internal ledger transfer, not a new inflow. CREDIT_NOTE settlements
+        // are excluded for the same reason — the customer paid with store credit, not money.
         var customerPaymentsList = await _dbContext.CustomerPayments
             .Where(cp => cp.PaymentDate >= startDate && cp.PaymentDate < endDate
                          && !cp.Isdeleted
-                         && cp.Status == "COMPLETED"
+                         && cp.Status == CustomerPaymentStatus.COMPLETED
+                         && cp.PaymentMethod != "CREDIT_NOTE"
                          && (cp.PaymentType == CustomerPaymentType.ADVANCE || cp.SourceAdvancePaymentId == null))
             .ToListAsync(cancellationToken);
 
         var customerPayments = 0m;
         foreach (var cp in customerPaymentsList)
-            customerPayments += await _currencyService.ConvertToBaseAsync(cp.Amount, cp.Currency, cp.PaymentDate, cancellationToken);
+            customerPayments += cp.BaseAmount ?? await _currencyService.ConvertToBaseAsync(cp.Amount, cp.Currency, cp.PaymentDate, cancellationToken);
 
         // ── Purchase orders ───────────────────────────────────────────────────────────
         // Exclude DRAFT/SUBMITTED (uncommitted) and CANCELLED. Consistent with the
@@ -114,7 +121,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var totalPurchases = 0m;
         foreach (var po in purchaseOrders)
-            totalPurchases += await _currencyService.ConvertToBaseAsync(po.TotalAmount, po.Currency, po.PODate, cancellationToken);
+            totalPurchases += po.BaseTotalAmount ?? await _currencyService.ConvertToBaseAsync(po.TotalAmount, po.Currency, po.PODate, cancellationToken);
 
         // ── Supplier payments (cash outflow) ─────────────────────────────────────────
         // Only COMPLETED, non-REFUND payments are real cash outflows.
@@ -122,7 +129,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         var supplierPaymentsList = await _dbContext.SupplierPayments
             .Where(sp => sp.PaymentDate >= startDate && sp.PaymentDate < endDate
                          && !sp.Isdeleted
-                         && sp.Status == "COMPLETED"
+                         && sp.Status == SupplierPaymentStatus.COMPLETED
                          && sp.PaymentMethod != "REFUND"
                          && sp.PaymentMethod != "CREDIT_NOTE" // credit notes are returns, not cash outflows
                          && (sp.PaymentType == PaymentType.ADVANCE || sp.SourceAdvancePaymentId == null))
@@ -130,7 +137,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var supplierPayments = 0m;
         foreach (var sp in supplierPaymentsList)
-            supplierPayments += await _currencyService.ConvertToBaseAsync(sp.Amount, sp.Currency, sp.PaymentDate, cancellationToken);
+            supplierPayments += sp.BaseAmount ?? await _currencyService.ConvertToBaseAsync(sp.Amount, sp.Currency, sp.PaymentDate, cancellationToken);
 
         // ── Daily expenses ────────────────────────────────────────────────────────────
         var dailyExpenses = await _dbContext.DailyExpenses
@@ -151,40 +158,53 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var openInvoiceData = await _dbContext.Invoices
             .Where(i => !i.Isdeleted
-                        && i.Status != "CANCELLED"
+                        && i.Status != InvoiceStatus.CANCELLED
                         && i.SalesOrder != null
                         && !i.SalesOrder.Isdeleted
                         && !ExcludedSalesStatuses.Contains(i.SalesOrder.Status))
             .Select(i => new
             {
+                Id = i.Id,
                 CustomerId = i.SalesOrder!.CustomerId,
                 GrandTotal = i.SubTotal + i.TaxAmount - i.DiscountAmount,
-                AmountPaid = i.CustomerPayments
-                    .Where(p => p.Status == "COMPLETED")
-                    .Sum(p => (decimal?)p.Amount) ?? 0m,
+                BaseGrandTotal = i.BaseGrandTotal,
                 Currency = i.SalesOrder.Currency,
                 SODate = i.SalesOrder.SODate,
                 DueDate = i.DueDate
             })
             .ToListAsync(cancellationToken);
 
+        // Completed payments, each reduced to its captured base amount (fallback: convert live).
+        var completedCustomerPayments = await _dbContext.CustomerPayments
+            .Where(p => !p.Isdeleted
+                        && p.Status == CustomerPaymentStatus.COMPLETED
+                        && p.InvoiceId != null)
+            .Select(p => new { p.InvoiceId, p.Amount, p.BaseAmount, p.Currency, p.PaymentDate })
+            .ToListAsync(cancellationToken);
+
+        var paidByInvoice = new Dictionary<Guid, decimal>();
+        foreach (var p in completedCustomerPayments)
+        {
+            var basePaid = p.BaseAmount ?? await _currencyService.ConvertToBaseAsync(p.Amount, p.Currency, p.PaymentDate, cancellationToken);
+            paidByInvoice[p.InvoiceId!.Value] = paidByInvoice.GetValueOrDefault(p.InvoiceId.Value) + basePaid;
+        }
+
         var customerDueByCustomer = new Dictionary<Guid, decimal>();
         var customerOverdueByCustomer = new Dictionary<Guid, decimal>();
 
         foreach (var inv in openInvoiceData)
         {
-            var outstanding = inv.GrandTotal - inv.AmountPaid;
+            var invBase = inv.BaseGrandTotal ?? await _currencyService.ConvertToBaseAsync(inv.GrandTotal, inv.Currency, inv.SODate, cancellationToken);
+            var outstanding = invBase - paidByInvoice.GetValueOrDefault(inv.Id);
             if (outstanding <= 0) continue;
 
-            var converted = await _currencyService.ConvertToBaseAsync(outstanding, inv.Currency, inv.SODate, cancellationToken);
-
             customerDueByCustomer.TryAdd(inv.CustomerId, 0);
-            customerDueByCustomer[inv.CustomerId] += converted;
+            customerDueByCustomer[inv.CustomerId] += outstanding;
 
             if (inv.DueDate.Date < today)
             {
                 customerOverdueByCustomer.TryAdd(inv.CustomerId, 0);
-                customerOverdueByCustomer[inv.CustomerId] += converted;
+                customerOverdueByCustomer[inv.CustomerId] += outstanding;
             }
         }
 
@@ -196,21 +216,21 @@ public class FinancialSummaryService : IFinancialSummaryService
         // All amounts converted to base currency individually for correct multi-currency handling.
         var activePOs = await _dbContext.PurchaseOrders
             .Where(x => !x.Isdeleted && !ExcludedPOStatuses.Contains(x.Status))
-            .Select(x => new { x.SupplierId, x.TotalAmount, x.Currency, x.PODate, x.ExpectedDeliveryDate, x.Status })
+            .Select(x => new { x.SupplierId, x.TotalAmount, x.BaseTotalAmount, x.Currency, x.PODate, x.ExpectedDeliveryDate, x.Status })
             .ToListAsync(cancellationToken);
 
         var allSupplierPaymentsData = await _dbContext.SupplierPayments
             .Where(x => !x.Isdeleted
-                        && x.Status == "COMPLETED"
+                        && x.Status == SupplierPaymentStatus.COMPLETED
                         && x.PaymentMethod != "REFUND"
                         && x.PaymentMethod != "CREDIT_NOTE" // already counted in allPurchaseReturns; including here would double-reduce the balance
                         && (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null))
-            .Select(x => new { x.SupplierId, x.Amount, x.Currency, x.PaymentDate })
+            .Select(x => new { x.SupplierId, x.Amount, x.BaseAmount, x.Currency, x.PaymentDate })
             .ToListAsync(cancellationToken);
 
         // PurchaseReturn carries no Currency; use the originating PO's currency.
         var allPurchaseReturns = await _dbContext.PurchaseReturns
-            .Where(x => !x.Isdeleted && x.SettlementStatus == "SETTLED" && x.PurchaseOrder != null)
+            .Where(x => !x.Isdeleted && x.SettlementStatus == PurchaseReturnSettlementStatus.SETTLED && x.PurchaseOrder != null)
             .Select(x => new { x.SupplierId, x.SettledAmount, Currency = x.PurchaseOrder!.Currency, x.SettledDate, PODate = x.PurchaseOrder.PODate })
             .ToListAsync(cancellationToken);
 
@@ -220,14 +240,14 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         foreach (var po in activePOs)
         {
-            var converted = await _currencyService.ConvertToBaseAsync(po.TotalAmount, po.Currency, po.PODate, cancellationToken);
+            var converted = po.BaseTotalAmount ?? await _currencyService.ConvertToBaseAsync(po.TotalAmount, po.Currency, po.PODate, cancellationToken);
             supplierPOBySupplier.TryAdd(po.SupplierId, 0);
             supplierPOBySupplier[po.SupplierId] += converted;
         }
 
         foreach (var payment in allSupplierPaymentsData)
         {
-            var converted = await _currencyService.ConvertToBaseAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+            var converted = payment.BaseAmount ?? await _currencyService.ConvertToBaseAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
             supplierPaymentBySupplier.TryAdd(payment.SupplierId, 0);
             supplierPaymentBySupplier[payment.SupplierId] += converted;
         }
@@ -259,7 +279,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         var overdueSupplierIds = activePOs
             .Where(po => po.ExpectedDeliveryDate != DateTime.MinValue
                          && po.ExpectedDeliveryDate.Date < today
-                         && (po.Status == "DELIVERED" || po.Status == "PARTIAL"))
+                         && (po.Status == PurchaseOrderStatus.DELIVERED || po.Status == PurchaseOrderStatus.PARTIAL))
             .Select(po => po.SupplierId)
             .ToHashSet();
 
@@ -275,7 +295,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         // CostPrice on StockLot = actual purchase cost stored in base currency at goods-receipt time.
         // Only AVAILABLE lots are sellable; DAMAGED and QUARANTINE are held for return and excluded.
         var inventoryValue = await _dbContext.StockLots
-            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE")
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == StockLotStatus.AVAILABLE)
             .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken);
 
         // Low-stock: quantity at or below the configured minimum threshold.
@@ -293,7 +313,7 @@ public class FinancialSummaryService : IFinancialSummaryService
 
         var lowStockValue = lowStockPartIds.Count > 0
             ? await _dbContext.StockLots
-                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == "AVAILABLE" && lowStockPartIds.Contains(l.PartId))
+                .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.Status == StockLotStatus.AVAILABLE && lowStockPartIds.Contains(l.PartId))
                 .SumAsync(l => l.QuantityAvailable * l.CostPrice, cancellationToken)
             : 0m;
 
@@ -534,6 +554,7 @@ public class FinancialSummaryService : IFinancialSummaryService
                 Phone = so.Customer.Phone,
                 so.TotalAmount,
                 so.TaxAmount,
+                so.BaseGrandTotal,
                 so.PaidAmount,
                 so.Currency,
                 so.SODate
@@ -545,7 +566,7 @@ public class FinancialSummaryService : IFinancialSummaryService
         foreach (var so in orders)
         {
             var grandTotal = so.TotalAmount + so.TaxAmount;
-            var revenue = await _currencyService.ConvertToBaseAsync(grandTotal, so.Currency, so.SODate, cancellationToken);
+            var revenue = so.BaseGrandTotal ?? await _currencyService.ConvertToBaseAsync(grandTotal, so.Currency, so.SODate, cancellationToken);
             var rawDue = grandTotal - so.PaidAmount;
             var outstanding = rawDue > 0
                 ? await _currencyService.ConvertToBaseAsync(rawDue, so.Currency, so.SODate, cancellationToken)

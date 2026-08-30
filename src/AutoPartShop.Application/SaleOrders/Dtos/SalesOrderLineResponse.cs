@@ -22,6 +22,8 @@
         public decimal UnitPrice { get; set; }
         public decimal Discount { get; set; }
         public decimal LineTotal { get; set; }
+        /// <summary>FK to the Discount rule that was auto-applied on this line (null = manual or no discount).</summary>
+        public Guid? DiscountRuleId { get; set; }
     }
 
 }

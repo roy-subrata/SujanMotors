@@ -7,302 +7,300 @@
 <p-confirmDialog></p-confirmDialog>
 <p-menu #actionMenu [model]="actionMenuItems" [popup]="true" appendTo="body"></p-menu>
 
-<app-generate-proforma-dialog [(visible)]="generateProformaDialogVisible" [salesOrder]="selectedOrderForProforma"
-  (created)="onProformaGenerated($event)">
-</app-generate-proforma-dialog>
+<app-generate-proforma-dialog [(visible)]="generateProformaDialogVisible" [salesOrder]="selectedOrderForProforma" (created)="onProformaGenerated($event)"> </app-generate-proforma-dialog>
 
 <app-page-container>
+    <!-- ==================== HEADER ==================== -->
+    <app-page-header [title]="'salesOrders.title' | translate" [subtitle]="'salesOrders.subtitle' | translate" [count]="totalRecords" [countLabel]="'salesOrders.countLabel' | translate" countIcon="pi pi-shopping-cart">
+        <ng-container actions>
+            <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
+                <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
+            </button>
+            <button class="btn-primary" (click)="createOrder()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'salesOrders.newOrder' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== HEADER ==================== -->
-  <app-page-header
-    title="Sales Orders"
-    subtitle="Manage and track all customer sales orders"
-    [count]="totalRecords" countLabel="orders" countIcon="pi pi-shopping-cart">
-    <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
-        <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
-      </button>
-      <button class="btn-primary" (click)="createOrder()">
-        <i class="pi pi-plus"></i>
-        <span>New Order</span>
-      </button>
-    </ng-container>
-  </app-page-header>
+    <!-- ==================== STATS ==================== -->
+    <app-stat-strip [stats]="stats"></app-stat-strip>
 
-  <!-- ==================== FILTERS ==================== -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input
-          type="text"
-          [(ngModel)]="searchTerm"
-          placeholder="Search by SO number, customer name..."
-          (keyup.enter)="onSearch()"
-          class="search-input" />
-        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-    </div>
+    <!-- ==================== FILTERS ==================== -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'salesOrders.searchPlaceholder' | translate" (keyup.enter)="onSearch()" class="search-input" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+        </div>
 
-    <div filters class="filter-group">
-      <!-- <label class="filter-label">Status</label> -->
-      <p-select
-        [options]="statusOptions"
-        [(ngModel)]="filterStatus"
-        placeholder="All Statuses"
-        [showClear]="true"
-        (onChange)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-dropdown">
-      </p-select>
-    </div>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'salesOrders.statusOptions.allStatuses' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
+        </div>
 
-    <div filters class="filter-group">
-      <!-- <label class="filter-label">Order Date</label> -->
-      <p-datepicker
-        [(ngModel)]="dateRange"
-        selectionMode="range"
-        placeholder="Select order date range"
-        dateFormat="dd M yy"
-        [showIcon]="true"
-        [showButtonBar]="true"
-        (onSelect)="onFilterChange()"
-        appendTo="body"
-        styleClass="filter-datepicker">
-      </p-datepicker>
-    </div>
+        <div filters class="filter-group">
+            <!-- <label class="filter-label">Order Date</label> -->
+            <p-datepicker
+                [(ngModel)]="dateRange"
+                selectionMode="range"
+                [placeholder]="'salesOrders.dateRangePlaceholder' | translate"
+                dateFormat="dd M yy"
+                [showIcon]="true"
+                [showButtonBar]="true"
+                (onSelect)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-datepicker"
+            >
+            </p-datepicker>
+        </div>
 
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()">
-        <i class="pi pi-search"></i>
-        Search
-      </button>
-      <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i>
-        Clear
-      </button>
-    </div>
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()">
+                <i class="pi pi-search"></i>
+                {{ 'common.actions.search' | translate }}
+            </button>
+            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
+                <i class="pi pi-filter-slash"></i>
+                {{ 'common.actions.clear' | translate }}
+            </button>
+        </div>
 
-    <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
-      <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
-        <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
-      </span>
-      <span *ngIf="filterStatus" class="filter-chip">
-        Status: {{ filterStatus }}
-        <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
-      </span>
-      <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
-        Date Range
-        <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
-      </span>
-    </div>
-  </app-filter-bar>
+        <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
+            <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}:</span>
+            <span *ngIf="searchTerm" class="filter-chip">
+                {{ 'common.listPage.searchChip' | translate }}: "{{ searchTerm }}"
+                <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
+            </span>
+            <span *ngIf="filterStatus" class="filter-chip">
+                {{ 'common.listPage.statusChip' | translate }}: {{ formatStatus(filterStatus) }}
+                <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
+            </span>
+            <span *ngIf="dateRange && dateRange.length > 0" class="filter-chip">
+                {{ 'common.listPage.dateRangeChip' | translate }}
+                <i class="pi pi-times" (click)="dateRange = []; onFilterChange()"></i>
+            </span>
+        </div>
+    </app-filter-bar>
 
-  <!-- ==================== DATA TABLE (Desktop) ==================== -->
-  <section class="table-section desktop-only">
-    <div class="table-container">
-      <p-table
-        [value]="salesOrders"
-        [lazy]="true"
-        [paginator]="false"
-        [rows]="pageSize"
-        [totalRecords]="totalRecords"
-        [loading]="loading"
-        (onLazyLoad)="onLazyLoad($event)"
-        [rowHover]="true"
-        [scrollable]="true"
-        scrollHeight="flex"
-        styleClass="app-table">
+    <!-- ==================== DATA TABLE (Desktop) ==================== -->
+    <section class="table-section desktop-only">
+        <div class="table-container">
+            <p-table
+                [value]="salesOrders"
+                [lazy]="true"
+                [paginator]="false"
+                [rows]="pageSize"
+                [totalRecords]="totalRecords"
+                [loading]="loading"
+                (onLazyLoad)="onLazyLoad($event)"
+                [rowHover]="true"
+                [scrollable]="true"
+                scrollHeight="flex"
+                styleClass="app-table"
+            >
+                <ng-template #header>
+                    <tr>
+                        <th class="col-so">{{ 'salesOrders.columns.soNumber' | translate }}</th>
+                        <th class="col-customer">{{ 'salesOrders.columns.customer' | translate }}</th>
+                        <th class="col-date">{{ 'salesOrders.columns.orderDate' | translate }}</th>
+                        <th class="col-date">{{ 'salesOrders.columns.deliveryDate' | translate }}</th>
+                        <th class="col-status">{{ 'salesOrders.columns.status' | translate }}</th>
+                        <th class="col-amount">{{ 'salesOrders.columns.grandTotal' | translate }}</th>
+                        <th class="col-amount">{{ 'salesOrders.columns.outstanding' | translate }}</th>
+                        <th class="col-actions">{{ 'salesOrders.columns.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
 
-        <ng-template #header>
-          <tr>
-            <th class="col-so">SO Number</th>
-            <th class="col-customer">Customer</th>
-            <th class="col-date">Order Date</th>
-            <th class="col-date">Delivery Date</th>
-            <th class="col-status">Status</th>
-            <th class="col-amount">Grand Total</th>
-            <th class="col-amount">Outstanding</th>
-            <th class="col-actions">Actions</th>
-          </tr>
-        </ng-template>
+                <ng-template #body let-order>
+                    <tr class="data-row" [class.row-overdue]="order.isOverdue" (dblclick)="viewOrder(order)">
+                        <td class="col-so">
+                            <div class="so-cell">
+                                <a class="so-link cell-mono" (click)="viewOrder(order)">{{ order.soNumber }}</a>
+                                <span *ngIf="order.isOverdue" class="overdue-badge">{{ 'salesOrders.overdue' | translate }}</span>
+                            </div>
+                        </td>
 
-        <ng-template #body let-order>
-          <tr class="data-row" [class.row-overdue]="order.isOverdue" (dblclick)="viewOrder(order)">
-            <td class="col-so">
-              <div class="so-cell">
-                <a class="so-link" (click)="viewOrder(order)">{{ order.soNumber }}</a>
-                <span *ngIf="order.isOverdue" class="overdue-badge">Overdue</span>
-              </div>
-            </td>
+                        <td class="col-customer">
+                            <div class="cell-media">
+                                <div class="customer-info">
+                                    <span class="customer-name">{{ order.customerName || ('salesOrders.walkInCustomer' | translate) }}</span>
+                                    <span *ngIf="order.customerPhone" class="customer-phone">{{ order.customerPhone }}</span>
+                                </div>
+                            </div>
+                        </td>
 
-            <td class="col-customer">
-              <div class="cell-media">
-                <div class="customer-info">
-                  <span class="customer-name">{{ order.customerName || 'Walk-in Customer' }}</span>
-                  <span *ngIf="order.customerPhone" class="customer-phone">{{ order.customerPhone }}</span>
+                        <td class="col-date">
+                            <span class="date-text">{{ formatDate(order.orderDate) }}</span>
+                        </td>
+
+                        <td class="col-date">
+                            <span class="date-text" [class.text-danger]="order.isOverdue">{{ formatDate(order.deliveryDate) }}</span>
+                        </td>
+
+                        <td class="col-status">
+                            <span class="status-pill" [attr.data-status]="order.status.toLowerCase()">
+                                {{ formatStatus(order.status) }}
+                            </span>
+                        </td>
+
+                        <td class="col-amount">
+                            <span class="amount-value">{{ formatCurrency(order.grandTotal) }}</span>
+                        </td>
+
+                        <td class="col-amount">
+                            <span class="amount-value" [class.text-danger]="order.outstandingAmount > 0">
+                                {{ formatCurrency(order.outstandingAmount) }}
+                            </span>
+                        </td>
+
+                        <td class="col-actions">
+                            <div class="action-cell">
+                                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, order)">
+                                    <i class="pi pi-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="pi pi-shopping-cart"></i></div>
+                                <h3>{{ 'salesOrders.emptyTitle' | translate }}</h3>
+                                <p *ngIf="hasActiveFilters()">{{ 'common.listPage.adjustFiltersHint' | translate }}</p>
+                                <p *ngIf="!hasActiveFilters()">{{ 'salesOrders.emptyHintCreate' | translate }}</p>
+                                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createOrder()">
+                                    <i class="pi pi-plus"></i>
+                                    {{ 'salesOrders.createFirst' | translate }}
+                                </button>
+                                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
+                                    <i class="pi pi-filter-slash"></i>
+                                    {{ 'common.actions.clearFilters' | translate }}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #loadingbody>
+                    <tr *ngFor="let _ of [1, 2, 3, 4, 5, 6, 7, 8]" class="skeleton-row">
+                        <td><div class="skeleton skeleton-text"></div></td>
+                        <td>
+                            <div class="skeleton-stack">
+                                <div class="skeleton skeleton-avatar"></div>
+                                <div class="skeleton skeleton-text"></div>
+                            </div>
+                        </td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-badge"></div></td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-text-sm"></div></td>
+                        <td><div class="skeleton skeleton-actions"></div></td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </section>
+
+    <!-- ==================== MOBILE CARDS ==================== -->
+    <section class="cards-section mobile-only">
+        <!-- Loading Skeleton -->
+        <div *ngIf="loading" class="cards-grid">
+            <div *ngFor="let _ of [1, 2, 3, 4]" class="order-card skeleton-card">
+                <div class="card-header">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-badge"></div>
                 </div>
-              </div>
-            </td>
-
-            <td class="col-date"><span class="date-text">{{ formatDate(order.orderDate) }}</span></td>
-
-            <td class="col-date">
-              <span class="date-text" [class.text-danger]="order.isOverdue">{{ formatDate(order.deliveryDate) }}</span>
-            </td>
-
-            <td class="col-status">
-              <span class="status-pill" [attr.data-status]="order.status.toLowerCase()">
-                {{ formatStatus(order.status) }}
-              </span>
-            </td>
-
-            <td class="col-amount"><span class="amount-value">{{ formatCurrency(order.grandTotal) }}</span></td>
-
-            <td class="col-amount">
-              <span class="amount-value" [class.text-danger]="order.outstandingAmount > 0">
-                {{ formatCurrency(order.outstandingAmount) }}
-              </span>
-            </td>
-
-            <td class="col-actions">
-              <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, order)">
-                  <i class="pi pi-ellipsis-v"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="8">
-              <div class="empty-state">
-                <div class="empty-icon"><i class="pi pi-shopping-cart"></i></div>
-                <h3>No Sales Orders Found</h3>
-                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
-                <p *ngIf="!hasActiveFilters()">Get started by creating your first sales order</p>
-                <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createOrder()">
-                  <i class="pi pi-plus"></i>
-                  Create Sales Order
-                </button>
-                <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
-                  <i class="pi pi-filter-slash"></i>
-                  Clear Filters
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #loadingbody>
-          <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
-            <td><div class="skeleton skeleton-text"></div></td>
-            <td>
-              <div class="skeleton-stack">
-                <div class="skeleton skeleton-avatar"></div>
-                <div class="skeleton skeleton-text"></div>
-              </div>
-            </td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-badge"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-text-sm"></div></td>
-            <td><div class="skeleton skeleton-actions"></div></td>
-          </tr>
-        </ng-template>
-
-      </p-table>
-    </div>
-  </section>
-
-  <!-- ==================== MOBILE CARDS ==================== -->
-  <section class="cards-section mobile-only">
-    <!-- Loading Skeleton -->
-    <div *ngIf="loading" class="cards-grid">
-      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
-        <div class="card-header">
-          <div class="skeleton skeleton-text"></div>
-          <div class="skeleton skeleton-badge"></div>
-        </div>
-        <div class="card-body">
-          <div class="skeleton skeleton-text-lg"></div>
-          <div class="skeleton skeleton-text-sm"></div>
-        </div>
-        <div class="card-footer">
-          <div class="skeleton skeleton-text-sm"></div>
-          <div class="skeleton skeleton-text-sm"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Empty State -->
-    <div *ngIf="!loading && salesOrders.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-shopping-cart"></i></div>
-      <h3>No Sales Orders</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first order' }}</p>
-      <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createOrder()">
-        <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ hasActiveFilters() ? 'Clear Filters' : 'New Order' }}
-      </button>
-    </div>
-
-    <!-- Order Cards -->
-    <div *ngIf="!loading && salesOrders.length > 0" class="cards-grid">
-      <div *ngFor="let order of salesOrders" class="order-card" [class.card-overdue]="order.isOverdue" (click)="viewOrder(order)">
-        <div class="card-header">
-          <span class="card-so-number">{{ order.soNumber }}</span>
-          <span class="status-pill" [attr.data-status]="order.status.toLowerCase()">
-            {{ formatStatus(order.status) }}
-          </span>
+                <div class="card-body">
+                    <div class="skeleton skeleton-text-lg"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+                <div class="card-footer">
+                    <div class="skeleton skeleton-text-sm"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+            </div>
         </div>
 
-        <div class="card-body">
-          <div class="card-customer">
-            <span class="customer-name">{{ order.customerName || 'Walk-in Customer' }}</span>
-          </div>
-          <div class="card-dates">
-            <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(order.orderDate) }}</span>
-            <span *ngIf="order.isOverdue" class="overdue-text">
-              <i class="pi pi-exclamation-circle"></i>
-              Overdue
-            </span>
-          </div>
+        <!-- Empty State -->
+        <div *ngIf="!loading && salesOrders.length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-shopping-cart"></i></div>
+            <h3>{{ 'salesOrders.emptyTitleMobile' | translate }}</h3>
+            <p>{{ (hasActiveFilters() ? 'common.labels.tryDifferentFilters' : 'salesOrders.emptyHintMobileCreate') | translate }}</p>
+            <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createOrder()">
+                <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
+                {{ (hasActiveFilters() ? 'common.actions.clearFilters' : 'salesOrders.newOrder') | translate }}
+            </button>
         </div>
 
-        <div class="card-footer">
-          <div class="card-amount">
-            <span class="amount-label">Total</span>
-            <span class="amount-value">{{ formatCurrency(order.grandTotal) }}</span>
-          </div>
-          <div class="card-amount">
-            <span class="amount-label">Outstanding</span>
-            <span class="amount-value" [class.text-danger]="order.outstandingAmount > 0">
-              {{ formatCurrency(order.outstandingAmount) }}
-            </span>
-          </div>
-          <button class="btn-card-action" (click)="showActionMenu($event, order); $event.stopPropagation()">
-            <i class="pi pi-ellipsis-h"></i>
-          </button>
+        <!-- Order Cards -->
+        <div *ngIf="!loading && salesOrders.length > 0" class="cards-grid">
+            <div *ngFor="let order of salesOrders" class="order-card" [class.card-overdue]="order.isOverdue" (click)="viewOrder(order)">
+                <div class="card-header">
+                    <span class="card-so-number cell-mono">{{ order.soNumber }}</span>
+                    <span class="status-pill" [attr.data-status]="order.status.toLowerCase()">
+                        {{ formatStatus(order.status) }}
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="card-customer">
+                        <span class="customer-name">{{ order.customerName || ('salesOrders.walkInCustomer' | translate) }}</span>
+                    </div>
+                    <div class="card-dates">
+                        <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(order.orderDate) }}</span>
+                        <span *ngIf="order.isOverdue" class="overdue-text">
+                            <i class="pi pi-exclamation-circle"></i>
+                            {{ 'salesOrders.overdue' | translate }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <div class="card-amount">
+                        <span class="amount-label">{{ 'salesOrders.cardTotal' | translate }}</span>
+                        <span class="amount-value">{{ formatCurrency(order.grandTotal) }}</span>
+                    </div>
+                    <div class="card-amount">
+                        <span class="amount-label">{{ 'salesOrders.cardOutstanding' | translate }}</span>
+                        <span class="amount-value" [class.text-danger]="order.outstandingAmount > 0">
+                            {{ formatCurrency(order.outstandingAmount) }}
+                        </span>
+                    </div>
+                    <button class="btn-card-action" (click)="showActionMenu($event, order); $event.stopPropagation()">
+                        <i class="pi pi-ellipsis-h"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
-  <app-data-pagination
-    [first]="first"
-    [pageSize]="pageSize"
-    [totalRecords]="totalRecords"
-    itemLabel="orders"
-    (pageChange)="onPageChange({ first: ($event - 1) * pageSize, rows: pageSize })"
-    (pageSizeChange)="onPageChange({ first: 0, rows: $event })">
-  </app-data-pagination>
-
+    <!-- ==================== PAGINATION (desktop + mobile) ==================== -->
+    <app-data-pagination
+        [first]="first"
+        [pageSize]="pageSize"
+        [totalRecords]="totalRecords"
+        [itemLabel]="'salesOrders.itemLabel' | translate"
+        (pageChange)="onPageChange({ first: ($event - 1) * pageSize, rows: pageSize })"
+        (pageSizeChange)="onPageChange({ first: 0, rows: $event })"
+    >
+    </app-data-pagination>
 </app-page-container>

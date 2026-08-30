@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CreditNoteDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -10,8 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using CreditNoteListQuery = AutoPartShop.Application.DTOs.CreditNoteDtos.CreditNoteListQuery;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -24,6 +22,7 @@ public class CreditNoteController : ControllerBase
     private readonly ISupplierPaymentRepository _supplierPaymentRepository;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly ILogger<CreditNoteController> _logger;
 
     public CreditNoteController(
@@ -33,6 +32,7 @@ public class CreditNoteController : ControllerBase
         ISupplierPaymentRepository supplierPaymentRepository,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
+        ICurrencyConversionService currencyConversionService,
         ILogger<CreditNoteController> logger)
     {
         _creditNoteRepository = creditNoteRepository;
@@ -41,6 +41,7 @@ public class CreditNoteController : ControllerBase
         _supplierPaymentRepository = supplierPaymentRepository;
         _dbContext = dbContext;
         _currentUserService = currentUserService;
+        _currencyConversionService = currencyConversionService;
         _logger = logger;
     }
 
@@ -161,48 +162,65 @@ public class CreditNoteController : ControllerBase
             if (request.AmountToApply <= 0)
                 return BadRequest(new { message = "Amount to apply must be greater than 0" });
 
-            var creditNote = await _creditNoteRepository.GetByIdAsync(request.CreditNoteId, cancellationToken);
-            if (creditNote is null) return NotFound(new { message = "Credit note not found" });
+            CreditNote? appliedCreditNote = null;
+            string poNumber = string.Empty;
 
-            if (!creditNote.IsAvailable())
-                return BadRequest(new { message = "This credit note is not available for use" });
-
-            var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId, cancellationToken);
-            if (purchaseOrder is null) return NotFound(new { message = "Purchase order not found" });
-
-            if (purchaseOrder.SupplierId != creditNote.SupplierId)
-                return BadRequest(new { message = "Credit note supplier does not match purchase order supplier" });
-
-            // Apply credit to PO
-            var remainingAvailable = creditNote.ApplyToPurchaseOrder(request.PurchaseOrderId, request.AmountToApply);
-            await _creditNoteRepository.UpdateAsync(creditNote, cancellationToken);
-
-            // Create SupplierPayment record to track the application
-            var defaultProvider = await _dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
-
-            if (defaultProvider != null)
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                var supplierPayment = SupplierPayment.CreateFromAdvance(
-                    supplierId: creditNote.SupplierId,
-                    purchaseOrderId: request.PurchaseOrderId,
-                    sourceAdvancePaymentId: creditNote.Id,  // Link to credit note
-                    paymentProviderId: defaultProvider.Id,
-                    amount: request.AmountToApply,
-                    description: $"Applied credit note {creditNote.CreditNoteNumber} to PO {purchaseOrder.PONumber}"
-                );
-                await _supplierPaymentRepository.AddAsync(supplierPayment, cancellationToken);
-            }
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    var creditNote = await _creditNoteRepository.GetByIdAsync(request.CreditNoteId, cancellationToken);
+                    if (creditNote is null)
+                        throw new ArgumentException("Credit note not found");
 
-            // Update PO outstanding amount
-            purchaseOrder.ApplyCredit(request.AmountToApply);
-            purchaseOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
-            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                    if (!creditNote.IsAvailable())
+                        throw new InvalidOperationException("This credit note is not available for use");
+
+                    if (request.AmountToApply > creditNote.AvailableAmount)
+                        throw new InvalidOperationException($"Insufficient credit available. Available: {creditNote.AvailableAmount}");
+
+                    var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId, cancellationToken);
+                    if (purchaseOrder is null)
+                        throw new ArgumentException("Purchase order not found");
+
+                    if (purchaseOrder.SupplierId != creditNote.SupplierId)
+                        throw new InvalidOperationException("Credit note supplier does not match purchase order supplier");
+
+                    // Apply credit to PO
+                    creditNote.ApplyToPurchaseOrder(request.PurchaseOrderId, request.AmountToApply);
+                    await _creditNoteRepository.UpdateAsync(creditNote, cancellationToken);
+
+                    // No SupplierPayment row is written here. The credit was already recognised
+                    // when the note was issued: PurchaseReturnController.IssueCreditNote creates a
+                    // COMPLETED SupplierPayment marked as an advance for the full credit amount,
+                    // which is what the supplier ledger and GetAvailableAdvanceCreditAsync read.
+                    // Booking a second payment on apply would credit the same money twice.
+
+                    // Update PO outstanding amount
+                    purchaseOrder.ApplyCredit(request.AmountToApply);
+                    purchaseOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                    await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+
+                    appliedCreditNote = creditNote;
+                    poNumber = purchaseOrder.PONumber;
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
 
             _logger.LogInformation(
-                "Credit note {CreditNoteNumber} applied to PO {PONumber}, amount: {Amount}, remaining: {Remaining}",
-                creditNote.CreditNoteNumber, purchaseOrder.PONumber, request.AmountToApply, remainingAvailable);
+                "Credit note {CreditNoteNumber} applied to PO {PONumber}, amount: {Amount}",
+                appliedCreditNote!.CreditNoteNumber, poNumber, request.AmountToApply);
 
-            return Ok(MapToResponse(creditNote));
+            return Ok(MapToResponse(appliedCreditNote));
         }
         catch (ArgumentException ex)
         {

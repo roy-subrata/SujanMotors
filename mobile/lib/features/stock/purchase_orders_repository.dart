@@ -5,6 +5,7 @@ import '../../core/network/app_exception.dart';
 import '../../core/network/dio_provider.dart';
 import '../../shared/models/json.dart';
 import '../../shared/models/paged_response.dart';
+import '../../shared/models/status_enums.dart';
 
 /// A purchase order header + lines, from the PurchaseOrder API.
 /// Statuses: DRAFT → SUBMITTED → CONFIRMED → PARTIAL → DELIVERED | CANCELLED.
@@ -27,14 +28,14 @@ class PurchaseOrder {
   final String supplierId;
   final String supplierName;
   final DateTime orderDate;
-  final String status;
+  final PurchaseOrderStatus status;
   final double grandTotal;
   final String? currency;
   final String? notes;
   final List<PurchaseOrderLine> lines;
 
-  bool get isReceived => status == 'DELIVERED';
-  bool get isCancelled => status == 'CANCELLED';
+  bool get isReceived => status == PurchaseOrderStatus.delivered;
+  bool get isCancelled => status == PurchaseOrderStatus.cancelled;
 
   /// True when the receive flow can (eventually) run for this PO.
   bool get isReceivable => !isReceived && !isCancelled;
@@ -46,7 +47,7 @@ class PurchaseOrder {
         supplierName: asString(json['supplierName']),
         orderDate: DateTime.tryParse(asString(json['orderDate']))?.toLocal() ??
             DateTime.now(),
-        status: asString(json['status']),
+        status: PurchaseOrderStatus.fromWire(asStringOrNull(json['status'])),
         grandTotal: asDouble(json['grandTotal']),
         currency: asStringOrNull(json['currency']),
         notes: asStringOrNull(json['notes']),
@@ -159,7 +160,7 @@ class PurchaseOrdersRepository {
   /// receive (the "Pending" chip); [status] filters by exact backend status.
   Future<PagedChunk<PurchaseOrder>> list({
     String? search,
-    String? status,
+    PurchaseOrderStatus? status,
     bool pendingOnly = false,
     int page = 1,
     int pageSize = 20,
@@ -169,7 +170,7 @@ class PurchaseOrdersRepository {
         'pageNumber': page,
         'pageSize': pageSize,
         'search': search ?? '',
-        'status': ?status,
+        'status': ?status?.wire,
         if (pendingOnly) 'hasReceivableQuantity': true,
       });
       return PagedChunk.fromPagedResult(

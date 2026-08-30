@@ -19,12 +19,12 @@
 
       <ng-template #header>
         <tr>
-          <th class="col-name">Name</th>
-          <th class="col-breadcrumb">Breadcrumb</th>
-          <th class="col-level">Level</th>
-          <th class="col-order">Order</th>
-          <th class="col-status">Status</th>
-          <th class="col-actions">Actions</th>
+          <th class="col-name">{{ 'common.labels.name' | translate }}</th>
+          <th class="col-breadcrumb">{{ 'categories.breadcrumb' | translate }}</th>
+          <th class="col-level">{{ 'common.labels.level' | translate }}</th>
+          <th class="col-order">{{ 'common.labels.order' | translate }}</th>
+          <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+          <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -69,7 +69,7 @@
           <!-- Actions -->
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="Actions" tooltipPosition="top"
+              <button class="btn-action" [pTooltip]="'common.labels.actions' | translate" tooltipPosition="top"
                       (click)="showContextMenu($event, category)">
                 <i class="pi pi-ellipsis-v"></i>
               </button>
@@ -84,8 +84,8 @@
           <td colspan="7">
             <div class="empty-state">
               <div class="empty-icon"><i class="pi pi-sitemap"></i></div>
-              <h3>No Categories Found</h3>
-              <p>Try adjusting your filters or create a new category</p>
+              <h3>{{ 'categories.noResultsTitle' | translate }}</h3>
+              <p>{{ 'categories.noResultsHint' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -138,8 +138,8 @@
 
   <div *ngIf="!loading && categories.length === 0" class="empty-state-mobile">
     <div class="empty-icon"><i class="pi pi-sitemap"></i></div>
-    <h3>No Categories</h3>
-    <p>Try different filters or create a new category</p>
+    <h3>{{ 'categories.noResultsTitle' | translate }}</h3>
+    <p>{{ 'categories.noResultsHint' | translate }}</p>
   </div>
 
   <div *ngIf="!loading && categories.length > 0" class="cards-grid">
@@ -167,7 +167,7 @@
             <i class="pi pi-layer-group"></i>&nbsp;{{ getLevelDisplay(category.depthLevel) }}
           </span>
           <span class="card-meta-item">
-            <i class="pi pi-sort-numeric-down"></i>&nbsp;Order {{ category.displayOrder }}
+            <i class="pi pi-sort-numeric-down"></i>&nbsp;{{ 'common.labels.order' | translate }} {{ category.displayOrder }}
           </span>
         </div>
       </div>

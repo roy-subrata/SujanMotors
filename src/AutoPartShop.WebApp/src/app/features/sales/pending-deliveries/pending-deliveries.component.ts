@@ -2,7 +2,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
+import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
@@ -15,11 +17,14 @@ import { ChallanService } from '../services/challan.service';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-pending-deliveries',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TooltipModule, ConfirmDialogModule, DialogModule, DividerModule, InputTextModule, TextareaModule, PageContainerComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, RouterModule, ButtonModule, ToastModule, TableModule, TooltipModule, ConfirmDialogModule, DialogModule, DividerModule, InputTextModule, TextareaModule, PageContainerComponent, PageHeaderComponent,
+        TranslatePipe],
   providers: [MessageService, ConfirmationService],
   templateUrl: './pending-deliveries.component.html',
   styleUrls: ['./pending-deliveries.component.css']
@@ -27,6 +32,7 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
 export class PendingDeliveriesComponent implements OnInit {
   private readonly soSvc      = inject(SalesOrderService);
   private readonly challanSvc = inject(ChallanService);
+  private readonly i18n = inject(I18nService);
   private readonly toast      = inject(MessageService);
   private readonly confirm    = inject(ConfirmationService);
   private readonly router     = inject(Router);
@@ -41,7 +47,7 @@ export class PendingDeliveriesComponent implements OnInit {
     this.loading.set(true);
     this.soSvc.getPendingDeliveries().subscribe({
       next: r => { this.orders.set(r.data); this.loading.set(false); },
-      error: () => { this.toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to load' }); this.loading.set(false); }
+      error: () => { this.toast.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('pendingDeliveries.messages.loadFailed') }); this.loading.set(false); }
     });
   }
 
@@ -51,14 +57,14 @@ export class PendingDeliveriesComponent implements OnInit {
 
   deliverDirect(order: SalesOrderResponse): void {
     this.confirm.confirm({
-      message: `Mark ${order.soNumber} as Delivered now? Invoice will be issued automatically.`,
-      header: 'Direct Delivery',
+      message: this.i18n.t('pendingDeliveries.messages.deliverConfirm', { number: order.soNumber }),
+      header: this.i18n.t('pendingDeliveries.messages.deliverHeader'),
       icon: 'pi pi-check-circle',
       acceptButtonStyleClass: 'p-button-success',
       accept: () => {
         this.soSvc.deliverDirect(order.id).subscribe({
-          next: () => { this.toast.add({ severity: 'success', summary: 'Delivered', detail: `${order.soNumber} marked as Delivered` }); this.load(); },
-          error: err => this.toast.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed' })
+          next: () => { this.toast.add({ severity: 'success', summary: this.i18n.t('pendingDeliveries.messages.deliveredTitle'), detail: this.i18n.t('pendingDeliveries.messages.deliveredDetail', { number: order.soNumber }) }); this.load(); },
+          error: err => this.toast.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.detail || this.i18n.t('pendingDeliveries.messages.failed') })
         });
       }
     });
@@ -88,16 +94,18 @@ export class PendingDeliveriesComponent implements OnInit {
     this.showChallanDialog = false;
     this.challanSvc.generate(this.selectedOrderForChallan.id, { ...this.challanForm }).subscribe({
       next: challan => {
-        this.toast.add({ severity: 'success', summary: 'Challan Created', detail: challan.challanNumber });
+        this.toast.add({ severity: 'success', summary: this.i18n.t('pendingDeliveries.messages.challanCreatedTitle'), detail: challan.challanNumber });
         window.open(`/sales/challans/${challan.id}/print`, '_blank');
         this.load();
       },
-      error: err => this.toast.add({ severity: 'error', summary: 'Error', detail: err?.error?.detail || 'Failed' })
+      error: err => this.toast.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.detail || this.i18n.t('pendingDeliveries.messages.failed') })
     });
   }
 
   statusLabel(s: string): string {
-    return s === 'READY_FOR_DELIVERY' ? 'Ready for Delivery' : 'Confirmed';
+    return this.i18n.t(s === 'READY_FOR_DELIVERY'
+      ? 'pendingDeliveries.statusReadyForDelivery'
+      : 'pendingDeliveries.statusConfirmed');
   }
 
   formatCurrency(v: number): string {

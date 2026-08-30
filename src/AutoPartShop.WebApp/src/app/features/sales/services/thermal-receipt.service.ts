@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { InvoicePdfData } from './invoice-pdf.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 /**
  * Prints a compact 80mm thermal receipt for a completed sale.
@@ -10,6 +11,13 @@ import { InvoicePdfData } from './invoice-pdf.service';
  */
 @Injectable({ providedIn: 'root' })
 export class ThermalReceiptService {
+  private readonly i18n = inject(I18nService);
+
+  /** Shorthand for the receipt's own label namespace. */
+  private t(key: string, params?: Record<string, string | number>): string {
+    return this.i18n.t(`thermalReceipt.${key}`, params);
+  }
+
   /**
    * @param data    the completed-sale invoice data
    * @param fmt     money formatter (pass the caller's formatCurrency for consistent symbol/locale)
@@ -45,17 +53,23 @@ export class ThermalReceiptService {
     const totalRow = (label: string, value: string, cls = '') =>
       `<div class="trow ${cls}"><span class="lbl">${label}</span><span class="val">${value}</span></div>`;
 
+    const methodLabel = (method: string) => {
+      const key = `paymentMethods.pos.${method}`;
+      const label = this.i18n.t(key);
+      return label === key ? method : label;
+    };
+
     const payments = (d.payments ?? [])
-      .map(p => totalRow(esc(p.method), fmt(p.amount), 'sub'))
+      .map(p => totalRow(esc(methodLabel(p.method)), fmt(p.amount), 'sub'))
       .join('');
 
     const change = d.paidAmount > d.grandTotal ? d.paidAmount - d.grandTotal : 0;
 
     const status = d.dueAmount > 0.001
-      ? `<div class="status due">BALANCE DUE ${fmt(d.dueAmount)}</div>`
-      : `<div class="status paid">PAID IN FULL</div>`;
+      ? `<div class="status due">${esc(this.t('statusDue'))} ${fmt(d.dueAmount)}</div>`
+      : `<div class="status paid">${esc(this.t('statusPaidInFull'))}</div>`;
 
-    return `<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${esc(d.invoiceNumber)}</title>
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(this.t('receiptTitle'))} ${esc(d.invoiceNumber)}</title>
 <style>
   @page { size: 80mm auto; margin: 0; }
   * { box-sizing: border-box; }
@@ -102,41 +116,41 @@ export class ThermalReceiptService {
 </style></head><body>
   <div class="center">
     ${hasLogo ? `<img class="logo" src="${esc(d.companyLogo)}" alt="">` : ''}
-    <div class="shop">${esc(d.companyName || 'Receipt')}</div>
+    <div class="shop">${esc(d.companyName || this.t('fallbackShopName'))}</div>
     ${d.companyAddress ? `<div class="muted">${esc(d.companyAddress)}</div>` : ''}
-    ${d.companyPhone ? `<div class="muted">Tel: ${esc(d.companyPhone)}</div>` : ''}
-    ${d.companyTaxId ? `<div class="muted">TIN: ${esc(d.companyTaxId)}</div>` : ''}
-    <div class="doc">Sales Receipt</div>
+    ${d.companyPhone ? `<div class="muted">${esc(this.t('tel'))} ${esc(d.companyPhone)}</div>` : ''}
+    ${d.companyTaxId ? `<div class="muted">${esc(this.t('tin'))} ${esc(d.companyTaxId)}</div>` : ''}
+    <div class="doc">${esc(this.t('docType'))}</div>
   </div>
   <hr class="rule">
   <div class="meta">
-    <div class="mrow"><span class="k">Invoice</span><span class="v">${esc(d.invoiceNumber)}</span></div>
-    <div class="mrow"><span class="k">Date</span><span class="v">${esc(date)} ${esc(time)}</span></div>
-    <div class="mrow"><span class="k">Customer</span><span class="v">${esc(d.customerName)}</span></div>
-    ${d.customerPhone ? `<div class="mrow"><span class="k">Phone</span><span class="v">${esc(d.customerPhone)}</span></div>` : ''}
-    ${d.createdBy ? `<div class="mrow"><span class="k">Served by</span><span class="v">${esc(d.createdBy)}</span></div>` : ''}
+    <div class="mrow"><span class="k">${esc(this.t('invoice'))}</span><span class="v">${esc(d.invoiceNumber)}</span></div>
+    <div class="mrow"><span class="k">${esc(this.t('date'))}</span><span class="v">${esc(date)} ${esc(time)}</span></div>
+    <div class="mrow"><span class="k">${esc(this.t('customer'))}</span><span class="v">${esc(d.customerName)}</span></div>
+    ${d.customerPhone ? `<div class="mrow"><span class="k">${esc(this.t('phone'))}</span><span class="v">${esc(d.customerPhone)}</span></div>` : ''}
+    ${d.createdBy ? `<div class="mrow"><span class="k">${esc(this.t('servedBy'))}</span><span class="v">${esc(d.createdBy)}</span></div>` : ''}
   </div>
   <hr class="rule">
-  <div class="ihead"><span>Item</span><span>Amount</span></div>
+  <div class="ihead"><span>${esc(this.t('item'))}</span><span>${esc(this.t('amount'))}</span></div>
   <hr class="rule thin">
   ${items}
   <hr class="rule">
   <div class="totals">
-    ${totalRow('Subtotal (' + totalQty + ' item' + (totalQty === 1 ? '' : 's') + ')', fmt(d.subtotal))}
-    ${d.discountAmount > 0 ? totalRow('Discount', '− ' + fmt(d.discountAmount)) : ''}
-    ${d.vatAmount > 0 ? totalRow('VAT (' + d.vatPercentage + '%)', fmt(d.vatAmount)) : ''}
-    ${totalRow('TOTAL', fmt(d.grandTotal), 'grand')}
+    ${totalRow(esc(this.t(totalQty === 1 ? 'subtotalOne' : 'subtotalMany', { count: totalQty })), fmt(d.subtotal))}
+    ${d.discountAmount > 0 ? totalRow(esc(this.t('discount')), '− ' + fmt(d.discountAmount)) : ''}
+    ${d.vatAmount > 0 ? totalRow(esc(this.t('vat', { percent: d.vatPercentage })), fmt(d.vatAmount)) : ''}
+    ${totalRow(esc(this.t('total')), fmt(d.grandTotal), 'grand')}
     ${payments}
-    ${totalRow('Paid', fmt(d.paidAmount))}
-    ${change > 0 ? totalRow('Change', fmt(change)) : ''}
-    ${d.dueAmount > 0 ? totalRow('Due', fmt(d.dueAmount)) : ''}
+    ${totalRow(esc(this.t('paid')), fmt(d.paidAmount))}
+    ${change > 0 ? totalRow(esc(this.t('change')), fmt(change)) : ''}
+    ${d.dueAmount > 0 ? totalRow(esc(this.t('due')), fmt(d.dueAmount)) : ''}
   </div>
   ${status}
   ${d.notes ? `<hr class="rule thin"><div class="notes">${esc(d.notes)}</div>` : ''}
   <div class="foot">
-    <div class="thanks">Thank You!</div>
-    <div class="terms">${esc(d.paymentTerms || 'Thank you for your business.')}</div>
-    <div class="sys">Powered by ${esc(d.companyName || 'Auto Part Shop')} POS</div>
+    <div class="thanks">${esc(this.t('thanks'))}</div>
+    <div class="terms">${esc(d.paymentTerms || this.t('defaultTerms'))}</div>
+    <div class="sys">${esc(this.t('poweredBy', { company: d.companyName || this.t('fallbackCompany') }))}</div>
   </div>
 </body></html>`;
   }

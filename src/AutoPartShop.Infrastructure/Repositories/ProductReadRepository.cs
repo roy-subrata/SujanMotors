@@ -1,13 +1,14 @@
 using AutoPartShop.Application.Parts;
 using AutoPartShop.Application.Parts.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Repositories;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.Data.SqlTypes;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Infrastructure.Repositories;
 
-public class ProductReadRepository(AutoPartDbContext _db) : IProductReadRepository
+public class ProductReadRepository(AutoPartDbContext _db, ICategoryRepository _categoryRepository) : IProductReadRepository
 {
     // Semantic search: rank products by cosine distance between their stored embedding and the
     // query vector, entirely server-side (SQL Server 2025 VECTOR_DISTANCE), then paginate.
@@ -37,7 +38,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 Name = x.Product.Name,
                 DisplayName = x.Product.Name,
                 Description = x.Product.Description,
-                RichDescription = x.Product.RichDescription,
                 PartNumber = x.Product.PartNumber != null ? x.Product.PartNumber.Value : "",
                 SKU = x.Product.SKU,
                 OemNumber = x.Product.OemNumber,
@@ -78,6 +78,11 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
+        // Same enrichment as FindAllAsync so search results carry the real inventory cost
+        // and vehicle-fit summary instead of the stale catalog columns.
+        await ApplyLotCostAsync(items, cancellationToken);
+        await ApplyVehicleFitAsync(items, cancellationToken);
+        await ApplyAttributeValuesAsync(items, cancellationToken);
         var stockMapSem = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
         foreach (var it in items) it.TotalStock = stockMapSem.TryGetValue(it.Id, out var ss) ? ss : 0;
         return (items, totalCount);
@@ -86,9 +91,11 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
     public async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllAsync(ProductQuery query, CancellationToken cancellationToken = default)
     {
         var term = query.Search.ToLower();
+        var categoryIds = await ResolveCategoryIdsAsync(query.CategoryId, cancellationToken);
+        var attributeGroups = await ResolveAttributeOptionGroupsAsync(query.AttributeOptionIds, cancellationToken);
 
         if (query.FlattenVariants)
-            return await FindAllFlattenedAsync(query, term, cancellationToken);
+            return await FindAllFlattenedAsync(query, term, categoryIds, attributeGroups, cancellationToken);
 
         var parts = _db.Parts
             .Include(p => p.Category)
@@ -97,10 +104,37 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted)
             .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") ||
-             EF.Functions.Like(x.SKU, $"%{term}%") ||
-             (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{term}%")));
+            .Where(x => categoryIds == null || categoryIds.Contains(x.CategoryId))
+            .Where(x => query.VehicleIds == null || !query.VehicleIds.Any()
+                || x.VehicleCompatibilities.Any(vc =>
+                    !vc.Isdeleted && vc.IsCompatible && query.VehicleIds.Contains(vc.VehicleId)));
+
+        // Each word must match SOMEWHERE (name/sku/attribute, etc.) — a different field per word is
+        // fine, so "battery white" finds a product named "Battery" with a White variant.
+        foreach (var raw in SplitTerms(term))
+        {
+            var t = EscapeLikeTerm(raw);
+            parts = parts.Where(x =>
+                EF.Functions.Like(x.Name, $"%{t}%") ||
+                EF.Functions.Like(x.SKU, $"%{t}%") ||
+                (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{t}%")) ||
+                (x.PartNumber != null && EF.Functions.Like(x.PartNumber.Value, $"%{t}%")) ||
+                (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{t}%")) ||
+                x.AttributeValues.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                   (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))) ||
+                x.Variants.Any(v => v.Attributes.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                   (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%")))));
+        }
+
+        // Faceted filter: a product must match ALL selected attributes (AND across groups), matching
+        // ANY of that attribute's selected options (OR within the group). A value at either the
+        // product level or on any of its variants counts — same "either level" rule as search above.
+        foreach (var (attributeId, optionIds) in attributeGroups)
+        {
+            parts = parts.Where(x =>
+                x.AttributeValues.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value)) ||
+                x.Variants.Any(v => v.Attributes.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value))));
+        }
 
         if (query.LowStockOnly)
         {
@@ -131,7 +165,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 Name = part.Name,
                 DisplayName = part.Name,
                 Description = part.Description,
-                RichDescription = part.RichDescription,
                 PartNumber = part.PartNumber != null ? part.PartNumber.Value : "",
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
@@ -172,6 +205,8 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
 
         await ApplyLotCostAsync(items, cancellationToken);
         await ApplyVehicleFitAsync(items, cancellationToken);
+        await ApplyAttributeValuesAsync(items, cancellationToken);
+        await ApplyMatchedAttributeHintAsync(items, term, cancellationToken);
         var stockMapAll = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
         foreach (var it in items) it.TotalStock = stockMapAll.TryGetValue(it.Id, out var sa) ? sa : 0;
         return (items, totalCount);
@@ -199,13 +234,6 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             return;
         }
 
-        static decimal WeightedAvg(IEnumerable<(int Qty, decimal Cost)> rows)
-        {
-            long qty = 0; decimal value = 0;
-            foreach (var r in rows) { qty += r.Qty; value += r.Qty * r.Cost; }
-            return qty > 0 ? value / qty : 0;
-        }
-
         var byPart = lots
             .GroupBy(l => l.PartId)
             .ToDictionary(g => g.Key, g => WeightedAvg(g.Select(x => (x.QuantityAvailable, x.CostPrice))));
@@ -224,30 +252,111 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
         }
     }
 
+    /// <inheritdoc />
+    public async Task<(decimal PartCost, IReadOnlyDictionary<Guid, decimal> VariantCosts)> GetWeightedLotCostsAsync(
+        Guid partId, CancellationToken cancellationToken = default)
+    {
+        var lots = await _db.StockLots
+            .Where(l => !l.Isdeleted && l.QuantityAvailable > 0 && l.PartId == partId)
+            .Select(l => new { l.VariantId, l.QuantityAvailable, l.CostPrice })
+            .ToListAsync(cancellationToken);
+
+        var variantCosts = lots
+            .Where(l => l.VariantId != null)
+            .GroupBy(l => l.VariantId!.Value)
+            .ToDictionary(g => g.Key, g => WeightedAvg(g.Select(x => (x.QuantityAvailable, x.CostPrice))));
+
+        return (WeightedAvg(lots.Select(x => (x.QuantityAvailable, x.CostPrice))), variantCosts);
+    }
+
+    private static decimal WeightedAvg(IEnumerable<(int Qty, decimal Cost)> rows)
+    {
+        long qty = 0; decimal value = 0;
+        foreach (var r in rows) { qty += r.Qty; value += r.Qty * r.Cost; }
+        return qty > 0 ? value / qty : 0;
+    }
+
+    /// <summary>
+    /// Category id(s) a CategoryId filter should match against: the category itself plus all of its
+    /// descendants, so filtering by a parent (e.g. "Wheels &amp; Tires") also returns products filed
+    /// under its children (e.g. "Tires"). Null means "no category filter" (matches everything).
+    /// </summary>
+    private async Task<HashSet<Guid>?> ResolveCategoryIdsAsync(Guid? categoryId, CancellationToken cancellationToken)
+    {
+        if (categoryId is null) return null;
+
+        var descendants = await _categoryRepository.GetAllDescendantsAsync(categoryId.Value, cancellationToken);
+        return new[] { categoryId.Value }.Concat(descendants.Select(c => c.Id)).ToHashSet();
+    }
+
+    /// <summary>
+    /// Groups selected attribute-option ids by their owning attribute, so callers can AND across
+    /// distinct attributes while ORing within each attribute's selected options.
+    /// </summary>
+    private async Task<List<(Guid AttributeId, List<Guid> OptionIds)>> ResolveAttributeOptionGroupsAsync(
+        IReadOnlyCollection<Guid>? optionIds, CancellationToken cancellationToken)
+    {
+        if (optionIds is null || optionIds.Count == 0) return [];
+
+        var rows = await _db.ProductAttributeOptions
+            .Where(o => optionIds.Contains(o.Id))
+            .Select(o => new { o.Id, o.AttributeId })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(o => o.AttributeId)
+            .Select(g => (g.Key, g.Select(x => x.Id).ToList()))
+            .ToList();
+    }
+
     // Flattened view for transactional documents (PO, SO, GRN, POS):
     //   - Products WITHOUT active variants → returned as-is (base product)
     //   - Products WITH active variants    → each variant returned as its own line item
     // Search matches on product name, product SKU, variant name, or variant SKU.
     private async Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllFlattenedAsync(
-        ProductQuery query, string term, CancellationToken cancellationToken)
+        ProductQuery query, string term, HashSet<Guid>? categoryIds,
+        List<(Guid AttributeId, List<Guid> OptionIds)> attributeGroups, CancellationToken cancellationToken)
     {
-        var baseItems = await _db.Parts
+        var baseQuery = _db.Parts
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Unit)
             .Include(p => p.BaseUnit)
             .Where(x => !x.Isdeleted)
             .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
-            .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted))
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"))
+            .Where(x => categoryIds == null || categoryIds.Contains(x.CategoryId))
+            .Where(x => query.VehicleIds == null || !query.VehicleIds.Any()
+                || x.VehicleCompatibilities.Any(vc =>
+                    !vc.Isdeleted && vc.IsCompatible && query.VehicleIds.Contains(vc.VehicleId)))
+            .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted));
+
+        // Each word must match SOMEWHERE (name/sku/attribute) — see FindAllAsync for the same pattern.
+        foreach (var raw in SplitTerms(term))
+        {
+            var t = EscapeLikeTerm(raw);
+            baseQuery = baseQuery.Where(x => EF.Functions.Like(x.Name, $"%{t}%") || EF.Functions.Like(x.SKU, $"%{t}%") ||
+                (x.LocalName != null && EF.Functions.Like(x.LocalName, $"%{t}%")) ||
+                (x.PartNumber != null && EF.Functions.Like(x.PartNumber.Value, $"%{t}%")) ||
+                (x.OemNumber != null && EF.Functions.Like(x.OemNumber, $"%{t}%")) ||
+                x.AttributeValues.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                    (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))));
+        }
+
+        // Faceted filter (product-level only — this branch only has products with no active
+        // variants, so there is no variant-level value to fall back to).
+        foreach (var (attributeId, optionIds) in attributeGroups)
+        {
+            baseQuery = baseQuery.Where(x =>
+                x.AttributeValues.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value)));
+        }
+
+        var baseItems = await baseQuery
             .Select(part => new ProductResponse
             {
                 Id = part.Id,
                 Name = part.Name,
                 DisplayName = part.Name,
                 Description = part.Description,
-                RichDescription = part.RichDescription,
                 PartNumber = part.PartNumber != null ? part.PartNumber.Value : "",
                 SKU = part.SKU,
                 OemNumber = part.OemNumber,
@@ -286,38 +395,53 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
             })
             .ToListAsync(cancellationToken);
 
-        // EF Core cannot translate this Include(v => v.Part)-then-filter-on-Part combination when
-        // the optional (query.IsActive/CategoryId == null || ...) filters and the multi-field
-        // search OR-chain are applied together — it throws "could not be translated" regardless of
-        // whether the predicate is one combined Where() or several chained ones (tried both). So:
-        // fetch with only the always-true-shape, safely-translatable filter (active/not-deleted),
-        // then apply the optional query filters and the search-term match in memory. The catalog
-        // size here doesn't warrant fighting the translator further — this method already
-        // concatenates + paginates baseItems/variantItems in memory below.
-        var candidateVariants = await _db.ProductVariants
-            .Include(v => v.Part).ThenInclude(p => p!.Category)
-            .Include(v => v.Part).ThenInclude(p => p!.Brand)
-            .Include(v => v.Part).ThenInclude(p => p!.Unit)
-            .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
+        // Variant branch — everything (search term, IsActive, CategoryId) is filtered in SQL and
+        // the projection is composed inline, so only matching rows are materialized. Navigations
+        // referenced by the projection become joins automatically; no Includes needed.
+        var variantQuery = _db.ProductVariants
             .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
-            .ToListAsync(cancellationToken);
-
-        var variantItems = candidateVariants
             .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
-            .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId)
-            .Where(v => v.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || (v.SKU != null && v.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || (v.PartNumber != null && v.PartNumber.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || (v.OemNumber != null && v.OemNumber.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || v.Part!.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || v.Part.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
+            .Where(v => categoryIds == null || categoryIds.Contains(v.Part!.CategoryId));
+
+        // NOTE: intentionally not matching on v.PartNumber here. Member access on the PartNumber
+        // value-converted type (v.PartNumber.Value) cannot be translated by EF Core once this
+        // query's Join between ProductVariant and Product is in scope — every shape tried (direct
+        // access, EF.Property, a correlated subquery) throws server-side. The equivalent access on
+        // the root Parts query below works fine, so this is scoped specifically to the variant/Join
+        // path. Until that's resolved upstream, variant part numbers are excluded from search;
+        // product name/SKU/OEM and the parent product's name/SKU still match.
+        // Each word must match SOMEWHERE — see FindAllAsync for the same pattern.
+        foreach (var raw in SplitTerms(term))
+        {
+            var t = EscapeLikeTerm(raw);
+            variantQuery = variantQuery.Where(v =>
+                EF.Functions.Like(v.Name, $"%{t}%") ||
+                (v.SKU != null && EF.Functions.Like(v.SKU, $"%{t}%")) ||
+                (v.OemNumber != null && EF.Functions.Like(v.OemNumber, $"%{t}%")) ||
+                EF.Functions.Like(v.Part!.Name, $"%{t}%") ||
+                EF.Functions.Like(v.Part.SKU, $"%{t}%") ||
+                v.Attributes.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                    (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))) ||
+                v.Part.AttributeValues.Any(av => EF.Functions.Like(av.ValueText, $"%{t}%") ||
+                    (av.Option != null && EF.Functions.Like(av.Option.Value, $"%{t}%"))));
+        }
+
+        // Faceted filter: a value on the variant itself OR its parent product counts — same
+        // "either level" rule as the search predicate above.
+        foreach (var (attributeId, optionIds) in attributeGroups)
+        {
+            variantQuery = variantQuery.Where(v =>
+                v.Attributes.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value)) ||
+                v.Part!.AttributeValues.Any(av => av.AttributeId == attributeId && av.OptionId != null && optionIds.Contains(av.OptionId.Value)));
+        }
+
+        var variantItems = await variantQuery
             .Select(v => new ProductResponse
             {
                 Id = v.PartId,
                 Name = v.Part!.Name,
                 DisplayName = v.Name.StartsWith(v.Part.Name) ? v.Name : v.Part.Name + " - " + v.Name,
                 Description = v.Part.Description,
-                RichDescription = v.Part.RichDescription,
                 PartNumber = v.PartNumber != null ? v.PartNumber.Value
                     : (v.Part.PartNumber != null ? v.Part.PartNumber.Value : ""),
                 SKU = v.Part.SKU,
@@ -360,11 +484,23 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
                 CreatedBy = v.Part.CreatedBy,
                 ModifiedBy = v.Part.ModifiedBy
             })
-            .ToList();
+            .ToListAsync(cancellationToken);
 
-        var allItems = baseItems.Concat(variantItems)
-            .OrderBy(x => x.Name).ThenBy(x => x.VariantName)
-            .ToList();
+        var allItems = baseItems.Concat(variantItems).ToList();
+
+        // Honor the caller's sort when one is supplied (same fields as the non-flattened path);
+        // default ordering keeps name/variant grouping for pickers that don't request a sort.
+        var sort = query.Sorts?.FirstOrDefault();
+        allItems = sort?.Field?.ToLowerInvariant() switch
+        {
+            "sellingprice" => sort.Direction == "desc"
+                ? allItems.OrderByDescending(x => x.EffectiveSellingPrice).ThenBy(x => x.VariantName).ToList()
+                : allItems.OrderBy(x => x.EffectiveSellingPrice).ThenBy(x => x.VariantName).ToList(),
+            "name" => sort.Direction == "desc"
+                ? allItems.OrderByDescending(x => x.Name).ThenByDescending(x => x.VariantName).ToList()
+                : allItems.OrderBy(x => x.Name).ThenBy(x => x.VariantName).ToList(),
+            _ => allItems.OrderBy(x => x.Name).ThenBy(x => x.VariantName).ToList()
+        };
 
         var totalCount = allItems.Count;
         var paged = allItems
@@ -374,221 +510,10 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
 
         await ApplyLotCostAsync(paged, cancellationToken);
         await ApplyVehicleFitAsync(paged, cancellationToken);
+        await ApplyAttributeValuesAsync(paged, cancellationToken);
+        await ApplyMatchedAttributeHintAsync(paged, term, cancellationToken);
         var stockMapFlat = await GetStockTotalsAsync(paged.Select(i => i.Id), cancellationToken);
         foreach (var it in paged) it.TotalStock = stockMapFlat.TryGetValue(it.Id, out var sf) ? sf : 0;
-        return (paged, totalCount);
-    }
-
-    public async Task<(IEnumerable<ProductPublicResponse> Parts, int TotalCount)> FindAllPublicAsync(ProductQuery query, CancellationToken cancellationToken = default)
-    {
-        var term = query.Search.ToLower();
-
-        if (query.FlattenVariants)
-            return await FindAllPublicFlattenedAsync(query, term, cancellationToken);
-
-        var parts = _db.Parts
-            .Include(p => p.Category)
-            .Include(p => p.Brand)
-            .Include(p => p.Unit)
-            .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted)
-            .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"));
-
-        if (query.Sorts != null && query.Sorts.Any())
-        {
-            var sorts = query.Sorts.Select(x => (x.Field, x.Direction == "asc" ? true : false)).ToArray();
-            parts = parts.OrderByMultiple(sorts);
-        }
-        else
-        {
-            parts = parts.OrderByDescending(x => x.CreatedDate);
-        }
-
-        var totalCount = await parts.CountAsync(cancellationToken);
-        var items = await parts
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .Select(part => new ProductPublicResponse
-            {
-                Id = part.Id,
-                Name = part.Name,
-                DisplayName = part.Name,
-                Description = part.Description,
-                RichDescription = part.RichDescription,
-                PartNumber = part.PartNumber != null ? part.PartNumber.Value : "",
-                SKU = part.SKU,
-                OemNumber = part.OemNumber,
-                LocalName = part.LocalName,
-                CategoryId = part.CategoryId,
-                CategoryName = part.Category != null ? part.Category.Name : string.Empty,
-                BrandId = part.BrandId,
-                BrandName = part.Brand != null ? part.Brand.Name : null,
-                BaseUnitId = part.BaseUnitId,
-                BaseUnitName = part.BaseUnit != null ? part.BaseUnit.Name : null,
-                BaseUnitCode = part.BaseUnit != null ? part.BaseUnit.Symbol : null,
-                UnitId = part.UnitId,
-                UnitName = part.Unit != null ? part.Unit.Name : null,
-                SellingPrice = part.SellingPrice,
-                EffectiveSellingPrice = part.SellingPrice,
-                HasVariants = part.Variants.Any(v => v.IsActive && !v.Isdeleted),
-                IsVariant = false,
-                MinimumStock = part.MinimumStock,
-                IsActive = part.IsActive,
-                HasWarranty = part.HasWarranty,
-                WarrantyPeriodMonths = part.WarrantyPeriodMonths,
-                WarrantyType = part.WarrantyType,
-                WarrantyTerms = part.WarrantyTerms,
-                WarrantyCertificateTemplate = part.WarrantyCertificateTemplate,
-                Barcode = part.Barcode,
-                Tags = part.Tags,
-                ProductType = part.ProductType,
-                IsPerishable = part.IsPerishable,
-                WeightKg = part.WeightKg,
-                TaxCode = part.TaxCode
-            })
-            .ToListAsync(cancellationToken);
-
-        await ApplyPublicVehicleFitAsync(items, cancellationToken);
-        var stockMapPub = await GetStockTotalsAsync(items.Select(i => i.Id), cancellationToken);
-        foreach (var it in items) it.TotalStock = stockMapPub.TryGetValue(it.Id, out var sp) ? sp : 0;
-        return (items, totalCount);
-    }
-
-    private async Task<(IEnumerable<ProductPublicResponse> Parts, int TotalCount)> FindAllPublicFlattenedAsync(
-        ProductQuery query, string term, CancellationToken cancellationToken)
-    {
-        var baseItems = await _db.Parts
-            .Include(p => p.Category)
-            .Include(p => p.Brand)
-            .Include(p => p.Unit)
-            .Include(p => p.BaseUnit)
-            .Where(x => !x.Isdeleted)
-            .Where(x => query.IsActive == null || x.IsActive == query.IsActive)
-            .Where(x => query.CategoryId == null || x.CategoryId == query.CategoryId)
-            .Where(x => !x.Variants.Any(v => v.IsActive && !v.Isdeleted))
-            .Where(x => EF.Functions.Like(x.Name, $"%{term}%") || EF.Functions.Like(x.SKU, $"%{term}%"))
-            .Select(part => new ProductPublicResponse
-            {
-                Id = part.Id,
-                Name = part.Name,
-                DisplayName = part.Name,
-                Description = part.Description,
-                RichDescription = part.RichDescription,
-                PartNumber = part.PartNumber != null ? part.PartNumber.Value : "",
-                SKU = part.SKU,
-                OemNumber = part.OemNumber,
-                LocalName = part.LocalName,
-                CategoryId = part.CategoryId,
-                CategoryName = part.Category != null ? part.Category.Name : string.Empty,
-                BrandId = part.BrandId,
-                BrandName = part.Brand != null ? part.Brand.Name : null,
-                BaseUnitId = part.BaseUnitId,
-                BaseUnitName = part.BaseUnit != null ? part.BaseUnit.Name : null,
-                BaseUnitCode = part.BaseUnit != null ? part.BaseUnit.Symbol : null,
-                UnitId = part.UnitId,
-                UnitName = part.Unit != null ? part.Unit.Name : null,
-                SellingPrice = part.SellingPrice,
-                EffectiveSellingPrice = part.SellingPrice,
-                HasVariants = false,
-                IsVariant = false,
-                MinimumStock = part.MinimumStock,
-                IsActive = part.IsActive,
-                HasWarranty = part.HasWarranty,
-                WarrantyPeriodMonths = part.WarrantyPeriodMonths,
-                WarrantyType = part.WarrantyType,
-                WarrantyTerms = part.WarrantyTerms,
-                WarrantyCertificateTemplate = part.WarrantyCertificateTemplate,
-                Barcode = part.Barcode,
-                Tags = part.Tags,
-                ProductType = part.ProductType,
-                IsPerishable = part.IsPerishable,
-                WeightKg = part.WeightKg,
-                TaxCode = part.TaxCode
-            })
-            .ToListAsync(cancellationToken);
-
-        // See the equivalent note in FindAllFlattenedAsync — EF Core cannot translate this
-        // Include(v => v.Part)-then-filter-on-Part combination (tried both a single combined
-        // Where() and chained ones), so fetch with only the safely-translatable filter and apply
-        // the optional query filters + search-term match in memory.
-        var candidateVariants = await _db.ProductVariants
-            .Include(v => v.Part).ThenInclude(p => p!.Category)
-            .Include(v => v.Part).ThenInclude(p => p!.Brand)
-            .Include(v => v.Part).ThenInclude(p => p!.Unit)
-            .Include(v => v.Part).ThenInclude(p => p!.BaseUnit)
-            .Where(v => v.IsActive && !v.Isdeleted && v.Part != null && !v.Part.Isdeleted)
-            .ToListAsync(cancellationToken);
-
-        var variantItems = candidateVariants
-            .Where(v => query.IsActive == null || v.Part!.IsActive == query.IsActive)
-            .Where(v => query.CategoryId == null || v.Part!.CategoryId == query.CategoryId)
-            .Where(v => v.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || (v.SKU != null && v.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || (v.PartNumber != null && v.PartNumber.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || (v.OemNumber != null && v.OemNumber.Contains(term, StringComparison.OrdinalIgnoreCase))
-                    || v.Part!.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                    || v.Part.SKU.Contains(term, StringComparison.OrdinalIgnoreCase))
-            .Select(v => new ProductPublicResponse
-            {
-                Id = v.PartId,
-                Name = v.Part!.Name,
-                DisplayName = v.Name.StartsWith(v.Part.Name) ? v.Name : v.Part.Name + " - " + v.Name,
-                Description = v.Part.Description,
-                RichDescription = v.Part.RichDescription,
-                PartNumber = v.PartNumber != null ? v.PartNumber.Value
-                    : (v.Part.PartNumber != null ? v.Part.PartNumber.Value : ""),
-                SKU = v.Part.SKU,
-                OemNumber = v.OemNumber ?? v.Part.OemNumber,
-                LocalName = v.Part.LocalName,
-                CategoryId = v.Part.CategoryId,
-                CategoryName = v.Part.Category != null ? v.Part.Category.Name : string.Empty,
-                BrandId = v.Part.BrandId,
-                BrandName = v.Part.Brand != null ? v.Part.Brand.Name : null,
-                BaseUnitId = v.Part.BaseUnitId,
-                BaseUnitName = v.Part.BaseUnit != null ? v.Part.BaseUnit.Name : null,
-                BaseUnitCode = v.Part.BaseUnit != null ? v.Part.BaseUnit.Symbol : null,
-                UnitId = v.Part.UnitId,
-                UnitName = v.Part.Unit != null ? v.Part.Unit.Name : null,
-                SellingPrice = v.Part.SellingPrice,
-                EffectiveSellingPrice = v.SellingPrice > 0 ? v.SellingPrice : v.Part.SellingPrice,
-                HasVariants = true,
-                IsVariant = true,
-                VariantId = v.Id,
-                VariantName = v.Name,
-                VariantCode = v.Code,
-                VariantSKU = v.SKU,
-                VariantBarcode = v.Barcode,
-                MinimumStock = v.Part.MinimumStock,
-                IsActive = v.Part.IsActive,
-                HasWarranty = v.HasWarrantyOverride ?? v.Part.HasWarranty,
-                WarrantyPeriodMonths = v.HasWarrantyOverride.HasValue ? v.WarrantyPeriodMonthsOverride : v.Part.WarrantyPeriodMonths,
-                WarrantyType = v.HasWarrantyOverride.HasValue ? v.WarrantyTypeOverride : v.Part.WarrantyType,
-                WarrantyTerms = v.Part.WarrantyTerms,
-                WarrantyCertificateTemplate = v.Part.WarrantyCertificateTemplate,
-                Barcode = v.Barcode ?? v.Part.Barcode,
-                Tags = v.Part.Tags,
-                ProductType = v.Part.ProductType,
-                IsPerishable = v.Part.IsPerishable,
-                WeightKg = v.WeightKg ?? v.Part.WeightKg,
-                TaxCode = v.Part.TaxCode
-            })
-            .ToList();
-
-        var allItems = baseItems.Concat(variantItems)
-            .OrderBy(x => x.Name).ThenBy(x => x.VariantName)
-            .ToList();
-
-        var totalCount = allItems.Count;
-        var paged = allItems
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .ToList();
-
-        await ApplyPublicVehicleFitAsync(paged, cancellationToken);
-        var stockMapPubFlat = await GetStockTotalsAsync(paged.Select(i => i.Id), cancellationToken);
-        foreach (var it in paged) it.TotalStock = stockMapPubFlat.TryGetValue(it.Id, out var spf) ? spf : 0;
         return (paged, totalCount);
     }
 
@@ -620,33 +545,137 @@ public class ProductReadRepository(AutoPartDbContext _db) : IProductReadReposito
         }
     }
 
-    private async Task ApplyPublicVehicleFitAsync(List<ProductPublicResponse> items, CancellationToken cancellationToken)
+    /// <summary>
+    /// Populates each item's <c>AttributeValues</c> with the product's product-scoped EAV attribute
+    /// values (e.g. Material). Batched by product id, same enrichment pattern as
+    /// <see cref="ApplyLotCostAsync"/>/<see cref="ApplyVehicleFitAsync"/>.
+    /// </summary>
+    private async Task ApplyAttributeValuesAsync(List<ProductResponse> items, CancellationToken cancellationToken)
     {
         if (items.Count == 0) return;
 
         var partIds = items.Select(i => i.Id).Distinct().ToList();
-        var compatibilities = await _db.PartVehicleCompatibilities
-            .Include(vc => vc.Vehicle)
-            .Where(vc => !vc.Isdeleted && vc.IsCompatible && partIds.Contains(vc.PartId) && vc.Vehicle != null)
-            .Select(vc => new { vc.PartId, Make = vc.Vehicle!.Make, Model = vc.Vehicle.Model, Year = vc.Vehicle.Year })
+        var values = await _db.ProductAttributeValues
+            .Where(v => !v.Isdeleted && partIds.Contains(v.ProductId))
+            .Include(v => v.Attribute)
+            .Include(v => v.Option)
+            .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var byPart = compatibilities
-            .GroupBy(c => c.PartId)
-            .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Make).ToList());
+        if (values.Count == 0) return;
+
+        var byPart = values.GroupBy(v => v.ProductId).ToDictionary(g => g.Key, g => g.ToList());
 
         foreach (var item in items)
         {
-            if (!byPart.TryGetValue(item.Id, out var vehicles) || vehicles.Count == 0)
-                continue;
-
-            var labels = vehicles.Take(2).Select(v => $"{v.Make} {v.Model} {v.Year}");
-            var summary = string.Join(", ", labels);
-            if (vehicles.Count > 2)
-                summary += $" +{vehicles.Count - 2}";
-            item.VehicleFit = summary;
+            if (!byPart.TryGetValue(item.Id, out var av)) continue;
+            item.AttributeValues = av.Select(a => new ProductAttributeValueSummary
+            {
+                AttributeId = a.AttributeId,
+                AttributeName = a.Attribute?.Name ?? string.Empty,
+                DataType = a.Attribute?.DataType,
+                OptionId = a.OptionId,
+                OptionValue = a.Option?.Value,
+                ValueText = a.ValueText,
+                ValueNumber = a.ValueNumber,
+                ValueBool = a.ValueBool
+            }).ToList();
         }
     }
+
+    /// <summary>
+    /// Populates <c>MatchedAttributeLabel</c>/<c>MatchedVariantCount</c> for rows whose search-term
+    /// match came from an attribute value rather than a visible field. Rows that already match on
+    /// Name/SKU/LocalName/PartNumber/OemNumber are left alone (the match is self-explanatory).
+    /// Checks the already-populated product-scope <c>AttributeValues</c> first, then falls back to a
+    /// single batched variant-level query, same enrichment pattern as <see cref="ApplyLotCostAsync"/>/
+    /// <see cref="ApplyVehicleFitAsync"/>. Must run after <see cref="ApplyAttributeValuesAsync"/>.
+    /// </summary>
+    private async Task ApplyMatchedAttributeHintAsync(List<ProductResponse> items, string term, CancellationToken cancellationToken)
+    {
+        if (items.Count == 0 || string.IsNullOrWhiteSpace(term)) return;
+
+        var words = SplitTerms(term);
+        if (words.Length == 0) return;
+
+        // Per item, only the words NOT already explained by a visible field (Name/SKU/etc.) need an
+        // attribute-driven hint — e.g. for "battery white" on a product named "Battery", "battery" is
+        // already obvious from the name, so only "white" needs explaining.
+        var missingByItem = new Dictionary<ProductResponse, List<string>>();
+        foreach (var item in items)
+        {
+            var missing = words.Where(w => !MatchesVisibleFields(item, w)).ToList();
+            if (missing.Count > 0) missingByItem[item] = missing;
+        }
+        if (missingByItem.Count == 0) return;
+
+        var stillUnmatched = new List<ProductResponse>();
+        foreach (var (item, missingWords) in missingByItem)
+        {
+            var hit = item.AttributeValues.FirstOrDefault(a =>
+                missingWords.Any(w => Contains(a.ValueText, w) || Contains(a.OptionValue, w)));
+
+            if (hit != null)
+                item.MatchedAttributeLabel = $"{hit.AttributeName}: {hit.OptionValue ?? hit.ValueText}";
+            else
+                stillUnmatched.Add(item);
+        }
+
+        if (stillUnmatched.Count == 0) return;
+
+        var partIds = stillUnmatched.Select(i => i.Id).Distinct().ToList();
+        var variantValues = await _db.VariantAttributeValues
+            .Where(av => !av.Isdeleted && av.Variant != null && !av.Variant.Isdeleted
+                && partIds.Contains(av.Variant.PartId))
+            .Include(av => av.Attribute)
+            .Include(av => av.Option)
+            .Include(av => av.Variant)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        if (variantValues.Count == 0) return;
+
+        var byPart = variantValues.GroupBy(av => av.Variant!.PartId).ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var item in stillUnmatched)
+        {
+            if (!byPart.TryGetValue(item.Id, out var candidates)) continue;
+            var missingWords = missingByItem[item];
+
+            var matches = candidates
+                .Where(av => missingWords.Any(w => Contains(av.ValueText, w) || (av.Option != null && Contains(av.Option.Value, w))))
+                .ToList();
+            if (matches.Count == 0) continue;
+
+            var first = matches[0];
+            item.MatchedAttributeLabel = $"{first.Attribute?.Name}: {first.Option?.Value ?? first.ValueText}";
+
+            var distinctVariantCount = matches.Select(m => m.VariantId).Distinct().Count();
+            if (distinctVariantCount > 1)
+                item.MatchedVariantCount = distinctVariantCount;
+        }
+    }
+
+    private static bool MatchesVisibleFields(ProductResponse item, string term) =>
+        Contains(item.Name, term) || Contains(item.SKU, term) || Contains(item.LocalName, term) ||
+        Contains(item.PartNumber, term) || Contains(item.OemNumber, term);
+
+    private static bool Contains(string? value, string term) =>
+        !string.IsNullOrEmpty(value) && value.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Splits a search box value into lowercased words — each word must match SOMEWHERE
+    /// (a possibly different field per word), rather than the whole phrase matching one field.</summary>
+    private static string[] SplitTerms(string term) =>
+        term.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(t => t.ToLowerInvariant())
+            .ToArray();
+
+    /// <summary>Escapes SQL Server LIKE wildcard metacharacters (%, _, [) so a search word containing
+    /// one of them (e.g. a SKU like "50%-OFF" or "A_1") is matched literally, not as a wildcard.
+    /// Bracket-style escaping needs no ESCAPE clause in T-SQL. Order matters: '[' must be escaped
+    /// first, or the brackets introduced while escaping '%'/'_' would themselves get re-escaped.</summary>
+    private static string EscapeLikeTerm(string term) =>
+        term.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]");
 
     private async Task<Dictionary<Guid, int>> GetStockTotalsAsync(
         IEnumerable<Guid> partIds, CancellationToken cancellationToken)

@@ -63,7 +63,7 @@ export interface User {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
-  private readonly apiUrl =`${environment.apiUrl}/v1/auth`; 
+  private readonly apiUrl =`${environment.apiUrl}/v1/auth`;
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
@@ -75,8 +75,6 @@ export class AuthService {
   public isAuthenticated = signal(false);
   public currentUser = signal<User | null>(null);
 
-  private readonly TOKEN_KEY = 'auth_token';
-  private readonly REFRESH_TOKEN_KEY = 'auth_refresh_token';
   private readonly USER_KEY = 'current_user';
 
   /**
@@ -87,12 +85,17 @@ export class AuthService {
   private refreshInFlight$: Observable<RefreshResult> | null = null;
 
   constructor() {
-    // Check for existing session on service initialization
+    // Restore user profile from previous session (UX data only — tokens live in
+    // httpOnly cookies, invisible to JavaScript).
     this.loadStoredAuth();
   }
 
   /**
-   * Login user with username and password
+   * Login user with username and password.
+   *
+   * The server sets httpOnly cookies (ap_access + ap_refresh) on success. The response
+   * body still carries token/refreshToken for mobile clients that use them directly;
+   * the web SPA ignores those values entirely.
    */
   login(request: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, request).pipe(
@@ -116,19 +119,16 @@ export class AuthService {
   /**
    * Logout current user.
    *
-   * Revokes the session server-side so the refresh token cannot be replayed, but does not
-   * wait for that call — the local session is cleared either way, so a network failure can
-   * never trap the user in a signed-in state.
+   * Sends an empty body — the httpOnly refresh cookie is the credential. The server
+   * revokes the session and expires both cookies. Local state is cleared regardless
+   * of network success so a failure can never trap the user in a signed-in state.
    */
   logout(): void {
-    const refreshToken = this.getRefreshToken();
-    if (refreshToken) {
-      this.http.post(`${this.apiUrl}/logout`, { refreshToken }).subscribe({
-        error: () => {
-          /* best-effort: the token still expires on its own */
-        }
-      });
-    }
+    // Fire-and-forget: the server reads the refresh cookie, revokes it, and expires
+    // both cookies. We do not wait for the response.
+    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
+      error: () => { /* best-effort: cookies expire on their own */ }
+    });
 
     this.clearSession();
     this.router.navigate(['/login']);
@@ -146,8 +146,8 @@ export class AuthService {
   }
 
   /**
-   * Exchanges the stored refresh token for a fresh access token, rotating the refresh
-   * token in the process. Emits the new access token, or null when the session is over.
+   * Exchanges the httpOnly refresh cookie for a fresh access token, rotating the refresh
+   * token in the process. No body is sent — the cookie carries the credential.
    *
    * Concurrent callers share one request — see {@link refreshInFlight$}. On failure the
    * session is cleared but no redirect happens here; the caller decides where to send
@@ -158,13 +158,8 @@ export class AuthService {
       return this.refreshInFlight$;
     }
 
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      return of<RefreshResult>({ status: 'expired' });
-    }
-
     this.refreshInFlight$ = this.http
-      .post<RefreshTokenResponse>(`${this.apiUrl}/refresh-token`, { refreshToken })
+      .post<RefreshTokenResponse>(`${this.apiUrl}/refresh-token`, {})
       .pipe(
         tap(response => this.applyRefresh(response)),
         map(response => ({ status: 'renewed', token: response.token }) as RefreshResult),
@@ -190,40 +185,35 @@ export class AuthService {
   }
 
   /**
-   * Get current JWT token
+   * Get current JWT token.
+   *
+   * Tokens live in httpOnly cookies and are never accessible to JavaScript.
+   * This always returns null. Interceptors use withCredentials instead.
    */
   getToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(this.TOKEN_KEY);
+    return null;
   }
 
   /**
-   * Get the current refresh token, if the session is renewable.
+   * Get the current refresh token.
+   *
+   * The refresh token lives in an httpOnly cookie and is never accessible to JavaScript.
+   * This always returns null.
    */
   getRefreshToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    return null;
   }
 
   /**
    * Check if user is authenticated.
    *
-   * An expired access token no longer means the session is over: if a refresh token is
-   * present the session is renewable, and the interceptor will rotate it on the next
-   * 401. Reporting "logged out" here would bounce the user to /login on every reload
-   * more than an hour after signing in.
+   * With cookie-based auth, we cannot read the access token to check expiry.
+   * Instead we rely on the user profile stored in localStorage as a UX hint.
+   * The real validation happens server-side: the first 401 triggers a silent
+   * cookie refresh; only if that fails does the interceptor redirect to /login.
    */
   isLoggedIn(): boolean {
-    const token = this.getToken();
-    if (!token) {
-      return false;
-    }
-
-    if (this.isTokenExpired(token)) {
-      return !!this.getRefreshToken();
-    }
-
-    return true;
+    return !!this.currentUser();
   }
 
   /**
@@ -300,10 +290,11 @@ export class AuthService {
 
   // Private helper methods
 
+  /**
+   * Stores user profile data locally. Tokens are never stored in localStorage —
+   * they live in httpOnly cookies set by the server on login/refresh.
+   */
   private setSession(authResult: LoginResponse): void {
-    this.setToken(authResult.token);
-    this.setRefreshToken(authResult.refreshToken);
-
     const user: User = {
       username: authResult.username,
       email: authResult.email,
@@ -317,15 +308,13 @@ export class AuthService {
   }
 
   /**
-   * Stores a rotation result. The refresh token MUST be replaced: the one just used is
-   * spent, and presenting it again would trip server-side reuse detection and kill the
-   * session. Roles and permissions are refreshed too, so a role change applied by an
-   * admin takes effect on the next rotation instead of requiring a re-login.
+   * Updates the locally cached roles/permissions after a token rotation.
+   * The server re-sends the current role/permission set on every refresh so
+   * admin changes take effect without requiring a re-login.
+   *
+   * Tokens are NOT stored locally — they are set as httpOnly cookies by the server.
    */
   private applyRefresh(response: RefreshTokenResponse): void {
-    this.setToken(response.token);
-    this.setRefreshToken(response.refreshToken);
-
     const current = this.currentUser();
     if (current) {
       const updated: User = {
@@ -338,18 +327,6 @@ export class AuthService {
     }
   }
 
-  private setToken(token: string): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.TOKEN_KEY, token);
-    }
-  }
-
-  private setRefreshToken(token: string): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
-    }
-  }
-
   private setUser(user: User): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
@@ -358,30 +335,25 @@ export class AuthService {
 
   private clearSession(): void {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.TOKEN_KEY);
-      localStorage.removeItem(this.REFRESH_TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
     }
     this.updateAuthState(false, null);
   }
 
   /**
-   * Restores the session on page load. An expired access token is fine as long as a
-   * refresh token survives — the first API call will rotate it. Only a missing token or
-   * an unrenewable expired one clears the session.
+   * Restores the session on page load from the user profile stored in localStorage.
+   * Tokens live in httpOnly cookies — they cannot be read by JavaScript.
+   *
+   * The real validation is lazy: the first 401 from any API call triggers a silent
+   * cookie-based refresh in the interceptor. If that fails, the session is cleared
+   * and the user is redirected to /login.
    */
   private loadStoredAuth(): void {
     if (typeof window === 'undefined') return;
 
-    const token = this.getToken();
     const userStr = localStorage.getItem(this.USER_KEY);
 
-    if (!token || !userStr) {
-      this.clearSession();
-      return;
-    }
-
-    if (this.isTokenExpired(token) && !this.getRefreshToken()) {
+    if (!userStr) {
       this.clearSession();
       return;
     }
@@ -400,29 +372,5 @@ export class AuthService {
     this.currentUser.set(user);
     this.isAuthenticatedSubject.next(isAuthenticated);
     this.currentUserSubject.next(user);
-  }
-
-  private isTokenExpired(token: string): boolean {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expiry = payload.exp;
-      const now = Math.floor(Date.now() / 1000);
-      return now >= expiry;
-    } catch (e) {
-      console.error('Failed to decode token:', e);
-      return true;
-    }
-  }
-
-  /**
-   * Decode JWT token to get user information
-   */
-  decodeToken(token: string): any {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (e) {
-      console.error('Failed to decode token:', e);
-      return null;
-    }
   }
 }

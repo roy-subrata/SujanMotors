@@ -11,7 +11,8 @@ namespace AutoPartShop.Infrastructure.Data;
 
 /// <summary>
 /// Seeds the database on application startup. Idempotent — safe to run on every boot.
-/// Creates: Admin role, admin user, and walk-in customer.
+/// Creates: Admin role, admin user, Manager/User roles (with their permission sets),
+/// the permission catalog, and walk-in customer.
 /// Admin is treated as superuser bypass (no permission rows needed).
 /// </summary>
 public class DatabaseSeeder
@@ -35,6 +36,10 @@ public class DatabaseSeeder
             // Create Admin role (required for admin user assignment)
             await SeedAdminRoleAsync(roleManager, logger);
 
+            // Create non-admin roles (Manager, User) with their permission sets.
+            // Requires the permission catalog, so it runs before creating users.
+            await SeedNonAdminRolesAsync(context, roleManager, logger);
+
             // Create admin user (the only user seeded)
             await SeedAdminUserAsync(userManager, logger, configuration, environment);
 
@@ -44,6 +49,7 @@ public class DatabaseSeeder
             // Default database-backup schedule settings (admin-editable from the UI)
             var settingsRepository = scope.ServiceProvider.GetRequiredService<IApplicationSettingsRepository>();
             await SeedBackupSettingsAsync(settingsRepository, logger);
+            await SeedShopProfileSettingsAsync(settingsRepository, logger);
 
             logger.LogInformation("Database seeding completed successfully");
         }
@@ -86,6 +92,179 @@ public class DatabaseSeeder
             logger.LogError("Failed to create Admin role: {Errors}",
                 string.Join(", ", result.Errors.Select(e => e.Description)));
         }
+    }
+
+    /// <summary>
+    /// The known permission names, kept in sync with <c>Permissions</c> in AutoPartShop.Api.
+    /// Seeded so role-permission management works out of the box on fresh installs.
+    /// </summary>
+    private static readonly (string Name, string DisplayName, string Category, string Description)[] PermissionCatalog =
+    [
+        // User Management
+        ("users.view", "View Users", "User Management", "View users list and details"),
+        ("users.create", "Create Users", "User Management", "Create new users"),
+        ("users.edit", "Edit Users", "User Management", "Edit users and activate/deactivate them"),
+        ("users.delete", "Delete Users", "User Management", "Delete users"),
+        ("users.assign-roles", "Assign Roles to Users", "User Management", "Assign roles to users"),
+
+        // Role Management
+        ("roles.view", "View Roles", "Role Management", "View roles and their permissions"),
+        ("roles.create", "Create Roles", "Role Management", "Create new roles"),
+        ("roles.edit", "Edit Roles", "Role Management", "Edit roles"),
+        ("roles.delete", "Delete Roles", "Role Management", "Delete roles"),
+        ("roles.assign-permissions", "Assign Role Permissions", "Role Management", "Assign permissions to roles"),
+
+        // Inventory
+        ("inventory.view", "View Inventory", "Inventory", "View parts, categories, brands and stock levels"),
+        ("inventory.create", "Create Inventory", "Inventory", "Create parts, categories and brands"),
+        ("inventory.edit", "Edit Inventory", "Inventory", "Edit parts, categories and brands"),
+        ("inventory.delete", "Delete Inventory", "Inventory", "Delete parts, categories and brands"),
+        ("inventory.adjust-stock", "Adjust Stock", "Inventory", "Perform stock adjustments and count corrections"),
+
+        // Sales
+        ("sales.view", "View Sales", "Sales", "View sales orders, invoices, customers and returns"),
+        ("sales.create", "Create Sales", "Sales", "Create sales orders and quick sales"),
+        ("sales.edit", "Edit Sales", "Sales", "Edit sales orders and process returns"),
+        ("sales.delete", "Delete Sales", "Sales", "Delete sales orders"),
+        ("sales.process-payment", "Process Sales Payments", "Sales", "Record and process customer payments"),
+        ("sales.require-till-session", "Require Till Session", "Sales", "Require an open till session to complete quick sales"),
+
+        // Procurement
+        ("procurement.view", "View Procurement", "Procurement", "View purchase orders, suppliers and supplier payments"),
+        ("procurement.create", "Create Procurement", "Procurement", "Create purchase orders and suppliers"),
+        ("procurement.edit", "Edit Procurement", "Procurement", "Edit purchase orders and suppliers"),
+        ("procurement.delete", "Delete Procurement", "Procurement", "Delete purchase orders and suppliers"),
+        ("procurement.approve", "Approve Procurement", "Procurement", "Approve purchase orders"),
+
+        // Reports
+        ("reports.view", "View Reports", "Reports", "View dashboard reports and analytics"),
+        ("reports.export", "Export Reports", "Reports", "Export reports to CSV/Excel"),
+
+        // Audit
+        ("audit.view", "View Audit Trail", "Audit", "View the audit trail log"),
+
+        // Backups
+        ("backups.manage", "Manage Backups", "Backups", "Configure, run and restore database backups")
+    ];
+
+    /// <summary>
+    /// Seeds the Manager and User roles (with default permission sets) if they don't exist.
+    /// Existing roles that already have permissions are left untouched so admin edits survive restarts.
+    /// </summary>
+    private static async Task SeedNonAdminRolesAsync(AutoPartDbContext context, RoleManager<ApplicationRole> roleManager, ILogger logger)
+    {
+        await SeedPermissionCatalogAsync(context, logger);
+
+        var roleDefinitions = new (string Name, string Description, string[] Permissions)[]
+        {
+            (
+                "Manager",
+                "Operational manager with full inventory, sales and procurement control (no user/role administration)",
+                [
+                    "inventory.view", "inventory.create", "inventory.edit", "inventory.adjust-stock",
+                    "sales.view", "sales.create", "sales.edit", "sales.process-payment",
+                    "procurement.view", "procurement.create", "procurement.edit", "procurement.approve",
+                    "reports.view", "reports.export",
+                    "audit.view"
+                ]
+            ),
+            (
+                "User",
+                "Cashier / salesperson with sales-only access (no inventory changes, no returns, no reports export)",
+                [
+                    "inventory.view",
+                    "sales.view", "sales.create", "sales.process-payment",
+                    "reports.view"
+                ]
+            )
+        };
+
+        foreach (var (name, description, permissions) in roleDefinitions)
+        {
+            await SeedRoleWithPermissionsAsync(context, roleManager, logger, name, description, permissions);
+        }
+    }
+
+    private static async Task SeedPermissionCatalogAsync(AutoPartDbContext context, ILogger logger)
+    {
+        var existingNames = await context.Permissions
+            .Where(p => !p.Isdeleted)
+            .Select(p => p.Name)
+            .ToHashSetAsync();
+
+        var added = 0;
+        foreach (var (name, displayName, category, description) in PermissionCatalog)
+        {
+            if (existingNames.Contains(name))
+                continue;
+
+            var permission = Permission.Create(name, displayName, category, description);
+            permission.CreatedDate = DateTime.UtcNow;
+            permission.ModifiedDate = DateTime.UtcNow;
+            permission.CreatedBy = "System";
+            permission.ModifiedBy = "System";
+            context.Permissions.Add(permission);
+            added++;
+        }
+
+        if (added > 0)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation("Seeded {Count} permissions", added);
+        }
+    }
+
+    private static async Task SeedRoleWithPermissionsAsync(
+        AutoPartDbContext context,
+        RoleManager<ApplicationRole> roleManager,
+        ILogger logger,
+        string roleName,
+        string description,
+        IEnumerable<string> permissionNames)
+    {
+        var role = await roleManager.FindByNameAsync(roleName);
+        if (role != null)
+        {
+            // Respect admin edits: only seed permissions for a role that has none yet.
+            var hasPermissions = await context.RolePermissions.AnyAsync(rp => rp.RoleId == role.Id);
+            if (hasPermissions)
+            {
+                logger.LogInformation("{Role} role already exists with permissions, skipping", roleName);
+                return;
+            }
+        }
+        else
+        {
+            role = new ApplicationRole
+            {
+                Name = roleName,
+                Description = description,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "System"
+            };
+
+            var createResult = await roleManager.CreateAsync(role);
+            if (!createResult.Succeeded)
+            {
+                logger.LogError("Failed to create {Role} role: {Errors}",
+                    roleName, string.Join(", ", createResult.Errors.Select(e => e.Description)));
+                return;
+            }
+        }
+
+        var permissionIds = await context.Permissions
+            .Where(p => permissionNames.Contains(p.Name) && p.IsActive && !p.Isdeleted)
+            .Select(p => p.Id)
+            .ToListAsync();
+
+        foreach (var permissionId in permissionIds)
+        {
+            context.RolePermissions.Add(RolePermission.Create(role.Id, permissionId, "System"));
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("{Role} role seeded with {Count} permissions", roleName, permissionIds.Count);
     }
 
     /// <summary>
@@ -188,6 +367,42 @@ public class DatabaseSeeder
         await customerRepository.AddAsync(walkInCustomer);
 
         logger.LogInformation("Walk-in customer seeded successfully");
+    }
+
+    /// <summary>
+    /// Seeds the BUSINESS and BRANDING setting rows the company profile and every printed document
+    /// read from. Values are intentionally blank — this seeds the shape, not the shop's details,
+    /// which an admin fills in from Company Profile.
+    ///
+    /// Without the rows the categories did not exist at all: /ApplicationSettings/categories
+    /// listed only BACKUP and CURRENCY, and /public/shop returned empty strings for every field,
+    /// so invoices and challans rendered blank headers with nothing in the UI to explain why.
+    /// </summary>
+    private static async Task SeedShopProfileSettingsAsync(IApplicationSettingsRepository settingsRepository, ILogger logger)
+    {
+        var defaults = new (string Key, string Value, string DataType, string Category, string Description)[]
+        {
+            ("SHOP_NAME", "", "STRING", "BUSINESS", "Trading name shown on invoices, challans and the storefront"),
+            ("SHOP_ADDRESS", "", "STRING", "BUSINESS", "Street address printed in document headers"),
+            ("SHOP_PHONE", "", "STRING", "BUSINESS", "Contact phone printed in document headers"),
+            ("SHOP_EMAIL", "", "STRING", "BUSINESS", "Contact email printed in document headers"),
+            ("SHOP_TAX_NUMBER", "", "STRING", "BUSINESS", "VAT/BIN registration number printed on tax documents"),
+            ("SHOP_TAGLINE", "", "STRING", "BUSINESS", "Optional strapline under the shop name"),
+            ("INVOICE_FOOTER_TEXT", "", "STRING", "BUSINESS", "Free text printed at the foot of every invoice"),
+            ("CHALLAN_FOOTER_TEXT", "", "STRING", "BUSINESS", "Free text printed at the foot of every challan"),
+            ("SHOP_LOGO_URL", "", "STRING", "BRANDING", "Logo used on printed documents"),
+            ("APP_NAME", "", "STRING", "BRANDING", "Application name shown in the web app shell"),
+            ("APP_LOGO_URL", "", "STRING", "BRANDING", "Logo shown in the web app shell")
+        };
+
+        foreach (var (key, value, dataType, category, description) in defaults)
+        {
+            if (await settingsRepository.ExistsByKeyAsync(key))
+                continue;
+
+            await settingsRepository.SetValueAsync(key, value, dataType, category, description, isSystemSetting: false);
+            logger.LogInformation("Seeded shop profile setting {Key}", key);
+        }
     }
 
     /// <summary>

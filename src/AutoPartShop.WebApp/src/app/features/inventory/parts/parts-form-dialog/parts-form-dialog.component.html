@@ -1,20 +1,20 @@
 <!-- Create Dialog -->
 <p-dialog [(visible)]="displayCreateDialog" (visibleChange)="displayCreateDialogChange.emit($event)"
-  [header]="'Create New Part'" [modal]="true" [style]="{width: '100%', maxWidth: '600px'}" [draggable]="true"
+  [header]="'parts.formDialog.createTitle' | translate" [modal]="true" [style]="{width: '100%', maxWidth: '600px'}" [draggable]="true"
   [resizable]="false" (onShow)="onCreateDialogShow()" (onHide)="onCreateDialogHide()">
 
   <form [formGroup]="createForm" class="form-container">
     <!-- Name Field -->
     <div class="form-group">
       <label for="create-name" class="form-label">
-        <span class="required">*</span> Part Name
+        <span class="required">*</span> {{ 'parts.formDialog.partNameLabel' | translate }}
       </label>
       <input
         id="create-name"
         pInputText
         type="text"
         formControlName="name"
-        placeholder="Enter part name"
+        [placeholder]="'parts.formDialog.partNamePlaceholder' | translate"
         [class.error]="hasError(createForm, 'name')"
         [class.success]="isFieldValid(createForm, 'name')"
         class="form-input" />
@@ -26,50 +26,50 @@
     <!-- Part Number Field -->
     <div class="form-group">
       <label for="create-part-number" class="form-label">
-        Part Number
+        {{ 'parts.partNumber' | translate }}
       </label>
       <input
         id="create-part-number"
         pInputText
         type="text"
         formControlName="partNumber"
-        placeholder="e.g. BP-1234, D2345"
+        [placeholder]="'parts.partForm.partNumberFieldPlaceholder' | translate"
         [class.error]="hasError(createForm, 'partNumber')"
         [class.success]="isFieldValid(createForm, 'partNumber')"
         class="form-input" />
       <small class="error-message" *ngIf="hasError(createForm, 'partNumber')">
         {{ getErrorMessage(createForm, 'partNumber') }}
       </small>
-      <small class="hint-message">Optional &mdash; manufacturer's catalog code. Leave blank if the brand doesn't provide one</small>
+      <small class="hint-message">{{ 'parts.formDialog.partNumberHint' | translate }}</small>
     </div>
 
     <!-- OEM Number Field -->
     <div class="form-group">
-      <label for="create-oem-number" class="form-label">OEM Cross-Ref</label>
+      <label for="create-oem-number" class="form-label">{{ 'parts.formDialog.oemCrossRefLabel' | translate }}</label>
       <input
         id="create-oem-number"
         pInputText
         type="text"
         formControlName="oemNumber"
-        placeholder="Manufacturer OEM part number (optional)"
+        [placeholder]="'parts.formDialog.oemNumberPlaceholder' | translate"
         [class.error]="hasError(createForm, 'oemNumber')"
         class="form-input" />
-      <small class="hint-message">Optional — leave blank if not applicable</small>
+      <small class="hint-message">{{ 'parts.formDialog.optionalHint' | translate }}</small>
     </div>
 
     <!-- Category Field -->
     <div class="form-group">
       <label for="create-category" class="form-label">
-        <span class="required">*</span> Category
+        <span class="required">*</span> {{ 'common.labels.category' | translate }}
       </label>
       <p-autocomplete
         id="create-category"
         [suggestions]="filteredCategories"
         [ngModel]="selectedCreateCategory"
         (ngModelChange)="selectedCreateCategory = $event"
-        placeholder="Search by category name or code..."
+        [placeholder]="'parts.formDialog.searchCategoryPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No categories found"
+        [emptyMessage]="'parts.formDialog.noCategoriesFound' | translate"
         (onClear)="onCategoryCleared()"
         (onSelect)="onCategorySelect($event.value)"
         [dropdown]="true"
@@ -90,17 +90,17 @@
     <!-- Base Unit Field -->
     <div class="form-group">
       <label for="create-base-unit" class="form-label">
-        <span class="required">*</span> Base Unit
+        <span class="required">*</span> {{ 'parts.formDialog.baseUnitLabel' | translate }}
       </label>
-      <small class="hint-message">Unit for stock tracking (e.g., Pieces)</small>
+      <small class="hint-message">{{ 'parts.formDialog.baseUnitHint' | translate }}</small>
       <p-autocomplete
         id="create-base-unit"
         [suggestions]="filteredBaseUnits"
         [ngModel]="selectedCreateBaseUnit"
         (ngModelChange)="selectedCreateBaseUnit = $event"
-        placeholder="Search base unit..."
+        [placeholder]="'parts.formDialog.searchBaseUnitPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No units found"
+        [emptyMessage]="'parts.formDialog.noUnitsFound' | translate"
         (onClear)="onBaseUnitCleared()"
         (onSelect)="onBaseUnitSelect($event.value)"
         [dropdown]="true"
@@ -119,16 +119,16 @@
 
     <!-- Unit Field -->
     <div class="form-group">
-      <label for="create-unit" class="form-label">Display/Sales Unit</label>
-      <small class="hint-message">Unit for sales (defaults to Base Unit)</small>
+      <label for="create-unit" class="form-label">{{ 'parts.formDialog.displaySalesUnitLabel' | translate }}</label>
+      <small class="hint-message">{{ 'parts.formDialog.displayUnitHint' | translate }}</small>
       <p-autocomplete
         id="create-unit"
         [suggestions]="filteredUnits"
         [ngModel]="selectedCreateUnit"
         (ngModelChange)="selectedCreateUnit = $event"
-        placeholder="Search by unit name or code..."
+        [placeholder]="'parts.formDialog.searchUnitPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No units found"
+        [emptyMessage]="'parts.formDialog.noUnitsFound' | translate"
         (onClear)="onUnitCleared()"
         (onSelect)="onUnitSelect($event.value)"
         [dropdown]="true"
@@ -147,15 +147,15 @@
 
     <!-- Brand Field -->
     <div class="form-group">
-      <label for="create-brand" class="form-label">Brand</label>
+      <label for="create-brand" class="form-label">{{ 'parts.brand' | translate }}</label>
       <p-autocomplete
         id="create-brand"
         [suggestions]="filteredBrands"
         [ngModel]="selectedCreateBrand"
         (ngModelChange)="selectedCreateBrand = $event"
-        placeholder="Search by brand name or code..."
+        [placeholder]="'parts.formDialog.searchBrandPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No brands found"
+        [emptyMessage]="'parts.formDialog.noBrandsFound' | translate"
         (onClear)="onBrandCleared()"
         (onSelect)="onBrandSelect($event.value)"
         [dropdown]="true"
@@ -173,7 +173,7 @@
     <!-- Cost Price Field -->
     <div class="form-group">
       <label for="create-cost-price" class="form-label">
-        <span class="required">*</span> Cost Price
+        <span class="required">*</span> {{ 'parts.costPrice' | translate }}
       </label>
       <p-inputNumber
         inputId="create-cost-price"
@@ -195,7 +195,7 @@
     <!-- Selling Price Field -->
     <div class="form-group">
       <label for="create-selling-price" class="form-label">
-        <span class="required">*</span> Selling Price
+        <span class="required">*</span> {{ 'parts.sellingPrice' | translate }}
       </label>
       <p-inputNumber
         inputId="create-selling-price"
@@ -217,7 +217,7 @@
     <!-- Minimum Stock Field -->
     <div class="form-group">
       <label for="create-min-stock" class="form-label">
-        <span class="required">*</span> Minimum Stock
+        <span class="required">*</span> {{ 'parts.formDialog.minimumStockLabel' | translate }}
       </label>
       <p-inputNumber
         inputId="create-min-stock"
@@ -232,20 +232,20 @@
       <small class="error-message" *ngIf="hasError(createForm, 'minimumStock')">
         {{ getErrorMessage(createForm, 'minimumStock') }}
       </small>
-      <small class="hint-message">Reorder level for inventory alerts</small>
+      <small class="hint-message">{{ 'parts.formDialog.minimumStockHint' | translate }}</small>
     </div>
 
     <!-- Warranty Fields -->
     <div class="form-group">
-      <label for="create-has-warranty" class="form-label">Warranty Available</label>
+      <label for="create-has-warranty" class="form-label">{{ 'parts.formDialog.warrantyAvailableLabel' | translate }}</label>
       <div class="status-toggle">
         <input id="create-has-warranty" type="checkbox" formControlName="hasWarranty" class="status-checkbox" />
         <label for="create-has-warranty" class="status-label">
           <span *ngIf="createForm.get('hasWarranty')?.value" class="status-active">
-            <i class="pi pi-shield"></i> Yes
+            <i class="pi pi-shield"></i> {{ 'common.labels.yes' | translate }}
           </span>
           <span *ngIf="!createForm.get('hasWarranty')?.value" class="status-inactive">
-            <i class="pi pi-ban"></i> No
+            <i class="pi pi-ban"></i> {{ 'common.labels.no' | translate }}
           </span>
         </label>
       </div>
@@ -254,7 +254,7 @@
     <ng-container *ngIf="createForm.get('hasWarranty')?.value">
       <div class="form-group">
         <label for="create-warranty-period" class="form-label">
-          <span class="required">*</span> Warranty Period (Months)
+          <span class="required">*</span> {{ 'parts.formDialog.warrantyPeriodMonthsLabel' | translate }}
         </label>
         <p-inputNumber
           inputId="create-warranty-period"
@@ -273,10 +273,10 @@
 
       <div class="form-group">
         <label for="create-warranty-type" class="form-label">
-          <span class="required">*</span> Warranty Type
+          <span class="required">*</span> {{ 'parts.formDialog.warrantyTypeLabel' | translate }}
         </label>
         <select id="create-warranty-type" class="form-input" formControlName="warrantyType">
-          <option [ngValue]="null">Select warranty type</option>
+          <option [ngValue]="null">{{ 'parts.formDialog.selectWarrantyTypePlaceholder' | translate }}</option>
           <option *ngFor="let type of warrantyTypes" [value]="type.value">{{ type.label }}</option>
         </select>
         <small class="error-message" *ngIf="hasError(createForm, 'warrantyType')">
@@ -285,23 +285,23 @@
       </div>
 
       <div class="form-group">
-        <label for="create-warranty-certificate-template" class="form-label">Certificate Template Prefix</label>
+        <label for="create-warranty-certificate-template" class="form-label">{{ 'parts.formDialog.certificateTemplatePrefixLabel' | translate }}</label>
         <input
           id="create-warranty-certificate-template"
           pInputText
           type="text"
           formControlName="warrantyCertificateTemplate"
-          placeholder="Example: CERT"
+          [placeholder]="'parts.partForm.certificateTemplatePlaceholder' | translate"
           class="form-input" />
       </div>
 
       <div class="form-group">
-        <label for="create-warranty-terms" class="form-label">Warranty Terms</label>
+        <label for="create-warranty-terms" class="form-label">{{ 'parts.formDialog.warrantyTermsLabel' | translate }}</label>
         <textarea
           id="create-warranty-terms"
           pInputTextarea
           formControlName="warrantyTerms"
-          placeholder="Enter warranty terms"
+          [placeholder]="'parts.formDialog.warrantyTermsPlaceholder' | translate"
           rows="3"
           class="form-input">
         </textarea>
@@ -310,12 +310,12 @@
 
     <!-- Description Field -->
     <div class="form-group">
-      <label for="create-description" class="form-label">Description</label>
+      <label for="create-description" class="form-label">{{ 'common.labels.description' | translate }}</label>
       <textarea
         id="create-description"
         pInputTextarea
         formControlName="description"
-        placeholder="Optional description"
+        [placeholder]="'parts.formDialog.descriptionPlaceholder' | translate"
         rows="3"
         class="form-input"
         [class.error]="hasError(createForm, 'description')"
@@ -326,10 +326,10 @@
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
-      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
+      <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text p-button-secondary"
         (click)="onCreateDialogHide()" [disabled]="isSubmitting">
       </button>
-      <button pButton type="button" label="Create" icon="pi pi-check" class="p-button p-button-success"
+      <button pButton type="button" [label]="'common.actions.create' | translate" icon="pi pi-check" class="p-button p-button-success"
         (click)="onCreateSubmit()" [loading]="isSubmitting" [disabled]="createForm.invalid || isSubmitting">
       </button>
     </div>
@@ -338,21 +338,21 @@
 
 <!-- Update Dialog -->
 <p-dialog [(visible)]="displayUpdateDialog" (visibleChange)="displayUpdateDialogChange.emit($event)"
-  [header]="'Edit Part'" [modal]="true" [style]="{width: '100%', maxWidth: '600px'}" [draggable]="true"
+  [header]="'parts.formDialog.editTitle' | translate" [modal]="true" [style]="{width: '100%', maxWidth: '600px'}" [draggable]="true"
   [resizable]="false" (onShow)="onUpdateDialogShow()" (onHide)="onUpdateDialogHide()">
 
   <form [formGroup]="updateForm" class="form-container">
     <!-- Name Field -->
     <div class="form-group">
       <label for="update-name" class="form-label">
-        <span class="required">*</span> Part Name
+        <span class="required">*</span> {{ 'parts.formDialog.partNameLabel' | translate }}
       </label>
       <input
         id="update-name"
         pInputText
         type="text"
         formControlName="name"
-        placeholder="Enter part name"
+        [placeholder]="'parts.formDialog.partNamePlaceholder' | translate"
         [class.error]="hasError(updateForm, 'name')"
         [class.success]="isFieldValid(updateForm, 'name')"
         class="form-input" />
@@ -363,31 +363,31 @@
 
     <!-- OEM Number Field -->
     <div class="form-group">
-      <label for="update-oem-number" class="form-label">OEM Cross-Ref</label>
+      <label for="update-oem-number" class="form-label">{{ 'parts.formDialog.oemCrossRefLabel' | translate }}</label>
       <input
         id="update-oem-number"
         pInputText
         type="text"
         formControlName="oemNumber"
-        placeholder="Manufacturer OEM part number (optional)"
+        [placeholder]="'parts.formDialog.oemNumberPlaceholder' | translate"
         [class.error]="hasError(updateForm, 'oemNumber')"
         class="form-input" />
-      <small class="hint-message">Optional — leave blank if not applicable</small>
+      <small class="hint-message">{{ 'parts.formDialog.optionalHint' | translate }}</small>
     </div>
 
     <!-- Category Field -->
     <div class="form-group">
       <label for="update-category" class="form-label">
-        <span class="required">*</span> Category
+        <span class="required">*</span> {{ 'common.labels.category' | translate }}
       </label>
       <p-autocomplete
         id="update-category"
         [suggestions]="filteredCategories"
         [ngModel]="selectedUpdateCategory"
         (ngModelChange)="selectedUpdateCategory = $event"
-        placeholder="Search by category name or code..."
+        [placeholder]="'parts.formDialog.searchCategoryPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No categories found"
+        [emptyMessage]="'parts.formDialog.noCategoriesFound' | translate"
         (onClear)="onUpdateCategoryCleared()"
         (onSelect)="onUpdateCategorySelect($event.value)"
         [dropdown]="true"
@@ -408,17 +408,17 @@
     <!-- Base Unit Field -->
     <div class="form-group">
       <label for="update-base-unit" class="form-label">
-        <span class="required">*</span> Base Unit
+        <span class="required">*</span> {{ 'parts.formDialog.baseUnitLabel' | translate }}
       </label>
-      <small class="hint-message">Unit for stock tracking (e.g., Pieces)</small>
+      <small class="hint-message">{{ 'parts.formDialog.baseUnitHint' | translate }}</small>
       <p-autocomplete
         id="update-base-unit"
         [suggestions]="filteredBaseUnits"
         [ngModel]="selectedUpdateBaseUnit"
         (ngModelChange)="selectedUpdateBaseUnit = $event"
-        placeholder="Search base unit..."
+        [placeholder]="'parts.formDialog.searchBaseUnitPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No units found"
+        [emptyMessage]="'parts.formDialog.noUnitsFound' | translate"
         (onClear)="onUpdateBaseUnitCleared()"
         (onSelect)="onUpdateBaseUnitSelect($event.value)"
         [dropdown]="true"
@@ -437,16 +437,16 @@
 
     <!-- Unit Field -->
     <div class="form-group">
-      <label for="update-unit" class="form-label">Display/Sales Unit</label>
-      <small class="hint-message">Unit for sales (defaults to Base Unit)</small>
+      <label for="update-unit" class="form-label">{{ 'parts.formDialog.displaySalesUnitLabel' | translate }}</label>
+      <small class="hint-message">{{ 'parts.formDialog.displayUnitHint' | translate }}</small>
       <p-autocomplete
         id="update-unit"
         [suggestions]="filteredUnits"
         [ngModel]="selectedUpdateUnit"
         (ngModelChange)="selectedUpdateUnit = $event"
-        placeholder="Search by unit name or code..."
+        [placeholder]="'parts.formDialog.searchUnitPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No units found"
+        [emptyMessage]="'parts.formDialog.noUnitsFound' | translate"
         (onClear)="onUpdateUnitCleared()"
         (onSelect)="onUpdateUnitSelect($event.value)"
         [dropdown]="true"
@@ -465,15 +465,15 @@
 
     <!-- Brand Field -->
     <div class="form-group">
-      <label for="update-brand" class="form-label">Brand</label>
+      <label for="update-brand" class="form-label">{{ 'parts.brand' | translate }}</label>
       <p-autocomplete
         id="update-brand"
         [suggestions]="filteredBrands"
         [ngModel]="selectedUpdateBrand"
         (ngModelChange)="selectedUpdateBrand = $event"
-        placeholder="Search by brand name or code..."
+        [placeholder]="'parts.formDialog.searchBrandPlaceholder' | translate"
         [showEmptyMessage]="true"
-        emptyMessage="No brands found"
+        [emptyMessage]="'parts.formDialog.noBrandsFound' | translate"
         (onClear)="onUpdateBrandCleared()"
         (onSelect)="onUpdateBrandSelect($event.value)"
         [dropdown]="true"
@@ -491,13 +491,13 @@
     <!-- Variant pricing note -->
     <div class="form-group variant-price-note" *ngIf="isVariantSelected">
       <i class="pi pi-info-circle"></i>
-      This product has variants. Prices are managed per variant — open the product and go to the <strong>Variants</strong> tab to update cost and selling price.
+      {{ 'parts.formDialog.variantPricingNote' | translate }}
     </div>
 
     <!-- Cost Price Field -->
     <div class="form-group" *ngIf="!isVariantSelected">
       <label for="update-cost-price" class="form-label">
-        <span class="required">*</span> Cost Price
+        <span class="required">*</span> {{ 'parts.costPrice' | translate }}
       </label>
       <p-inputNumber
         inputId="update-cost-price"
@@ -519,7 +519,7 @@
     <!-- Selling Price Field -->
     <div class="form-group" *ngIf="!isVariantSelected">
       <label for="update-selling-price" class="form-label">
-        <span class="required">*</span> Selling Price
+        <span class="required">*</span> {{ 'parts.sellingPrice' | translate }}
       </label>
       <p-inputNumber
         inputId="update-selling-price"
@@ -541,7 +541,7 @@
     <!-- Minimum Stock Field -->
     <div class="form-group">
       <label for="update-min-stock" class="form-label">
-        <span class="required">*</span> Minimum Stock
+        <span class="required">*</span> {{ 'parts.formDialog.minimumStockLabel' | translate }}
       </label>
       <p-inputNumber
         inputId="update-min-stock"
@@ -560,15 +560,15 @@
 
     <!-- Warranty Fields -->
     <div class="form-group">
-      <label for="update-has-warranty" class="form-label">Warranty Available</label>
+      <label for="update-has-warranty" class="form-label">{{ 'parts.formDialog.warrantyAvailableLabel' | translate }}</label>
       <div class="status-toggle">
         <input id="update-has-warranty" type="checkbox" formControlName="hasWarranty" class="status-checkbox" />
         <label for="update-has-warranty" class="status-label">
           <span *ngIf="updateForm.get('hasWarranty')?.value" class="status-active">
-            <i class="pi pi-shield"></i> Yes
+            <i class="pi pi-shield"></i> {{ 'common.labels.yes' | translate }}
           </span>
           <span *ngIf="!updateForm.get('hasWarranty')?.value" class="status-inactive">
-            <i class="pi pi-ban"></i> No
+            <i class="pi pi-ban"></i> {{ 'common.labels.no' | translate }}
           </span>
         </label>
       </div>
@@ -577,7 +577,7 @@
     <ng-container *ngIf="updateForm.get('hasWarranty')?.value">
       <div class="form-group">
         <label for="update-warranty-period" class="form-label">
-          <span class="required">*</span> Warranty Period (Months)
+          <span class="required">*</span> {{ 'parts.formDialog.warrantyPeriodMonthsLabel' | translate }}
         </label>
         <p-inputNumber
           inputId="update-warranty-period"
@@ -596,10 +596,10 @@
 
       <div class="form-group">
         <label for="update-warranty-type" class="form-label">
-          <span class="required">*</span> Warranty Type
+          <span class="required">*</span> {{ 'parts.formDialog.warrantyTypeLabel' | translate }}
         </label>
         <select id="update-warranty-type" class="form-input" formControlName="warrantyType">
-          <option [ngValue]="null">Select warranty type</option>
+          <option [ngValue]="null">{{ 'parts.formDialog.selectWarrantyTypePlaceholder' | translate }}</option>
           <option *ngFor="let type of warrantyTypes" [value]="type.value">{{ type.label }}</option>
         </select>
         <small class="error-message" *ngIf="hasError(updateForm, 'warrantyType')">
@@ -608,23 +608,23 @@
       </div>
 
       <div class="form-group">
-        <label for="update-warranty-certificate-template" class="form-label">Certificate Template Prefix</label>
+        <label for="update-warranty-certificate-template" class="form-label">{{ 'parts.formDialog.certificateTemplatePrefixLabel' | translate }}</label>
         <input
           id="update-warranty-certificate-template"
           pInputText
           type="text"
           formControlName="warrantyCertificateTemplate"
-          placeholder="Example: CERT"
+          [placeholder]="'parts.partForm.certificateTemplatePlaceholder' | translate"
           class="form-input" />
       </div>
 
       <div class="form-group">
-        <label for="update-warranty-terms" class="form-label">Warranty Terms</label>
+        <label for="update-warranty-terms" class="form-label">{{ 'parts.formDialog.warrantyTermsLabel' | translate }}</label>
         <textarea
           id="update-warranty-terms"
           pInputTextarea
           formControlName="warrantyTerms"
-          placeholder="Enter warranty terms"
+          [placeholder]="'parts.formDialog.warrantyTermsPlaceholder' | translate"
           rows="3"
           class="form-input">
         </textarea>
@@ -633,12 +633,12 @@
 
     <!-- Description Field -->
     <div class="form-group">
-      <label for="update-description" class="form-label">Description</label>
+      <label for="update-description" class="form-label">{{ 'common.labels.description' | translate }}</label>
       <textarea
         id="update-description"
         pInputTextarea
         formControlName="description"
-        placeholder="Optional description"
+        [placeholder]="'parts.formDialog.descriptionPlaceholder' | translate"
         rows="3"
         class="form-input"
         [class.error]="hasError(updateForm, 'description')"
@@ -648,15 +648,15 @@
 
     <!-- Status Field -->
     <div class="form-group">
-      <label for="update-status" class="form-label">Status</label>
+      <label for="update-status" class="form-label">{{ 'common.labels.status' | translate }}</label>
       <div class="status-toggle">
         <input id="update-status" type="checkbox" formControlName="isActive" class="status-checkbox" />
         <label for="update-status" class="status-label">
           <span *ngIf="updateForm.get('isActive')?.value" class="status-active">
-            <i class="pi pi-check-circle"></i> Active
+            <i class="pi pi-check-circle"></i> {{ 'common.status.active' | translate }}
           </span>
           <span *ngIf="!updateForm.get('isActive')?.value" class="status-inactive">
-            <i class="pi pi-times-circle"></i> Inactive
+            <i class="pi pi-times-circle"></i> {{ 'common.status.inactive' | translate }}
           </span>
         </label>
       </div>
@@ -665,10 +665,10 @@
 
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
-      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary"
+      <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text p-button-secondary"
         (click)="onUpdateDialogHide()" [disabled]="isSubmitting">
       </button>
-      <button pButton type="button" label="Update" icon="pi pi-check" class="p-button p-button-info"
+      <button pButton type="button" [label]="'common.actions.update' | translate" icon="pi pi-check" class="p-button p-button-info"
         (click)="onUpdateSubmit()" [loading]="isSubmitting" [disabled]="updateForm.invalid || isSubmitting">
       </button>
     </div>

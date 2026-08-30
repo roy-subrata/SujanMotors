@@ -3,6 +3,7 @@ using AutoPartShop.Application.Common;
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.HR.Dtos;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// Leave applications with an approve/reject flow. Approval writes LEAVE marks
 /// into the attendance records for the requested date range.
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]
@@ -49,7 +49,7 @@ public class LeaveRequestsController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
 
             var (requests, totalCount) = await _leaveRequestReadRepository.FindAllQuery(query, cancellationToken);
@@ -59,6 +59,59 @@ public class LeaveRequestsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting leave requests list");
+            return StatusCode(500, "An error occurred");
+        }
+    }
+
+    /// <summary>
+    /// Leave balance per type for an employee. Used = approved days; pending days are shown
+    /// separately because they only consume entitlement once approved.
+    /// </summary>
+    [HttpGet("balance/{employeeId:guid}")]
+    public async Task<IActionResult> GetBalance(Guid employeeId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var employee = await _employeeRepository.GetByIdAsync(employeeId, cancellationToken);
+            if (employee is null) return NotFound(new { message = "Employee not found" });
+
+            var requests = await _leaveRequestRepository.GetByEmployeeAsync(employeeId, cancellationToken);
+
+            var approvedDays = requests
+                .Where(r => r.Status == LeaveRequestStatus.APPROVED)
+                .GroupBy(r => r.LeaveType)
+                .ToDictionary(g => g.Key, g => g.Sum(r => r.TotalDays));
+            var pendingDays = requests
+                .Where(r => r.Status == LeaveRequestStatus.PENDING)
+                .GroupBy(r => r.LeaveType)
+                .ToDictionary(g => g.Key, g => g.Sum(r => r.TotalDays));
+
+            var balance = new List<LeaveBalanceItem>();
+            foreach (var type in new[] { "ANNUAL", "CASUAL", "SICK", "UNPAID" })
+            {
+                var entitlement = employee.GetLeaveEntitlement(type);
+                var used = approvedDays.GetValueOrDefault(type);
+                balance.Add(new LeaveBalanceItem
+                {
+                    LeaveType = type,
+                    Entitlement = entitlement,
+                    UsedDays = used,
+                    PendingDays = pendingDays.GetValueOrDefault(type),
+                    RemainingDays = entitlement.HasValue ? entitlement.Value - used : null
+                });
+            }
+
+            return Ok(new
+            {
+                EmployeeId = employee.Id,
+                employee.EmployeeCode,
+                employee.Name,
+                Balance = balance
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting leave balance for employee {EmployeeId}", employeeId);
             return StatusCode(500, "An error occurred");
         }
     }
@@ -143,6 +196,25 @@ public class LeaveRequestsController : ControllerBase
             var leaveRequest = await _leaveRequestRepository.GetByIdAsync(id, cancellationToken);
             if (leaveRequest is null) return NotFound();
 
+            // Enforce per-employee entitlements at approval time (creation stays permissive).
+            var employee = await _employeeRepository.GetByIdAsync(leaveRequest.EmployeeId, cancellationToken);
+            if (employee is null) return BadRequest(new { message = "Employee not found" });
+
+            var entitlement = employee.GetLeaveEntitlement(leaveRequest.LeaveType);
+            if (entitlement.HasValue)
+            {
+                var employeeRequests = await _leaveRequestRepository.GetByEmployeeAsync(leaveRequest.EmployeeId, cancellationToken);
+                var usedDays = employeeRequests
+                    .Where(r => r.Status == LeaveRequestStatus.APPROVED && r.LeaveType == leaveRequest.LeaveType)
+                    .Sum(r => r.TotalDays);
+                var remaining = entitlement.Value - usedDays;
+                if (leaveRequest.TotalDays > remaining)
+                    return BadRequest(new
+                    {
+                        message = $"Insufficient {leaveRequest.LeaveType} leave balance. Entitlement: {entitlement} day(s), already used: {usedDays}, remaining: {Math.Max(0, remaining)}, requested: {leaveRequest.TotalDays}."
+                    });
+            }
+
             var currentUser = _currentUserService.GetCurrentUsername();
             leaveRequest.Approve(currentUser, request?.Notes ?? string.Empty);
             leaveRequest.ModifiedBy = currentUser;
@@ -154,7 +226,7 @@ public class LeaveRequestsController : ControllerBase
             for (var day = leaveRequest.FromDate; day <= leaveRequest.ToDate; day = day.AddDays(1))
             {
                 leaveMarks.Add(AttendanceRecord.Create(
-                    leaveRequest.EmployeeId, day, "LEAVE",
+                    leaveRequest.EmployeeId, day, AttendanceStatus.LEAVE,
                     notes: $"{leaveRequest.LeaveType} leave"));
             }
             await _attendanceRepository.UpsertRangeAsync(leaveMarks, currentUser, cancellationToken);

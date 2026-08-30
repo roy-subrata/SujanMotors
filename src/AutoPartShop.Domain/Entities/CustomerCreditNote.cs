@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -18,7 +20,7 @@ public class CustomerCreditNote : AuditableEntity
     public string Currency { get; private set; } = "USD";
     public DateTime IssueDate { get; private set; }
     public DateTime? ExpiryDate { get; private set; }  // Optional expiry date
-    public string Status { get; private set; } = "AVAILABLE";  // AVAILABLE, PARTIALLY_USED, FULLY_USED, EXPIRED, CANCELLED
+    public CustomerCreditNoteStatus Status { get; private set; } = CustomerCreditNoteStatus.AVAILABLE;
     public string Notes { get; private set; } = string.Empty;
     public string IssuedBy { get; private set; } = string.Empty;
 
@@ -65,7 +67,7 @@ public class CustomerCreditNote : AuditableEntity
             Currency = currency.Trim().ToUpper(),
             IssueDate = issueDate ?? DateTime.UtcNow,
             ExpiryDate = expiryDate,
-            Status = "AVAILABLE",
+            Status = CustomerCreditNoteStatus.AVAILABLE,
             Notes = notes?.Trim() ?? string.Empty,
             IssuedBy = issuedBy?.Trim() ?? string.Empty
         };
@@ -76,10 +78,10 @@ public class CustomerCreditNote : AuditableEntity
     /// </summary>
     public void ApplyToInvoice(Guid invoiceId, Guid salesOrderId, decimal amountToApply)
     {
-        if (Status == "CANCELLED")
+        if (Status == CustomerCreditNoteStatus.CANCELLED)
             throw new InvalidOperationException("Cannot apply a cancelled credit note");
 
-        if (Status == "EXPIRED")
+        if (Status == CustomerCreditNoteStatus.EXPIRED)
             throw new InvalidOperationException("Cannot apply an expired credit note");
 
         if (amountToApply <= 0)
@@ -95,9 +97,9 @@ public class CustomerCreditNote : AuditableEntity
 
         // Update status based on usage
         if (AvailableAmount <= 0)
-            Status = "FULLY_USED";
+            Status = CustomerCreditNoteStatus.FULLY_USED;
         else if (UsedAmount > 0)
-            Status = "PARTIALLY_USED";
+            Status = CustomerCreditNoteStatus.PARTIALLY_USED;
     }
 
     public void LinkToWarrantyClaim(Guid warrantyClaimId)
@@ -113,7 +115,7 @@ public class CustomerCreditNote : AuditableEntity
     /// </summary>
     public void MarkAsExpired()
     {
-        Status = "EXPIRED";
+        Status = CustomerCreditNoteStatus.EXPIRED;
         Notes += "\n[Expired] Credit note has expired and can no longer be applied.";
     }
 
@@ -125,7 +127,7 @@ public class CustomerCreditNote : AuditableEntity
         if (UsedAmount > 0)
             throw new InvalidOperationException("Cannot cancel a credit note that has been partially used");
 
-        Status = "CANCELLED";
+        Status = CustomerCreditNoteStatus.CANCELLED;
         Notes += $"\n[Cancelled] {reason}".Trim();
     }
 
@@ -134,7 +136,7 @@ public class CustomerCreditNote : AuditableEntity
     /// </summary>
     public bool IsAvailable()
     {
-        if (Status == "CANCELLED" || Status == "EXPIRED" || Status == "FULLY_USED")
+        if (Status == CustomerCreditNoteStatus.CANCELLED || Status == CustomerCreditNoteStatus.EXPIRED || Status == CustomerCreditNoteStatus.FULLY_USED)
             return false;
 
         if (ExpiryDate.HasValue && ExpiryDate.Value < DateTime.UtcNow)

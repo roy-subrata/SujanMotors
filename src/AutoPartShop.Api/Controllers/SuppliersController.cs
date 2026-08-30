@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.SupplierDtos;
 using AutoPartShop.Application.Suppliers;
@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/suppliers")]
 [Route("api/v1/suppliers")]
 [ApiController]
 [HasPermission(Permissions.ProcurementView)]
@@ -67,15 +65,15 @@ public class SuppliersController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
             if (query.PageNumber < 0)
             {
-                return BadRequest($"Page number can not be {query.PageNumber}");
+                return BadRequest(new { message = $"Page number can not be {query.PageNumber}" });
             }
             if (query.PageSize < 0)
             {
-                return BadRequest($"Page size can not be {query.PageSize}");
+                return BadRequest(new { message = $"Page size can not be {query.PageSize}" });
             }
 
             var (response, total) = await _supplierReadRepository.FindAllAsynce(query, cancellationToken);
@@ -153,10 +151,23 @@ public class SuppliersController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.Name))
                 return BadRequest(new { message = "Name is required" });
 
-            var supplierCode = await _codeGenerateService.GenerateAsync("SUP", cancellationToken);
+            // CreateSupplierRequest.Code was accepted and then thrown away, so a caller migrating
+            // records with their own codes silently got SUP001, SUP002... Honour an explicit code
+            // when it is free, and fall back to the generated sequence when none is given.
+            string supplierCode;
+            if (!string.IsNullOrWhiteSpace(request.Code))
+            {
+                supplierCode = request.Code.Trim().ToUpper();
+                if (await _supplierRepository.CodeExistsAsync(supplierCode, cancellationToken: cancellationToken))
+                    return Conflict(new { message = $"Supplier code '{supplierCode}' is already in use" });
+            }
+            else
+            {
+                supplierCode = await _codeGenerateService.GenerateAsync("SUP", cancellationToken);
+            }
 
             var supplier = Supplier.Create(request.Name, supplierCode, request.ContactPerson, request.Email, request.Phone,
-                request.Address, request.City, request.State, request.Country, request.PostalCode,
+                request.Address, request.Country,
                 request.PaymentTerms, request.CreditLimit);
 
             var currentUser = _currentUserService.GetCurrentUsername();
@@ -188,8 +199,10 @@ public class SuppliersController : ControllerBase
             if (supplier is null) return NotFound(new { message = "Supplier not found" });
 
             supplier.Update(request.Name, request.ContactPerson, request.Email, request.Phone,
-                request.Address, request.City, request.State, request.Country, request.PostalCode,
-                request.IsActive, request.PaymentTerms, request.CreditLimit);
+                request.Address, request.Country,
+                request.IsActive,
+                string.IsNullOrEmpty(request.PaymentTerms) ? supplier.PaymentTerms : request.PaymentTerms,
+                request.CreditLimit == 0 ? supplier.CreditLimit : request.CreditLimit);
             supplier.ModifiedBy = _currentUserService.GetCurrentUsername();
 
             await _supplierRepository.UpdateAsync(supplier, cancellationToken);
@@ -269,7 +282,7 @@ public class SuppliersController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Supplier is still referenced by procurement/stock records — surface a clean 409.
+            // Supplier is still referenced by procurement/stock records � surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
@@ -316,10 +329,7 @@ public class SuppliersController : ControllerBase
             Email = supplier.Email,
             Phone = supplier.Phone,
             Address = supplier.Address,
-            City = supplier.City,
-            State = supplier.State,
             Country = supplier.Country,
-            PostalCode = supplier.PostalCode,
             PaymentTerms = supplier.PaymentTerms,
             CreditLimit = supplier.CreditLimit,
             CurrentBalance = supplier.CurrentBalance,

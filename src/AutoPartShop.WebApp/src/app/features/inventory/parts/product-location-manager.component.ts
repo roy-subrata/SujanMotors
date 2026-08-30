@@ -11,6 +11,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import {
   ProductLocationService,
@@ -20,6 +21,8 @@ import {
 } from '../services/product-location.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { WarehouseLocationService, WarehouseLocationResponse } from '../services/warehouse-location.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-product-location-manager',
@@ -36,7 +39,9 @@ import { WarehouseLocationService, WarehouseLocationResponse } from '../services
     CheckboxModule,
     ToastModule,
     ConfirmDialogModule,
-    TagModule
+    TagModule,
+    TooltipModule,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './product-location-manager.component.html',
@@ -52,6 +57,7 @@ export class ProductLocationManagerComponent implements OnInit {
   private readonly warehouseLocationService = inject(WarehouseLocationService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly i18n = inject(I18nService);
 
   locations: ProductLocationResponse[] = [];
   warehouses: WarehouseResponse[] = [];
@@ -94,8 +100,8 @@ export class ProductLocationManagerComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load warehouses'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('parts.locationManager.messages.loadWarehousesFailed')
         });
         console.error('Error loading warehouses:', error);
       }
@@ -116,8 +122,8 @@ export class ProductLocationManagerComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load bin locations for this warehouse'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('parts.locationManager.messages.loadBinsFailed')
         });
         console.error('Error loading warehouse locations:', error);
         this.loadingWarehouseLocations = false;
@@ -137,8 +143,8 @@ export class ProductLocationManagerComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load locations'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('parts.locationManager.messages.loadLocationsFailed')
         });
         console.error('Error loading locations:', error);
         this.loading = false;
@@ -206,8 +212,8 @@ export class ProductLocationManagerComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Location created successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('parts.locationManager.messages.createSuccess')
         });
         this.loadLocations();
         this.closeDialog();
@@ -216,8 +222,8 @@ export class ProductLocationManagerComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to create location'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('parts.locationManager.messages.createFailed')
         });
         console.error('Error creating location:', error);
         this.isSubmitting = false;
@@ -238,8 +244,8 @@ export class ProductLocationManagerComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Location updated successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('parts.locationManager.messages.updateSuccess')
         });
         this.loadLocations();
         this.closeDialog();
@@ -248,8 +254,8 @@ export class ProductLocationManagerComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to update location'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('parts.locationManager.messages.updateFailed')
         });
         console.error('Error updating location:', error);
         this.isSubmitting = false;
@@ -262,16 +268,16 @@ export class ProductLocationManagerComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Primary location updated successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('parts.locationManager.messages.setPrimarySuccess')
         });
         this.loadLocations();
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to set primary location'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('parts.locationManager.messages.setPrimaryFailed')
         });
         console.error('Error setting primary location:', error);
       }
@@ -280,8 +286,8 @@ export class ProductLocationManagerComponent implements OnInit {
 
   deleteLocation(location: ProductLocationResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete the location "${location.locationCode}"?`,
-      header: 'Confirm Delete',
+      message: this.i18n.t('parts.locationManager.confirmDeleteMessage', { code: location.locationCode }),
+      header: this.i18n.t('parts.locationManager.confirmDeleteHeader'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
@@ -289,16 +295,16 @@ export class ProductLocationManagerComponent implements OnInit {
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Location deleted successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('parts.locationManager.messages.deleteSuccess')
             });
             this.loadLocations();
           },
           error: (error) => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: error?.error?.message || 'Failed to delete location'
+              summary: this.i18n.t('common.messages.error'),
+              detail: error?.error?.message || this.i18n.t('parts.locationManager.messages.deleteFailed')
             });
             console.error('Error deleting location:', error);
           }

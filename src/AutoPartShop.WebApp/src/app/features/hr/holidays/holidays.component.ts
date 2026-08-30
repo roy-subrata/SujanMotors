@@ -15,13 +15,14 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-holidays',
     standalone: true,
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, DatePickerModule,
         DialogModule, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent],
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, TranslatePipe],
     providers: [MessageService, ConfirmationService],
     templateUrl: './holidays.component.html',
     styleUrls: ['./holidays.component.css']

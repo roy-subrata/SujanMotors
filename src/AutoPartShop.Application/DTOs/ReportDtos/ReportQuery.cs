@@ -26,7 +26,7 @@ public class ReportQuery : BaseQuery
     /// <summary>Period bucket for summary reports: day | week | month.</summary>
     public string? GroupBy { get; set; }
 
-    /// <summary>Sales channel filter (POS, ECOMMERCE, ...).</summary>
+    /// <summary>Sales channel filter (POS, MOBILE, API).</summary>
     public string? Channel { get; set; }
 
     /// <summary>StockMovement type filter (IN, OUT, RETURN, ADJUST, TRANSFER).</summary>

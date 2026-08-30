@@ -18,16 +18,16 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Proforma Invoices"
-    subtitle="Pre-payment bills generated from confirmed sales orders"
-    [count]="totalRecords" countLabel="proforma invoices" countIcon="pi pi-receipt">
+    [title]="'proformaInvoices.title' | translate"
+    [subtitle]="'proformaInvoices.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'proformaInvoices.countLabel' | translate" countIcon="pi pi-receipt">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="openGenerateDialog()">
         <i class="pi pi-plus"></i>
-        <span>Generate Proforma</span>
+        <span>{{ 'proformaInvoices.generate' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -50,14 +50,14 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-proforma">Proforma #</th>
-            <th class="col-so">Sales Order</th>
-            <th class="col-customer">Customer</th>
-            <th class="col-date">Issue Date</th>
-            <th class="col-date">Valid Until</th>
-            <th class="col-status">Status</th>
-            <th class="col-amount">Grand Total</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-proforma">{{ 'proformaInvoices.columns.proformaNumber' | translate }}</th>
+            <th class="col-so">{{ 'proformaInvoices.columns.salesOrder' | translate }}</th>
+            <th class="col-customer">{{ 'proformaInvoices.columns.customer' | translate }}</th>
+            <th class="col-date">{{ 'proformaInvoices.columns.issueDate' | translate }}</th>
+            <th class="col-date">{{ 'proformaInvoices.columns.validUntil' | translate }}</th>
+            <th class="col-status">{{ 'proformaInvoices.columns.status' | translate }}</th>
+            <th class="col-amount">{{ 'proformaInvoices.columns.grandTotal' | translate }}</th>
+            <th class="col-actions">{{ 'proformaInvoices.columns.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -66,7 +66,7 @@
             <td class="col-proforma">
               <div class="so-cell">
                 <span class="so-link">{{ proforma.proformaNumber }}</span>
-                <span *ngIf="proforma.isExpired" class="overdue-badge">Expired</span>
+                <span *ngIf="proforma.isExpired" class="overdue-badge">{{ 'proformaInvoices.expired' | translate }}</span>
               </div>
             </td>
 
@@ -75,7 +75,7 @@
             </td>
 
             <td class="col-customer">
-              <span class="customer-name">{{ proforma.customerName || 'Walk-in Customer' }}</span>
+              <span class="customer-name">{{ proforma.customerName || ('proformaInvoices.walkInCustomer' | translate) }}</span>
             </td>
 
             <td class="col-date"><span class="date-text">{{ formatDate(proforma.issueDate) }}</span></td>
@@ -94,7 +94,7 @@
 
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, proforma)">
+                <button class="btn-action" [pTooltip]="'common.listPage.more' | translate" (click)="showActionMenu($event, proforma)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -107,11 +107,11 @@
             <td colspan="8">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-receipt"></i></div>
-                <h3>No Proforma Invoices Found</h3>
-                <p>Generate a proforma invoice from a confirmed sales order to get started.</p>
+                <h3>{{ 'proformaInvoices.emptyTitle' | translate }}</h3>
+                <p>{{ 'proformaInvoices.emptyHint' | translate }}</p>
                 <button class="btn-primary" (click)="openGenerateDialog()">
                   <i class="pi pi-plus"></i>
-                  Generate Proforma
+                  {{ 'proformaInvoices.generate' | translate }}
                 </button>
               </div>
             </td>
@@ -163,11 +163,11 @@
     <!-- Empty State -->
     <div *ngIf="!loading && proformas.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-receipt"></i></div>
-      <h3>No Proforma Invoices</h3>
-      <p>Generate a proforma invoice from a confirmed sales order.</p>
+      <h3>{{ 'proformaInvoices.emptyTitleMobile' | translate }}</h3>
+      <p>{{ 'proformaInvoices.emptyHintMobile' | translate }}</p>
       <button class="btn-primary" (click)="openGenerateDialog()">
         <i class="pi pi-plus"></i>
-        Generate Proforma
+        {{ 'proformaInvoices.generate' | translate }}
       </button>
     </div>
 
@@ -183,21 +183,21 @@
 
         <div class="card-body">
           <div class="card-customer">
-            <span class="customer-name">{{ proforma.customerName || 'Walk-in Customer' }}</span>
+            <span class="customer-name">{{ proforma.customerName || ('proformaInvoices.walkInCustomer' | translate) }}</span>
             <a class="so-link" (click)="viewSalesOrder(proforma)">{{ proforma.soNumber }}</a>
           </div>
           <div class="card-dates">
             <span class="card-date"><i class="pi pi-calendar"></i> {{ formatDate(proforma.issueDate) }}</span>
             <span *ngIf="proforma.isExpired" class="overdue-text">
               <i class="pi pi-exclamation-circle"></i>
-              Expired
+              {{ 'proformaInvoices.expired' | translate }}
             </span>
           </div>
         </div>
 
         <div class="card-footer">
           <div class="card-amount">
-            <span class="amount-label">Total</span>
+            <span class="amount-label">{{ 'proformaInvoices.cardTotal' | translate }}</span>
             <span class="amount-value">{{ formatCurrency(proforma.grandTotal) }}</span>
           </div>
           <button class="btn-card-action" (click)="showActionMenu($event, proforma); $event.stopPropagation()">
@@ -213,7 +213,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalRecords"
-    itemLabel="proforma invoices"
+    [itemLabel]="'proformaInvoices.itemLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>

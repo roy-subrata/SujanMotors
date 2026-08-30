@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.ReportDtos;
@@ -13,7 +14,6 @@ namespace AutoPartShop.Api.Controllers.Reports;
 /// require reports.export. Data comes from dbo.usp_Report_* stored procedures.
 /// </summary>
 [ApiController]
-[Route("api/reports/purchase")]
 [Route("api/v1/reports/purchase")]
 [HasPermission(Permissions.ReportsView)]
 public class PurchaseReportsController(
@@ -51,8 +51,9 @@ public class PurchaseReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var rows = await reportRepository.GetPurchaseSummaryAsync(query, cancellationToken);
-            return ExportFile(format, "Purchase Summary", BuildFilterSummary(query), rows, ReportColumnMaps.PurchaseSummary, "purchase-summary");
+            return ExportFile(format, DocStrings.T("report.titles.purchaseSummary", lang), BuildFilterSummary(query), rows, ReportColumnMaps.PurchaseSummary(lang), "purchase-summary");
         }
         catch (ArgumentException ex)
         {
@@ -94,8 +95,9 @@ public class PurchaseReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetPurchasesBySupplierAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Purchases by Supplier", BuildFilterSummary(query), page.Data, ReportColumnMaps.PurchasesBySupplier, "purchases-by-supplier");
+            return ExportFile(format, DocStrings.T("report.titles.purchasesBySupplier", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.PurchasesBySupplier(lang), "purchases-by-supplier");
         }
         catch (ArgumentException ex)
         {
@@ -137,8 +139,9 @@ public class PurchaseReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetPurchaseReturnsAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Purchase Returns", BuildFilterSummary(query), page.Data, ReportColumnMaps.PurchaseReturns, "purchase-returns");
+            return ExportFile(format, DocStrings.T("report.titles.purchaseReturns", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.PurchaseReturns(lang), "purchase-returns");
         }
         catch (ArgumentException ex)
         {

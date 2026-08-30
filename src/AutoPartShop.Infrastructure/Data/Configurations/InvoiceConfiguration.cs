@@ -24,7 +24,11 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(i => i.DiscountAmount)
             .HasPrecision(18, 2);
 
+        builder.Property(i => i.ReturnedAmount)
+            .HasPrecision(18, 2);
+
         builder.Property(i => i.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 
@@ -32,6 +36,12 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .IsRequired()
             .HasMaxLength(3)
             .HasDefaultValue("BDT");
+
+        builder.Property(i => i.BaseGrandTotal)
+            .HasPrecision(18, 2);
+
+        builder.Property(i => i.FxRateToBase)
+            .HasPrecision(18, 6);
 
         // Ignore computed properties
         builder.Ignore(i => i.AmountPaid);

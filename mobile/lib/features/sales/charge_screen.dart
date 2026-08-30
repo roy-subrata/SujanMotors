@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +11,40 @@ import '../../features/customers/customers_repository.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
 import '../../shared/models/customer_vehicle.dart';
+import 'discounts_repository.dart';
 import 'quick_sale_providers.dart';
+
+/// Server-mirrored totals for the cart, resolved from `/discounts/resolve/*`.
+///
+/// The quick-sale endpoint auto-applies item-level and cart-level discount
+/// rules before charging, and its payment guard requires tendered lines to
+/// equal the resulting invoice total. This breakdown reproduces that math:
+/// priority is promo code > manual discount > threshold rule.
+class _SaleBreakdown {
+  const _SaleBreakdown({
+    required this.itemDiscount,
+    required this.subtotal,
+    this.cartRule,
+    this.thresholdRule,
+    this.promoInvalid = false,
+  });
+
+  /// Sum of auto item-level discounts (per-unit amount × quantity).
+  final double itemDiscount;
+
+  /// Cart subtotal after item-level discounts — what a cart-level rule is
+  /// measured against server-side.
+  final double subtotal;
+
+  /// Resolved promo-code rule when a code was entered.
+  final DiscountResolution? cartRule;
+
+  /// Auto-applied threshold rule when no promo code/manual discount wins.
+  final DiscountResolution? thresholdRule;
+
+  /// A promo code was typed but resolved to nothing.
+  final bool promoInvalid;
+}
 
 class ChargeScreen extends ConsumerStatefulWidget {
   const ChargeScreen({super.key, required this.cartTotal});
@@ -22,6 +57,7 @@ class ChargeScreen extends ConsumerStatefulWidget {
 
 class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   final _discountCtrl = TextEditingController(text: '0');
+  final _promoCtrl = TextEditingController();
   final _paidNowCtrl = TextEditingController();
   final _referenceCtrl = TextEditingController();
 
@@ -49,10 +85,73 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
 
   String? _localError;
 
-  double get _discount =>
-      (double.tryParse(_discountCtrl.text) ?? 0).clamp(0, widget.cartTotal);
-  double get grandTotal =>
-      (widget.cartTotal - _discount).clamp(0, double.infinity);
+  // Server-side discount resolution (debounced; see _recalc).
+  _SaleBreakdown? _breakdown;
+  Timer? _debounce;
+  int _resolveSeq = 0;
+  bool _paidTouched = false;
+  bool _suppressPaidTouch = false;
+  bool _presubmitting = false;
+
+  /// Writes a default tendered amount without marking the field as
+  /// cashier-edited ([_paidTouched] stays false until they type).
+  void _setPaidDefault(String value) {
+    _suppressPaidTouch = true;
+    final prev = _paidNowCtrl.text;
+    _paidNowCtrl.text = value;
+    _suppressPaidTouch = false;
+    if (prev != value) setState(() {});
+  }
+
+  /// Raw manual discount as typed (unclamped).
+  double get _typedManualDiscount =>
+      double.tryParse(_discountCtrl.text) ?? 0;
+
+  /// Manual discount clamped the way the API enforces it: it cannot exceed
+  /// the order total, and the legacy clamp caps it at the cart total.
+  double get _manualDiscount {
+    final cap = _breakdown?.subtotal ?? widget.cartTotal;
+    return _typedManualDiscount.clamp(0.0, cap).toDouble();
+  }
+
+  double get grandTotal {
+    final b = _breakdown;
+    if (b == null) {
+      // Resolution unavailable (in flight or failed) — legacy client math.
+      return (_typedManualDiscount.clamp(0.0, widget.cartTotal)).toDouble();
+    }
+    return (b.subtotal - _cartDiscountAmount).clamp(0.0, double.infinity);
+  }
+
+  /// Cart-level discount that will actually be applied server-side:
+  /// promo code wins, else manual discount, else auto threshold rule.
+  double get _cartDiscountAmount {
+    final b = _breakdown;
+    if (b == null) return 0;
+    if (_promoCtrl.text.trim().isNotEmpty) {
+      final rule = b.cartRule;
+      return rule != null && rule.applied ? rule.discountAmount : 0;
+    }
+    final manual = _manualDiscount;
+    if (manual > 0) return manual;
+    final rule = b.thresholdRule;
+    return rule != null && rule.applied ? rule.discountAmount : 0;
+  }
+
+  /// The cart-level rule to display as an automatic discount row. Mirrors
+  /// server priority exactly: promo code wins, else manual (which has its own
+  /// input row), else the auto-applied threshold rule.
+  DiscountResolution? get _displayCartRule {
+    final b = _breakdown;
+    if (b == null) return null;
+    if (_promoCtrl.text.trim().isNotEmpty) {
+      final r = b.cartRule;
+      return r != null && r.applied ? r : null;
+    }
+    if (_manualDiscount > 0) return null;
+    final r = b.thresholdRule;
+    return r != null && r.applied ? r : null;
+  }
 
   double get _advanceAvailable => _customer?.advanceAmount ?? 0;
   double get advanceApplied =>
@@ -70,23 +169,113 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
     super.initState();
     _paidNowCtrl.text = widget.cartTotal.toStringAsFixed(2);
     _discountCtrl.addListener(_onDiscountChanged);
-    _paidNowCtrl.addListener(() => setState(() {}));
+    _promoCtrl.addListener(_onPromoChanged);
+    _paidNowCtrl.addListener(() {
+      if (!_suppressPaidTouch) _paidTouched = true;
+      setState(() {});
+    });
     _loadCustomers('');
+    _scheduleRecalc();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChargeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.cartTotal != widget.cartTotal) _scheduleRecalc();
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _discountCtrl.dispose();
+    _promoCtrl.dispose();
     _paidNowCtrl.dispose();
     _referenceCtrl.dispose();
     super.dispose();
   }
 
+  // ── Server-side discount mirroring ─────────────────────────────────────────
+
+  void _scheduleRecalc() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), _recalc);
+  }
+
+  /// Resolves item-level rules per line plus the applicable cart-level rule,
+  /// reproducing what `POST /SalesOrder/quick-sale` will charge:
+  ///   subtotal = Σ qty×unit − Σ qty×itemDiscountPerUnit
+  ///   cart     = promo rule | manual discount | threshold rule (priority)
+  /// Any failure falls back silently to plain client-side totals.
+  Future<void> _recalc() async {
+    final seq = ++_resolveSeq;
+    final items = ref.read(quickSaleControllerProvider).items;
+    final discounts = ref.read(discountsRepositoryProvider);
+    final promo = _promoCtrl.text.trim();
+
+    try {
+      var itemDiscount = 0.0;
+      for (final it in items) {
+        final r = await discounts.resolveItem(
+          partId: it.partId,
+          variantId: it.variantId,
+          unitPrice: it.unitPrice,
+        );
+        if (seq != _resolveSeq) return; // superseded while in flight
+        if (r.applied) itemDiscount += r.discountAmount * it.quantity;
+      }
+      final subtotal =
+          (widget.cartTotal - itemDiscount).clamp(0.0, double.infinity);
+
+      DiscountResolution? cartRule;
+      DiscountResolution? thresholdRule;
+      var promoInvalid = false;
+      if (promo.isNotEmpty) {
+        // A typed code never falls through to a threshold rule server-side.
+        cartRule = await discounts.resolveCart(subtotal, promoCode: promo);
+        if (seq != _resolveSeq) return;
+        promoInvalid = !cartRule.applied;
+      } else if (_typedManualDiscount <= 0) {
+        // Threshold rules only auto-apply when no promo/manual discount wins.
+        thresholdRule = await discounts.resolveCart(subtotal);
+        if (seq != _resolveSeq) return;
+      }
+
+      if (!mounted || seq != _resolveSeq) return;
+      setState(() {
+        _breakdown = _SaleBreakdown(
+          itemDiscount: itemDiscount,
+          subtotal: subtotal,
+          cartRule: cartRule,
+          thresholdRule: thresholdRule,
+          promoInvalid: promoInvalid,
+        );
+      });
+      _syncPaidNowDefault();
+    } on AppException {
+      // Resolver unreachable — keep legacy totals rather than block checkout.
+      if (!mounted || seq != _resolveSeq) return;
+      setState(() => _breakdown = null);
+    }
+  }
+
+  /// Keeps the tendered amount defaulting to the full remaining total until
+  /// the cashier types their own figure.
+  void _syncPaidNowDefault() {
+    if (_paidTouched) return;
+    _setPaidDefault(coverable.toStringAsFixed(2));
+  }
+
   /// A discount change moves the grand total; assume full payment of the
   /// remaining coverable amount until the user enters a partial amount.
   void _onDiscountChanged() {
-    _paidNowCtrl.text = coverable.toStringAsFixed(2);
     setState(() {});
+    _scheduleRecalc();
+    _setPaidDefault(coverable.toStringAsFixed(2));
+  }
+
+  void _onPromoChanged() {
+    setState(() {});
+    _scheduleRecalc();
   }
 
   void _toggleAdvance(bool on) {
@@ -95,7 +284,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       _localError = null;
     });
     // Re-default the tendered amount to whatever's left after advance credit.
-    _paidNowCtrl.text = coverable.toStringAsFixed(2);
+    _setPaidDefault(coverable.toStringAsFixed(2));
   }
 
   // ── Customer loading ─────────────────────────────────────────────────────────
@@ -125,7 +314,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       _applyAdvance = false; // reset — advance belongs to a specific customer
       _localError = null;
     });
-    _paidNowCtrl.text = coverable.toStringAsFixed(2);
+    _setPaidDefault(coverable.toStringAsFixed(2));
     if (c == null) return;
 
     try {
@@ -143,8 +332,16 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
 
   // ── Submit ───────────────────────────────────────────────────────────────────
 
-  void _submit() {
+  Future<void> _submit() async {
     final s = S.of(context);
+    if (_presubmitting) return;
+    // Re-resolve so the charge mirrors the server even if rules changed while
+    // this screen was open. On resolver failure grandTotal falls back to
+    // legacy client math (correct whenever no discount rule matches).
+    setState(() => _presubmitting = true);
+    await _recalc();
+    if (!mounted) return;
+    setState(() => _presubmitting = false);
     final gt = grandTotal;
     if (gt <= 0) {
       setState(() => _localError = s.nothingToCharge);
@@ -166,17 +363,19 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       return;
     }
     setState(() => _localError = null);
+    final promo = _promoCtrl.text.trim();
     ref.read(quickSaleControllerProvider.notifier).submit(
           grandTotal: gt,
           paidNow: paidNow,
           paymentMethod: _methodCodes[_methodIndex],
-          discountAmount: _discount,
+          discountAmount: _manualDiscount,
           advanceApplied: advanceApplied,
           paymentReference: _isCash ? '' : _referenceCtrl.text.trim(),
           customerName: _customer?.fullName ?? 'Walk-in',
           customerId: _customer?.id,
           customerPhone: _customer?.phone,
           vehicleId: _vehicle?.id,
+          promoCode: promo.isEmpty ? null : promo,
         );
   }
 
@@ -204,6 +403,11 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
           _AmountCard(
             cartTotal: widget.cartTotal,
             discountCtrl: _discountCtrl,
+            promoCtrl: _promoCtrl,
+            itemDiscount: _breakdown?.itemDiscount ?? 0,
+            cartRule: _displayCartRule,
+            showPromoInvalid:
+                _breakdown?.promoInvalid == true && _cartDiscountAmount <= 0,
             grandTotal: grandTotal,
           ),
           const SizedBox(height: 14),
@@ -254,22 +458,23 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
           SizedBox(
             height: 56,
             child: FilledButton(
-              onPressed: isSubmitting ? null : _submit,
+              onPressed:
+                  (isSubmitting || _presubmitting) ? null : _submit,
               style: FilledButton.styleFrom(
                 textStyle: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w700),
               ),
-              child: isSubmitting
-                  ? SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: context.colors.onInk),
-                    )
-                  : Text(due > 0
-                      ? S.of(context).confirmPaid(
-                          formatCurrency(paidNow.clamp(0, grandTotal)))
-                      : S.of(context).confirmSale),
+                child: (isSubmitting || _presubmitting)
+                    ? SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: context.colors.onInk),
+                      )
+                    : Text(due > 0
+                        ? S.of(context).confirmPaid(
+                            formatCurrency(paidNow.clamp(0, grandTotal)))
+                        : S.of(context).confirmSale),
             ),
           ),
         ],
@@ -278,17 +483,31 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   }
 }
 
-// ── Amount card (with explicit discount) ──────────────────────────────────────
+// ── Amount card (manual discount, promo code, auto-discount breakdown) ───────
 
 class _AmountCard extends StatelessWidget {
   const _AmountCard({
     required this.cartTotal,
     required this.discountCtrl,
+    required this.promoCtrl,
+    required this.itemDiscount,
+    required this.cartRule,
+    required this.showPromoInvalid,
     required this.grandTotal,
   });
 
   final double cartTotal;
   final TextEditingController discountCtrl;
+  final TextEditingController promoCtrl;
+
+  /// Auto item-level discounts the server will apply.
+  final double itemDiscount;
+
+  /// The cart-level rule being applied (promo or threshold), if any.
+  final DiscountResolution? cartRule;
+
+  /// A promo code was typed but matched nothing.
+  final bool showPromoInvalid;
   final double grandTotal;
 
   @override
@@ -311,6 +530,15 @@ class _AmountCard extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w600)),
             ],
           ),
+          // Auto-applied product/variant discount rules (server-side).
+          if (itemDiscount > 0) ...[
+            const SizedBox(height: 8),
+            _AutoDiscountRow(
+              label: S.of(context).itemDiscounts,
+              amount: itemDiscount,
+              name: null,
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -340,6 +568,34 @@ class _AmountCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: promoCtrl,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              labelText: S.of(context).promoCode,
+              isDense: true,
+              prefixIcon: const Icon(Icons.local_offer_outlined, size: 20),
+              border: const OutlineInputBorder(),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              errorText: showPromoInvalid ? S.of(context).invalidPromoCode : null,
+            ),
+          ),
+          // Cart-level rule actually applied (promo or threshold).
+          if (cartRule != null) ...[
+            const SizedBox(height: 8),
+            Builder(builder: (context) {
+              final promoText = promoCtrl.text.trim();
+              return _AutoDiscountRow(
+                label: promoText.isNotEmpty
+                    ? S.of(context).promoRowLabel(promoText.toUpperCase())
+                    : S.of(context).storeDiscount,
+                amount: cartRule!.discountAmount,
+                name: cartRule!.discountName,
+              );
+            }),
+          ],
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(height: 1),
@@ -359,6 +615,50 @@ class _AmountCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Green summary row for a server-applied automatic discount.
+class _AutoDiscountRow extends StatelessWidget {
+  const _AutoDiscountRow({
+    required this.label,
+    required this.amount,
+    required this.name,
+  });
+
+  final String label;
+  final double amount;
+
+  /// Rule description shown under the label when available.
+  final String? name;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: Colors.green.shade700)),
+              if (name != null && name!.isNotEmpty)
+                Text(name!,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+        Text('− ${formatCurrency(amount)}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600, color: Colors.green.shade700)),
+      ],
     );
   }
 }

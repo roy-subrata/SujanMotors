@@ -5,6 +5,7 @@ using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.ReportDtos;
 using AutoPartShop.Application.Reports;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 
@@ -15,7 +16,6 @@ namespace AutoPartShop.Api.Controllers.Reports;
 /// require reports.export. Data comes from dbo.usp_Report_* stored procedures.
 /// </summary>
 [ApiController]
-[Route("api/reports/sales")]
 [Route("api/v1/reports/sales")]
 [HasPermission(Permissions.ReportsView)]
 public class SalesReportsController(
@@ -53,8 +53,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var rows = await reportRepository.GetSalesSummaryAsync(query, cancellationToken);
-            return ExportFile(format, "Sales Summary", BuildFilterSummary(query), rows, ReportColumnMaps.SalesSummary, "sales-summary");
+            return ExportFile(format, DocStrings.T("report.titles.salesSummary", lang), BuildFilterSummary(query), rows, ReportColumnMaps.SalesSummary(lang), "sales-summary");
         }
         catch (ArgumentException ex)
         {
@@ -96,8 +97,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetSalesByProductAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Sales by Product", BuildFilterSummary(query), page.Data, ReportColumnMaps.SalesByProduct, "sales-by-product");
+            return ExportFile(format, DocStrings.T("report.titles.salesByProduct", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.SalesByProduct(lang), "sales-by-product");
         }
         catch (ArgumentException ex)
         {
@@ -139,8 +141,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var rows = await reportRepository.GetSalesByCategoryAsync(query, cancellationToken);
-            return ExportFile(format, "Sales by Category", BuildFilterSummary(query), rows, ReportColumnMaps.SalesByCategory, "sales-by-category");
+            return ExportFile(format, DocStrings.T("report.titles.salesByCategory", lang), BuildFilterSummary(query), rows, ReportColumnMaps.SalesByCategory(lang), "sales-by-category");
         }
         catch (ArgumentException ex)
         {
@@ -182,8 +185,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetSalesByCustomerAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Sales by Customer", BuildFilterSummary(query), page.Data, ReportColumnMaps.SalesByCustomer, "sales-by-customer");
+            return ExportFile(format, DocStrings.T("report.titles.salesByCustomer", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.SalesByCustomer(lang), "sales-by-customer");
         }
         catch (ArgumentException ex)
         {
@@ -225,8 +229,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var rows = await reportRepository.GetSalesBySalespersonAsync(query, cancellationToken);
-            return ExportFile(format, "Sales by Salesperson", BuildFilterSummary(query), rows, ReportColumnMaps.SalesBySalesperson, "sales-by-salesperson");
+            return ExportFile(format, DocStrings.T("report.titles.salesBySalesperson", lang), BuildFilterSummary(query), rows, ReportColumnMaps.SalesBySalesperson(lang), "sales-by-salesperson");
         }
         catch (ArgumentException ex)
         {
@@ -268,8 +273,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var rows = await reportRepository.GetSalesByCashierAsync(query, cancellationToken);
-            return ExportFile(format, "Sales by Cashier", BuildFilterSummary(query), rows, ReportColumnMaps.SalesByCashier, "sales-by-cashier");
+            return ExportFile(format, DocStrings.T("report.titles.salesByCashier", lang), BuildFilterSummary(query), rows, ReportColumnMaps.SalesByCashier(lang), "sales-by-cashier");
         }
         catch (ArgumentException ex)
         {
@@ -311,8 +317,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetSalesReturnsAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Sales Returns", BuildFilterSummary(query), page.Data, ReportColumnMaps.SalesReturns, "sales-returns");
+            return ExportFile(format, DocStrings.T("report.titles.salesReturns", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.SalesReturns(lang), "sales-returns");
         }
         catch (ArgumentException ex)
         {
@@ -354,8 +361,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var rows = await reportRepository.GetPaymentCollectionsAsync(query, cancellationToken);
-            return ExportFile(format, "Payment Collections", BuildFilterSummary(query), rows, ReportColumnMaps.PaymentCollections, "payment-collections");
+            return ExportFile(format, DocStrings.T("report.titles.paymentCollections", lang), BuildFilterSummary(query), rows, ReportColumnMaps.PaymentCollections(lang), "payment-collections");
         }
         catch (ArgumentException ex)
         {
@@ -397,8 +405,9 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetProfitByProductAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Profit by Product", BuildFilterSummary(query), page.Data, ReportColumnMaps.ProfitByProduct, "profit-by-product");
+            return ExportFile(format, DocStrings.T("report.titles.profitByProduct", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.ProfitByProduct(lang), "profit-by-product");
         }
         catch (ArgumentException ex)
         {
@@ -427,6 +436,8 @@ public class SalesReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
+
             // Each sub-report needs its own GroupBy; clone the query so filters don't leak between them.
             ReportQuery With(string? groupBy) => new()
             {
@@ -463,7 +474,7 @@ public class SalesReportsController(
                 // Deliberately shop-wide, not per-terminal — this is the whole-day summary across
                 // every cashier/counter. TillSession (cashier-shifts feature) now exists and gives
                 // the per-terminal, per-shift equivalent via the Shift Report instead.
-                TerminalLabel: "All Tills",
+                TerminalLabel: DocStrings.T("dailySales.allTills", lang),
                 GrossSales: gross,
                 ReturnsAmount: returnsTotal,
                 DiscountsAmount: discounts,
@@ -471,7 +482,7 @@ public class SalesReportsController(
                 VatCollected: vat,
                 ReceiptCount: receipts,
                 Payments: paymentRows
-                    .Select(p => new ZReportPaymentRow(FormatMethod(p.GroupKey), p.PaymentCount, p.TotalAmount))
+                    .Select(p => new ZReportPaymentRow(FormatMethod(p.GroupKey, lang), p.PaymentCount, p.TotalAmount))
                     .ToList(),
                 Categories: categoryRows
                     .OrderByDescending(c => c.NetRevenue)
@@ -479,7 +490,7 @@ public class SalesReportsController(
                     .ToList(),
                 Note: "");
 
-            var pdfBytes = new DailySalesReportDocument(data, shop).GeneratePdf();
+            var pdfBytes = new DailySalesReportDocument(data, shop, DocTheme.Default with { Lang = lang }).GeneratePdf();
             return File(pdfBytes, "application/pdf", $"daily-sales-report-{businessDate:yyyyMMdd}.pdf");
         }
         catch (ArgumentException ex)
@@ -493,13 +504,13 @@ public class SalesReportsController(
         }
     }
 
-    private static string FormatMethod(string method) => method switch
+    private static string FormatMethod(string method, string lang) => method switch
     {
-        "CASH" => "Cash",
-        "CARD" => "Card",
-        "MOBILE_BANKING" => "Mobile Banking",
-        "BANK_TRANSFER" => "Bank Transfer",
-        "ADVANCE_CREDIT" => "Credit Applied",
-        _ => string.IsNullOrWhiteSpace(method) ? "Other" : method.Replace('_', ' ')
+        "CASH" => DocStrings.T("common.paymentMethod.cash", lang),
+        "CARD" => DocStrings.T("common.paymentMethod.card", lang),
+        "MOBILE_BANKING" => DocStrings.T("common.paymentMethod.mobileBanking", lang),
+        "BANK_TRANSFER" => DocStrings.T("common.paymentMethod.bankTransfer", lang),
+        "ADVANCE_CREDIT" => DocStrings.T("common.paymentMethod.creditApplied", lang),
+        _ => string.IsNullOrWhiteSpace(method) ? DocStrings.T("common.paymentMethod.other", lang) : method.Replace('_', ' ')
     };
 }

@@ -1,0 +1,33 @@
+    <app-page-container>
+      <app-page-header
+        [title]="i18n.t('shortcuts.title')"
+        [subtitle]="i18n.t('shortcuts.subtitle')">
+      </app-page-header>
+
+      <div class="shortcuts-page">
+        <div class="shortcuts-note">
+          <i class="pi pi-info-circle"></i>
+          <span>{{ i18n.t('shortcuts.note') }}</span>
+        </div>
+
+        <div class="shortcut-groups">
+          <div class="shortcut-group" *ngFor="let group of groups">
+            <div class="shortcut-group-heading">
+              <i [class]="group.icon"></i>
+              <h2>{{ i18n.t(group.title) }}</h2>
+            </div>
+            <div class="shortcut-list">
+              <div class="shortcut-row" *ngFor="let entry of group.entries">
+                <span class="shortcut-desc">{{ i18n.t(entry.description) }}</span>
+                <span class="shortcut-keys">
+                  <ng-container *ngFor="let key of entry.keys; let last = last">
+                    <kbd>{{ key }}</kbd>
+                    <span *ngIf="!last" class="shortcut-plus">+</span>
+                  </ng-container>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </app-page-container>

@@ -17,6 +17,9 @@ import { BackupService, BackupRecord, DriveStatus } from '../../../shared/servic
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { BackupRecordStatus } from '@/shared/models/status.types';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
   selector: 'app-backups',
@@ -40,241 +43,16 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     DataPaginationComponent,
   ],
   providers: [MessageService],
-  template: `
-    <p-toast></p-toast>
-
-    <app-page-container>
-      <app-page-header
-        title="Database Backups"
-        subtitle="Scheduled backups, Google Drive upload and restore"
-        [count]="totalRecords"
-        countLabel="backups">
-        <ng-container actions>
-          <button class="btn-icon" (click)="loadHistory()" pTooltip="Refresh" tooltipPosition="bottom">
-            <i class="pi pi-refresh"></i>
-          </button>
-          <button class="btn-primary" (click)="backupNow()" [disabled]="operationRunning()">
-            <i class="pi" [class.pi-spin]="operationRunning()" [class.pi-spinner]="operationRunning()" [class.pi-play]="!operationRunning()"></i>
-            <span>{{ operationRunning() ? 'Working…' : 'Backup Now' }}</span>
-          </button>
-        </ng-container>
-      </app-page-header>
-
-      <div class="w-full px-4 py-6">
-
-        <!-- Schedule settings -->
-        <p-card styleClass="mb-4">
-          <ng-template pTemplate="header">
-            <div class="flex items-center gap-2 px-5 pt-4">
-              <i class="pi pi-calendar-clock text-blue-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Backup Schedule</h2>
-            </div>
-          </ng-template>
-
-          <div *ngIf="settingsLoading()" class="flex justify-center py-8">
-            <i class="pi pi-spin pi-spinner text-2xl text-gray-400"></i>
-          </div>
-
-          <form *ngIf="!settingsLoading()" [formGroup]="form" (ngSubmit)="saveSettings()">
-            <div class="flex items-center justify-between mb-5">
-              <div>
-                <p class="font-medium text-gray-700 m-0">Enable daily scheduled backups</p>
-                <p class="text-sm text-gray-400 mt-1 m-0">Runs automatically at the time below (checked every 5 minutes)</p>
-              </div>
-              <p-toggleswitch formControlName="enabled"></p-toggleswitch>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Backup time (shop local)</label>
-                <input type="time" pInputText formControlName="localTime" class="w-full" />
-                <small class="text-gray-400">Daily backup time on the shop's clock</small>
-                <small class="p-error block mt-1" *ngIf="form.get('localTime')?.invalid && form.get('localTime')?.touched">
-                  Backup time is required
-                </small>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> Backups to keep</label>
-                <p-inputNumber
-                  formControlName="retentionCount"
-                  [min]="1" [max]="365"
-                  [showButtons]="true"
-                  styleClass="w-full"
-                  inputStyleClass="w-full">
-                </p-inputNumber>
-                <small class="text-gray-400">Older backups are deleted locally and on Google Drive</small>
-                <small class="p-error block mt-1" *ngIf="form.get('retentionCount')?.invalid && form.get('retentionCount')?.touched">
-                  Enter a value between 1 and 365
-                </small>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2">Google Drive folder ID</label>
-                <input pInputText formControlName="gdriveFolderId" placeholder="Leave empty to keep backups local only" class="w-full" />
-                <small class="text-gray-400">The folder must be shared with the service account below</small>
-              </div>
-            </div>
-
-            <!-- Drive status -->
-            <div class="mt-4 p-3 rounded-lg border"
-                 [class.bg-green-50]="driveStatus()?.ok"
-                 [class.border-green-200]="driveStatus()?.ok"
-                 [class.bg-amber-50]="driveStatus() && !driveStatus()?.ok"
-                 [class.border-amber-200]="driveStatus() && !driveStatus()?.ok">
-              <div class="flex items-center gap-2 text-sm">
-                <i class="pi" [class.pi-cloud-upload]="driveStatus()?.ok" [class.text-green-600]="driveStatus()?.ok"
-                   [class.pi-exclamation-triangle]="driveStatus() && !driveStatus()?.ok" [class.text-amber-600]="driveStatus() && !driveStatus()?.ok"></i>
-                <span *ngIf="!driveStatus()" class="text-gray-500">
-                  <i class="pi pi-spin pi-spinner mr-1"></i>Checking Google Drive connection…
-                </span>
-                <span *ngIf="driveStatus()?.ok" class="text-green-700">
-                  Google Drive connected — backups will be uploaded.
-                </span>
-                <span *ngIf="driveStatus() && !driveStatus()?.ok" class="text-amber-700">
-                  {{ driveStatus()?.error || 'Google Drive is not available; backups stay local only.' }}
-                </span>
-              </div>
-              <div *ngIf="driveStatus()?.serviceAccountEmail" class="text-xs text-gray-500 mt-2">
-                Share your Drive folder (as Editor) with:
-                <code class="bg-gray-100 px-1 rounded">{{ driveStatus()?.serviceAccountEmail }}</code>
-              </div>
-            </div>
-
-            <div class="flex justify-end mt-4">
-              <button pButton type="submit" label="Save Settings" icon="pi pi-save"
-                      [loading]="settingsSaving()" [disabled]="form.invalid || settingsSaving()"
-                      class="p-button-success"></button>
-            </div>
-          </form>
-        </p-card>
-
-        <!-- History -->
-        <p-card>
-          <ng-template pTemplate="header">
-            <div class="flex items-center gap-2 px-5 pt-4">
-              <i class="pi pi-history text-gray-500 text-xl"></i>
-              <h2 class="text-lg font-semibold text-gray-700 m-0">Backup History</h2>
-            </div>
-          </ng-template>
-
-          <p-table [value]="records()" [loading]="historyLoading()" responsiveLayout="scroll" styleClass="p-datatable-sm">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>File</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Size</th>
-                <th>Started</th>
-                <th>By</th>
-                <th style="width:110px">Actions</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-record>
-              <tr>
-                <td>
-                  <span class="font-mono text-sm">{{ record.fileName }}</span>
-                  <i *ngIf="record.uploadedToDrive" class="pi pi-cloud-upload text-blue-500 ml-2"
-                     pTooltip="Uploaded to Google Drive" tooltipPosition="top"></i>
-                  <i *ngIf="!record.localFileExists && record.uploadedToDrive" class="pi pi-info-circle text-gray-400 ml-1"
-                     pTooltip="Local file removed — will be re-downloaded from Drive when needed" tooltipPosition="top"></i>
-                </td>
-                <td><p-tag [value]="record.triggerType" [severity]="triggerSeverity(record.triggerType)"></p-tag></td>
-                <td>
-                  <p-tag [value]="record.status" [severity]="statusSeverity(record.status)"
-                         [pTooltip]="record.errorMessage ?? ''" tooltipPosition="top"></p-tag>
-                  <i *ngIf="record.status === 'Running'" class="pi pi-spin pi-spinner text-blue-500 ml-2"></i>
-                </td>
-                <td>{{ formatSize(record.sizeBytes) }}</td>
-                <td>
-                  <span [pTooltip]="((record.startedAt + 'Z') | date:'medium') ?? ''" tooltipPosition="top">
-                    {{ (record.startedAt + 'Z') | date:'MMM d, HH:mm' }}
-                  </span>
-                </td>
-                <td>{{ record.createdBy }}</td>
-                <td>
-                  <div class="flex gap-1">
-                    <button pButton type="button" icon="pi pi-download" class="p-button-text p-button-sm"
-                            pTooltip="Download .bak" tooltipPosition="top"
-                            [disabled]="!isRestorable(record) || downloadingId() === record.id"
-                            [loading]="downloadingId() === record.id"
-                            (click)="download(record)"></button>
-                    <button pButton type="button" icon="pi pi-replay" class="p-button-text p-button-sm p-button-danger"
-                            pTooltip="Restore this backup" tooltipPosition="top"
-                            [disabled]="!isRestorable(record) || operationRunning()"
-                            (click)="openRestoreDialog(record)"></button>
-                  </div>
-                </td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr>
-                <td colspan="7" class="text-center text-gray-400 py-8">
-                  No backups yet — click “Backup Now” or enable the schedule above.
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
-
-          <app-data-pagination
-            [first]="(page - 1) * pageSize"
-            [pageSize]="pageSize"
-            [totalRecords]="totalRecords"
-            itemLabel="backups"
-            (pageChange)="goToPage($event)"
-            (pageSizeChange)="onPageSizeChange($event)">
-          </app-data-pagination>
-        </p-card>
-      </div>
-    </app-page-container>
-
-    <!-- Restore confirmation -->
-    <p-dialog header="Restore Database" [(visible)]="restoreDialogVisible" [modal]="true" [style]="{ width: '480px' }"
-              [closable]="!restoring()">
-      <div *ngIf="restoreTarget" class="flex flex-col gap-3">
-        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-          <p class="font-semibold m-0 mb-2"><i class="pi pi-exclamation-triangle mr-1"></i>This will replace ALL current data</p>
-          <ul class="m-0 pl-4 list-disc">
-            <li>The database is rolled back to <strong>{{ (restoreTarget.startedAt + 'Z') | date:'medium' }}</strong> — everything entered after that is lost.</li>
-            <li>A safety backup of the current state is taken automatically first.</li>
-            <li>All users are briefly disconnected during the restore.</li>
-            <li>Backup history itself also reverts to that point (files remain on disk/Drive).</li>
-          </ul>
-        </div>
-        <p class="text-sm text-gray-600 m-0">
-          Restoring <span class="font-mono">{{ restoreTarget.fileName }}</span>.
-          Type <strong>RESTORE</strong> to confirm:
-        </p>
-        <input pInputText [(ngModel)]="restoreConfirmation" [disabled]="restoring()"
-               placeholder="Type RESTORE" class="w-full" autocomplete="off" />
-      </div>
-      <ng-template pTemplate="footer">
-        <button pButton type="button" label="Cancel" class="p-button-text" [disabled]="restoring()"
-                (click)="restoreDialogVisible = false"></button>
-        <button pButton type="button" label="Restore Database" icon="pi pi-replay" class="p-button-danger"
-                [disabled]="restoreConfirmation !== 'RESTORE' || restoring()" [loading]="restoring()"
-                (click)="confirmRestore()"></button>
-      </ng-template>
-    </p-dialog>
-  `,
-  styles: [`
-    /* This page is built with Tailwind gray-scale utility classes, which are
-       static (they don't flip under the app's .app-dark class the way the
-       --color-* tokens from assets/_data-page.scss do). Re-point the neutral
-       text/background utilities actually used above at those tokens so the
-       page stays readable in dark mode. */
-    :host ::ng-deep {
-      .text-gray-400 { color: var(--color-text-muted) !important; }
-      .text-gray-500 { color: var(--color-text-muted) !important; }
-      .text-gray-600 { color: var(--color-text-secondary) !important; }
-      .text-gray-700 { color: var(--color-text-primary) !important; }
-      .bg-gray-100 { background-color: var(--color-bg-secondary) !important; }
-    }
-  `],
+  templateUrl: './backups.component.html',
+  styleUrl: './backups.component.scss',
 })
 export class BackupsComponent implements OnInit, OnDestroy {
   private readonly settingsService = inject(AppSettingsService);
   private readonly backupService = inject(BackupService);
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);
+  private readonly statusDisplayService = inject(StatusDisplayService);
+  readonly i18n = inject(I18nService);
 
   settingsLoading = signal(true);
   settingsSaving = signal(false);
@@ -327,7 +105,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
         this.settingsLoading.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load backup settings' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('backups.messages.loadSettingsFailed') });
         this.settingsLoading.set(false);
       },
     });
@@ -355,7 +133,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
         next: () => {
           completed++;
           if (completed === updates.length && !failed) {
-            this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Backup settings updated — changes take effect within 5 minutes' });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('backups.messages.settingsSavedSummary'), detail: this.i18n.t('backups.messages.settingsSavedDetail') });
             this.settingsSaving.set(false);
             this.loadDriveStatus();
           }
@@ -363,7 +141,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
         error: () => {
           if (!failed) {
             failed = true;
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save one or more settings' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('backups.messages.saveSettingsFailed') });
             this.settingsSaving.set(false);
           }
         },
@@ -374,7 +152,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
   loadDriveStatus(): void {
     this.backupService.getDriveStatus().subscribe({
       next: status => this.driveStatus.set(status),
-      error: () => this.driveStatus.set({ configured: false, ok: false, serviceAccountEmail: null, error: 'Could not check Google Drive status' }),
+      error: () => this.driveStatus.set({ configured: false, ok: false, serviceAccountEmail: null, error: this.i18n.t('backups.messages.driveStatusCheckFailed') }),
     });
   }
 
@@ -395,7 +173,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.historyLoading.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load backup history' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('backups.messages.loadHistoryFailed') });
       },
     });
   }
@@ -417,14 +195,14 @@ export class BackupsComponent implements OnInit, OnDestroy {
     this.operationRunning.set(true);
     this.backupService.runBackup().subscribe({
       next: () => {
-        this.messageService.add({ severity: 'info', summary: 'Backup started', detail: 'The backup is running in the background' });
+        this.messageService.add({ severity: 'info', summary: this.i18n.t('backups.messages.backupStartedSummary'), detail: this.i18n.t('backups.messages.backupStartedDetail') });
         this.page = 1;
         this.loadHistory();
         this.startPolling();
       },
       error: err => {
         this.operationRunning.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message ?? 'Failed to start backup' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message ?? this.i18n.t('backups.messages.startBackupFailed') });
       },
     });
   }
@@ -443,7 +221,7 @@ export class BackupsComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.downloadingId.set(null);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to download backup file' });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('backups.messages.downloadFailed') });
       },
     });
   }
@@ -464,13 +242,13 @@ export class BackupsComponent implements OnInit, OnDestroy {
         this.restoring.set(false);
         this.operationRunning.set(false);
         this.restoreDialogVisible = false;
-        this.messageService.add({ severity: 'success', summary: 'Restored', detail: result.message, life: 8000 });
+        this.messageService.add({ severity: 'success', summary: this.i18n.t('backups.messages.restoredSummary'), detail: result.message, life: 8000 });
         this.loadHistory();
       },
       error: err => {
         this.restoring.set(false);
         this.operationRunning.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Restore failed', detail: err?.error?.message ?? 'The restore failed — check server logs', life: 10000 });
+        this.messageService.add({ severity: 'error', summary: this.i18n.t('backups.messages.restoreFailedSummary'), detail: err?.error?.message ?? this.i18n.t('backups.messages.restoreFailedDetail'), life: 10000 });
       },
     });
   }
@@ -495,14 +273,8 @@ export class BackupsComponent implements OnInit, OnDestroy {
     return record.status === 'Succeeded' || record.status === 'UploadFailed';
   }
 
-  statusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
-    switch (status) {
-      case 'Succeeded': return 'success';
-      case 'Running': return 'info';
-      case 'UploadFailed': return 'warn';
-      case 'Failed': return 'danger';
-      default: return 'secondary';
-    }
+  statusSeverity(status: BackupRecordStatus): StatusSeverity {
+    return this.statusDisplayService.getSeverity(status, 'backup');
   }
 
   triggerSeverity(trigger: string): 'info' | 'secondary' | 'warn' {
@@ -511,6 +283,26 @@ export class BackupsComponent implements OnInit, OnDestroy {
       case 'PreRestore': return 'warn';
       default: return 'secondary';
     }
+  }
+
+  statusLabel(status: BackupRecordStatus): string {
+    const map: Record<BackupRecordStatus, string> = {
+      Pending: 'backups.statuses.pending',
+      Running: 'backups.statuses.running',
+      Succeeded: 'backups.statuses.succeeded',
+      UploadFailed: 'backups.statuses.uploadFailed',
+      Failed: 'backups.statuses.failed',
+    };
+    return this.i18n.t(map[status] ?? status);
+  }
+
+  triggerLabel(trigger: 'Manual' | 'Scheduled' | 'PreRestore'): string {
+    const map: Record<string, string> = {
+      Manual: 'backups.triggers.manual',
+      Scheduled: 'backups.triggers.scheduled',
+      PreRestore: 'backups.triggers.preRestore',
+    };
+    return this.i18n.t(map[trigger] ?? trigger);
   }
 
   formatSize(bytes: number): string {

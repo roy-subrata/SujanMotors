@@ -306,6 +306,8 @@ class QuickSaleController extends Notifier<QuickSaleState> {
   /// [advanceApplied] draws down existing advance credit first; [paidNow] is
   /// tendered via [paymentMethod]; any remainder of [grandTotal] becomes due.
   /// [discountAmount] is the explicit cart discount (subtotal → grandTotal).
+  /// [grandTotal] is the server-mirrored total (see ChargeScreen) so payment
+  /// lines match the invoice after the API auto-applies discount rules.
   Future<void> submit({
     required double grandTotal,
     required double paidNow,
@@ -317,6 +319,7 @@ class QuickSaleController extends Notifier<QuickSaleState> {
     String? customerId,
     String? customerPhone,
     String? vehicleId,
+    String? promoCode,
   }) async {
     if (state.isSubmitting || state.items.isEmpty) return;
     state = state.copyWith(isSubmitting: true, submitError: null);
@@ -341,6 +344,7 @@ class QuickSaleController extends Notifier<QuickSaleState> {
             customerId: customerId,
             customerPhone: customerPhone,
             vehicleId: vehicleId,
+            promoCode: promoCode,
           );
       state = state.copyWith(isSubmitting: false, result: result);
     } on AppException catch (e) {

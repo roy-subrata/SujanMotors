@@ -4,23 +4,23 @@
   <div class="wl-dialog-layout">
     <!-- Left: Location info + quantity -->
     <div class="wl-info-panel">
-      <h4 class="panel-title"><i class="pi pi-map-marker"></i> Location</h4>
+      <h4 class="panel-title"><i class="pi pi-map-marker"></i> {{ 'warehouseLocations.labelDialog.title' | translate }}</h4>
 
       <div class="info-row">
-        <span class="info-label">Location Code</span>
+        <span class="info-label">{{ 'warehouseLocations.locationCode' | translate }}</span>
         <span class="info-value mono">{{ location?.locationCode }}</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Warehouse</span>
+        <span class="info-label">{{ 'stock.warehouse' | translate }}</span>
         <span class="info-value">{{ location?.warehouseName }}</span>
       </div>
       <div class="info-row" *ngIf="location?.categoryName">
-        <span class="info-label">Category</span>
+        <span class="info-label">{{ 'common.labels.category' | translate }}</span>
         <span class="info-value">{{ location?.categoryName }}</span>
       </div>
 
       <div class="field">
-        <label for="qty">Print Quantity</label>
+        <label for="qty">{{ 'warehouseLocations.labelDialog.printQuantity' | translate }}</label>
         <div class="qty-input-group">
           <button pButton icon="pi pi-minus" class="p-button-sm p-button-outlined"
             (click)="quantity = quantity > 1 ? quantity - 1 : 1"
@@ -34,13 +34,13 @@
             (click)="quantity = quantity < maxQuantity ? quantity + 1 : maxQuantity"
             [disabled]="quantity >= maxQuantity"></button>
         </div>
-        <small class="field-hint">Max {{ maxQuantity }} per batch</small>
+        <small class="field-hint">{{ 'warehouseLocations.labelDialog.maxPerBatch' | translate:{ max: maxQuantity.toString() } }}</small>
       </div>
     </div>
 
     <!-- Right: Label preview -->
     <div class="wl-preview-panel">
-      <h4 class="panel-title"><i class="pi pi-eye"></i> Label Preview</h4>
+      <h4 class="panel-title"><i class="pi pi-eye"></i> {{ 'warehouseLocations.labelDialog.labelPreview' | translate }}</h4>
 
       <div class="label-preview-wrapper">
         <div class="label-preview-stage">
@@ -67,11 +67,11 @@
     <div class="action-bar-left"></div>
     <div class="action-bar-right">
       <button pButton icon="pi pi-print"
-        [label]="quantity > 1 ? 'Print Labels (' + quantity + ')' : 'Print Label'"
+        [label]="printButtonLabel"
         class="p-button-sm"
         (click)="printLabel()"
         [disabled]="isGenerating || !labelHtmlSafe"></button>
-      <button pButton icon="pi pi-times" label="Close"
+      <button pButton icon="pi pi-times" [label]="'common.actions.close' | translate"
         class="p-button-sm p-button-text"
         (click)="closeDialog()"></button>
     </div>

@@ -5,6 +5,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
+import '../../shared/models/status_enums.dart';
 import '../../shared/widgets/paged_list_view.dart';
 import '../../shared/widgets/state_views.dart';
 import 'customers_repository.dart';
@@ -23,16 +24,18 @@ class CustomerPaymentHistoryScreen extends ConsumerStatefulWidget {
 
 class _CustomerPaymentHistoryScreenState
     extends ConsumerState<CustomerPaymentHistoryScreen> {
-  String? _status; // null = All
+  CustomerPaymentStatus? _status; // null = All
   int? _total;
 
-  static const _filters = <String?, String>{
-    null: 'All',
-    'COMPLETED': 'Completed',
-    'PENDING': 'Pending',
-    'FAILED': 'Failed',
-    'REFUNDED': 'Refunded',
-  };
+  // Selectable filter chips, in display order (labels come from
+  // `S.statusName`/`S.all` at build time so they stay localized).
+  static const _filters = <CustomerPaymentStatus?>[
+    null,
+    CustomerPaymentStatus.completed,
+    CustomerPaymentStatus.pending,
+    CustomerPaymentStatus.failed,
+    CustomerPaymentStatus.refunded,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -52,13 +55,13 @@ class _CustomerPaymentHistoryScreenState
               child: Wrap(
                 spacing: 8,
                 children: [
-                  for (final entry in _filters.entries)
+                  for (final filter in _filters)
                     ChoiceChip(
-                      label: Text(entry.key == null
+                      label: Text(filter == null
                           ? S.of(context).all
-                          : S.of(context).statusName(entry.key!)),
-                      selected: _status == entry.key,
-                      onSelected: (_) => setState(() => _status = entry.key),
+                          : S.of(context).statusName(filter)),
+                      selected: _status == filter,
+                      onSelected: (_) => setState(() => _status = filter),
                     ),
                 ],
               ),
@@ -76,7 +79,7 @@ class _CustomerPaymentHistoryScreenState
           Divider(height: 1),
           Expanded(
             child: PagedListView<PaymentHistoryItem>(
-              resetKey: _status ?? 'all',
+              resetKey: _status?.wire ?? 'all',
               onLoaded: (total) {
                 if (_total != total) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -115,10 +118,17 @@ class _PaymentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final status = (item.status ?? '').toUpperCase();
-    final (bg, fg, icon) = switch (status) {
-      'COMPLETED' => (Colors.green.shade50, Colors.green.shade700, Icons.check),
-      'FAILED' => (scheme.errorContainer, scheme.error, Icons.close),
+    final (bg, fg, icon) = switch (item.status) {
+      CustomerPaymentStatus.completed => (
+          Colors.green.shade50,
+          Colors.green.shade700,
+          Icons.check
+        ),
+      CustomerPaymentStatus.failed => (
+          scheme.errorContainer,
+          scheme.error,
+          Icons.close
+        ),
       _ => (scheme.surfaceContainerHighest, scheme.onSurfaceVariant,
           Icons.schedule),
     };
@@ -144,7 +154,9 @@ class _PaymentTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          item.status == null ? '—' : S.of(context).statusName(item.status!),
+          item.status == CustomerPaymentStatus.unknown
+              ? '—'
+              : S.of(context).statusName(item.status),
           style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w600),
         ),
       ),

@@ -1,172 +1,175 @@
 import { ReportPageConfig } from './report-config.model';
 
-/** Inventory report group — backed by api/v1/reports/inventory/*. */
+/**
+ * Inventory report group — backed by api/v1/reports/inventory/*.
+ * All user-facing strings below are i18n keys (see ReportPageConfig docs).
+ */
 export const INVENTORY_REPORT_CONFIGS: ReportPageConfig[] = [
     {
         key: 'stock-summary',
         group: 'inventory',
-        title: 'Stock Summary & Valuation',
-        subtitle: 'Current stock per product and warehouse, valued at actual lot cost',
+        title: 'reports.pages.stockSummary.title',
+        subtitle: 'reports.pages.stockSummary.subtitle',
         icon: 'pi pi-warehouse',
         endpoint: 'v1/reports/inventory/stock-summary',
         paged: true,
         hasTotals: true,
         defaultRange: 'none',
-        itemLabel: 'stock rows',
+        itemLabel: 'reports.items.stockRows',
         filters: [
-            { kind: 'search', key: 'search', label: 'Search', placeholder: 'Search by product name, part no, SKU...' },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' },
-            { kind: 'lookup', key: 'categoryId', label: 'Category', lookup: 'category' },
-            { kind: 'lookup', key: 'brandId', label: 'Brand', lookup: 'brand' },
-            { kind: 'checkbox', key: 'includeZeroStock', label: 'Include zero stock', default: false }
+            { kind: 'search', key: 'search', label: 'common.actions.search', placeholder: 'reports.filters.searchProduct' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' },
+            { kind: 'lookup', key: 'categoryId', label: 'common.labels.category', lookup: 'category' },
+            { kind: 'lookup', key: 'brandId', label: 'reports.filters.brand', lookup: 'brand' },
+            { kind: 'checkbox', key: 'includeZeroStock', label: 'reports.filters.includeZeroStock', default: false }
         ],
         columns: [
-            { field: 'partNumber', header: 'Part No.' },
-            { field: 'partName', header: 'Product', mobilePrimary: true },
-            { field: 'variantName', header: 'Variant' },
-            { field: 'categoryName', header: 'Category' },
-            { field: 'warehouseName', header: 'Warehouse' },
-            { field: 'quantityOnHand', header: 'On Hand', type: 'number' },
-            { field: 'quantityReserved', header: 'Reserved', type: 'number' },
-            { field: 'quantityDamaged', header: 'Damaged', type: 'number' },
-            { field: 'quantityAvailable', header: 'Available', type: 'number' },
-            { field: 'averageCost', header: 'Avg Cost', type: 'money' },
-            { field: 'stockValue', header: 'Stock Value', type: 'money' }
+            { field: 'partNumber', header: 'reports.columns.partNo' },
+            { field: 'partName', header: 'reports.columns.product', mobilePrimary: true },
+            { field: 'variantName', header: 'reports.columns.variant' },
+            { field: 'categoryName', header: 'common.labels.category' },
+            { field: 'warehouseName', header: 'reports.filters.warehouse' },
+            { field: 'quantityOnHand', header: 'reports.columns.onHand', type: 'number' },
+            { field: 'quantityReserved', header: 'reports.columns.reserved', type: 'number' },
+            { field: 'quantityDamaged', header: 'reports.columns.damaged', type: 'number' },
+            { field: 'quantityAvailable', header: 'reports.columns.available', type: 'number' },
+            { field: 'averageCost', header: 'reports.columns.avgCost', type: 'money' },
+            { field: 'stockValue', header: 'reports.columns.stockValue', type: 'money' }
         ],
         totals: [
-            { field: 'totalStockValue', label: 'Total Stock Value', type: 'money' },
-            { field: 'distinctPartCount', label: 'Distinct Products', type: 'number' },
-            { field: 'totalQuantityOnHand', label: 'Total On Hand', type: 'number' }
+            { field: 'totalStockValue', label: 'reports.totals.totalStockValue', type: 'money' },
+            { field: 'distinctPartCount', label: 'reports.totals.distinctProducts', type: 'number' },
+            { field: 'totalQuantityOnHand', label: 'reports.totals.totalOnHand', type: 'number' }
         ]
     },
     {
         key: 'low-stock',
         group: 'inventory',
-        title: 'Low Stock',
-        subtitle: 'Parts at or below their configured minimum stock level',
+        title: 'reports.pages.lowStock.title',
+        subtitle: 'reports.pages.lowStock.subtitle',
         icon: 'pi pi-exclamation-triangle',
         endpoint: 'v1/reports/inventory/low-stock',
         paged: true,
         defaultRange: 'none',
-        itemLabel: 'parts',
+        itemLabel: 'reports.items.parts',
         filters: [
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' },
-            { kind: 'lookup', key: 'categoryId', label: 'Category', lookup: 'category' }
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' },
+            { kind: 'lookup', key: 'categoryId', label: 'common.labels.category', lookup: 'category' }
         ],
         columns: [
-            { field: 'partNumber', header: 'Part No.' },
-            { field: 'partName', header: 'Product', mobilePrimary: true },
-            { field: 'variantName', header: 'Variant' },
-            { field: 'categoryName', header: 'Category' },
-            { field: 'warehouseName', header: 'Warehouse' },
-            { field: 'quantityOnHand', header: 'On Hand', type: 'number' },
-            { field: 'minimumStock', header: 'Minimum', type: 'number' },
-            { field: 'reorderLevel', header: 'Reorder Level', type: 'number' },
-            { field: 'shortfall', header: 'Shortfall', type: 'number' }
+            { field: 'partNumber', header: 'reports.columns.partNo' },
+            { field: 'partName', header: 'reports.columns.product', mobilePrimary: true },
+            { field: 'variantName', header: 'reports.columns.variant' },
+            { field: 'categoryName', header: 'common.labels.category' },
+            { field: 'warehouseName', header: 'reports.filters.warehouse' },
+            { field: 'quantityOnHand', header: 'reports.columns.onHand', type: 'number' },
+            { field: 'minimumStock', header: 'reports.columns.minimum', type: 'number' },
+            { field: 'reorderLevel', header: 'reports.columns.reorderLevel', type: 'number' },
+            { field: 'shortfall', header: 'reports.columns.shortfall', type: 'number' }
         ]
     },
     {
         key: 'stock-movements',
         group: 'inventory',
-        title: 'Stock Movement Ledger',
-        subtitle: 'Audit trail of every stock in/out/adjustment/transfer',
+        title: 'reports.pages.stockMovements.title',
+        subtitle: 'reports.pages.stockMovements.subtitle',
         icon: 'pi pi-history',
         endpoint: 'v1/reports/inventory/stock-movements',
         paged: true,
         defaultRange: 'last7',
         requiresDateRange: true,
-        itemLabel: 'movements',
+        itemLabel: 'reports.items.movements',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' },
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' },
             {
-                kind: 'select', key: 'movementType', label: 'Movement Type',
+                kind: 'select', key: 'movementType', label: 'reports.filters.movementType',
                 options: [
-                    { label: 'In', value: 'IN' },
-                    { label: 'Out', value: 'OUT' },
-                    { label: 'Return', value: 'RETURN' },
-                    { label: 'Adjust', value: 'ADJUST' },
-                    { label: 'Transfer', value: 'TRANSFER' }
+                    { label: 'reports.options.movementIn', value: 'IN' },
+                    { label: 'reports.options.movementOut', value: 'OUT' },
+                    { label: 'reports.options.movementReturn', value: 'RETURN' },
+                    { label: 'reports.options.movementAdjust', value: 'ADJUST' },
+                    { label: 'reports.options.movementTransfer', value: 'TRANSFER' }
                 ]
             }
         ],
         columns: [
-            { field: 'movementDate', header: 'Date', type: 'date', mobilePrimary: true },
-            { field: 'partNumber', header: 'Part No.' },
-            { field: 'partName', header: 'Product' },
-            { field: 'warehouseName', header: 'Warehouse' },
-            { field: 'movementType', header: 'Type' },
-            { field: 'quantity', header: 'Quantity', type: 'number' },
-            { field: 'reason', header: 'Reason' },
-            { field: 'referenceNumber', header: 'Reference' }
+            { field: 'movementDate', header: 'common.labels.date', type: 'date', mobilePrimary: true },
+            { field: 'partNumber', header: 'reports.columns.partNo' },
+            { field: 'partName', header: 'reports.columns.product' },
+            { field: 'warehouseName', header: 'reports.filters.warehouse' },
+            { field: 'movementType', header: 'common.labels.type' },
+            { field: 'quantity', header: 'common.labels.quantity', type: 'number' },
+            { field: 'reason', header: 'common.labels.reason' },
+            { field: 'referenceNumber', header: 'common.labels.reference' }
         ]
     },
     {
         key: 'expiring-lots',
         group: 'inventory',
-        title: 'Expiring Lots',
-        subtitle: 'Stock lots nearing or past their expiry date',
+        title: 'reports.pages.expiringLots.title',
+        subtitle: 'reports.pages.expiringLots.subtitle',
         icon: 'pi pi-calendar-times',
         endpoint: 'v1/reports/inventory/expiring-lots',
         paged: true,
         defaultRange: 'none',
-        itemLabel: 'lots',
+        itemLabel: 'reports.items.lots',
         filters: [
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' },
             {
-                kind: 'select', key: 'daysAhead', label: 'Horizon', default: 90,
+                kind: 'select', key: 'daysAhead', label: 'reports.filters.horizon', default: 90,
                 options: [
-                    { label: 'Next 30 days', value: 30 },
-                    { label: 'Next 90 days', value: 90 },
-                    { label: 'Next 180 days', value: 180 },
-                    { label: 'Next 365 days', value: 365 }
+                    { label: 'reports.options.next30Days', value: 30 },
+                    { label: 'reports.options.next90Days', value: 90 },
+                    { label: 'reports.options.next180Days', value: 180 },
+                    { label: 'reports.options.next365Days', value: 365 }
                 ]
             },
-            { kind: 'checkbox', key: 'includeExpired', label: 'Include already expired', default: false }
+            { kind: 'checkbox', key: 'includeExpired', label: 'reports.filters.includeExpired', default: false }
         ],
         columns: [
-            { field: 'lotNumber', header: 'Lot No.' },
-            { field: 'partName', header: 'Product', mobilePrimary: true },
-            { field: 'warehouseName', header: 'Warehouse' },
-            { field: 'supplierName', header: 'Supplier' },
-            { field: 'expiryDate', header: 'Expiry', type: 'date' },
-            { field: 'daysToExpiry', header: 'Days to Expiry', type: 'number' },
-            { field: 'quantityAvailable', header: 'Qty Available', type: 'number' },
-            { field: 'stockValue', header: 'Stock Value', type: 'money' }
+            { field: 'lotNumber', header: 'reports.columns.lotNo' },
+            { field: 'partName', header: 'reports.columns.product', mobilePrimary: true },
+            { field: 'warehouseName', header: 'reports.filters.warehouse' },
+            { field: 'supplierName', header: 'reports.columns.supplier' },
+            { field: 'expiryDate', header: 'reports.columns.expiry', type: 'date' },
+            { field: 'daysToExpiry', header: 'reports.columns.daysToExpiry', type: 'number' },
+            { field: 'quantityAvailable', header: 'reports.columns.qtyAvailable', type: 'number' },
+            { field: 'stockValue', header: 'reports.columns.stockValue', type: 'money' }
         ]
     },
     {
         key: 'slow-moving-stock',
         group: 'inventory',
-        title: 'Slow-Moving / Dead Stock',
-        subtitle: 'Stock with no sale in the configured window',
+        title: 'reports.pages.slowMovingStock.title',
+        subtitle: 'reports.pages.slowMovingStock.subtitle',
         icon: 'pi pi-inbox',
         endpoint: 'v1/reports/inventory/slow-moving',
         paged: true,
         defaultRange: 'none',
-        itemLabel: 'parts',
+        itemLabel: 'reports.items.parts',
         filters: [
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' },
-            { kind: 'lookup', key: 'categoryId', label: 'Category', lookup: 'category' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' },
+            { kind: 'lookup', key: 'categoryId', label: 'common.labels.category', lookup: 'category' },
             {
-                kind: 'select', key: 'noSaleDays', label: 'No Sale For', default: 90,
+                kind: 'select', key: 'noSaleDays', label: 'reports.filters.noSaleFor', default: 90,
                 options: [
-                    { label: '30+ days', value: 30 },
-                    { label: '60+ days', value: 60 },
-                    { label: '90+ days', value: 90 },
-                    { label: '180+ days', value: 180 }
+                    { label: 'reports.options.days30Plus', value: 30 },
+                    { label: 'reports.options.days60Plus', value: 60 },
+                    { label: 'reports.options.days90Plus', value: 90 },
+                    { label: 'reports.options.days180Plus', value: 180 }
                 ]
             }
         ],
         columns: [
-            { field: 'partNumber', header: 'Part No.' },
-            { field: 'partName', header: 'Product', mobilePrimary: true },
-            { field: 'categoryName', header: 'Category' },
-            { field: 'warehouseName', header: 'Warehouse' },
-            { field: 'quantityOnHand', header: 'On Hand', type: 'number' },
-            { field: 'stockValue', header: 'Stock Value', type: 'money' },
-            { field: 'lastSaleDate', header: 'Last Sale', type: 'date' },
-            { field: 'daysSinceLastSale', header: 'Days Since Sale', type: 'number' }
+            { field: 'partNumber', header: 'reports.columns.partNo' },
+            { field: 'partName', header: 'reports.columns.product', mobilePrimary: true },
+            { field: 'categoryName', header: 'common.labels.category' },
+            { field: 'warehouseName', header: 'reports.filters.warehouse' },
+            { field: 'quantityOnHand', header: 'reports.columns.onHand', type: 'number' },
+            { field: 'stockValue', header: 'reports.columns.stockValue', type: 'money' },
+            { field: 'lastSaleDate', header: 'reports.columns.lastSale', type: 'date' },
+            { field: 'daysSinceLastSale', header: 'reports.columns.daysSinceSale', type: 'number' }
         ]
     }
 ];

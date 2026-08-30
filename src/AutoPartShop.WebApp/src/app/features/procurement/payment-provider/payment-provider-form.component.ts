@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { PaymentProviderService, CreatePaymentProviderRequest } from '../services/payment-provider.service';
 import { PROVIDER_TYPES, PaymentMethodOption } from '../../../shared/constants/payment-methods.constants';
+import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-payment-provider-form',
@@ -23,7 +24,8 @@ import { PROVIDER_TYPES, PaymentMethodOption } from '../../../shared/constants/p
     InputNumberModule,
     AutoCompleteModule,
     CardModule,
-    ToastModule
+    ToastModule,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './payment-provider-form.component.html',

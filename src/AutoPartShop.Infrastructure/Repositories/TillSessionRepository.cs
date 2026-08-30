@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,13 +19,13 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
     {
         return await dbContext.TillSessions
             .Include(t => t.CashDrops)
-            .FirstOrDefaultAsync(t => t.CashierId == cashierId && t.Status == "OPEN" && !t.Isdeleted, cancellationToken);
+            .FirstOrDefaultAsync(t => t.CashierId == cashierId && t.Status == TillSessionStatus.OPEN && !t.Isdeleted, cancellationToken);
     }
 
     public async Task<TillSession?> GetLastClosedSessionForTerminalAsync(string terminalLabel, CancellationToken cancellationToken = default)
     {
         return await dbContext.TillSessions
-            .Where(t => t.TerminalLabel == terminalLabel && t.Status == "CLOSED" && !t.Isdeleted)
+            .Where(t => t.TerminalLabel == terminalLabel && t.Status == TillSessionStatus.CLOSED && !t.Isdeleted)
             .OrderByDescending(t => t.ClosedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -52,7 +53,7 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
             dbQuery = dbQuery.Where(t => t.CashierId == query.CashierId.Value);
 
         if (!string.IsNullOrWhiteSpace(query.Status))
-            dbQuery = dbQuery.Where(t => t.Status == query.Status);
+            dbQuery = dbQuery.Where(t => t.Status.ToString() == query.Status);
 
         if (query.FromDate.HasValue)
             dbQuery = dbQuery.Where(t => t.OpenedAt >= query.FromDate.Value);
@@ -78,7 +79,29 @@ public class TillSessionRepository(AutoPartDbContext dbContext) : ITillSessionRe
 
     public async Task UpdateAsync(TillSession entity, CancellationToken cancellationToken = default)
     {
-        dbContext.TillSessions.Update(entity);
+        // Only attach when the instance is not already tracked. Update() would re-stamp the whole
+        // graph as Modified, which is wrong for anything newly added to a navigation collection.
+        if (dbContext.Entry(entity).State == EntityState.Detached)
+            dbContext.TillSessions.Update(entity);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Records a cash drop against an open session.
+    ///
+    /// The drop is added to the DbSet explicitly rather than left for EF to discover through
+    /// TillSession.CashDrops. BaseEntity assigns the Guid key in the constructor, and EF treats a
+    /// child that already has its key set as an existing row, marking it Modified — the resulting
+    /// UPDATE matched no row and surfaced as a concurrency conflict, which is why every cash drop
+    /// returned 409. Adding it directly states the intent instead of relying on that heuristic.
+    /// </summary>
+    public async Task AddCashDropAsync(TillSession session, TillCashDrop drop, CancellationToken cancellationToken = default)
+    {
+        if (session is null) throw new ArgumentNullException(nameof(session));
+        if (drop is null) throw new ArgumentNullException(nameof(drop));
+
+        await dbContext.Set<TillCashDrop>().AddAsync(drop, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

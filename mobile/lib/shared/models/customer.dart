@@ -1,4 +1,5 @@
 import 'json.dart';
+import 'status_enums.dart';
 
 /// `CustomerResponse` from `/api/v1/customers` and `/api/v1/customers/{id}`.
 class Customer {
@@ -14,7 +15,7 @@ class Customer {
     this.alternatePhone,
     this.city,
     this.customerType,
-    this.status,
+    this.status = CustomerStatus.unknown,
     this.currentBalance = 0,
     this.advanceAmount = 0,
     this.dueAmount = 0,
@@ -33,7 +34,7 @@ class Customer {
   final String? alternatePhone;
   final String? city;
   final String? customerType;
-  final String? status;
+  final CustomerStatus status;
   final double currentBalance;
   final double advanceAmount;
   final double dueAmount;
@@ -54,7 +55,7 @@ class Customer {
         alternatePhone: asStringOrNull(json['alternatePhone']),
         city: asStringOrNull(json['city']),
         customerType: asStringOrNull(json['customerType']),
-        status: asStringOrNull(json['status']),
+        status: CustomerStatus.fromWire(asStringOrNull(json['status'])),
         currentBalance: asDouble(json['currentBalance']),
         advanceAmount: asDouble(json['advanceAmount']),
         dueAmount: asDouble(json['dueAmount']),
@@ -111,7 +112,7 @@ class PaymentHistoryItem {
   const PaymentHistoryItem({
     required this.amount,
     required this.paymentDate,
-    this.status,
+    this.status = CustomerPaymentStatus.unknown,
     this.paymentMethod,
     this.invoiceNumber,
     this.providerName,
@@ -119,7 +120,7 @@ class PaymentHistoryItem {
 
   final double amount;
   final DateTime paymentDate;
-  final String? status;
+  final CustomerPaymentStatus status;
   final String? paymentMethod;
   final String? invoiceNumber;
   final String? providerName;
@@ -130,7 +131,7 @@ class PaymentHistoryItem {
         paymentDate:
             DateTime.tryParse(asString(json['paymentDate']))?.toLocal() ??
                 DateTime.now(),
-        status: asStringOrNull(json['status']),
+        status: CustomerPaymentStatus.fromWire(asStringOrNull(json['status'])),
         paymentMethod: asStringOrNull(json['paymentMethod']),
         invoiceNumber: asStringOrNull(json['invoiceNumber']),
         providerName: asStringOrNull(json['providerName']),
@@ -148,7 +149,7 @@ class CustomerOrder {
     required this.amountPaid,
     required this.outstandingAmount,
     this.currency,
-    this.status,
+    this.status = SalesOrderStatus.unknown,
     this.lines = const [],
   });
 
@@ -159,7 +160,7 @@ class CustomerOrder {
   final double amountPaid;
   final double outstandingAmount;
   final String? currency;
-  final String? status;
+  final SalesOrderStatus status;
   final List<CustomerOrderLine> lines;
 
   int get itemCount => lines.fold(0, (sum, l) => sum + l.quantity);
@@ -173,7 +174,7 @@ class CustomerOrder {
         amountPaid: asDouble(json['amountPaid']),
         outstandingAmount: asDouble(json['outstandingAmount']),
         currency: asStringOrNull(json['currency']),
-        status: asStringOrNull(json['status']),
+        status: SalesOrderStatus.fromWire(asStringOrNull(json['status'])),
         lines: asList(json['lines'], CustomerOrderLine.fromJson),
       );
 }
@@ -271,7 +272,7 @@ class CustomerPurchaseItem {
 
   final DateTime invoiceDate;
   final String invoiceNumber;
-  final String invoiceStatus;
+  final InvoiceStatus invoiceStatus;
   final String? vehicleLabel;
   final String itemName;
   final String? itemLocalName;
@@ -286,7 +287,7 @@ class CustomerPurchaseItem {
             DateTime.tryParse(asString(json['invoiceDate']))?.toLocal() ??
                 DateTime.now(),
         invoiceNumber: asString(json['invoiceNumber']),
-        invoiceStatus: asString(json['invoiceStatus']),
+        invoiceStatus: InvoiceStatus.fromWire(asStringOrNull(json['invoiceStatus'])),
         vehicleLabel: asStringOrNull(json['vehicleLabel']),
         itemName: asString(json['itemName']),
         itemLocalName: asStringOrNull(json['itemLocalName']),

@@ -7,45 +7,45 @@
       <div class="receipt-success-icon">
         <i class="pi pi-check-circle"></i>
       </div>
-      <h2 class="receipt-success-title">Payment Recorded Successfully</h2>
+      <h2 class="receipt-success-title">{{ 'customerPayments.form.successTitle' | translate }}</h2>
       <div class="receipt-success-details">
         <div class="receipt-detail-row">
-          <span class="receipt-detail-label">Customer</span>
+          <span class="receipt-detail-label">{{ 'customerPayments.form.customerLabel' | translate }}</span>
           <span class="receipt-detail-value">{{ createdPayment()!.customerName }}</span>
         </div>
         <div class="receipt-detail-row">
-          <span class="receipt-detail-label">Transaction No</span>
+          <span class="receipt-detail-label">{{ 'customerPayments.form.transactionLabel' | translate }}</span>
           <span class="receipt-detail-value receipt-txn">{{ createdPayment()!.transactionNumber }}</span>
         </div>
         <div class="receipt-detail-row">
-          <span class="receipt-detail-label">Amount</span>
+          <span class="receipt-detail-label">{{ 'customerPayments.form.amountLabel' | translate }}</span>
           <span class="receipt-detail-value receipt-amount">{{ createdPayment()!.amount | appCurrency }}</span>
         </div>
         <div class="receipt-detail-row">
-          <span class="receipt-detail-label">Currency</span>
+          <span class="receipt-detail-label">{{ 'customerPayments.form.currencyLabel' | translate }}</span>
           <span class="receipt-detail-value">{{ createdPayment()!.currency }}</span>
         </div>
         <div class="receipt-detail-row">
-          <span class="receipt-detail-label">Method</span>
+          <span class="receipt-detail-label">{{ 'customerPayments.form.methodLabel' | translate }}</span>
           <span class="receipt-detail-value">{{ createdPayment()!.paymentMethod.replace('_', ' ') }}</span>
         </div>
         <div class="receipt-detail-row">
-          <span class="receipt-detail-label">Status</span>
+          <span class="receipt-detail-label">{{ 'customerPayments.form.statusLabel' | translate }}</span>
           <span class="receipt-detail-value">
-            <p-tag [value]="createdPayment()!.status"
+            <p-tag [value]="formatStatus(createdPayment()!.status)"
                    [severity]="createdPayment()!.status === 'COMPLETED' ? 'success' : 'warn'"></p-tag>
           </span>
         </div>
       </div>
       <div class="receipt-success-actions">
-        <button pButton icon="pi pi-print" label="Print Receipt"
+        <button pButton icon="pi pi-print" [label]="'customerPayments.form.printReceipt' | translate"
                 class="p-button-primary"
                 [loading]="receiptLoading()"
                 (click)="printReceipt()"></button>
-        <button pButton icon="pi pi-plus" label="Record Another"
+        <button pButton icon="pi pi-plus" [label]="'customerPayments.form.recordAnother' | translate"
                 class="p-button-outlined"
                 (click)="recordAnother()"></button>
-        <button pButton icon="pi pi-list" label="Go to Payments"
+        <button pButton icon="pi pi-list" [label]="'customerPayments.form.goToPayments' | translate"
                 class="p-button-outlined p-button-secondary"
                 (click)="onCancel()"></button>
       </div>
@@ -60,10 +60,10 @@
     <div class="header-content">
       <div>
         <h1 class="form-title">
-          {{ isEditing ? 'Edit Customer Payment' : 'Create Customer Payment' }}
+          {{ (isEditing ? 'customerPayments.form.titleEdit' : 'customerPayments.form.titleCreate') | translate }}
         </h1>
         <p class="form-subtitle">
-          {{ isEditing ? 'Update customer payment details and status' : 'Record a new payment from a customer' }}
+          {{ (isEditing ? 'customerPayments.form.subtitleEdit' : 'customerPayments.form.subtitleCreate') | translate }}
         </p>
       </div>
     </div>
@@ -74,35 +74,35 @@
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
       <div class="form-row">
         <div class="form-group">
-          <label>Customer *</label>
+          <label>{{ 'customerPayments.form.customerRequiredLabel' | translate }}</label>
           <app-lazy-autocomplete 
             formControlName="customerId" 
             [fetchFn]="fetchCustomersLazy"
             field="customerCode" 
             optionLabel="firstName"
-            placeholder="Search customer..."
+            [placeholder]="'customerPayments.form.customerPlaceholder' | translate"
             [minLength]="0"
             [disabled]="isEditing">
             <ng-template let-customer>
               <div>
                 <div style="font-weight: 500;">{{ customer.firstName }} {{ customer.lastName }}</div>
-                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">Code: {{ customer.customerCode }}</div>
+                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">{{ 'customerPayments.form.customerCodePrefix' | translate }} {{ customer.customerCode }}</div>
               </div>
             </ng-template>
           </app-lazy-autocomplete>
           <small *ngIf="form.get('customerId')?.invalid && form.get('customerId')?.touched" class="p-error">
-            Customer is required
+            {{ 'customerPayments.form.customerRequired' | translate }}
           </small>
         </div>
         <div class="form-group">
-          <label>Payment Provider *</label>
+          <label>{{ 'customerPayments.form.providerLabel' | translate }}</label>
           <app-lazy-autocomplete 
             formControlName="paymentProviderId"
             [fetchFn]="fetchPaymentProvidersLazy"
             field="providerName" 
             optionLabel="providerName" 
             optionValue="id" 
-            placeholder="Search provider..." 
+            [placeholder]="'customerPayments.form.providerPlaceholder' | translate" 
             [minLength]="0"
             [disabled]="isEditing">
             <ng-template let-provider>
@@ -113,22 +113,22 @@
             </ng-template>
           </app-lazy-autocomplete>
           <small *ngIf="form.get('paymentProviderId')?.invalid && form.get('paymentProviderId')?.touched" class="p-error">
-            Payment provider is required
+            {{ 'customerPayments.form.providerRequired' | translate }}
           </small>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label>Amount *</label>
+          <label>{{ 'customerPayments.form.amountRequiredLabel' | translate }}</label>
           <p-inputNumber formControlName="amount" mode="currency" [currency]="currencyCode" [locale]="currencyLocale" placeholder="0.00"
             [readonly]="isEditing"></p-inputNumber>
           <small *ngIf="form.get('amount')?.invalid && form.get('amount')?.touched" class="p-error">
-            Amount must be at least 0.01
+            {{ 'customerPayments.form.amountMin' | translate }}
           </small>
         </div>
         <div class="form-group">
-          <label>Payment Fee</label>
+          <label>{{ 'customerPayments.form.feeLabel' | translate }}</label>
           <p-inputNumber formControlName="paymentFee" mode="currency" [currency]="currencyCode" [locale]="currencyLocale" placeholder="0.00"
             [readonly]="isEditing"></p-inputNumber>
         </div>
@@ -136,11 +136,11 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label>Payment Method *</label>
+          <label>{{ 'customerPayments.form.methodRequiredLabel' | translate }}</label>
           <p-select
             formControlName="paymentMethod"
             [options]="paymentMethods"
-            placeholder="Select payment method"
+            [placeholder]="'customerPayments.form.methodPlaceholder' | translate"
             [disabled]="isEditing">
             <ng-template let-method pTemplate="item">
               <div class="flex align-items-center gap-2">
@@ -148,7 +148,7 @@
                 <span>{{ method.label }}</span>
                 <p-tag
                   *ngIf="method.value === 'CASH'"
-                  value="Auto-Complete"
+                  [value]="'customerPayments.form.autoComplete' | translate"
                   severity="success"
                   [style]="{'font-size': '0.7rem', 'margin-left': 'auto'}">
                 </p-tag>
@@ -156,12 +156,12 @@
             </ng-template>
           </p-select>
           <small *ngIf="form.get('paymentMethod')?.invalid && form.get('paymentMethod')?.touched" class="p-error">
-            Payment method is required
+            {{ 'customerPayments.form.methodRequired' | translate }}
           </small>
         </div>
         <div class="form-group">
-          <label>Payment Date</label>
-          <p-datepicker formControlName="paymentDate" dateFormat="dd-M-yy" placeholder="Select date"
+          <label>{{ 'customerPayments.form.dateLabel' | translate }}</label>
+          <p-datepicker formControlName="paymentDate" dateFormat="dd-M-yy" [placeholder]="'customerPayments.form.datePlaceholder' | translate"
             [disabled]="isEditing">
           </p-datepicker>
         </div>
@@ -169,56 +169,56 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label>Invoice (Optional)</label>
+          <label>{{ 'customerPayments.form.invoiceLabel' | translate }}</label>
           <p-select 
             formControlName="invoiceId" 
             [options]="invoices" 
             optionLabel="invoiceNumber" 
             optionValue="id"
-            placeholder="Select invoice..."
+            [placeholder]="'customerPayments.form.invoicePlaceholder' | translate"
             [disabled]="isEditing"
             [showClear]="true">
             <ng-template let-invoice pTemplate="item">
               <div *ngIf="invoice">
                 <div style="font-weight: 500;">{{ invoice.invoiceNumber }}</div>
-                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">Amount: {{ invoice.grandTotal | appCurrency }}</div>
+                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">{{ 'customerPayments.form.invoiceAmountPrefix' | translate }} {{ invoice.grandTotal | appCurrency }}</div>
               </div>
             </ng-template>
           </p-select>
           <div class="advance-toggle" *ngIf="!isEditing">
             <p-checkbox formControlName="isAdvance" [binary]="true" inputId="isAdvance"></p-checkbox>
-            <label for="isAdvance">Record as advance credit (not tied to an invoice)</label>
+            <label for="isAdvance">{{ 'customerPayments.form.advanceToggle' | translate }}</label>
           </div>
         </div>
         <div class="form-group">
-          <label>Transaction Number</label>
-          <input pInputText formControlName="transactionNumber" placeholder="Transaction number"
+          <label>{{ 'customerPayments.form.transactionNumberLabel' | translate }}</label>
+          <input pInputText formControlName="transactionNumber" [placeholder]="'customerPayments.form.transactionNumberPlaceholder' | translate"
             [readonly]="isEditing" />
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label>Reference Number</label>
-          <input pInputText formControlName="referenceNumber" placeholder="Reference number" />
+          <label>{{ 'customerPayments.form.referenceLabel' | translate }}</label>
+          <input pInputText formControlName="referenceNumber" [placeholder]="'customerPayments.form.referencePlaceholder' | translate" />
         </div>
         <div class="form-group" *ngIf="isEditing">
-          <label>Authorization Code</label>
-          <input pInputText formControlName="authorizationCode" placeholder="Authorization code" />
+          <label>{{ 'customerPayments.form.authCodeLabel' | translate }}</label>
+          <input pInputText formControlName="authorizationCode" [placeholder]="'customerPayments.form.authCodePlaceholder' | translate" />
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group full">
-          <label>Notes</label>
-          <textarea pInputText formControlName="notes" placeholder="Additional notes" rows="3"></textarea>
+          <label>{{ 'customerPayments.form.notesLabel' | translate }}</label>
+          <textarea pInputText formControlName="notes" [placeholder]="'customerPayments.form.notesPlaceholder' | translate" rows="3"></textarea>
         </div>
       </div>
 
       <div class="form-actions">
-        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined"
+        <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-outlined"
           (click)="onCancel()"></button>
-        <button pButton type="submit" label="Save Payment" icon="pi pi-check" class="p-button-primary"
+        <button pButton type="submit" [label]="'customerPayments.form.submit' | translate" icon="pi pi-check" class="p-button-primary"
           [loading]="loading"></button>
       </div>
     </form>

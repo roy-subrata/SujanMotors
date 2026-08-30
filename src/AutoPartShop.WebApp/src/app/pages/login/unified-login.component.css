@@ -243,6 +243,14 @@
   transition: color 0.15s;
 }
 .ul-footer a:hover { color: #764ba2; text-decoration: underline; }
+.ul-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.ul-link:hover { color: #764ba2; text-decoration: underline; }
 .ul-sep { color: var(--border); }
 
 /* ── Responsive ── */

@@ -4,7 +4,7 @@ import { RouterOutlet } from '@angular/router';
 @Component({
   selector: 'app-invoices',
   imports: [RouterOutlet],
-  template: '<router-outlet />',
+  templateUrl: './invoices.component.html',
   standalone: true
 })
 export class InvoicesComponent {}

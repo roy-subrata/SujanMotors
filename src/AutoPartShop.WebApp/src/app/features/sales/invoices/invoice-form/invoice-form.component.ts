@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, ActivatedRoute } from '@angular/router';
 import { InvoiceService, InvoiceResponse, CreateInvoiceRequest, RecordPaymentRequest } from '../../services/invoice.service';
 import { SalesOrderService, SalesOrderResponse } from '../../services/sales-order.service';
+import { CustomerService } from '../../services/customer.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -18,6 +19,9 @@ import { Select } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { TextareaModule } from 'primeng/textarea';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-invoice-form',
@@ -36,7 +40,8 @@ import { TextareaModule } from 'primeng/textarea';
     InputNumberModule,
     Select,
     DatePickerModule,
-    TextareaModule
+    TextareaModule,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './invoice-form.component.html',
@@ -48,9 +53,12 @@ export class InvoiceFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly invoiceService = inject(InvoiceService);
   private readonly salesOrderService = inject(SalesOrderService);
+  private readonly customerService = inject(CustomerService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly statusDisplay = inject(StatusDisplayService);
+  private readonly i18n = inject(I18nService);
 
   invoiceForm!: FormGroup;
   paymentForm!: FormGroup;
@@ -133,16 +141,17 @@ export class InvoiceFormComponent implements OnInit {
     this.loadingSalesOrders.set(true);
     this.salesOrderService.getAllSalesOrders().subscribe({
       next: (orders) => {
-        // Filter only confirmed orders that don't have invoices yet
-        const availableOrders = orders.filter(o => o.status === 'CONFIRMED' || o.status === 'PENDING');
+        // Only confirmed orders can be invoiced (matches the backend rule).
+        const excluded = ['PENDING', 'DRAFT', 'CANCELLED', 'RETURNED'];
+        const availableOrders = orders.filter(o => !excluded.includes(o.status));
         this.salesOrders.set(availableOrders);
         this.loadingSalesOrders.set(false);
       },
       error: (err: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load sales orders'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('invoiceForm.messages.loadSalesOrdersFailed')
         });
         this.loadingSalesOrders.set(false);
       }
@@ -151,11 +160,39 @@ export class InvoiceFormComponent implements OnInit {
 
   onSalesOrderChange(salesOrderId: string): void {
     const order = this.salesOrders().find(o => o.id === salesOrderId);
-    if (order) {
-      this.invoiceForm.patchValue({
-        subTotal: order.subTotal,
-        taxAmount: order.taxAmount
-      });
+    if (!order) return;
+
+    this.invoiceForm.patchValue({
+      subTotal: order.subTotal,
+      taxAmount: order.taxAmount
+    });
+
+    // Default due date from the customer's payment terms; the field stays editable.
+    this.customerService.getCustomerById(order.customerId).subscribe({
+      next: (customer) => {
+        const dayOffset = this.paymentTermsDayOffset(customer.paymentTerms);
+        if (dayOffset !== null) {
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + dayOffset);
+          this.invoiceForm.patchValue({ dueDate });
+        }
+      },
+      error: () => {
+        // Keep the existing default due date if the customer lookup fails.
+      }
+    });
+  }
+
+  /** NET15/30/45/60 -> day offset, COD/PREPAID -> 0, unset/unrecognized -> null (keep existing default). */
+  private paymentTermsDayOffset(paymentTerms: string | undefined): number | null {
+    switch (paymentTerms) {
+      case 'NET15': return 15;
+      case 'NET30': return 30;
+      case 'NET45': return 45;
+      case 'NET60': return 60;
+      case 'COD':
+      case 'PREPAID': return 0;
+      default: return null;
     }
   }
 
@@ -178,8 +215,8 @@ export class InvoiceFormComponent implements OnInit {
       error: (err: any) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load invoice'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('invoiceForm.messages.loadInvoiceFailed')
         });
         this.loading.set(false);
       }
@@ -213,18 +250,19 @@ export class InvoiceFormComponent implements OnInit {
       next: (invoice) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Invoice created successfully'
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('invoiceForm.messages.createSuccess')
         });
         this.router.navigate(['/sales/invoices/view'], {
           queryParams: { id: invoice.id }
         });
       },
       error: (err: any) => {
+        const detail = err?.error?.message || this.i18n.t('invoiceForm.messages.createFailed');
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to create invoice'
+          summary: this.i18n.t('common.messages.error'),
+          detail
         });
         this.saving.set(false);
       }
@@ -235,24 +273,24 @@ export class InvoiceFormComponent implements OnInit {
     if (!this.invoiceId()) return;
 
     this.confirmationService.confirm({
-      message: 'Are you sure you want to issue this invoice? This action cannot be undone.',
-      header: 'Confirm',
+      message: this.i18n.t('invoiceForm.messages.issueConfirm'),
+      header: this.i18n.t('common.actions.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.invoiceService.issueInvoice(this.invoiceId()!).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: 'Invoice issued successfully'
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('invoices.messages.issueSuccess')
             });
             this.loadInvoice(this.invoiceId()!);
           },
           error: () => {
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to issue invoice'
+              summary: this.i18n.t('common.messages.error'),
+              detail: this.i18n.t('invoices.messages.issueFailed')
             });
           }
         });
@@ -292,8 +330,10 @@ export class InvoiceFormComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Payment Recorded',
-          detail: `Payment of ${this.formatCurrency(formValue.amount)} recorded successfully`
+          summary: this.i18n.t('invoiceForm.messages.paymentRecorded'),
+          detail: this.i18n.t('invoiceForm.messages.paymentRecordedDetail', {
+            amount: this.formatCurrency(formValue.amount)
+          })
         });
         this.closePaymentDialog();
         this.loadInvoice(this.invoiceId()!);
@@ -301,8 +341,8 @@ export class InvoiceFormComponent implements OnInit {
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to record payment'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('invoices.messages.recordPaymentFailed')
         });
       }
     });
@@ -322,16 +362,25 @@ export class InvoiceFormComponent implements OnInit {
     window.open(`/sales/invoices/${this.invoiceId()}/print?type=challan`, '_blank');
   }
 
-  getStatusSeverity(status: string): 'secondary' | 'info' | 'warn' | 'success' | 'danger' {
-    const severityMap: Record<string, 'secondary' | 'info' | 'warn' | 'success' | 'danger'> = {
-      DRAFT: 'secondary',
-      ISSUED: 'info',
-      PARTIALLY_PAID: 'warn',
-      PAID: 'success',
-      OVERDUE: 'danger',
-      CANCELLED: 'secondary'
-    };
-    return severityMap[status] || 'secondary';
+  getStatusSeverity(status: string): StatusSeverity {
+    return this.statusDisplay.getSeverity(status, 'invoice');
+  }
+
+  /** Payment-method enum -> localized label, falling back to the raw value. */
+  methodLabel(method: string | undefined): string {
+    if (!method) return '';
+    const key = 'paymentMethods.pos.' + method;
+    const label = this.i18n.t(key);
+    return label === key ? method : label;
+  }
+
+  /** Server enum -> localized label, falling back to the raw value when untranslated. */
+  statusLabel(status: string | undefined): string {
+    if (!status) return '';
+    const key = 'invoices.statusOptions.' + status.toLowerCase()
+      .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+    const label = this.i18n.t(key);
+    return label === key ? status : label;
   }
 
   formatCurrency(amount: number): string {

@@ -10,7 +10,7 @@ public class CreateCategory
     /// <summary>
     /// Category description (optional)
     /// </summary>
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; } = string.Empty;
 
     /// <summary>
     /// Parent category ID for subcategories (optional)

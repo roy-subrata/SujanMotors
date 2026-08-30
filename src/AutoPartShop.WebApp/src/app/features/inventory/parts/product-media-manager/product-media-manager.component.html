@@ -6,24 +6,24 @@
         <div>
             <h3 class="mm-title">
                 <i class="pi pi-images mm-icon"></i>
-                Media
+                {{ 'parts.mediaManager.title' | translate }}
                 <span class="mm-count" *ngIf="media.length > 0">({{ media.length }})</span>
             </h3>
-            <p class="mm-hint">Add images and videos shown on the product page. The <strong>primary</strong> image appears in listings and search results.</p>
+            <p class="mm-hint">{{ 'parts.mediaManager.hintPart1' | translate }} <strong>{{ 'parts.mediaManager.hintStrong' | translate }}</strong> {{ 'parts.mediaManager.hintPart2' | translate }}</p>
         </div>
-        <button pButton type="button" label="Add Media" icon="pi pi-plus" class="p-button-sm p-button-success" (click)="openAdd()"></button>
+        <button pButton type="button" [label]="'parts.mediaManager.addMedia' | translate" icon="pi pi-plus" class="p-button-sm p-button-success" (click)="openAdd()"></button>
     </div>
 
     <!-- Loading state -->
     <div *ngIf="loading" class="mm-empty">
         <i class="pi pi-spinner pi-spin"></i>
-        <p>Loading media…</p>
+        <p>{{ 'parts.mediaManager.loadingText' | translate }}</p>
     </div>
 
     <!-- Empty state -->
     <div *ngIf="!loading && media.length === 0" class="mm-empty">
         <i class="pi pi-images"></i>
-        <p>No media yet. Click <strong>Add Media</strong> to upload images or add video links.</p>
+        <p>{{ 'parts.mediaManager.emptyPart1' | translate }} <strong>{{ 'parts.mediaManager.addMedia' | translate }}</strong> {{ 'parts.mediaManager.emptyPart2' | translate }}</p>
     </div>
 
     <!-- Media grid -->
@@ -35,23 +35,20 @@
                 <ng-container *ngIf="item.mediaType === 'image'">
                     <img
                         [src]="displayUrl(item.url)"
-                        [alt]="item.altText || 'Product image'"
+                        [alt]="item.altText || ('parts.mediaManager.altFallbackImage' | translate)"
                         class="mm-img"
-                        onerror="
-                            this.style.display = 'none';
-                            this.nextElementSibling.style.display = 'flex';
-                        "
+                        (error)="onImagePreviewError($event)"
                     />
                     <div class="mm-img-fallback" style="display: none">
                         <i class="pi pi-image"></i>
-                        <span>Preview unavailable</span>
+                        <span>{{ 'parts.mediaManager.previewUnavailable' | translate }}</span>
                     </div>
                 </ng-container>
 
                 <!-- YouTube video preview -->
                 <ng-container *ngIf="item.mediaType === 'video' && isYouTube(item.url)">
                     <div class="mm-yt-thumb">
-                        <img [src]="youTubeThumbnail(item.url)" [alt]="item.altText || 'Video thumbnail'" class="mm-img" />
+                        <img [src]="youTubeThumbnail(item.url)" [alt]="item.altText || ('parts.mediaManager.altFallbackVideoThumbnail' | translate)" class="mm-img" />
                         <div class="mm-play-overlay">
                             <i class="pi pi-play-circle"></i>
                         </div>
@@ -62,13 +59,13 @@
                 <ng-container *ngIf="item.mediaType === 'video' && !isYouTube(item.url)">
                     <div class="mm-video-placeholder">
                         <i class="pi pi-video"></i>
-                        <span>Video</span>
+                        <span>{{ 'parts.mediaManager.videoLabel' | translate }}</span>
                     </div>
                 </ng-container>
 
                 <!-- Badges -->
                 <div class="mm-badges">
-                    <span class="mm-badge mm-badge-primary" *ngIf="item.isPrimary"> <i class="pi pi-star-fill"></i> Primary </span>
+                    <span class="mm-badge mm-badge-primary" *ngIf="item.isPrimary"> <i class="pi pi-star-fill"></i> {{ 'parts.mediaManager.primaryBadge' | translate }} </span>
                     <span class="mm-badge" [class.mm-badge-image]="item.mediaType === 'image'" [class.mm-badge-video]="item.mediaType === 'video'">
                         <i class="pi" [ngClass]="item.mediaType === 'video' ? 'pi-video' : 'pi-image'"></i>
                         {{ item.mediaType }}
@@ -85,8 +82,8 @@
 
             <!-- Actions -->
             <div class="mm-actions">
-                <button pButton type="button" icon="pi pi-angle-up" class="p-button-text p-button-secondary p-button-sm" pTooltip="Move up" [disabled]="i === 0" (click)="moveUp(i)"></button>
-                <button pButton type="button" icon="pi pi-angle-down" class="p-button-text p-button-secondary p-button-sm" pTooltip="Move down" [disabled]="i === media.length - 1" (click)="moveDown(i)"></button>
+                <button pButton type="button" icon="pi pi-angle-up" class="p-button-text p-button-secondary p-button-sm" [pTooltip]="'parts.specsManager.moveUpTooltip' | translate" [disabled]="i === 0" (click)="moveUp(i)"></button>
+                <button pButton type="button" icon="pi pi-angle-down" class="p-button-text p-button-secondary p-button-sm" [pTooltip]="'parts.specsManager.moveDownTooltip' | translate" [disabled]="i === media.length - 1" (click)="moveDown(i)"></button>
                 <button
                     pButton
                     type="button"
@@ -94,12 +91,12 @@
                     class="p-button-text p-button-sm"
                     [class.p-button-warning]="!item.isPrimary"
                     [class.p-button-success]="item.isPrimary"
-                    [pTooltip]="item.isPrimary ? 'Already primary' : 'Set as primary'"
+                    [pTooltip]="item.isPrimary ? ('parts.mediaManager.alreadyPrimaryTooltip' | translate) : ('parts.mediaManager.setAsPrimaryTooltip' | translate)"
                     [disabled]="item.isPrimary"
                     (click)="setPrimary(item)"
                 ></button>
-                <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-info p-button-sm" pTooltip="Edit" (click)="openEdit(item)"></button>
-                <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" pTooltip="Remove" (click)="remove(item)"></button>
+                <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-info p-button-sm" [pTooltip]="'common.actions.edit' | translate" (click)="openEdit(item)"></button>
+                <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" [pTooltip]="'parts.mediaManager.removeTooltip' | translate" (click)="remove(item)"></button>
             </div>
         </div>
     </div>
@@ -109,50 +106,50 @@
 <p-dialog [(visible)]="showDialog" [header]="dialogHeader" [modal]="true" [style]="{ width: '480px', maxWidth: '95vw' }" [draggable]="false" appendTo="body" (onHide)="closeDialog()">
     <div class="mm-form">
         <div class="mm-form-group">
-            <label class="mm-form-label"> Media Type <span class="req">*</span> </label>
+            <label class="mm-form-label"> {{ 'parts.mediaManager.mediaTypeLabel' | translate }} <span class="req">*</span> </label>
             <div class="mm-type-toggle">
-                <button type="button" class="mm-type-btn" [class.active]="formType === 'image'" (click)="formType = 'image'; clearSelectedFile(); formError = ''"><i class="pi pi-image"></i> Image</button>
-                <button type="button" class="mm-type-btn" [class.active]="formType === 'video'" (click)="formType = 'video'; clearSelectedFile(); formError = ''"><i class="pi pi-video"></i> Video</button>
+                <button type="button" class="mm-type-btn" [class.active]="formType === 'image'" (click)="formType = 'image'; clearSelectedFile(); formError = ''"><i class="pi pi-image"></i> {{ 'parts.mediaManager.imageType' | translate }}</button>
+                <button type="button" class="mm-type-btn" [class.active]="formType === 'video'" (click)="formType = 'video'; clearSelectedFile(); formError = ''"><i class="pi pi-video"></i> {{ 'parts.mediaManager.videoLabel' | translate }}</button>
             </div>
         </div>
 
         <!-- Source toggle (add mode only): upload a file or reference an external URL -->
         <div class="mm-form-group" *ngIf="!editingItem">
-            <label class="mm-form-label">Source <span class="req">*</span></label>
+            <label class="mm-form-label">{{ 'parts.mediaManager.sourceLabel' | translate }} <span class="req">*</span></label>
             <div class="mm-type-toggle">
-                <button type="button" class="mm-type-btn" [class.active]="formSource === 'upload'" (click)="formSource = 'upload'; formError = ''"><i class="pi pi-upload"></i> Upload File</button>
-                <button type="button" class="mm-type-btn" [class.active]="formSource === 'url'" (click)="formSource = 'url'; formError = ''"><i class="pi pi-link"></i> External URL</button>
+                <button type="button" class="mm-type-btn" [class.active]="formSource === 'upload'" (click)="formSource = 'upload'; formError = ''"><i class="pi pi-upload"></i> {{ 'parts.mediaManager.uploadFile' | translate }}</button>
+                <button type="button" class="mm-type-btn" [class.active]="formSource === 'url'" (click)="formSource = 'url'; formError = ''"><i class="pi pi-link"></i> {{ 'parts.mediaManager.externalUrl' | translate }}</button>
             </div>
         </div>
 
         <!-- File upload picker -->
         <div class="mm-form-group" *ngIf="!editingItem && formSource === 'upload'">
             <label class="mm-form-label">
-                File <span class="req">*</span>
-                <span class="mm-form-hint">— max {{ uploadLimitLabel }}</span>
+                {{ 'parts.mediaManager.fileLabel' | translate }} <span class="req">*</span>
+                <span class="mm-form-hint">{{ 'parts.mediaManager.maxSizeHint' | translate:{ limit: uploadLimitLabel } }}</span>
             </label>
             <input #fileInput type="file" [accept]="uploadAccept" style="display: none" (change)="onFileSelected($event)" />
-            <button pButton type="button" [label]="selectedFile ? selectedFile.name : 'Choose ' + formType + '…'" [icon]="selectedFile ? 'pi pi-file' : 'pi pi-folder-open'" class="p-button-outlined mm-input" (click)="fileInput.click()"></button>
+            <button pButton type="button" [label]="chooseFileButtonLabel" [icon]="selectedFile ? 'pi pi-file' : 'pi pi-folder-open'" class="p-button-outlined mm-input" (click)="fileInput.click()"></button>
             <small class="mm-form-hint" *ngIf="selectedFile">
                 {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB
-                <a class="mm-error" style="cursor: pointer; margin-left: 0.5rem" (click)="clearSelectedFile()">remove</a>
+                <a class="mm-error" style="cursor: pointer; margin-left: 0.5rem" (click)="clearSelectedFile()">{{ 'parts.mediaManager.removeLinkText' | translate }}</a>
             </small>
         </div>
 
         <!-- URL input -->
         <div class="mm-form-group" *ngIf="editingItem || formSource === 'url'">
             <label class="mm-form-label">
-                URL <span class="req">*</span>
-                <span class="mm-form-hint" *ngIf="formType === 'video'"> — paste a YouTube link or direct video URL </span>
+                {{ 'parts.mediaManager.urlLabel' | translate }} <span class="req">*</span>
+                <span class="mm-form-hint" *ngIf="formType === 'video'"> {{ 'parts.mediaManager.youtubeHint' | translate }} </span>
             </label>
-            <input pInputText [(ngModel)]="formUrl" [placeholder]="formType === 'video' ? 'https://www.youtube.com/watch?v=...' : 'https://cdn.example.com/image.jpg'" class="mm-input" (input)="formError = ''" />
+            <input pInputText [(ngModel)]="formUrl" [placeholder]="formType === 'video' ? ('parts.mediaManager.urlPlaceholderVideo' | translate) : ('parts.mediaManager.urlPlaceholderImage' | translate)" class="mm-input" (input)="formError = ''" />
         </div>
 
         <small class="mm-error" *ngIf="formError">{{ formError }}</small>
 
         <!-- Local file preview (upload mode) -->
         <div class="mm-form-preview" *ngIf="selectedFilePreview">
-            <img [src]="selectedFilePreview" alt="Preview" class="mm-form-img" />
+            <img [src]="selectedFilePreview" [alt]="'parts.mediaManager.altPreview' | translate" class="mm-form-img" />
         </div>
 
         <!-- Live URL preview (external URL mode / edit) -->
@@ -162,12 +159,9 @@
                     [src]="displayUrl(formUrl)"
                     alt="Preview"
                     class="mm-form-img"
-                    onerror="
-                        this.style.display = 'none';
-                        this.nextElementSibling.style.display = 'flex';
-                    "
+                    (error)="onImagePreviewError($event)"
                 />
-                <div class="mm-img-fallback mm-form-fallback" style="display: none"><i class="pi pi-image"></i> <span>Could not load preview</span></div>
+                <div class="mm-img-fallback mm-form-fallback" style="display: none"><i class="pi pi-image"></i> <span>{{ 'parts.mediaManager.couldNotLoadPreview' | translate }}</span></div>
             </ng-container>
             <ng-container *ngIf="formType === 'video' && isYouTube(formUrl)">
                 <div class="mm-yt-thumb mm-form-yt">
@@ -176,21 +170,21 @@
                 </div>
             </ng-container>
             <ng-container *ngIf="formType === 'video' && formUrl.trim() && !isYouTube(formUrl)">
-                <div class="mm-video-placeholder mm-form-fallback"><i class="pi pi-video"></i> <span>Direct video URL</span></div>
+                <div class="mm-video-placeholder mm-form-fallback"><i class="pi pi-video"></i> <span>{{ 'parts.mediaManager.directVideoUrl' | translate }}</span></div>
             </ng-container>
         </div>
 
         <div class="mm-form-group">
             <label class="mm-form-label">
-                Alt Text
-                <span class="mm-form-hint">— optional, for accessibility</span>
+                {{ 'parts.mediaManager.altTextLabel' | translate }}
+                <span class="mm-form-hint">{{ 'parts.mediaManager.altTextHint' | translate }}</span>
             </label>
-            <input pInputText [(ngModel)]="formAlt" placeholder="e.g. Front view of brake pad" class="mm-input" />
+            <input pInputText [(ngModel)]="formAlt" [placeholder]="'parts.mediaManager.altTextPlaceholder' | translate" class="mm-input" />
         </div>
     </div>
 
     <ng-template pTemplate="footer">
-        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text p-button-secondary" [disabled]="saving" (click)="closeDialog()"></button>
-        <button pButton type="button" icon="pi pi-check" [label]="saving ? 'Saving…' : 'Save'" class="p-button-success" [loading]="saving" (click)="save()"></button>
+        <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text p-button-secondary" [disabled]="saving" (click)="closeDialog()"></button>
+        <button pButton type="button" icon="pi pi-check" [label]="saving ? ('parts.mediaManager.savingButton' | translate) : ('common.actions.save' | translate)" class="p-button-success" [loading]="saving" (click)="save()"></button>
     </ng-template>
 </p-dialog>

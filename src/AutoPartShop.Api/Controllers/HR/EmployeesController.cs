@@ -16,7 +16,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// Employee master records (HR). Salary data is sensitive, so the whole
 /// controller is restricted to Admin/Manager.
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]
@@ -54,7 +53,11 @@ public class EmployeesController : ControllerBase
         try
         {
             var employees = await _employeeRepository.GetAllAsync(cancellationToken);
-            var response = employees.Select(MapToResponse);
+            var shiftIds = employees.Select(e => e.ShiftId).Where(s => s.HasValue).Select(s => s!.Value).Distinct().ToList();
+            var shiftNames = shiftIds.Count > 0
+                ? await _employeeReadRepository.GetShiftNamesAsync(shiftIds, cancellationToken)
+                : new Dictionary<Guid, string>();
+            var response = employees.Select(e => MapToResponse(e, shiftNames));
             return Ok(response);
         }
         catch (Exception ex)
@@ -71,7 +74,7 @@ public class EmployeesController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
 
             var (employees, totalCount) = await _employeeReadRepository.FindAllQuery(query, cancellationToken);
@@ -93,7 +96,10 @@ public class EmployeesController : ControllerBase
             var employee = await _employeeRepository.GetByIdAsync(id, cancellationToken);
             if (employee is null) return NotFound();
 
-            return Ok(MapToResponse(employee));
+            var shiftNames = employee.ShiftId.HasValue
+                ? await _employeeReadRepository.GetShiftNamesAsync(new[] { employee.ShiftId.Value }, cancellationToken)
+                : new Dictionary<Guid, string>();
+            return Ok(MapToResponse(employee, shiftNames));
         }
         catch (Exception ex)
         {
@@ -155,6 +161,7 @@ public class EmployeesController : ControllerBase
             );
 
             employee.UpdateCompensation(request.ShiftId, request.MonthlyTaxDeduction, request.CommissionRate);
+            employee.UpdateLeaveEntitlements(request.AnnualLeaveEntitlement, request.CasualLeaveEntitlement, request.SickLeaveEntitlement);
 
             if (request.UserId is Guid userId)
             {
@@ -171,7 +178,10 @@ public class EmployeesController : ControllerBase
 
             await _employeeRepository.AddAsync(employee, cancellationToken);
 
-            return CreatedAtAction(nameof(GetById), new { id = employee.Id }, MapToResponse(employee));
+            var shiftNames = employee.ShiftId.HasValue
+                ? await _employeeReadRepository.GetShiftNamesAsync(new[] { employee.ShiftId.Value }, cancellationToken)
+                : new Dictionary<Guid, string>();
+            return CreatedAtAction(nameof(GetById), new { id = employee.Id }, MapToResponse(employee, shiftNames));
         }
         catch (ArgumentException ex)
         {
@@ -212,6 +222,7 @@ public class EmployeesController : ControllerBase
             );
 
             employee.UpdateCompensation(request.ShiftId, request.MonthlyTaxDeduction, request.CommissionRate);
+            employee.UpdateLeaveEntitlements(request.AnnualLeaveEntitlement, request.CasualLeaveEntitlement, request.SickLeaveEntitlement);
 
             if (request.UserId is Guid userId)
             {
@@ -230,7 +241,10 @@ public class EmployeesController : ControllerBase
 
             await _employeeRepository.UpdateAsync(employee, cancellationToken);
 
-            return Ok(MapToResponse(employee));
+            var shiftNames = employee.ShiftId.HasValue
+                ? await _employeeReadRepository.GetShiftNamesAsync(new[] { employee.ShiftId.Value }, cancellationToken)
+                : new Dictionary<Guid, string>();
+            return Ok(MapToResponse(employee, shiftNames));
         }
         catch (ArgumentException ex)
         {
@@ -260,7 +274,10 @@ public class EmployeesController : ControllerBase
 
             await _employeeRepository.UpdateAsync(employee, cancellationToken);
 
-            return Ok(MapToResponse(employee));
+            var shiftNames = employee.ShiftId.HasValue
+                ? await _employeeReadRepository.GetShiftNamesAsync(new[] { employee.ShiftId.Value }, cancellationToken)
+                : new Dictionary<Guid, string>();
+            return Ok(MapToResponse(employee, shiftNames));
         }
         catch (Exception ex)
         {
@@ -286,7 +303,10 @@ public class EmployeesController : ControllerBase
             var loginToggled = request?.EnableLogin == true
                 && await SetLinkedLoginActiveAsync(employee, active: true, currentUser);
 
-            return Ok(new { employee = MapToResponse(employee), loginEnabled = loginToggled });
+            var shiftNames = employee.ShiftId.HasValue
+                ? await _employeeReadRepository.GetShiftNamesAsync(new[] { employee.ShiftId.Value }, cancellationToken)
+                : new Dictionary<Guid, string>();
+            return Ok(new { employee = MapToResponse(employee, shiftNames), loginEnabled = loginToggled });
         }
         catch (Exception ex)
         {
@@ -312,7 +332,10 @@ public class EmployeesController : ControllerBase
             var loginToggled = request?.DisableLogin == true
                 && await SetLinkedLoginActiveAsync(employee, active: false, currentUser);
 
-            return Ok(new { employee = MapToResponse(employee), loginDisabled = loginToggled });
+            var shiftNames = employee.ShiftId.HasValue
+                ? await _employeeReadRepository.GetShiftNamesAsync(new[] { employee.ShiftId.Value }, cancellationToken)
+                : new Dictionary<Guid, string>();
+            return Ok(new { employee = MapToResponse(employee, shiftNames), loginDisabled = loginToggled });
         }
         catch (Exception ex)
         {
@@ -363,7 +386,7 @@ public class EmployeesController : ControllerBase
         }
     }
 
-    private EmployeeResponse MapToResponse(Employee e) => new()
+    private EmployeeResponse MapToResponse(Employee e, Dictionary<Guid, string>? shiftNames = null) => new()
     {
         Id = e.Id,
         EmployeeCode = e.EmployeeCode,
@@ -383,8 +406,12 @@ public class EmployeesController : ControllerBase
         MonthlySalary = e.MonthlySalary,
         Currency = e.Currency,
         ShiftId = e.ShiftId,
+        ShiftName = e.ShiftId.HasValue && shiftNames != null && shiftNames.TryGetValue(e.ShiftId.Value, out var sName) ? sName : null,
         MonthlyTaxDeduction = e.MonthlyTaxDeduction,
         CommissionRate = e.CommissionRate,
+        AnnualLeaveEntitlement = e.AnnualLeaveEntitlement,
+        CasualLeaveEntitlement = e.CasualLeaveEntitlement,
+        SickLeaveEntitlement = e.SickLeaveEntitlement,
         EmergencyContactName = e.EmergencyContactName,
         EmergencyContactPhone = e.EmergencyContactPhone,
         Status = e.Status,

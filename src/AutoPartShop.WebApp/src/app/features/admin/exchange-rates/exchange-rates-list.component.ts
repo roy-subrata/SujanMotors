@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angula
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { I18nService } from '../../../shared/services/i18n.service';
+import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
@@ -14,10 +15,12 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { CurrencyService, Currency, ExchangeRate } from '../../../shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
 
 @Component({
   selector: 'app-exchange-rates-list',
@@ -36,291 +39,34 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     ConfirmDialogModule,
     CheckboxModule,
     InputTextModule,
+    TooltipModule,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
-  template: `
-    <p-toast></p-toast>
-    <p-confirmDialog></p-confirmDialog>
-
-    <app-page-container>
-      <app-page-header
-        title="Exchange Rate Management"
-        subtitle="Manage currency exchange rates"
-        [count]="exchangeRates().length" countLabel="rates" countIcon="pi pi-sync">
-        <ng-container actions>
-          <button class="btn-primary" (click)="openDialog()">
-            <i class="pi pi-plus"></i><span>Add Exchange Rate</span>
-          </button>
-        </ng-container>
-      </app-page-header>
-
-      <section class="table-section desktop-only">
-        <div class="table-container">
-      <p-table
-        [value]="exchangeRates()"
-        [loading]="loading()"
-        [paginator]="true"
-        [rows]="15"
-        [rowsPerPageOptions]="[15, 30, 50]"
-        [scrollable]="true"
-        styleClass="app-table">
-
-        <ng-template pTemplate="header">
-          <tr>
-            <th>From Currency</th>
-            <th>To Currency</th>
-            <th>Rate</th>
-            <th>Effective Date</th>
-            <th>Expiry Date</th>
-            <th>Source</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </ng-template>
-
-        <ng-template pTemplate="body" let-rate>
-          <tr>
-            <td>
-              <span class="font-mono font-semibold">{{ rate.fromCurrencyCode }}</span>
-            </td>
-            <td>
-              <span class="font-mono font-semibold">{{ rate.toCurrencyCode }}</span>
-            </td>
-            <td>
-              <span class="font-semibold">{{ rate.rate | number: '1.2-6' }}</span>
-            </td>
-            <td>{{ rate.effectiveDate | date: 'mediumDate' }}</td>
-            <td>
-              <span *ngIf="rate.expiryDate">{{ rate.expiryDate | date: 'mediumDate' }}</span>
-              <span *ngIf="!rate.expiryDate" class="text-gray-400">No expiry</span>
-            </td>
-            <td>
-              <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">
-                {{ rate.source }}
-              </span>
-            </td>
-            <td>
-              <span class="status-pill" [attr.data-status]="rate.isActive ? 'active' : 'inactive'">
-                {{ rate.isActive ? 'Active' : 'Inactive' }}
-              </span>
-            </td>
-            <td>
-              <div class="flex gap-2">
-                <button
-                  pButton
-                  type="button"
-                  icon="pi pi-pencil"
-                  class="p-button-rounded p-button-text p-button-sm"
-                  pTooltip="Edit"
-                  (click)="openDialog(rate)">
-                </button>
-                <button
-                  pButton
-                  type="button"
-                  icon="pi pi-trash"
-                  class="p-button-rounded p-button-text p-button-sm p-button-danger"
-                  pTooltip="Delete"
-                  (click)="confirmDelete(rate)">
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template pTemplate="emptymessage">
-          <tr>
-            <td colspan="8" class="text-center py-8 text-gray-500">
-              No exchange rates found
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-        </div>
-      </section>
-
-      <!-- Exchange Rate Dialog -->
-      <p-dialog
-        [(visible)]="dialogVisible"
-        [header]="isEditing ? 'Edit Exchange Rate' : 'Add Exchange Rate'"
-        [modal]="true"
-        [style]="{width: '600px'}"
-        [closable]="true">
-
-        <form [formGroup]="exchangeRateForm" (ngSubmit)="saveExchangeRate()">
-          <div class="flex flex-col gap-4">
-            <!-- From Currency -->
-            <div class="flex flex-col gap-2">
-              <label htmlFor="fromCurrencyId">From Currency <span class="text-red-500">*</span></label>
-              <p-select
-                id="fromCurrencyId"
-                formControlName="fromCurrencyId"
-                [options]="currencies()"
-                optionLabel="code"
-                optionValue="id"
-                placeholder="Select currency"
-                [filter]="true"
-                class="w-full">
-                <ng-template let-currency pTemplate="item">
-                  <div class="flex items-center gap-2">
-                    <span>{{ currency.symbol }}</span>
-                    <span class="font-semibold">{{ currency.code }}</span>
-                    <span class="text-sm text-gray-600">- {{ currency.name }}</span>
-                  </div>
-                </ng-template>
-              </p-select>
-              <small class="text-red-500" *ngIf="exchangeRateForm.get('fromCurrencyId')?.invalid && exchangeRateForm.get('fromCurrencyId')?.touched">
-                From currency is required
-              </small>
-            </div>
-
-            <!-- To Currency -->
-            <div class="flex flex-col gap-2">
-              <label htmlFor="toCurrencyId">To Currency <span class="text-red-500">*</span></label>
-              <p-select
-                id="toCurrencyId"
-                formControlName="toCurrencyId"
-                [options]="currencies()"
-                optionLabel="code"
-                optionValue="id"
-                placeholder="Select currency"
-                [filter]="true"
-                class="w-full">
-                <ng-template let-currency pTemplate="item">
-                  <div class="flex items-center gap-2">
-                    <span>{{ currency.symbol }}</span>
-                    <span class="font-semibold">{{ currency.code }}</span>
-                    <span class="text-sm text-gray-600">- {{ currency.name }}</span>
-                  </div>
-                </ng-template>
-              </p-select>
-              <small class="text-red-500" *ngIf="exchangeRateForm.get('toCurrencyId')?.invalid && exchangeRateForm.get('toCurrencyId')?.touched">
-                To currency is required
-              </small>
-            </div>
-
-            <!-- Exchange Rate -->
-            <div class="flex flex-col gap-2">
-              <label htmlFor="rate">Exchange Rate <span class="text-red-500">*</span></label>
-              <p-inputNumber
-                id="rate"
-                formControlName="rate"
-                [min]="0"
-                [minFractionDigits]="2"
-                [maxFractionDigits]="6"
-                placeholder="0.00"
-                class="w-full">
-              </p-inputNumber>
-              <small class="text-red-500" *ngIf="exchangeRateForm.get('rate')?.invalid && exchangeRateForm.get('rate')?.touched">
-                Exchange rate is required and must be greater than 0
-              </small>
-            </div>
-
-            <!-- Effective Date -->
-            <div class="flex flex-col gap-2">
-              <label htmlFor="effectiveDate">Effective Date <span class="text-red-500">*</span></label>
-              <p-datepicker
-                id="effectiveDate"
-                formControlName="effectiveDate"
-                [showIcon]="true"
-                dateFormat="yy-mm-dd"
-                placeholder="Select date"
-                styleClass="w-full">
-              </p-datepicker>
-              <small class="text-red-500" *ngIf="exchangeRateForm.get('effectiveDate')?.invalid && exchangeRateForm.get('effectiveDate')?.touched">
-                Effective date is required
-              </small>
-            </div>
-
-            <!-- Expiry Date -->
-            <div class="flex flex-col gap-2">
-              <label htmlFor="expiryDate">Expiry Date (Optional)</label>
-              <p-datepicker
-                id="expiryDate"
-                formControlName="expiryDate"
-                [showIcon]="true"
-                dateFormat="yy-mm-dd"
-                placeholder="Select date"
-                [showClear]="true"
-                styleClass="w-full">
-              </p-datepicker>
-            </div>
-
-            <!-- Is Active -->
-            <div class="flex items-center gap-2">
-              <p-checkbox
-                id="isActive"
-                formControlName="isActive"
-                [binary]="true">
-              </p-checkbox>
-              <label htmlFor="isActive">Active</label>
-            </div>
-
-            <!-- Notes -->
-            <div class="flex flex-col gap-2">
-              <label htmlFor="notes">Notes</label>
-              <textarea
-                pInputTextarea
-                id="notes"
-                formControlName="notes"
-                rows="3"
-                placeholder="Enter any notes about this exchange rate..."
-                class="w-full">
-              </textarea>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 mt-4">
-            <button
-              pButton
-              type="button"
-              label="Cancel"
-              class="p-button-text"
-              (click)="dialogVisible = false">
-            </button>
-            <button
-              pButton
-              type="submit"
-              [label]="isEditing ? 'Update' : 'Create'"
-              [loading]="saving()"
-              [disabled]="exchangeRateForm.invalid">
-            </button>
-          </div>
-        </form>
-      </p-dialog>
-    </app-page-container>
-  `,
-  styles: [`
-    :host ::ng-deep {
-      .p-datatable .p-datatable-thead > tr > th {
-        background-color: var(--surface-ground);
-        font-weight: 600;
-      }
-
-      /* Tailwind gray-scale utility classes used above are static and don't
-         flip under .app-dark — re-point them at the theme-aware --color-*
-         tokens from assets/_data-page.scss. */
-      .text-gray-400 { color: var(--color-text-muted) !important; }
-      .text-gray-500 { color: var(--color-text-muted) !important; }
-      .text-gray-600 { color: var(--color-text-secondary) !important; }
-      .text-gray-800 { color: var(--color-text-primary) !important; }
-      .bg-gray-100 { background-color: var(--color-bg-secondary) !important; }
-    }
-  `]
+  templateUrl: './exchange-rates-list.component.html',
+  styleUrl: './exchange-rates-list.component.scss',
 })
 export class ExchangeRatesListComponent implements OnInit {
   private currencyService = inject(CurrencyService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private fb = inject(FormBuilder);
-  private readonly i18n = inject(I18nService);
+  readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
   exchangeRates = signal<ExchangeRate[]>([]);
   currencies = signal<Currency[]>([]);
   loading = signal(false);
   saving = signal(false);
+
+  first = signal(0);
+  pageSize = signal(15);
+  pagedExchangeRates = computed(() => this.exchangeRates().slice(this.first(), this.first() + this.pageSize()));
+  goToPage(page: number): void { this.first.set((page - 1) * this.pageSize()); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.first.set(0); }
   dialogVisible = false;
   isEditing = false;
   currentRateId: string | null = null;

@@ -27,6 +27,7 @@ public class CustomerCreditNoteConfiguration : IEntityTypeConfiguration<Customer
             .HasDefaultValue("USD");
 
         builder.Property(cn => cn.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

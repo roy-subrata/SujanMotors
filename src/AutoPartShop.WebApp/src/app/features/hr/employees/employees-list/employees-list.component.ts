@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { EmployeeService, EmployeeResponse } from '../../services/employee.service';
+import { EmployeeStatus } from '@/shared/models/status.types';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -18,12 +19,28 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-employees-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, TooltipModule, ToastModule, ConfirmDialogModule,
-        DialogModule, PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        TableModule,
+        ButtonModule,
+        InputTextModule,
+        Select,
+        TooltipModule,
+        ToastModule,
+        ConfirmDialogModule,
+        DialogModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent,
+        TranslatePipe
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './employees-list.component.html',
     styleUrls: ['./employees-list.component.css']
@@ -42,7 +59,7 @@ export class EmployeesListComponent implements OnInit {
     pageSizeOptions = [10, 25, 50, 100];
 
     searchTerm = '';
-    filterStatus = '';
+    filterStatus: EmployeeStatus | '' = '';
     filterDepartment = '';
 
     statusOptions = [
@@ -206,9 +223,7 @@ export class EmployeesListComponent implements OnInit {
             next: (result: any) => {
                 this.statusSaving = false;
                 this.statusDialogVisible = false;
-                const loginNote = (result?.loginDisabled || result?.loginEnabled)
-                    ? ` — login "${employee.userName}" ${isDeactivating ? 'disabled' : 'enabled'}`
-                    : '';
+                const loginNote = result?.loginDisabled || result?.loginEnabled ? ` — login "${employee.userName}" ${isDeactivating ? 'disabled' : 'enabled'}` : '';
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',

@@ -12,6 +12,7 @@ import '../../core/network/app_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
+import '../../shared/models/status_enums.dart';
 import '../../shared/widgets/design_system.dart';
 import '../../shared/widgets/state_views.dart';
 import 'customers_repository.dart';
@@ -433,7 +434,7 @@ class _InvoiceDivider extends StatelessWidget {
 
   final String invoiceNumber;
   final DateTime invoiceDate;
-  final String invoiceStatus;
+  final InvoiceStatus invoiceStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -463,7 +464,10 @@ class _InvoiceDivider extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          StatusPill(label: invoiceStatus),
+          StatusPill(
+            label: S.of(context).statusName(invoiceStatus),
+            kind: invoiceStatus.kind,
+          ),
         ],
       ),
     );

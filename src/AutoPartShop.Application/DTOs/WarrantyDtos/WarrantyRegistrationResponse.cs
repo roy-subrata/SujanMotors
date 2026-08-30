@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.WarrantyDtos;
 
 public class WarrantyRegistrationResponse
@@ -25,7 +27,7 @@ public class WarrantyRegistrationResponse
     public string WarrantyTerms { get; set; } = string.Empty;
     public string GuaranteeMessage { get; set; } = string.Empty;
     public string CertificateNumber { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public WarrantyRegistrationStatus Status { get; set; }
     public string? VoidReason { get; set; }
     public DateTime? VoidedDate { get; set; }
     public bool IsValid { get; set; }

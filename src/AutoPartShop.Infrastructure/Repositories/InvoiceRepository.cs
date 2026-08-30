@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -87,7 +88,7 @@ public class InvoiceRepository : IInvoiceRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Invoice>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Invoice>> GetByStatusAsync(InvoiceStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Invoices
             .Where(x => x.Status == status && !x.Isdeleted)
@@ -98,7 +99,7 @@ public class InvoiceRepository : IInvoiceRepository
     public async Task<IEnumerable<Invoice>> GetOverdueAsync(CancellationToken cancellationToken = default)
     {
         return await _dbContext.Invoices
-            .Where(x => x.DueDate < DateTime.UtcNow && x.Status != "PAID" && x.Status != "CANCELLED" && !x.Isdeleted)
+            .Where(x => x.DueDate < DateTime.UtcNow && x.Status != InvoiceStatus.PAID && x.Status != InvoiceStatus.CANCELLED && !x.Isdeleted)
             .OrderByDescending(x => x.InvoiceDate)
             .ToListAsync(cancellationToken);
     }
@@ -122,8 +123,8 @@ public class InvoiceRepository : IInvoiceRepository
         // so filter on the statuses that imply an unpaid balance instead.
         if (hasDue)
         {
-            query = query.Where(x => x.Status == "ISSUED" || x.Status == "DUE"
-                || x.Status == "OVERDUE" || x.Status == "PARTIALLY_PAID");
+            query = query.Where(x => x.Status == InvoiceStatus.ISSUED || x.Status == InvoiceStatus.DUE
+                || x.Status == InvoiceStatus.OVERDUE || x.Status == InvoiceStatus.PARTIALLY_PAID);
         }
 
         // Apply search term (invoice number, sales order number, customer name, phone)
@@ -139,7 +140,7 @@ public class InvoiceRepository : IInvoiceRepository
         // Status filter
         if (!string.IsNullOrWhiteSpace(status))
         {
-            query = query.Where(x => x.Status == status);
+            query = query.Where(x => x.Status.ToString() == status);
         }
 
         // Customer filter (by SalesOrder.CustomerId)

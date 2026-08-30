@@ -2,12 +2,13 @@ import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { PanelModule } from 'primeng/panel';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
@@ -30,8 +31,12 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
 import { GenerateProformaDialogComponent } from '../../proforma-invoices/generate-proforma-dialog/generate-proforma-dialog.component';
 import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { SalesOrderStatus } from '@/shared/models/status.types';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-sales-orders-list',
@@ -42,7 +47,6 @@ import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service
         TableModule,
         ButtonModule,
         InputTextModule,
-        Select,
         DatePickerModule,
         PanelModule,
         CardModule,
@@ -55,11 +59,14 @@ import { ProformaInvoiceResponse } from '../../services/proforma-invoice.service
         SkeletonModule,
         InputGroupModule,
         InputGroupAddonModule,
+        SelectModule,
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
         DataPaginationComponent,
-        GenerateProformaDialogComponent
+        StatStripComponent,
+        GenerateProformaDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './sales-orders-list.component.html',
@@ -74,6 +81,7 @@ export class SalesOrdersListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -88,7 +96,7 @@ export class SalesOrdersListComponent implements OnInit {
     pageSizeOptions = [10, 20, 50];
 
     searchTerm = '';
-    filterStatus = '';
+    filterStatus: SalesOrderStatus | '' = '';
     dateRange: Date[] = [];
 
     statusOptions: { label: string; value: string }[] = [];
@@ -99,6 +107,7 @@ export class SalesOrdersListComponent implements OnInit {
     generateProformaDialogVisible = false;
     selectedOrderForProforma: SalesOrderResponse | null = null;
 
+    stats: StatStripItem[] = [];
     Math = Math;
 
     ngOnInit(): void {
@@ -115,16 +124,45 @@ export class SalesOrdersListComponent implements OnInit {
         });
 
         this.loadData();
+        this.loadStats();
+    }
+
+    /**
+     * Grand-total counts for the stat strip — always reflect all orders,
+     * not the currently-filtered table, so the strip doesn't jump around
+     * as the user filters below it. Reuses the existing list endpoint with
+     * pageSize:1 per status bucket, reading response.pagination.totalCount
+     * — no dedicated summary endpoint needed.
+     */
+    private loadStats(): void {
+        forkJoin({
+            total: this.salesOrderService.getSalesOrders({ search: '', pageNumber: 1, pageSize: 1 }),
+            pending: this.salesOrderService.getSalesOrders({ search: '', pageNumber: 1, pageSize: 1, status: 'PENDING' }),
+            readyForDelivery: this.salesOrderService.getSalesOrders({ search: '', pageNumber: 1, pageSize: 1, status: 'READY_FOR_DELIVERY' }),
+            delivered: this.salesOrderService.getSalesOrders({ search: '', pageNumber: 1, pageSize: 1, status: 'DELIVERED' })
+        }).subscribe({
+            next: ({ total, pending, readyForDelivery, delivered }) => {
+                this.stats = [
+                    { label: this.i18n.t('salesOrders.stats.total'), value: String(total.pagination.totalCount) },
+                    { label: this.i18n.t('salesOrders.stats.pending'), value: String(pending.pagination.totalCount) },
+                    { label: this.i18n.t('salesOrders.stats.readyForDelivery'), value: String(readyForDelivery.pagination.totalCount) },
+                    { label: this.i18n.t('salesOrders.stats.delivered'), value: String(delivered.pagination.totalCount) }
+                ];
+            },
+            error: () => {
+                /* strip just stays empty — not worth a toast */
+            }
+        });
     }
 
     private buildStatusOptions(): void {
         this.statusOptions = [
             { label: this.i18n.t('salesOrders.statusOptions.allStatuses'), value: '' },
-            { label: this.i18n.t('salesOrders.statusOptions.pending'),      value: 'PENDING' },
-            { label: this.i18n.t('salesOrders.statusOptions.confirmed'),     value: 'CONFIRMED' },
+            { label: this.i18n.t('salesOrders.statusOptions.pending'), value: 'PENDING' },
+            { label: this.i18n.t('salesOrders.statusOptions.confirmed'), value: 'CONFIRMED' },
             { label: this.i18n.t('salesOrders.statusOptions.readyForDelivery'), value: 'READY_FOR_DELIVERY' },
-            { label: this.i18n.t('salesOrders.statusOptions.delivered'),     value: 'DELIVERED' },
-            { label: this.i18n.t('salesOrders.statusOptions.cancelled'),     value: 'CANCELLED' }
+            { label: this.i18n.t('salesOrders.statusOptions.delivered'), value: 'DELIVERED' },
+            { label: this.i18n.t('salesOrders.statusOptions.cancelled'), value: 'CANCELLED' }
         ];
     }
 
@@ -188,7 +226,7 @@ export class SalesOrdersListComponent implements OnInit {
                 pageNumber: this.pageNumber,
                 pageSize: this.pageSize,
                 search: this.searchTerm,
-                status: this.filterStatus,
+                status: this.filterStatus || undefined,
                 fromDate,
                 toDate
             })
@@ -399,36 +437,31 @@ export class SalesOrdersListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, currency);
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            PENDING:            'secondary',
-            DRAFT:              'secondary',
-            CONFIRMED:          'info',
-            READY_FOR_DELIVERY: 'warn',
-            DELIVERED:          'success',
-            CANCELLED:          'danger',
-            PAID: 'info', PACKED: 'warn', PARTIALLY_SHIPPED: 'warn', SHIPPED: 'info',
-            COMPLETED: 'success', RETURNED: 'danger'
-        };
-        return map[status] ?? 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'sales-order');
     }
 
     formatStatus(status: string): string {
         const labels: Record<string, string> = {
-            PENDING:            this.i18n.t('salesOrders.statusOptions.pending'),
-            DRAFT:              this.i18n.t('salesOrders.statusOptions.pending'),
-            CONFIRMED:          this.i18n.t('salesOrders.statusOptions.confirmed'),
+            PENDING: this.i18n.t('salesOrders.statusOptions.pending'),
+            DRAFT: this.i18n.t('salesOrders.statusOptions.pending'),
+            CONFIRMED: this.i18n.t('salesOrders.statusOptions.confirmed'),
             READY_FOR_DELIVERY: this.i18n.t('salesOrders.statusOptions.readyForDelivery'),
-            DELIVERED:          this.i18n.t('salesOrders.statusOptions.delivered'),
-            CANCELLED:          this.i18n.t('salesOrders.statusOptions.cancelled'),
-            PAID:               this.i18n.t('salesOrders.statusOptions.paid'),
-            PACKED:             this.i18n.t('salesOrders.statusOptions.packed'),
-            PARTIALLY_SHIPPED:  this.i18n.t('salesOrders.statusOptions.partiallyShipped'),
-            SHIPPED:            this.i18n.t('salesOrders.statusOptions.shipped'),
-            COMPLETED:          this.i18n.t('salesOrders.statusOptions.completed'),
-            RETURNED:           this.i18n.t('salesOrders.statusOptions.returned')
+            DELIVERED: this.i18n.t('salesOrders.statusOptions.delivered'),
+            CANCELLED: this.i18n.t('salesOrders.statusOptions.cancelled'),
+            PAID: this.i18n.t('salesOrders.statusOptions.paid'),
+            PACKED: this.i18n.t('salesOrders.statusOptions.packed'),
+            PARTIALLY_SHIPPED: this.i18n.t('salesOrders.statusOptions.partiallyShipped'),
+            SHIPPED: this.i18n.t('salesOrders.statusOptions.shipped'),
+            COMPLETED: this.i18n.t('salesOrders.statusOptions.completed'),
+            RETURNED: this.i18n.t('salesOrders.statusOptions.returned')
         };
-        return labels[status] ?? (status ?? '-').split('_')
-            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+        return (
+            labels[status] ??
+            (status ?? '-')
+                .split('_')
+                .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+                .join(' ')
+        );
     }
 }

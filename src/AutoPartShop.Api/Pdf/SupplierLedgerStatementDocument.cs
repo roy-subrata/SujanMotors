@@ -74,10 +74,10 @@ public class SupplierLedgerStatementDocument : IDocument
     // CustomerAccountStatementDocument) — it goes next to the "Ledger" section heading instead,
     // where there's a full row's width to work with.
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Supplier Ledger",
+        new DocHeader(_theme, _shop, _theme.T("ledger.title"),
         [
-            new MetaField("No.", $"LED-{_data.SupplierCode}"),
-            new MetaField("Date", DateTime.Now.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.no"), $"LED-{_data.SupplierCode}"),
+            new MetaField(_theme.T("common.date"), DateTime.Now.ToString("dd MMM yyyy")),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -93,11 +93,11 @@ public class SupplierLedgerStatementDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Supplier"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.supplier")));
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.SupplierName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
             if (!string.IsNullOrWhiteSpace(_data.SupplierCode))
-                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, "Code", _data.SupplierCode));
+                col.Item().PaddingTop(DocTheme.Px(4)).Element(c => InfoRow(c, _theme.T("common.code"), _data.SupplierCode));
         });
     }
 
@@ -109,7 +109,7 @@ public class SupplierLedgerStatementDocument : IDocument
         {
             col.Item().Row(row =>
             {
-                row.RelativeItem().Element(c => SectionLabel(c, "Ledger"));
+                row.RelativeItem().Element(c => SectionLabel(c, _theme.T("ledger.ledger")));
                 row.AutoItem().Text(_data.PeriodLabel)
                     .Style(DocTheme.MonoText).FontSize(DocTheme.Px(9)).FontColor(DocTheme.Label);
             });
@@ -117,7 +117,7 @@ public class SupplierLedgerStatementDocument : IDocument
             if (entries.Count == 0)
             {
                 col.Item().PaddingTop(DocTheme.Px(20)).AlignCenter()
-                    .Text("No transactions found for this period.")
+                    .Text(_theme.T("common.noTransactionsPeriod"))
                     .FontSize(DocTheme.Body).FontColor(DocTheme.Label);
             }
             else
@@ -141,15 +141,15 @@ public class SupplierLedgerStatementDocument : IDocument
 
                     table.Header(header =>
                     {
-                        Head(header.Cell(), "Date");
-                        Head(header.Cell(), "Type");
-                        Head(header.Cell(), "Reference");
+                        Head(header.Cell(), _theme.T("common.date"));
+                        Head(header.Cell(), _theme.T("ledger.type"));
+                        Head(header.Cell(), _theme.T("common.reference"));
                         // "Description" (11 chars, letter-spaced uppercase) wraps mid-word in this
                         // column — six other columns compete for width, unlike the wider item tables.
-                        Head(header.Cell(), "Details");
-                        Head(header.Cell(), "Debit", right: true);
-                        Head(header.Cell(), "Credit", right: true);
-                        Head(header.Cell(), "Balance", right: true);
+                        Head(header.Cell(), _theme.T("ledger.details"));
+                        Head(header.Cell(), _theme.T("ledger.debit"), right: true);
+                        Head(header.Cell(), _theme.T("ledger.credit"), right: true);
+                        Head(header.Cell(), _theme.T("common.balance"), right: true);
                     });
 
                     foreach (var e in entries)
@@ -173,12 +173,12 @@ public class SupplierLedgerStatementDocument : IDocument
     {
         container.AlignRight().Width(DocTheme.TotalsWidth).Column(col =>
         {
-            SummaryRow(col, "Total Purchases", DocTheme.Amount(_data.TotalPurchases));
-            SummaryRow(col, "Total Payments", $"({DocTheme.Amount(_data.TotalPayments)})");
+            SummaryRow(col, _theme.T("ledger.totalPurchases"), DocTheme.Amount(_data.TotalPurchases));
+            SummaryRow(col, _theme.T("ledger.totalPayments"), $"({DocTheme.Amount(_data.TotalPayments)})");
             if (_data.TotalRefunds > 0)
-                SummaryRow(col, "Total Refunds", $"({DocTheme.Amount(_data.TotalRefunds)})");
+                SummaryRow(col, _theme.T("ledger.totalRefunds"), $"({DocTheme.Amount(_data.TotalRefunds)})");
             if (_data.AvailableAdvanceCredit > 0)
-                SummaryRow(col, "Available Advance Credit", DocTheme.Amount(_data.AvailableAdvanceCredit));
+                SummaryRow(col, _theme.T("ledger.availableAdvanceCredit"), DocTheme.Amount(_data.AvailableAdvanceCredit));
 
             col.Item().PaddingTop(DocTheme.Px(4))
                 .BorderTop(DocTheme.RuleMedium).BorderBottom(DocTheme.RuleMedium)
@@ -186,7 +186,7 @@ public class SupplierLedgerStatementDocument : IDocument
                 .Padding(DocTheme.Px(8))
                 .Row(row =>
                 {
-                    row.RelativeItem().Text(_data.CurrentBalance <= 0 ? "Settled" : "Current Balance")
+                    row.RelativeItem().Text(_data.CurrentBalance <= 0 ? _theme.T("common.settled") : _theme.T("ledger.currentBalance"))
                         .FontSize(DocTheme.GrandTotal).Bold().FontColor(DocTheme.Ink);
                     row.AutoItem().Text(_theme.Money(Math.Abs(_data.CurrentBalance)))
                         .Style(DocTheme.MonoText).FontSize(DocTheme.GrandTotal).Bold().FontColor(DocTheme.Ink);
@@ -220,13 +220,13 @@ public class SupplierLedgerStatementDocument : IDocument
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
-    private static string FormatType(string type) => type switch
+    private string FormatType(string type) => type switch
     {
-        "PURCHASE" => "Purchase",
-        "PAYMENT" => "Payment",
-        "REFUND" => "Refund",
-        "ADVANCE" => "Advance",
-        "CANCELLATION" => "Cancellation",
+        "PURCHASE" => _theme.T("ledger.typePurchase"),
+        "PAYMENT" => _theme.T("ledger.typePayment"),
+        "REFUND" => _theme.T("ledger.typeRefund"),
+        "ADVANCE" => _theme.T("ledger.typeAdvance"),
+        "CANCELLATION" => _theme.T("ledger.typeCancellation"),
         _ => string.IsNullOrWhiteSpace(type) ? "—" : type
     };
 

@@ -1,10 +1,11 @@
 using AutoPartShop.Application.Common;
+using AutoPartShop.Domain.Enums.HR;
 
 namespace AutoPartShop.Application.HR.Dtos
 {
     public class LeaveRequestQuery : BaseQuery
     {
-        public string Status { get; set; } = "";
+        public LeaveRequestStatus? Status { get; set; }
         public Guid? EmployeeId { get; set; }
     }
 
@@ -19,7 +20,7 @@ namespace AutoPartShop.Application.HR.Dtos
         public DateTime ToDate { get; set; }
         public int TotalDays { get; set; }
         public string Reason { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public LeaveRequestStatus Status { get; set; }
         public string DecisionBy { get; set; } = string.Empty;
         public DateTime? DecisionAt { get; set; }
         public string DecisionNotes { get; set; } = string.Empty;
@@ -46,5 +47,14 @@ namespace AutoPartShop.Application.HR.Dtos
     public class LeaveDecisionRequest
     {
         public string Notes { get; set; } = string.Empty;
+    }
+
+    public class LeaveBalanceItem
+    {
+        public string LeaveType { get; set; } = string.Empty;
+        public decimal? Entitlement { get; set; }
+        public int UsedDays { get; set; }
+        public int PendingDays { get; set; }
+        public decimal? RemainingDays { get; set; }
     }
 }

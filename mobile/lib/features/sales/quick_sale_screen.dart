@@ -1060,6 +1060,12 @@ class _SuccessView extends StatelessWidget {
             _InfoRow(
                 label: S.of(context).invoice, value: result.invoiceNumber),
             const SizedBox(height: 6),
+            if (result.appliedPromoCode != null) ...[
+              _InfoRow(
+                  label: S.of(context).promoCode,
+                  value: result.appliedPromoCode!),
+              const SizedBox(height: 6),
+            ],
             _InfoRow(
                 label: S.of(context).total,
                 value: formatCurrency(result.grandTotal)),

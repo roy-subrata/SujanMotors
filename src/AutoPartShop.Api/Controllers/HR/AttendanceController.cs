@@ -3,6 +3,7 @@ using AutoPartShop.Api.Services;
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.HR.Dtos;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// <summary>
 /// Daily attendance marking and monthly summaries. Manual entry by Admin/Manager (v1).
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]
@@ -79,9 +79,25 @@ public class AttendanceController : ControllerBase
             if (request.Entries.Count == 0)
                 return BadRequest(new { message = "No attendance entries supplied" });
 
+            // Both guards below exist because the alternative is a raw DbUpdateException surfacing
+            // as a 500: an unknown id violates the Employee FK, a repeated id violates the
+            // (EmployeeId, Date) unique index.
+            var submittedIds = request.Entries.Where(e => e.Status is not null).Select(e => e.EmployeeId).ToList();
+
+            var duplicateIds = submittedIds.GroupBy(id => id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            if (duplicateIds.Count > 0)
+                return BadRequest(new { message = $"Duplicate employee IDs in the payload: {string.Join(", ", duplicateIds)}" });
+
+            var employeeIds = submittedIds.Distinct().ToList();
+            var allEmployees = await _employeeRepository.GetAllAsync(cancellationToken);
+            var validIds = new HashSet<Guid>(allEmployees.Select(e => e.Id));
+            var invalidIds = employeeIds.Where(id => !validIds.Contains(id)).ToList();
+            if (invalidIds.Count > 0)
+                return BadRequest(new { message = $"Unknown employee IDs: {string.Join(", ", invalidIds)}" });
+
             var records = request.Entries
-                .Where(e => !string.IsNullOrWhiteSpace(e.Status))
-                .Select(e => AttendanceRecord.Create(e.EmployeeId, request.Date, e.Status, e.CheckInTime, e.CheckOutTime, e.Notes))
+                .Where(e => e.Status is not null)
+                .Select(e => AttendanceRecord.Create(e.EmployeeId, request.Date, e.Status!.Value, e.CheckInTime, e.CheckOutTime, e.Notes))
                 .ToList();
 
             await _attendanceRepository.UpsertRangeAsync(records, _currentUserService.GetCurrentUsername(), cancellationToken);
@@ -127,7 +143,7 @@ public class AttendanceController : ControllerBase
                 return BadRequest(new { message = "EmployeeCode is required" });
 
             var employee = await _employeeRepository.GetByCodeAsync(request.EmployeeCode.Trim().ToUpper(), cancellationToken);
-            if (employee is null || employee.Status != "ACTIVE")
+            if (employee is null || employee.Status != EmployeeStatus.ACTIVE)
                 return NotFound(new { message = "Unknown or inactive employee code" });
 
             var timestamp = request.Timestamp ?? DateTime.Now;
@@ -138,12 +154,12 @@ public class AttendanceController : ControllerBase
             if (existing is null)
             {
                 // Check-in: shift decides PRESENT vs LATE
-                var status = "PRESENT";
+                var status = AttendanceStatus.PRESENT;
                 if (employee.ShiftId is Guid shiftId)
                 {
                     var shift = await _shiftRepository.GetByIdAsync(shiftId, cancellationToken);
                     if (shift is not null && time > shift.StartTime.Add(TimeSpan.FromMinutes(shift.GraceMinutes)))
-                        status = "LATE";
+                        status = AttendanceStatus.LATE;
                 }
 
                 var record = AttendanceRecord.Create(employee.Id, day, status, checkInTime: time, notes: "Device punch");

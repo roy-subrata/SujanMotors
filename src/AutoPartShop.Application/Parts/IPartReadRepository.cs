@@ -5,7 +5,6 @@ namespace AutoPartShop.Application.Parts
     public interface IProductReadRepository
     {
         Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> FindAllAsync(ProductQuery query, CancellationToken cancellationToken = default);
-        Task<(IEnumerable<ProductPublicResponse> Parts, int TotalCount)> FindAllPublicAsync(ProductQuery query, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Semantic search: ranks products by cosine distance between their stored embedding and
@@ -13,5 +12,12 @@ namespace AutoPartShop.Application.Parts
         /// </summary>
         Task<(IEnumerable<ProductResponse> Parts, int TotalCount)> SearchSemanticAsync(
             float[] queryVector, bool? isActive, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Weighted-average cost of a part's on-hand purchase lots (and each variant's own lots) —
+        /// the same inventory cost the list endpoints surface. Returns 0 when nothing is on hand.
+        /// </summary>
+        Task<(decimal PartCost, IReadOnlyDictionary<Guid, decimal> VariantCosts)> GetWeightedLotCostsAsync(
+            Guid partId, CancellationToken cancellationToken = default);
     }
 }

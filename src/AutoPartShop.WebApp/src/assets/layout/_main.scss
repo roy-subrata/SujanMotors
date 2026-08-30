@@ -26,14 +26,13 @@
     margin-left: 64px;
 }
 
-// Content column — capped/centered width and top-gap tightening applied
-// here once so every routed page (dashboard, data-pages, forms) picks up
-// the exact same margin without needing its own copy of this rule.
+// Content column — full width (edge to edge, padding only provides the
+// gap) and top-gap tightening applied here once so every routed page
+// (dashboard, data-pages, forms) picks up the exact same margins without
+// needing its own copy of this rule.
 .layout-main {
     flex: 1 1 auto;
     width: 100%;
-    max-width: 1440px;
-    margin: 0 auto;
     padding: 1.5rem;
     padding-top: 0.5rem; /* 24px - 16px: tightens the gap under the topbar */
     /* main content scrolls with the page when needed */

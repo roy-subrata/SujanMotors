@@ -24,7 +24,7 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                         EF.Functions.Like(x.Designation, $"%{search}%"));
             }
 
-            if (!string.IsNullOrWhiteSpace(query.Status))
+            if (query.Status is not null)
             {
                 employees = employees.Where(x => x.Status == query.Status);
             }
@@ -94,14 +94,13 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
 
         public async Task<IReadOnlyCollection<LinkableUserResponse>> GetLinkableUsers(Guid? currentEmployeeId, CancellationToken cancellationToken)
         {
-            // Staff accounts only (online shoppers have CustomerId set), active, and not
-            // already backing another employee record
+            // Staff accounts only, active, and not already backing another employee record
             var linkedUserIds = _dbContext.Employees
                 .Where(e => !e.Isdeleted && e.UserId != null && e.Id != currentEmployeeId)
                 .Select(e => e.UserId!.Value);
 
             return await _dbContext.Users
-                .Where(u => u.CustomerId == null && u.IsActive && !linkedUserIds.Contains(u.Id))
+                .Where(u => u.IsActive && !linkedUserIds.Contains(u.Id))
                 .OrderBy(u => u.UserName)
                 .Select(u => new LinkableUserResponse
                 {
@@ -111,6 +110,14 @@ namespace AutoPartShop.Infrastructure.Repositories.HR
                     Email = u.Email ?? string.Empty
                 })
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<Dictionary<Guid, string>> GetShiftNamesAsync(IEnumerable<Guid> shiftIds, CancellationToken cancellationToken)
+        {
+            return await _dbContext.Shifts
+                .Where(s => shiftIds.Contains(s.Id))
+                .Select(s => new { s.Id, s.Name })
+                .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
         }
     }
 }

@@ -1,0 +1,95 @@
+
+        <p-dialog [(visible)]="visible" [modal]="true" [style]="{ width: '550px', maxWidth: '95vw' }" [draggable]="false" [resizable]="false" [closable]="true" styleClass="quick-customer-dialog">
+            <ng-template pTemplate="header">
+                <div class="dialog-header">
+                    <div class="header-icon">
+                        <i class="pi pi-user-plus"></i>
+                    </div>
+                    <div class="header-text">
+                        <h3>{{ 'quickCustomerDialog.title' | translate }}</h3>
+                        <p>{{ 'quickCustomerDialog.subtitle' | translate }}</p>
+                    </div>
+                </div>
+            </ng-template>
+
+            <form [formGroup]="customerForm" (ngSubmit)="onSubmit()" class="customer-form">
+                <!-- Name Row -->
+                <div class="form-row two-col">
+                    <div class="form-field">
+                        <label for="firstName"> {{ 'customers.form.firstNameLabel' | translate }} <span class="required">*</span> </label>
+                        <input pInputText id="firstName" formControlName="firstName" [placeholder]="'quickCustomerDialog.firstNamePlaceholder' | translate" [class.invalid]="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched" />
+                        <small class="error-text" *ngIf="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched"> {{ 'customers.form.firstNameRequired' | translate }} </small>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="lastName"> {{ 'customers.form.lastNameLabel' | translate }} </label>
+                        <input pInputText id="lastName" formControlName="lastName" [placeholder]="'quickCustomerDialog.lastNamePlaceholder' | translate" [class.invalid]="customerForm.get('lastName')?.invalid && customerForm.get('lastName')?.touched" />
+                    </div>
+                </div>
+
+                <!-- Phone & Email Row -->
+                <div class="form-row two-col">
+                    <div class="form-field">
+                        <label for="phone">
+                            <i class="pi pi-phone"></i>
+                            {{ 'common.labels.phone' | translate }} <span class="required">*</span>
+                        </label>
+                        <input pInputText id="phone" formControlName="phone" [placeholder]="'quickCustomerDialog.phonePlaceholder' | translate" [class.invalid]="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched" />
+                        <small class="error-text" *ngIf="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched"> {{ 'customers.form.phoneRequired' | translate }} </small>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="email">
+                            <i class="pi pi-envelope"></i>
+                            {{ 'common.labels.email' | translate }}
+                        </label>
+                        <input pInputText id="email" type="email" formControlName="email" [placeholder]="'quickCustomerDialog.emailPlaceholder' | translate" [class.invalid]="customerForm.get('email')?.invalid && customerForm.get('email')?.touched" />
+                        <small class="error-text" *ngIf="customerForm.get('email')?.invalid && customerForm.get('email')?.touched"> {{ 'quickCustomerDialog.emailInvalid' | translate }} </small>
+                    </div>
+                </div>
+
+                <!-- Customer Type & City Row -->
+                <div class="form-row two-col">
+                    <div class="form-field">
+                        <label for="customerType">
+                            <i class="pi pi-tag"></i>
+                            {{ 'customers.form.typeLabel' | translate }}
+                        </label>
+                        <p-select id="customerType" formControlName="customerType" [options]="customerTypes" optionLabel="label" optionValue="value" [placeholder]="'customers.form.typePlaceholder' | translate" styleClass="w-full"></p-select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="city">
+                            <i class="pi pi-map-marker"></i>
+                            {{ 'common.labels.city' | translate }}
+                        </label>
+                        <input pInputText id="city" formControlName="city" [placeholder]="'quickCustomerDialog.cityPlaceholder' | translate" />
+                    </div>
+                </div>
+
+                <!-- Address Row -->
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="address">
+                            <i class="pi pi-home"></i>
+                            {{ 'common.labels.address' | translate }}
+                        </label>
+                        <input pInputText id="address" formControlName="address" [placeholder]="'quickCustomerDialog.addressPlaceholder' | translate" />
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div *ngIf="error()" class="error-banner">
+                    <i class="pi pi-exclamation-circle"></i>
+                    <span>{{ error() }}</span>
+                </div>
+            </form>
+
+            <ng-template pTemplate="footer">
+                <div class="dialog-footer">
+                    <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text p-button-secondary" (click)="onCancel()"></button>
+                    <button pButton type="button" [label]="'quickCustomerDialog.submit' | translate" icon="pi pi-check" class="p-button-success" [loading]="saving()" [disabled]="customerForm.invalid" (click)="onSubmit()"></button>
+                </div>
+            </ng-template>
+        </p-dialog>
+    

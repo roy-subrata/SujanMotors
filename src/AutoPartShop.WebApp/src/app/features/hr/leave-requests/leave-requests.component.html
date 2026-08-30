@@ -2,210 +2,216 @@
 <p-confirmDialog></p-confirmDialog>
 
 <app-page-container>
+    <!-- ==================== HEADER ==================== -->
+    <app-page-header [title]="'hr.leaveRequests.title' | translate" [subtitle]="'hr.leaveRequests.subtitle' | translate" [count]="totalRecords" [countLabel]="'hr.leaveRequests.countLabel' | translate" countIcon="pi pi-calendar-minus">
+        <ng-container actions>
+            <button class="btn-primary" (click)="openCreate()">
+                <i class="pi pi-plus"></i>
+                <span>{{ 'hr.leaveRequests.newRequest' | translate }}</span>
+            </button>
+        </ng-container>
+    </app-page-header>
 
-  <!-- ==================== HEADER ==================== -->
-  <app-page-header
-    title="Leave Requests"
-    subtitle="Manage employee leave applications"
-    [count]="totalRecords" countLabel="requests" countIcon="pi pi-calendar-minus">
-    <ng-container actions>
-      <button class="btn-primary" (click)="openCreate()">
-        <i class="pi pi-plus"></i>
-        <span>New Leave Request</span>
-      </button>
-    </ng-container>
-  </app-page-header>
-
-  <!-- ==================== FILTERS ==================== -->
-  <app-filter-bar>
-    <div search class="filter-group search-group">
-      <div class="search-input-wrapper">
-        <i class="pi pi-search"></i>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by employee name, code, reason..."
-          class="search-input" (keyup.enter)="onSearch()">
-        <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
-      </div>
-    </div>
-
-    <div filters class="filter-group">
-      <!-- <label class="filter-label">Status</label> -->
-      <p-select [options]="statusOptions" [(ngModel)]="filterStatus" placeholder="All Statuses"
-        [showClear]="true" (onChange)="onFilterChange()" appendTo="body" styleClass="filter-dropdown"></p-select>
-    </div>
-
-    <div filterActions class="filter-group filter-actions">
-      <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> Search</button>
-      <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()">
-        <i class="pi pi-filter-slash"></i> Clear
-      </button>
-    </div>
-  </app-filter-bar>
-
-  <!-- ==================== DATA TABLE (Desktop) ==================== -->
-  <section class="table-section desktop-only">
-    <div class="table-container">
-      <p-table [value]="requests" [loading]="loading" [lazy]="true" [paginator]="false"
-        [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex"
-        styleClass="app-table" dataKey="id">
-
-        <ng-template #header>
-          <tr>
-            <th class="col-employee">Employee</th>
-            <th class="col-type">Type</th>
-            <th class="col-dates">From</th>
-            <th class="col-dates">To</th>
-            <th class="col-days">Days</th>
-            <th class="col-reason">Reason</th>
-            <th class="col-status">Status</th>
-            <th class="col-decision">Decision By</th>
-            <th class="col-actions">Actions</th>
-          </tr>
-        </ng-template>
-
-        <ng-template #body let-request>
-          <tr class="data-row">
-            <td class="col-employee">
-              <span class="cell-primary">{{ request.employeeName }}</span>
-              <span class="text-muted code-sub">{{ request.employeeCode }}</span>
-            </td>
-            <td class="col-type">{{ request.leaveType }}</td>
-            <td class="col-dates">{{ request.fromDate | date: 'dd MMM yyyy' }}</td>
-            <td class="col-dates">{{ request.toDate | date: 'dd MMM yyyy' }}</td>
-            <td class="col-days">{{ request.totalDays }}</td>
-            <td class="col-reason"><span class="text-muted">{{ request.reason || '-' }}</span></td>
-            <td class="col-status">
-              <span class="status-pill" [attr.data-status]="request.status.toLowerCase()">{{ request.status }}</span>
-            </td>
-            <td class="col-decision"><span class="text-muted">{{ request.decisionBy || '-' }}</span></td>
-            <td class="col-actions">
-              <div class="action-cell">
-                <ng-container *ngIf="request.status === 'PENDING'">
-                  <button class="btn-action" pTooltip="Approve" (click)="approve(request)"><i class="pi pi-check"></i></button>
-                  <button class="btn-action" pTooltip="Reject" (click)="reject(request)"><i class="pi pi-times"></i></button>
-                  <button class="btn-action" pTooltip="Edit" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
-                </ng-container>
-                <span *ngIf="request.status !== 'PENDING'" class="text-muted">-</span>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="9">
-              <div class="empty-state">
-                <div class="empty-icon"><i class="pi pi-calendar-minus"></i></div>
-                <h3>No Leave Requests Found</h3>
-                <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a leave request' }}</p>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </div>
-  </section>
-
-  <!-- ==================== CARDS (Mobile) ==================== -->
-  <section class="cards-section mobile-only">
-
-    <div *ngIf="loading" class="cards-grid">
-      <div *ngFor="let _ of [1,2,3,4]" class="order-card skeleton-card">
-        <div class="card-header">
-          <div class="skeleton skeleton-text"></div>
-          <div class="skeleton skeleton-badge"></div>
-        </div>
-        <div class="card-body">
-          <div class="skeleton skeleton-text-lg"></div>
-          <div class="skeleton skeleton-text-sm"></div>
-        </div>
-      </div>
-    </div>
-
-    <div *ngIf="!loading && requests.length === 0" class="empty-state-mobile">
-      <div class="empty-icon"><i class="pi pi-calendar-minus"></i></div>
-      <h3>No Leave Requests Found</h3>
-      <p>{{ searchTerm ? 'Try adjusting your filters or search criteria' : 'Start by creating a leave request' }}</p>
-    </div>
-
-    <div *ngIf="!loading && requests.length > 0" class="cards-grid">
-      <div *ngFor="let request of requests" class="order-card">
-
-        <div class="card-header">
-          <span class="card-so-number">{{ request.employeeName }}</span>
-          <span class="status-pill" [attr.data-status]="request.status.toLowerCase()">{{ request.status }}</span>
-        </div>
-
-        <div class="card-body">
-          <div class="card-customer">
-            <div class="customer-info">
-              <span class="customer-name">{{ request.employeeCode }} &middot; {{ request.leaveType }}</span>
-              <span class="customer-phone">{{ request.fromDate | date: 'dd MMM yyyy' }} – {{ request.toDate | date: 'dd MMM yyyy' }} ({{ request.totalDays }}d)</span>
+    <!-- ==================== FILTERS ==================== -->
+    <app-filter-bar>
+        <div search class="filter-group search-group">
+            <div class="search-input-wrapper">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'hr.leaveRequests.searchPlaceholder' | translate" class="search-input" (keyup.enter)="onSearch()" />
+                <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
             </div>
-          </div>
-          <div class="card-meta">
-            <span class="card-meta-item" *ngIf="request.reason"><i class="pi pi-comment"></i>&nbsp;{{ request.reason }}</span>
-            <span class="card-meta-item" *ngIf="request.decisionBy"><i class="pi pi-user"></i>&nbsp;{{ request.decisionBy }}</span>
-          </div>
         </div>
 
-        <div class="card-footer" *ngIf="request.status === 'PENDING'">
-          <button class="btn-card-action" pTooltip="Approve" (click)="approve(request)"><i class="pi pi-check"></i></button>
-          <button class="btn-card-action" pTooltip="Reject" (click)="reject(request)"><i class="pi pi-times"></i></button>
-          <button class="btn-card-action" pTooltip="Edit" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
+        <div filters class="filter-group">
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="filterStatus"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'common.status.allStatuses' | translate"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                appendTo="body"
+                styleClass="filter-dropdown"
+            >
+            </p-select>
         </div>
-      </div>
-    </div>
 
-  </section>
+        <div filterActions class="filter-group filter-actions">
+            <button class="btn-search" (click)="onSearch()"><i class="pi pi-search"></i> {{ 'common.actions.search' | translate }}</button>
+            <button *ngIf="searchTerm || filterStatus" class="btn-clear" (click)="clearFilters()"><i class="pi pi-filter-slash"></i> {{ 'common.actions.clear' | translate }}</button>
+        </div>
+    </app-filter-bar>
 
-  <!-- ==================== PAGINATION ==================== -->
-  <app-data-pagination
-    [first]="(pageNumber - 1) * pageSize"
-    [pageSize]="pageSize"
-    [totalRecords]="totalRecords"
-    [pageSizeOptions]="pageSizeOptions"
-    itemLabel="requests"
-    (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
-    (pageSizeChange)="onPageChange({ page: 0, rows: $event })">
-  </app-data-pagination>
+    <!-- ==================== DATA TABLE (Desktop) ==================== -->
+    <section class="table-section desktop-only">
+        <div class="table-container">
+            <p-table [value]="requests" [loading]="loading" [lazy]="true" [paginator]="false" [rows]="pageSize" [totalRecords]="totalRecords" [scrollable]="true" scrollHeight="flex" styleClass="app-table" dataKey="id">
+                <ng-template #header>
+                    <tr>
+                        <th class="col-employee">{{ 'hr.leaveRequests.columns.employee' | translate }}</th>
+                        <th class="col-type">{{ 'hr.leaveRequests.columns.type' | translate }}</th>
+                        <th class="col-dates">{{ 'hr.leaveRequests.columns.from' | translate }}</th>
+                        <th class="col-dates">{{ 'hr.leaveRequests.columns.to' | translate }}</th>
+                        <th class="col-days">{{ 'hr.leaveRequests.columns.days' | translate }}</th>
+                        <th class="col-reason">{{ 'hr.leaveRequests.columns.reason' | translate }}</th>
+                        <th class="col-status">{{ 'hr.leaveRequests.columns.status' | translate }}</th>
+                        <th class="col-decision">{{ 'hr.leaveRequests.columns.decisionBy' | translate }}</th>
+                        <th class="col-actions">{{ 'hr.leaveRequests.columns.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
 
+                <ng-template #body let-request>
+                    <tr class="data-row">
+                        <td class="col-employee">
+                            <span class="cell-primary">{{ request.employeeName }}</span>
+                            <span class="text-muted code-sub">{{ request.employeeCode }}</span>
+                        </td>
+                        <td class="col-type">{{ request.leaveType }}</td>
+                        <td class="col-dates">{{ request.fromDate | date: 'dd MMM yyyy' }}</td>
+                        <td class="col-dates">{{ request.toDate | date: 'dd MMM yyyy' }}</td>
+                        <td class="col-days">{{ request.totalDays }}</td>
+                        <td class="col-reason">
+                            <span class="text-muted">{{ request.reason || '-' }}</span>
+                        </td>
+                        <td class="col-status">
+                            <span class="status-pill" [attr.data-status]="request.status.toLowerCase()">{{ request.status }}</span>
+                        </td>
+                        <td class="col-decision">
+                            <span class="text-muted">{{ request.decisionBy || '-' }}</span>
+                        </td>
+                        <td class="col-actions">
+                            <div class="action-cell">
+                                <ng-container *ngIf="request.status === 'PENDING'">
+                                    <button class="btn-action" [pTooltip]="'hr.leaveRequests.tooltips.approve' | translate" (click)="approve(request)"><i class="pi pi-check"></i></button>
+                                    <button class="btn-action" [pTooltip]="'hr.leaveRequests.tooltips.reject' | translate" (click)="reject(request)"><i class="pi pi-times"></i></button>
+                                    <button class="btn-action" [pTooltip]="'hr.leaveRequests.tooltips.edit' | translate" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
+                                </ng-container>
+                                <span *ngIf="request.status !== 'PENDING'" class="text-muted">-</span>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template #emptymessage>
+                    <tr>
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <div class="empty-icon"><i class="pi pi-calendar-minus"></i></div>
+                                <h3>{{ 'hr.leaveRequests.emptyTitle' | translate }}</h3>
+                                <p>{{ (searchTerm ? 'hr.leaveRequests.emptyHintFiltered' : 'hr.leaveRequests.emptyHintCreate') | translate }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </section>
+
+    <!-- ==================== CARDS (Mobile) ==================== -->
+    <section class="cards-section mobile-only">
+        <div *ngIf="loading" class="cards-grid">
+            <div *ngFor="let _ of [1, 2, 3, 4]" class="order-card skeleton-card">
+                <div class="card-header">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-badge"></div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton skeleton-text-lg"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <div *ngIf="!loading && requests.length === 0" class="empty-state-mobile">
+            <div class="empty-icon"><i class="pi pi-calendar-minus"></i></div>
+            <h3>{{ 'hr.leaveRequests.emptyTitle' | translate }}</h3>
+            <p>{{ (searchTerm ? 'hr.leaveRequests.emptyHintFiltered' : 'hr.leaveRequests.emptyHintCreate') | translate }}</p>
+        </div>
+
+        <div *ngIf="!loading && requests.length > 0" class="cards-grid">
+            <div *ngFor="let request of requests" class="order-card">
+                <div class="card-header">
+                    <span class="card-so-number">{{ request.employeeName }}</span>
+                    <span class="status-pill" [attr.data-status]="request.status.toLowerCase()">{{ request.status }}</span>
+                </div>
+
+                <div class="card-body">
+                    <div class="card-customer">
+                        <div class="customer-info">
+                            <span class="customer-name">{{ request.employeeCode }} &middot; {{ request.leaveType }}</span>
+                            <span class="customer-phone">{{ request.fromDate | date: 'dd MMM yyyy' }} – {{ request.toDate | date: 'dd MMM yyyy' }} ({{ request.totalDays }}d)</span>
+                        </div>
+                    </div>
+                    <div class="card-meta">
+                        <span class="card-meta-item" *ngIf="request.reason"><i class="pi pi-comment"></i>&nbsp;{{ request.reason }}</span>
+                        <span class="card-meta-item" *ngIf="request.decisionBy"><i class="pi pi-user"></i>&nbsp;{{ request.decisionBy }}</span>
+                    </div>
+                </div>
+
+                <div class="card-footer" *ngIf="request.status === 'PENDING'">
+                    <button class="btn-card-action" [pTooltip]="'hr.leaveRequests.tooltips.approve' | translate" (click)="approve(request)"><i class="pi pi-check"></i></button>
+                    <button class="btn-card-action" [pTooltip]="'hr.leaveRequests.tooltips.reject' | translate" (click)="reject(request)"><i class="pi pi-times"></i></button>
+                    <button class="btn-card-action" [pTooltip]="'hr.leaveRequests.tooltips.edit' | translate" (click)="openEdit(request)"><i class="pi pi-pencil"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== PAGINATION ==================== -->
+    <app-data-pagination
+        [first]="(pageNumber - 1) * pageSize"
+        [pageSize]="pageSize"
+        [totalRecords]="totalRecords"
+        [pageSizeOptions]="pageSizeOptions"
+        itemLabel="requests"
+        (pageChange)="onPageChange({ page: $event - 1, rows: pageSize })"
+        (pageSizeChange)="onPageChange({ page: 0, rows: $event })"
+    >
+    </app-data-pagination>
 </app-page-container>
 
 <!-- ==================== CREATE / EDIT DIALOG ==================== -->
-<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '480px' }"
-  [header]="editingId ? 'Edit Leave Request' : 'New Leave Request'" [draggable]="false" [resizable]="false">
-  <div class="dialog-form">
-    <div class="dialog-field">
-      <label>Employee <span class="required">*</span></label>
-      <p-select [options]="employees" [(ngModel)]="form.employeeId" optionValue="id" optionLabel="name"
-        placeholder="Select employee" [filter]="true" filterBy="name,employeeCode" appendTo="body"
-        [disabled]="!!editingId"></p-select>
-      <small class="p-error" *ngIf="submitted && !form.employeeId">Employee is required</small>
+<p-dialog [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '480px' }" [header]="editingId ? ('hr.leaveRequests.dialog.editTitle' | translate) : ('hr.leaveRequests.dialog.createTitle' | translate)" [draggable]="false" [resizable]="false">
+    <div class="dialog-form">
+        <div class="dialog-field">
+            <label>{{ 'hr.leaveRequests.dialog.employeeLabel' | translate }} <span class="required">*</span></label>
+            <p-select
+                [options]="employees"
+                [(ngModel)]="form.employeeId"
+                optionValue="id"
+                optionLabel="name"
+                [placeholder]="'hr.leaveRequests.dialog.employeePlaceholder' | translate"
+                [filter]="true"
+                filterBy="name,employeeCode"
+                appendTo="body"
+                [disabled]="!!editingId"
+            ></p-select>
+            <small class="p-error" *ngIf="submitted && !form.employeeId">{{ 'hr.leaveRequests.dialog.employeeRequired' | translate }}</small>
+        </div>
+        <div class="dialog-field">
+            <label>{{ 'hr.leaveRequests.dialog.leaveTypeLabel' | translate }} <span class="required">*</span></label>
+            <p-select [options]="leaveTypeOptions" [(ngModel)]="form.leaveType" appendTo="body"></p-select>
+        </div>
+        <div class="dialog-row">
+            <div class="dialog-field">
+                <label>{{ 'hr.leaveRequests.dialog.fromLabel' | translate }} <span class="required">*</span></label>
+                <p-datepicker [(ngModel)]="form.fromDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body"></p-datepicker>
+                <small class="p-error" *ngIf="submitted && !form.fromDate">{{ 'hr.leaveRequests.dialog.fromRequired' | translate }}</small>
+            </div>
+            <div class="dialog-field">
+                <label>{{ 'hr.leaveRequests.dialog.toLabel' | translate }} <span class="required">*</span></label>
+                <p-datepicker [(ngModel)]="form.toDate" dateFormat="dd/mm/yy" [showIcon]="true" [minDate]="form.fromDate || undefined" appendTo="body"></p-datepicker>
+                <small class="p-error" *ngIf="submitted && !form.toDate">{{ 'hr.leaveRequests.dialog.toRequired' | translate }}</small>
+            </div>
+        </div>
+        <div class="dialog-field">
+            <label>{{ 'hr.leaveRequests.dialog.reasonLabel' | translate }}</label>
+            <textarea pInputTextarea [(ngModel)]="form.reason" rows="3" [placeholder]="'hr.leaveRequests.dialog.reasonPlaceholder' | translate"></textarea>
+        </div>
     </div>
-    <div class="dialog-field">
-      <label>Leave Type <span class="required">*</span></label>
-      <p-select [options]="leaveTypeOptions" [(ngModel)]="form.leaveType" appendTo="body"></p-select>
-    </div>
-    <div class="dialog-row">
-      <div class="dialog-field">
-        <label>From <span class="required">*</span></label>
-        <p-datepicker [(ngModel)]="form.fromDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body"></p-datepicker>
-        <small class="p-error" *ngIf="submitted && !form.fromDate">From date is required</small>
-      </div>
-      <div class="dialog-field">
-        <label>To <span class="required">*</span></label>
-        <p-datepicker [(ngModel)]="form.toDate" dateFormat="dd/mm/yy" [showIcon]="true"
-          [minDate]="form.fromDate || undefined" appendTo="body"></p-datepicker>
-        <small class="p-error" *ngIf="submitted && !form.toDate">To date is required</small>
-      </div>
-    </div>
-    <div class="dialog-field">
-      <label>Reason</label>
-      <textarea pInputTextarea [(ngModel)]="form.reason" rows="3" placeholder="Reason for leave..."></textarea>
-    </div>
-  </div>
-  <ng-template pTemplate="footer">
-    <button pButton label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
-    <button pButton [label]="saving ? 'Saving...' : 'Save'" icon="pi pi-check" [loading]="saving" (click)="saveRequest()"></button>
-  </ng-template>
+    <ng-template pTemplate="footer">
+        <button pButton [label]="'hr.leaveRequests.dialog.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="dialogVisible = false"></button>
+        <button pButton [label]="(saving ? 'hr.leaveRequests.dialog.saving' : 'hr.leaveRequests.dialog.save') | translate" icon="pi pi-check" [loading]="saving" (click)="saveRequest()"></button>
+    </ng-template>
 </p-dialog>

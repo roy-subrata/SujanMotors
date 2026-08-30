@@ -9,11 +9,13 @@ import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { RippleModule } from 'primeng/ripple';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-warehouses-list',
@@ -28,7 +30,9 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     RippleModule,
     TagModule,
     TooltipModule,
-    DataPaginationComponent
+    ToastModule,
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './warehouses-list.component.html',

@@ -8,16 +8,16 @@
                 <div class="breadcrumb">
                     <a (click)="cancel()" class="breadcrumb-link">
                         <i class="pi pi-arrow-left"></i>
-                        Employees
+                        {{ 'hr.employees.form.breadcrumbEmployees' | translate }}
                     </a>
                     <span class="breadcrumb-separator">/</span>
-                    <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : mode() === 'edit' ? 'Edit' : 'View' }}</span>
+                    <span class="breadcrumb-current">{{ (mode() === 'create' ? 'hr.employees.form.breadcrumbNew' : mode() === 'edit' ? 'hr.employees.form.breadcrumbEdit' : 'hr.employees.form.breadcrumbView') | translate }}</span>
                 </div>
                 <h1 class="form-title">{{ getPageTitle() }}</h1>
                 <p class="form-subtitle">{{ getPageSubtitle() }}</p>
             </div>
             <div class="header-actions" *ngIf="mode() === 'view'">
-                <button pButton icon="pi pi-pencil" label="Edit" class="p-button-outlined" (click)="mode.set('edit'); employeeForm.enable(); employeeForm.get('employeeCode')?.disable()"></button>
+                <button pButton icon="pi pi-pencil" [label]="'hr.employees.form.editBtn' | translate" class="p-button-outlined" (click)="mode.set('edit'); employeeForm.enable(); employeeForm.get('employeeCode')?.disable()"></button>
             </div>
         </div>
     </div>
@@ -25,7 +25,7 @@
     <!-- Loading State -->
     <div *ngIf="loading()" class="loading-state">
         <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-        <p>Loading employee details...</p>
+        <p>{{ 'hr.employees.form.loading' | translate }}</p>
     </div>
 
     <!-- Form -->
@@ -35,13 +35,13 @@
             <div class="form-section">
                 <h3 class="section-title">
                     <i class="pi pi-id-card section-icon"></i>
-                    Basic Information
+                    {{ 'hr.employees.form.basicSection' | translate }}
                 </h3>
 
                 <!-- Profile photo -->
                 <div class="photo-block">
                     <div class="photo-avatar">
-                        <img *ngIf="photoUrl()" [src]="photoDisplayUrl()" alt="Employee photo" />
+                        <img *ngIf="photoUrl()" [src]="photoDisplayUrl()" [alt]="'hr.employees.form.photoAlt' | translate" />
                         <i *ngIf="!photoUrl()" class="pi pi-user"></i>
                         <div class="photo-uploading" *ngIf="photoUploading()">
                             <i class="pi pi-spin pi-spinner"></i>
@@ -49,70 +49,70 @@
                     </div>
                     <div class="photo-actions" *ngIf="mode() !== 'view'">
                         <input #photoInput type="file" [accept]="photoAccept" style="display: none" (change)="onPhotoSelected($event)" />
-                        <button pButton type="button" icon="pi pi-camera" [label]="photoUrl() ? 'Change Photo' : 'Upload Photo'" class="p-button-outlined p-button-sm" [disabled]="photoUploading()" (click)="photoInput.click()"></button>
-                        <button *ngIf="photoUrl()" pButton type="button" icon="pi pi-trash" label="Remove" class="p-button-text p-button-danger p-button-sm" [disabled]="photoUploading()" (click)="removePhoto()"></button>
-                        <small class="field-hint">JPG, PNG or WebP — max 5 MB</small>
+                        <button pButton type="button" icon="pi pi-camera" [label]="(photoUrl() ? 'hr.employees.form.changePhoto' : 'hr.employees.form.uploadPhoto') | translate" class="p-button-outlined p-button-sm" [disabled]="photoUploading()" (click)="photoInput.click()"></button>
+                        <button *ngIf="photoUrl()" pButton type="button" icon="pi pi-trash" [label]="'hr.employees.form.removePhoto' | translate" class="p-button-text p-button-danger p-button-sm" [disabled]="photoUploading()" (click)="removePhoto()"></button>
+                        <small class="field-hint">{{ 'hr.employees.form.photoHint' | translate }}</small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Employee Code</label>
+                        <label>{{ 'hr.employees.form.employeeCodeLabel' | translate }}</label>
                         <div class="code-input-wrapper">
-                            <input pInputText formControlName="employeeCode" placeholder="Auto-generated" />
+                            <input pInputText formControlName="employeeCode" [placeholder]="'hr.employees.form.codePlaceholder' | translate" />
                             <i *ngIf="generatingCode()" class="pi pi-spin pi-spinner code-spinner"></i>
                         </div>
                         <small class="field-hint" *ngIf="mode() === 'create'">
                             <i class="pi pi-info-circle"></i>
-                            Code is auto-generated and cannot be changed
+                            {{ 'hr.employees.form.codeHint' | translate }}
                         </small>
                     </div>
                     <div class="form-group">
-                        <label>Full Name <span class="required">*</span></label>
-                        <input pInputText formControlName="name" placeholder="e.g., Abdul Karim" />
-                        <small class="p-error" *ngIf="employeeForm.get('name')?.invalid && employeeForm.get('name')?.touched"> Name is required (min 2 characters) </small>
+                        <label>{{ 'hr.employees.form.fullNameLabel' | translate }} <span class="required">*</span></label>
+                        <input pInputText formControlName="name" [placeholder]="'hr.employees.form.fullNamePlaceholder' | translate" />
+                        <small class="p-error" *ngIf="employeeForm.get('name')?.invalid && employeeForm.get('name')?.touched"> {{ 'hr.employees.form.fullNameRequired' | translate }} </small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Phone <span class="required">*</span></label>
-                        <input pInputText formControlName="phone" placeholder="e.g., +8801716625369" />
-                        <small class="p-error" *ngIf="employeeForm.get('phone')?.invalid && employeeForm.get('phone')?.touched"> Phone is required </small>
+                        <label>{{ 'hr.employees.form.phoneLabel' | translate }} <span class="required">*</span></label>
+                        <input pInputText formControlName="phone" [placeholder]="'hr.employees.form.phonePlaceholder' | translate" />
+                        <small class="p-error" *ngIf="employeeForm.get('phone')?.invalid && employeeForm.get('phone')?.touched"> {{ 'hr.employees.form.phoneRequired' | translate }} </small>
                     </div>
                     <div class="form-group">
-                        <label>Email</label>
-                        <input pInputText formControlName="email" type="email" placeholder="e.g., employee@example.com" />
-                        <small class="p-error" *ngIf="employeeForm.get('email')?.invalid && employeeForm.get('email')?.touched"> Valid email is required </small>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>National ID (NID)</label>
-                        <input pInputText formControlName="nidNumber" placeholder="e.g., 1234567890123" />
-                    </div>
-                    <div class="form-group">
-                        <label>Date of Birth</label>
-                        <p-datepicker formControlName="dateOfBirth" dateFormat="dd/mm/yy" [showIcon]="true" [maxDate]="maxDob" appendTo="body" placeholder="Select date"></p-datepicker>
+                        <label>{{ 'hr.employees.form.emailLabel' | translate }}</label>
+                        <input pInputText formControlName="email" type="email" [placeholder]="'hr.employees.form.emailPlaceholder' | translate" />
+                        <small class="p-error" *ngIf="employeeForm.get('email')?.invalid && employeeForm.get('email')?.touched"> {{ 'hr.employees.form.emailInvalid' | translate }} </small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Gender</label>
-                        <p-select [options]="genderOptions" formControlName="gender" placeholder="Select gender" [showClear]="true" appendTo="body"></p-select>
+                        <label>{{ 'hr.employees.form.nidLabel' | translate }}</label>
+                        <input pInputText formControlName="nidNumber" [placeholder]="'hr.employees.form.nidPlaceholder' | translate" />
                     </div>
                     <div class="form-group">
-                        <label>City</label>
-                        <input pInputText formControlName="city" placeholder="e.g., Dhaka" />
+                        <label>{{ 'hr.employees.form.dobLabel' | translate }}</label>
+                        <p-datepicker formControlName="dateOfBirth" dateFormat="dd/mm/yy" [showIcon]="true" [maxDate]="maxDob" appendTo="body" [placeholder]="'hr.employees.form.dobPlaceholder' | translate"></p-datepicker>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>{{ 'hr.employees.form.genderLabel' | translate }}</label>
+                        <p-select [options]="genderOptions" formControlName="gender" [placeholder]="'hr.employees.form.genderPlaceholder' | translate" [showClear]="true" appendTo="body"></p-select>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ 'hr.employees.form.cityLabel' | translate }}</label>
+                        <input pInputText formControlName="city" [placeholder]="'hr.employees.form.cityPlaceholder' | translate" />
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group full">
-                        <label>Address</label>
-                        <input pInputText formControlName="address" placeholder="e.g., 123 Main Street, Gulshan" />
+                        <label>{{ 'hr.employees.form.addressLabel' | translate }}</label>
+                        <input pInputText formControlName="address" [placeholder]="'hr.employees.form.addressPlaceholder' | translate" />
                     </div>
                 </div>
             </div>
@@ -121,74 +121,74 @@
             <div class="form-section">
                 <h3 class="section-title">
                     <i class="pi pi-briefcase section-icon"></i>
-                    Employment Details
+                    {{ 'hr.employees.form.employmentSection' | translate }}
                 </h3>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Designation <span class="required">*</span></label>
-                        <input pInputText formControlName="designation" placeholder="e.g., Salesperson, Cashier, Storekeeper" />
-                        <small class="p-error" *ngIf="employeeForm.get('designation')?.invalid && employeeForm.get('designation')?.touched"> Designation is required </small>
+                        <label>{{ 'hr.employees.form.designationLabel' | translate }} <span class="required">*</span></label>
+                        <input pInputText formControlName="designation" [placeholder]="'hr.employees.form.designationPlaceholder' | translate" />
+                        <small class="p-error" *ngIf="employeeForm.get('designation')?.invalid && employeeForm.get('designation')?.touched"> {{ 'hr.employees.form.designationRequired' | translate }} </small>
                     </div>
                     <div class="form-group">
-                        <label>Department <span class="required">*</span></label>
-                        <p-select [options]="departmentOptions" formControlName="department" placeholder="Select department" appendTo="body"></p-select>
-                        <small class="p-error" *ngIf="employeeForm.get('department')?.invalid && employeeForm.get('department')?.touched"> Department is required </small>
+                        <label>{{ 'hr.employees.form.departmentLabel' | translate }} <span class="required">*</span></label>
+                        <p-select [options]="departmentOptions" formControlName="department" [placeholder]="'hr.employees.form.departmentPlaceholder' | translate" appendTo="body"></p-select>
+                        <small class="p-error" *ngIf="employeeForm.get('department')?.invalid && employeeForm.get('department')?.touched"> {{ 'hr.employees.form.departmentRequired' | translate }} </small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Join Date <span class="required">*</span></label>
-                        <p-datepicker formControlName="joinDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body" placeholder="Select date"></p-datepicker>
-                        <small class="p-error" *ngIf="employeeForm.get('joinDate')?.invalid && employeeForm.get('joinDate')?.touched"> Join date is required </small>
+                        <label>{{ 'hr.employees.form.joinDateLabel' | translate }} <span class="required">*</span></label>
+                        <p-datepicker formControlName="joinDate" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body" [placeholder]="'hr.employees.form.joinDatePlaceholder' | translate"></p-datepicker>
+                        <small class="p-error" *ngIf="employeeForm.get('joinDate')?.invalid && employeeForm.get('joinDate')?.touched"> {{ 'hr.employees.form.joinDateRequired' | translate }} </small>
                     </div>
                     <div class="form-group">
-                        <label>Employment Type <span class="required">*</span></label>
+                        <label>{{ 'hr.employees.form.employmentTypeLabel' | translate }} <span class="required">*</span></label>
                         <p-select [options]="employmentTypeOptions" formControlName="employmentType" appendTo="body"></p-select>
-                        <small class="p-error" *ngIf="employeeForm.get('employmentType')?.invalid && employeeForm.get('employmentType')?.touched"> Employment type is required </small>
+                        <small class="p-error" *ngIf="employeeForm.get('employmentType')?.invalid && employeeForm.get('employmentType')?.touched"> {{ 'hr.employees.form.employmentTypeRequired' | translate }} </small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Monthly Salary (BDT) <span class="required">*</span></label>
-                        <p-inputNumber formControlName="monthlySalary" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2" [min]="0" placeholder="e.g., 25000"></p-inputNumber>
-                        <small class="p-error" *ngIf="employeeForm.get('monthlySalary')?.invalid && employeeForm.get('monthlySalary')?.touched"> Salary is required and cannot be negative </small>
+                        <label>{{ 'hr.employees.form.monthlySalaryLabel' | translate }} <span class="required">*</span></label>
+                        <p-inputNumber formControlName="monthlySalary" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2" [min]="0" [placeholder]="'hr.employees.form.monthlySalaryPlaceholder' | translate"></p-inputNumber>
+                        <small class="p-error" *ngIf="employeeForm.get('monthlySalary')?.invalid && employeeForm.get('monthlySalary')?.touched"> {{ 'hr.employees.form.monthlySalaryRequired' | translate }} </small>
                     </div>
                     <div class="form-group">
-                        <label>Shift</label>
-                        <p-select [options]="shifts" formControlName="shiftId" optionValue="id" optionLabel="name" [showClear]="true" placeholder="No shift" appendTo="body"></p-select>
+                        <label>{{ 'hr.employees.form.shiftLabel' | translate }}</label>
+                        <p-select [options]="shifts" formControlName="shiftId" optionValue="id" optionLabel="name" [showClear]="true" [placeholder]="'hr.employees.form.shiftPlaceholder' | translate" appendTo="body"></p-select>
                         <small class="field-hint">
                             <i class="pi pi-info-circle"></i>
-                            Used by device check-in to flag late arrivals
+                            {{ 'hr.employees.form.shiftHint' | translate }}
                         </small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Monthly Tax Deduction (BDT)</label>
+                        <label>{{ 'hr.employees.form.taxDeductionLabel' | translate }}</label>
                         <p-inputNumber formControlName="monthlyTaxDeduction" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2" [min]="0" placeholder="0"></p-inputNumber>
                         <small class="field-hint">
                             <i class="pi pi-info-circle"></i>
-                            Fixed amount deducted on every payslip
+                            {{ 'hr.employees.form.taxDeductionHint' | translate }}
                         </small>
                     </div>
                     <div class="form-group">
-                        <label>Sales Commission (%)</label>
+                        <label>{{ 'hr.employees.form.commissionLabel' | translate }}</label>
                         <p-inputNumber formControlName="commissionRate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2" [min]="0" [max]="100" placeholder="0" suffix=" %"></p-inputNumber>
                         <small class="field-hint">
                             <i class="pi pi-info-circle"></i>
-                            % of own monthly sales (needs a linked login account)
+                            {{ 'hr.employees.form.commissionHint' | translate }}
                         </small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Login Account</label>
-                        <p-select [options]="linkableUsers" formControlName="userId" optionValue="id" [showClear]="true" placeholder="No login account" appendTo="body" [filter]="true" filterBy="userName,fullName">
+                        <label>{{ 'hr.employees.form.loginAccountLabel' | translate }}</label>
+                        <p-select [options]="linkableUsers" formControlName="userId" optionValue="id" [showClear]="true" [placeholder]="'hr.employees.form.loginAccountPlaceholder' | translate" appendTo="body" [filter]="true" filterBy="userName,fullName">
                             <ng-template let-user pTemplate="item">
                                 {{ user.userName }}<span *ngIf="user.fullName"> — {{ user.fullName }}</span>
                             </ng-template>
@@ -198,7 +198,7 @@
                         </p-select>
                         <small class="field-hint">
                             <i class="pi pi-info-circle"></i>
-                            Optional — link this employee to a staff login account
+                            {{ 'hr.employees.form.loginAccountHint' | translate }}
                         </small>
                     </div>
                 </div>
@@ -208,17 +208,17 @@
             <div class="form-section">
                 <h3 class="section-title">
                     <i class="pi pi-phone section-icon"></i>
-                    Emergency Contact
+                    {{ 'hr.employees.form.emergencySection' | translate }}
                 </h3>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Contact Name</label>
-                        <input pInputText formControlName="emergencyContactName" placeholder="e.g., Rahim Uddin" />
+                        <label>{{ 'hr.employees.form.emergencyContactNameLabel' | translate }}</label>
+                        <input pInputText formControlName="emergencyContactName" [placeholder]="'hr.employees.form.emergencyContactNamePlaceholder' | translate" />
                     </div>
                     <div class="form-group">
-                        <label>Contact Phone</label>
-                        <input pInputText formControlName="emergencyContactPhone" placeholder="e.g., +8801812345678" />
+                        <label>{{ 'hr.employees.form.emergencyContactPhoneLabel' | translate }}</label>
+                        <input pInputText formControlName="emergencyContactPhone" [placeholder]="'hr.employees.form.emergencyContactPhonePlaceholder' | translate" />
                     </div>
                 </div>
             </div>
@@ -227,24 +227,24 @@
             <div class="form-section last">
                 <h3 class="section-title">
                     <i class="pi pi-file-edit section-icon"></i>
-                    Additional Notes
+                    {{ 'hr.employees.form.notesSection' | translate }}
                 </h3>
                 <div class="form-row">
                     <div class="form-group full">
-                        <label>Notes</label>
-                        <textarea pInputTextarea formControlName="notes" rows="3" placeholder="Additional notes about this employee..."> </textarea>
+                        <label>{{ 'hr.employees.form.notesLabel' | translate }}</label>
+                        <textarea pInputTextarea formControlName="notes" rows="3" [placeholder]="'hr.employees.form.notesPlaceholder' | translate"> </textarea>
                     </div>
                 </div>
             </div>
 
             <!-- Form Actions -->
             <div class="form-actions">
-                <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times" class="p-button-outlined" (click)="cancel()"></button>
+                <button pButton type="button" [label]="(mode() === 'view' ? 'hr.employees.form.backBtn' : 'hr.employees.form.cancelBtn') | translate" icon="pi pi-times" class="p-button-outlined" (click)="cancel()"></button>
                 <button
                     pButton
                     *ngIf="mode() !== 'view'"
                     type="submit"
-                    [label]="saving() ? 'Saving...' : mode() === 'edit' ? 'Update Employee' : 'Create Employee'"
+                    [label]="(saving() ? 'hr.employees.form.savingBtn' : mode() === 'edit' ? 'hr.employees.form.updateBtn' : 'hr.employees.form.createBtn') | translate"
                     icon="pi pi-check"
                     class="p-button-primary"
                     (click)="onSubmit()"

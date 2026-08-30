@@ -76,9 +76,19 @@ public class ProductVariantController : ControllerBase
         if (!await _db.Parts.AnyAsync(p => p.Id == productId, ct))
             return NotFound(ApiError.NotFound($"Product '{productId}' not found", Request.Path));
 
+        var validationError = await ValidateAttributeAssignmentAsync(productId, req.AttributeValues, ct);
+        if (validationError is not null)
+            return BadRequest(validationError);
+
         // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
         if (string.IsNullOrWhiteSpace(req.SKU))
             req.SKU = await GenerateVariantSkuAsync(productId, req.Code, excludeVariantId: null, ct);
+
+        // Barcode is optional — a real scanned UPC/EAN can be entered manually, but a variant
+        // without one still needs something scannable for POS/label printing, so it defaults to
+        // the (already-unique) SKU rather than being left blank.
+        if (string.IsNullOrWhiteSpace(req.Barcode))
+            req.Barcode = req.SKU;
 
         var conflict = await CheckUniquenessAsync(productId, req, excludeVariantId: null, ct);
         if (conflict is not null)
@@ -127,9 +137,17 @@ public class ProductVariantController : ControllerBase
         if (variant is null)
             return NotFound(ApiError.NotFound($"Variant '{id}' not found on product '{productId}'", Request.Path));
 
+        var validationError = await ValidateAttributeAssignmentAsync(productId, req.AttributeValues, ct);
+        if (validationError is not null)
+            return BadRequest(validationError);
+
         // SKU is required: auto-generate a globally-unique "{ParentPartSKU}-{Code}" when left blank.
         if (string.IsNullOrWhiteSpace(req.SKU))
             req.SKU = await GenerateVariantSkuAsync(productId, req.Code, excludeVariantId: id, ct);
+
+        // Barcode is optional — see the same fallback in Create above.
+        if (string.IsNullOrWhiteSpace(req.Barcode))
+            req.Barcode = req.SKU;
 
         var conflict = await CheckUniquenessAsync(productId, req, excludeVariantId: id, ct);
         if (conflict is not null)
@@ -276,6 +294,41 @@ public class ProductVariantController : ControllerBase
         {
             _logger.LogWarning(ex, "Failed to sync price schedule for variant {VariantId}", variantId);
         }
+    }
+
+    /// <summary>
+    /// Rejects duplicate/unknown attribute ids, and any attribute already assigned directly to the
+    /// parent product (a product can't have a value both directly and per-variant at once).
+    /// </summary>
+    private async Task<ApiError?> ValidateAttributeAssignmentAsync(Guid productId, List<VariantAttributeValueRequest>? values, CancellationToken ct)
+    {
+        if (values is null || values.Count == 0) return null;
+
+        var duplicates = values.GroupBy(v => v.AttributeId).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        if (duplicates.Count > 0)
+            return ApiError.Validation($"Attribute id(s) listed more than once: {string.Join(", ", duplicates)}", instance: Request.Path);
+
+        var ids = values.Select(v => v.AttributeId).Distinct().ToList();
+        var knownIds = await _db.ProductAttributes
+            .Where(a => ids.Contains(a.Id))
+            .Select(a => a.Id)
+            .ToListAsync(ct);
+
+        var missing = ids.Except(knownIds).ToList();
+        if (missing.Count > 0)
+            return ApiError.Validation($"Unknown attribute id(s): {string.Join(", ", missing)}", instance: Request.Path);
+
+        var claimedByProduct = await _db.ProductAttributeValues
+            .Where(v => !v.Isdeleted && v.ProductId == productId && ids.Contains(v.AttributeId))
+            .Select(v => v.AttributeId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (claimedByProduct.Count > 0)
+            return ApiError.Validation(
+                $"Attribute(s) {string.Join(", ", claimedByProduct)} are already set directly on this product — remove them there first",
+                instance: Request.Path);
+
+        return null;
     }
 
     private async Task SaveAttributeValues(Guid variantId, List<VariantAttributeValueRequest>? values, CancellationToken ct)

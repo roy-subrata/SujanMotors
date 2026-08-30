@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using AutoPartShop.Api.Auth;
 using AutoPartShop.Api.Middleware;
 using AutoPartShop.Api.Hubs;
 using AutoPartShop.Api.Services;
@@ -23,6 +24,7 @@ using QuestPDF.Infrastructure;
 
 QuestPDF.Settings.License = LicenseType.Community;
 AutoPartShop.Api.Pdf.Design.DocFonts.Register();
+AutoPartShop.Api.Pdf.Design.DocStrings.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,7 +126,9 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     options.SaveToken = true;
-    options.RequireHttpsMetadata = false;
+    // Production must fetch metadata / accept tokens over TLS only. Development is exempt
+    // because local Kestrel runs plain HTTP behind the SPA dev proxy.
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -193,14 +197,21 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 // Dependency.cs — Infrastructure has no project reference back to Api).
 builder.Services.AddScoped<ICashierProfileService, CashierProfileService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-builder.Services.AddScoped<IShopProfileProvider, ShopProfileProvider>();
+// Typed client so ShopProfileProvider can fetch a configured SHOP_LOGO_URL for PDF headers;
+// short timeout so an unreachable logo host never stalls document generation.
+builder.Services.AddHttpClient<IShopProfileProvider, ShopProfileProvider>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
 builder.Services.AddScoped<StockManagementService>();
 builder.Services.AddScoped<StockAdjustmentApplier>();
 // Shared stock-decrement algorithm for every channel that sells stock (POS quick sale,
-// ecommerce checkout, in-store ecommerce checkout) — see IStockConsumptionService remarks.
+// in-store handover) — see IStockConsumptionService remarks.
 builder.Services.AddScoped<IStockConsumptionService, StockConsumptionService>();
 builder.Services.AddScoped<SupplierPaymentSummaryService>();
 builder.Services.AddScoped<ISupplierLedgerService, SupplierLedgerService>();
+builder.Services.AddScoped<ICustomerLedgerService, CustomerLedgerService>();
+builder.Services.AddScoped<ITechnicianLedgerService, TechnicianLedgerService>();
 builder.Services.AddScoped<ICustomerAccountSummaryService, CustomerAccountSummaryService>();
 builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
 builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
@@ -228,6 +239,9 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.Converters.Add(
+           new AutoPartShop.Api.Common.LenientNullableEnumConverterFactory()
+       );
+        options.JsonSerializerOptions.Converters.Add(
            new JsonStringEnumConverter()
        );
     });
@@ -243,12 +257,21 @@ builder.Services.Configure<JwtBearerOptions>(
         options.Events = existing;
         options.Events.OnMessageReceived = ctx =>
         {
+            // SignalR WebSocket/SSE cannot send Authorization headers; the Angular client
+            // passes the access token as a query-string parameter (negotiate + reconnect).
             var token = ctx.Request.Query["access_token"];
             if (!string.IsNullOrEmpty(token) &&
                 ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
             {
                 ctx.Token = token;
+                return Task.CompletedTask;
             }
+
+            // Fallback: web SPA sends httpOnly cookies with every request. The cookie
+            // value is preferred over the header when no Authorization header is present,
+            // so the SignalR hub works transparently with cookie-based auth.
+            ctx.Token ??= ctx.Request.Cookies[AuthCookie.AccessName];
+
             return Task.CompletedTask;
         };
     });
@@ -260,6 +283,9 @@ builder.Services.AddScoped<ISaleEventBroadcaster, SignalRSaleEventBroadcaster>()
 builder.Services.AddScoped<IReorderAlertBroadcaster, SignalRReorderAlertBroadcaster>();
 builder.Services.AddScoped<ReorderAlertScanner>();
 builder.Services.AddHostedService<ReorderAlertService>();
+
+// Automatic warranty expiry: marks ACTIVE warranties EXPIRED once their expiry date passes.
+builder.Services.AddHostedService<WarrantyExpiryService>();
 
 // Scheduled database backups (schedule read from BACKUP:* application settings)
 builder.Services.AddHostedService<BackupSchedulerService>();

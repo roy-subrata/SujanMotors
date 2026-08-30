@@ -11,6 +11,9 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { TooltipModule } from 'primeng/tooltip';
 import { CustomerCreditNoteService, CustomerCreditNoteResponse } from '../services/customer-credit-note.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
 
 @Component({
   selector: 'app-apply-customer-credit-notes',
@@ -24,7 +27,9 @@ import { CustomerCreditNoteService, CustomerCreditNoteResponse } from '../servic
     InputNumberModule,
     ToastModule,
     ConfirmDialogModule,
-    TooltipModule
+    TooltipModule,
+    TranslatePipe,
+    AppCurrencyPipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './apply-customer-credit-notes.component.html',
@@ -34,6 +39,7 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
   private readonly creditNoteService = inject(CustomerCreditNoteService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly i18n = inject(I18nService);
 
   @Input() customerId: string | null = null;
   @Input() salesOrderId: string | null = null;
@@ -68,8 +74,8 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
       error: (_error: unknown) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load available credits'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('customerCredits.messages.loadFailed')
         });
         this.loading = false;
       }
@@ -86,8 +92,8 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to download the credit note PDF'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('customerCredits.messages.pdfFailed')
         });
       }
     });
@@ -97,8 +103,8 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
     if (!this.selectedCreditNote || !this.amountToApply || !this.salesOrderId) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: 'Please select a credit note and enter amount to apply'
+        summary: this.i18n.t('customerCredits.messages.validationTitle'),
+        detail: this.i18n.t('customerCredits.messages.selectCreditAndAmount')
       });
       return;
     }
@@ -106,8 +112,8 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
     if (!this.invoiceId) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: 'Invoice is required to apply credit'
+        summary: this.i18n.t('customerCredits.messages.validationTitle'),
+        detail: this.i18n.t('customerCredits.messages.invoiceRequired')
       });
       return;
     }
@@ -116,8 +122,8 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
     if (this.amountToApply > outstandingAmount) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: `Amount exceeds outstanding amount (${outstandingAmount})`
+        summary: this.i18n.t('customerCredits.messages.validationTitle'),
+        detail: this.i18n.t('customerCredits.messages.exceedsOutstanding', { amount: outstandingAmount })
       });
       return;
     }
@@ -125,15 +131,15 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
     if (this.amountToApply > this.selectedCreditNote.availableAmount) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: `Amount exceeds available credit (${this.selectedCreditNote.availableAmount})`
+        summary: this.i18n.t('customerCredits.messages.validationTitle'),
+        detail: this.i18n.t('customerCredits.messages.exceedsAvailable', { amount: this.selectedCreditNote.availableAmount })
       });
       return;
     }
 
     this.confirmationService.confirm({
-      message: `Apply ${this.amountToApply} from credit note ${this.selectedCreditNote.creditNoteNumber} to this sales order?`,
-      header: 'Confirm Credit Application',
+      message: this.i18n.t('customerCredits.messages.applyConfirm', { amount: this.amountToApply, number: this.selectedCreditNote.creditNoteNumber }),
+      header: this.i18n.t('customerCredits.messages.applyHeader'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.creditNoteService.applyCredit({
@@ -145,8 +151,8 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
           next: (_response: CustomerCreditNoteResponse) => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Success',
-              detail: `Credit note applied successfully`
+              summary: this.i18n.t('common.messages.success'),
+              detail: this.i18n.t('customerCredits.messages.applySuccess')
             });
             this.creditApplied.emit(this.amountToApply!);
             this.selectedCreditNote = null;
@@ -156,10 +162,10 @@ export class ApplyCustomerCreditNotesComponent implements OnInit {
           error: (_err: unknown) => {
             const errorMsg = _err && typeof _err === 'object' && 'error' in _err
               ? (_err as { error?: { message?: string } }).error?.message
-              : 'Failed to apply credit note';
+              : this.i18n.t('customerCredits.messages.applyFailed');
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
+              summary: this.i18n.t('common.messages.error'),
               detail: errorMsg
             });
           }

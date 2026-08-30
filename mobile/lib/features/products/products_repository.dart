@@ -7,7 +7,6 @@ import '../../shared/models/paged_response.dart';
 import '../../shared/models/product.dart';
 import '../../shared/models/product_location.dart';
 import '../../shared/models/product_media.dart';
-import '../../shared/models/product_specification.dart';
 import '../../shared/models/stock.dart';
 import '../../shared/models/vehicle.dart';
 import '../../shared/models/vehicle_compatibility.dart';
@@ -24,6 +23,7 @@ class ProductsRepository {
     bool? isActive,
     String? categoryId,
     bool lowStockOnly = false,
+    List<String>? attributeOptionIds,
   }) async {
     try {
       final res = await _dio.get('/products', queryParameters: {
@@ -33,6 +33,8 @@ class ProductsRepository {
         'isActive': ?isActive,
         'categoryId': ?categoryId,
         if (lowStockOnly) 'lowStockOnly': true,
+        if (attributeOptionIds != null && attributeOptionIds.isNotEmpty)
+          'attributeOptionIds': attributeOptionIds,
       });
       return PagedResponse.fromJson(
         res.data as Map<String, dynamic>,
@@ -89,57 +91,6 @@ class ProductsRepository {
   Future<void> updateProduct(String id, Map<String, dynamic> payload) async {
     try {
       await _dio.put('/products/$id', data: payload);
-    } on DioException catch (e) {
-      throw AppException.fromDio(e);
-    }
-  }
-
-  /// Descriptive specs (Label/Value) for a product,
-  /// GET /products/{id}/specifications (display order).
-  Future<List<ProductSpecification>> getSpecifications(String id) async {
-    try {
-      final res = await _dio.get('/products/$id/specifications');
-      final data = (res.data as Map<String, dynamic>)['data'];
-      if (data is! List) return const [];
-      return data
-          .whereType<Map>()
-          .map((m) =>
-              ProductSpecification.fromJson(Map<String, dynamic>.from(m)))
-          .toList();
-    } on DioException catch (e) {
-      throw AppException.fromDio(e);
-    }
-  }
-
-  /// Replaces a product's specs (PUT /products/{id}/specifications). Needs
-  /// inventory.edit.
-  Future<void> updateSpecifications(
-      String id, List<ProductSpecification> specs) async {
-    try {
-      await _dio.put('/products/$id/specifications',
-          data: {'specifications': specs.map((s) => s.toJson()).toList()});
-    } on DioException catch (e) {
-      throw AppException.fromDio(e);
-    }
-  }
-
-  /// Typeahead suggestions for the spec editor. [field] is 'label' or 'value';
-  /// [labelKey] scopes value suggestions to one label.
-  Future<List<String>> specificationSuggestions({
-    required String field,
-    String? query,
-    String? labelKey,
-  }) async {
-    try {
-      final res = await _dio.get('/products/specifications/suggestions',
-          queryParameters: {
-            'field': field,
-            if (query != null && query.isNotEmpty) 'query': query,
-            if (labelKey != null && labelKey.isNotEmpty) 'labelKey': labelKey,
-          });
-      final data = (res.data as Map<String, dynamic>)['data'];
-      if (data is! List) return const [];
-      return data.map((e) => e.toString()).toList();
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }
@@ -283,11 +234,22 @@ class ProductsRepository {
       final uploadRes = await _dio.post('/files', data: form);
       final stored =
           (uploadRes.data as Map<String, dynamic>)['data'] as Map;
-      await _dio.post('/products/$productId/media', data: {
-        'url': stored['url'],
-        'mediaType': 'image',
-        'fileName': stored['fileName'],
-      });
+      try {
+        await _dio.post('/products/$productId/media', data: {
+          'url': stored['url'],
+          'mediaType': 'image',
+          'fileName': stored['fileName'],
+        });
+      } catch (_) {
+        // Attach failed, so nothing references the blob — delete it rather than
+        // leave it orphaned in storage. Best-effort: the original error still wins.
+        try {
+          await _dio.delete('/files/${stored['id']}');
+        } catch (_) {
+          // ignored
+        }
+        rethrow;
+      }
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }

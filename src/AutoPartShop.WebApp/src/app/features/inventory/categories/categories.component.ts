@@ -1,9 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { Select } from 'primeng/select';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { CategoryResponse, CategoryService } from '../services/category.service';
@@ -13,15 +14,14 @@ import { tap } from 'rxjs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-categories',
     standalone: true,
-    imports: [
-        CommonModule, FormsModule, ToastModule, ConfirmDialogModule,
-        ButtonModule, Select, CategoriesListComponent, CategoriesFormDialogComponent,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent
-    ],
+    imports: [CommonModule, FormsModule, ToastModule, ConfirmDialogModule, ButtonModule, TooltipModule, Select, CategoriesListComponent, CategoriesFormDialogComponent, PageContainerComponent, PageHeaderComponent, FilterBarComponent, TranslatePipe],
     providers: [CategoryService, MessageService, ConfirmationService],
     templateUrl: './categories.component.html',
     styleUrls: ['./categories.component.css']
@@ -30,6 +30,8 @@ export class CategoriesComponent implements OnInit {
     private readonly categoryService = inject(CategoryService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     categories: CategoryResponse[] = [];
     selectedParentCategory: CategoryResponse | null = null;
@@ -47,47 +49,67 @@ export class CategoriesComponent implements OnInit {
     searchTerm = '';
     filterStatus: boolean | null = null;
 
-    statusOptions = [
-        { label: 'All',      value: null  },
-        { label: 'Active',   value: true  },
-        { label: 'Inactive', value: false }
-    ];
+    statusOptions: { label: string; value: boolean | null }[] = [];
 
-    ngOnInit(): void { this.loadCategories(); }
+    private buildStatusOptions(): void {
+        this.statusOptions = [
+            { label: this.i18n.t('common.status.all'), value: null },
+            { label: this.i18n.t('common.status.active'), value: true },
+            { label: this.i18n.t('common.status.inactive'), value: false }
+        ];
+    }
+
+    ngOnInit(): void {
+        this.buildStatusOptions();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildStatusOptions();
+        });
+        this.loadCategories();
+    }
 
     loadCategories(page = 1, pageSize = this.rows): void {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
 
         this.loading = true;
-        this.categoryService.getCategories({
-            search: this.searchTerm || undefined,
-            isActive: this.filterStatus,
-            page,
-            pageSize
-        }).subscribe({
-            next: (response) => {
-                this.categories   = response.data ?? [];
-                this.totalRecords = response.pagination.totalCount;
-                this.rows         = response.pagination.pageSize;
-                this.currentPage  = response.pagination.page;
-                this.loading      = false;
-            },
-            error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' });
-                this.loading = false;
-            }
-        });
+        this.categoryService
+            .getCategories({
+                search: this.searchTerm || undefined,
+                isActive: this.filterStatus,
+                page,
+                pageSize
+            })
+            .subscribe({
+                next: (response) => {
+                    this.categories = response.data ?? [];
+                    this.totalRecords = response.pagination.totalCount;
+                    this.rows = response.pagination.pageSize;
+                    this.currentPage = response.pagination.page;
+                    this.loading = false;
+                },
+                error: () => {
+                    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('categories.messages.loadFailed') });
+                    this.loading = false;
+                }
+            });
     }
 
-    onSearch(): void       { this.loadCategories(1, this.rows); }
-    onFilterChange(): void { this.loadCategories(1, this.rows); }
-    refreshData(): void    { this.loadCategories(this.currentPage, this.rows); }
+    onSearch(): void {
+        this.loadCategories(1, this.rows);
+    }
+    onFilterChange(): void {
+        this.loadCategories(1, this.rows);
+    }
+    refreshData(): void {
+        this.loadCategories(this.currentPage, this.rows);
+    }
 
-    clearSearchInput(): void { this.searchTerm = ''; }
+    clearSearchInput(): void {
+        this.searchTerm = '';
+    }
 
     clearFilters(): void {
-        this.searchTerm   = '';
+        this.searchTerm = '';
         this.filterStatus = null;
         this.loadCategories(1, this.rows);
     }
@@ -97,9 +119,9 @@ export class CategoriesComponent implements OnInit {
     }
 
     getStatusLabel(isActive: boolean | null): string {
-        if (isActive === true)  return 'Active';
-        if (isActive === false) return 'Inactive';
-        return 'All';
+        if (isActive === true) return this.i18n.t('common.status.active');
+        if (isActive === false) return this.i18n.t('common.status.inactive');
+        return this.i18n.t('common.status.all');
     }
 
     onPageChange(event: { page: number; rows: number }): void {
@@ -114,22 +136,28 @@ export class CategoriesComponent implements OnInit {
         this.displayUpdateDialog = false;
     }
 
-    createCategory(): void { this.onNewCategoryClick(); }
+    createCategory(): void {
+        this.onNewCategoryClick();
+    }
 
     selectAndOpenUpdate(category: CategoryResponse): void {
-        this.selectedCategory    = category;
+        this.selectedCategory = category;
         this.displayUpdateDialog = true;
     }
 
     selectAndAddSubcategory(category: CategoryResponse): void {
-        this.selectedCategory       = category;
+        this.selectedCategory = category;
         this.selectedParentCategory = category;
-        this.displayCreateDialog    = true;
-        this.displayUpdateDialog    = false;
+        this.displayCreateDialog = true;
+        this.displayUpdateDialog = false;
     }
 
-    onCreateSuccess(): void { this.loadCategories(this.currentPage, this.rows); }
-    onUpdateSuccess(): void { this.loadCategories(this.currentPage, this.rows); }
+    onCreateSuccess(): void {
+        this.loadCategories(this.currentPage, this.rows);
+    }
+    onUpdateSuccess(): void {
+        this.loadCategories(this.currentPage, this.rows);
+    }
 
     onDisplayCreateDialogChange(isVisible: boolean): void {
         if (!isVisible) this.displayCreateDialog = false;
@@ -142,28 +170,34 @@ export class CategoriesComponent implements OnInit {
 
     selectAndToggleStatus(category: CategoryResponse): void {
         if (this.togglingStatusId === category.id) return;
-        const action = category.isActive ? 'deactivate' : 'activate';
+        const isDeactivating = category.isActive;
+        const confirmKey = isDeactivating ? 'categories.messages.deactivateConfirm' : 'categories.messages.activateConfirm';
+        const header = isDeactivating ? this.i18n.t('common.actions.deactivate') : this.i18n.t('common.actions.activate');
 
         this.confirmationService.confirm({
-            message: `Are you sure you want to ${action} "${category.name}"?`,
-            header: 'Confirm Status Change',
+            message: this.i18n.t(confirmKey, { name: category.name }),
+            header,
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.togglingStatusId = category.id;
-                this.categoryService.setStatus(category.id, !category.isActive)
-                    .pipe(tap(() => {
-                        this.messageService.add({
-                            severity: 'success', summary: 'Updated',
-                            detail: `"${category.name}" ${action}d`
-                        });
-                        this.togglingStatusId = null;
-                        this.loadCategories(this.currentPage, this.rows);
-                    }))
+                this.categoryService
+                    .setStatus(category.id, !category.isActive)
+                    .pipe(
+                        tap(() => {
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: this.i18n.t('common.messages.success'),
+                                detail: this.i18n.t('categories.messages.toggleSuccess')
+                            });
+                            this.togglingStatusId = null;
+                            this.loadCategories(this.currentPage, this.rows);
+                        })
+                    )
                     .subscribe({
                         error: (err) => {
                             this.togglingStatusId = null;
-                            const detail = err.error?.detail ?? err.error?.message ?? `Failed to ${action} category`;
-                            this.messageService.add({ severity: 'error', summary: 'Error', detail });
+                            const detail = err.error?.detail ?? err.error?.message ?? this.i18n.t('common.messages.updateFailed');
+                            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail });
                         }
                     });
             }
@@ -175,21 +209,24 @@ export class CategoriesComponent implements OnInit {
     selectAndDelete(category: CategoryResponse): void {
         this.selectedCategory = category;
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete "${category.name}"?`,
-            header: 'Confirm Delete',
+            message: this.i18n.t('categories.messages.deleteConfirm'),
+            header: this.i18n.t('common.messages.confirmDeletion'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
-                this.categoryService.deleteCategory(category.id)
-                    .pipe(tap(() => {
-                        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: `"${category.name}" deleted` });
-                        this.selectedCategory = null;
-                        const isLastItemOnPage = this.categories.length === 1 && this.currentPage > 1;
-                        this.loadCategories(isLastItemOnPage ? this.currentPage - 1 : this.currentPage, this.rows);
-                    }))
+                this.categoryService
+                    .deleteCategory(category.id)
+                    .pipe(
+                        tap(() => {
+                            this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('categories.messages.deleteSuccess') });
+                            this.selectedCategory = null;
+                            const isLastItemOnPage = this.categories.length === 1 && this.currentPage > 1;
+                            this.loadCategories(isLastItemOnPage ? this.currentPage - 1 : this.currentPage, this.rows);
+                        })
+                    )
                     .subscribe({
                         error: (err) => {
-                            const detail = err.error?.detail ?? err.error?.message ?? 'Failed to delete category';
-                            this.messageService.add({ severity: 'error', summary: 'Cannot Delete', detail });
+                            const detail = err.error?.detail ?? err.error?.message ?? this.i18n.t('categories.messages.deleteFailed');
+                            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail });
                         }
                     });
             }

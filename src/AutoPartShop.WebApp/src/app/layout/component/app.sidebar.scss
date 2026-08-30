@@ -1,0 +1,8 @@
+/* Avatar component specific styles */
+        ::ng-deep .user-avatar {
+            min-width: 30px !important;
+            width: 30px !important;
+            height: 30px !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+        }

@@ -19,13 +19,32 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { LeaveRequestStatus } from '@/shared/models/status.types';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
     selector: 'app-leave-requests',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, TextareaModule, Select, DatePickerModule,
-        DialogModule, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        TableModule,
+        ButtonModule,
+        InputTextModule,
+        TextareaModule,
+        Select,
+        DatePickerModule,
+        DialogModule,
+        TooltipModule,
+        ToastModule,
+        ConfirmDialogModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent,
+        TranslatePipe
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './leave-requests.component.html',
     styleUrls: ['./leave-requests.component.css']
@@ -35,6 +54,7 @@ export class LeaveRequestsComponent implements OnInit {
     private readonly employeeService = inject(EmployeeService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly statusDisplayService = inject(StatusDisplayService);
 
     requests: LeaveRequestResponse[] = [];
     loading = false;
@@ -44,7 +64,7 @@ export class LeaveRequestsComponent implements OnInit {
     pageSizeOptions = [10, 25, 50, 100];
 
     searchTerm = '';
-    filterStatus = '';
+    filterStatus: LeaveRequestStatus | '' = '';
 
     statusOptions = [
         { label: 'All Statuses', value: '' },
@@ -170,7 +190,7 @@ export class LeaveRequestsComponent implements OnInit {
     private loadEmployeesForDialog(): void {
         if (this.employees.length > 0) return;
         this.employeeService.getAllEmployees().subscribe({
-            next: (employees) => (this.employees = employees.filter(e => e.status === 'ACTIVE')),
+            next: (employees) => (this.employees = employees.filter((e) => e.status === 'ACTIVE')),
             error: (err) => console.error('Failed to load employees:', err)
         });
     }
@@ -194,9 +214,7 @@ export class LeaveRequestsComponent implements OnInit {
             reason: this.form.reason || ''
         };
 
-        const action = this.editingId
-            ? this.leaveRequestService.updateLeaveRequest(this.editingId, payload)
-            : this.leaveRequestService.createLeaveRequest({ ...payload, employeeId: this.form.employeeId });
+        const action = this.editingId ? this.leaveRequestService.updateLeaveRequest(this.editingId, payload) : this.leaveRequestService.createLeaveRequest({ ...payload, employeeId: this.form.employeeId });
 
         action.subscribe({
             next: () => {
@@ -267,13 +285,7 @@ export class LeaveRequestsComponent implements OnInit {
         });
     }
 
-    getStatusSeverity(status: string): string {
-        const map: Record<string, string> = {
-            PENDING: 'warn',
-            APPROVED: 'success',
-            REJECTED: 'danger',
-            CANCELLED: 'secondary'
-        };
-        return map[status] || 'secondary';
+    getStatusSeverity(status: LeaveRequestStatus): StatusSeverity {
+        return this.statusDisplayService.getSeverity(status, 'hr-leave');
     }
 }

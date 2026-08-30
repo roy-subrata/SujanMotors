@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/network/dio_provider.dart';
 import '../../shared/models/json.dart';
+import '../../shared/models/status_enums.dart';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ class SupplierBill {
   final DateTime billDate;
   final double grandTotal;
   final double outstandingAmount;
-  final String status;
+  final PurchaseOrderStatus status;
 
   factory SupplierBill.fromJson(Map<String, dynamic> json) => SupplierBill(
         id: asString(json['id']),
@@ -81,7 +82,7 @@ class SupplierBill {
             DateTime.now(),
         grandTotal: asDouble(json['grandTotal']),
         outstandingAmount: asDouble(json['outstandingAmount']),
-        status: asString(json['status']),
+        status: PurchaseOrderStatus.fromWire(asStringOrNull(json['status'])),
       );
 }
 
@@ -217,13 +218,16 @@ class SuppliersRepository {
       final res = await _dio.get('/PurchaseOrder/supplier/$supplierId');
       final list = res.data;
       if (list is! List) return const [];
-      const payable = {'CONFIRMED', 'PARTIAL', 'DELIVERED'};
+      const payable = {
+        PurchaseOrderStatus.confirmed,
+        PurchaseOrderStatus.partial,
+        PurchaseOrderStatus.delivered,
+      };
       final bills = list
           .whereType<Map>()
           .map((e) => SupplierBill.fromJson(Map<String, dynamic>.from(e)))
           .where((b) =>
-              b.outstandingAmount > 0 &&
-              payable.contains(b.status.toUpperCase()))
+              b.outstandingAmount > 0 && payable.contains(b.status))
           .toList()
         ..sort((a, b) => a.billDate.compareTo(b.billDate));
       return bills;

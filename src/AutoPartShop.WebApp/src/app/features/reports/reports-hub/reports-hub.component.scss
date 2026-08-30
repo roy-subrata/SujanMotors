@@ -33,6 +33,160 @@
     gap: 12px;
 }
 
+// ── KPI snapshot strip ──────────────────────────────────────────────────
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+.kpi-card {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.kpi-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.kpi-value {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-primary);
+
+    &.kpi-value-danger {
+        color: var(--color-danger);
+    }
+}
+
+// ── Trend chart + Top movers ────────────────────────────────────────────
+.snapshot-row {
+    display: grid;
+    // minmax(0, …) so each track's minimum is 0 — without it, 1fr keeps an
+    // implicit `min-width:auto` floor from the chart canvas's intrinsic size,
+    // which stretches the track wider than the viewport on phones.
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.snapshot-card {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.snapshot-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.snapshot-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.snapshot-sub {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.snapshot-chart {
+    height: 220px;
+    min-width: 0;
+    max-width: 100%;
+
+    canvas {
+        max-width: 100%;
+    }
+}
+
+.snapshot-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px 0;
+    color: var(--color-text-muted);
+    font-size: 13px;
+
+    i {
+        font-size: 24px;
+    }
+}
+
+.movers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mover-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-border);
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.mover-name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.mover-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mover-sub {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.mover-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+    .kpi-strip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .snapshot-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 .report-card {
     display: flex;
     align-items: center;

@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { PdfDownloadService } from '@/shared/services/pdf-download.service';
+import { PurchaseReturnStatus, StockLotStatus } from '@/shared/models/status.types';
 
 export interface PurchaseReturnLineResponse {
   id: string;
@@ -34,8 +36,9 @@ export interface AvailableLotForReturn {
   costPrice: number;
   receivingDate: string;
   expiryDate?: string;
-  isFromSameSupplier: boolean;
-  status: string; // AVAILABLE, DAMAGED, QUARANTINE - which inventory bucket the lot belongs to
+  /** null when the request supplied no supplier to compare against. */
+  isFromSameSupplier: boolean | null;
+  status: StockLotStatus; // which inventory bucket the lot belongs to
 }
 
 /** Draft payload to pre-fill a new return from an accepted Goods Receipt's damaged/wrong lines. */
@@ -74,7 +77,7 @@ export interface PurchaseReturnResponse {
   supplierCode?: string;
   returnDate: string;
   reason: string;
-  status: string; // PENDING, APPROVED, RETURNED, RECEIVED, REJECTED, CREDITED
+  status: PurchaseReturnStatus;
   refundAmount: number;
   creditNoteAmount: number;
   notes?: string;
@@ -131,6 +134,7 @@ export interface PaginatedPurchaseReturnResponse {
 })
 export class PurchaseReturnService {
   private readonly http = inject(HttpClient);
+  private readonly pdfDownload = inject(PdfDownloadService);
   private readonly apiUrl = `${environment.apiUrl}/v1/purchasereturn`;
 
   /**
@@ -196,7 +200,7 @@ export class PurchaseReturnService {
   /**
    * Get purchase returns by status
    */
-  getPurchaseReturnsByStatus(status: string): Observable<PurchaseReturnResponse[]> {
+  getPurchaseReturnsByStatus(status: PurchaseReturnStatus): Observable<PurchaseReturnResponse[]> {
     return this.http.get<PurchaseReturnResponse[]>(`${this.apiUrl}/status/${status}`);
   }
 
@@ -268,14 +272,18 @@ export class PurchaseReturnService {
    * @param partId The part ID
    * @param supplierId Optional supplier ID to prioritize lots from same supplier
    * @param bucket Optional inventory bucket filter (AVAILABLE, DAMAGED, QUARANTINE)
+   * @param warehouseId Optional warehouse the return draws from (scopes lots to that warehouse)
    */
-  getAvailableLotsForReturn(partId: string, supplierId?: string, bucket?: string): Observable<AvailableLotForReturn[]> {
+  getAvailableLotsForReturn(partId: string, supplierId?: string, bucket?: string, warehouseId?: string | null): Observable<AvailableLotForReturn[]> {
     let params = new HttpParams();
     if (supplierId) {
       params = params.set('supplierId', supplierId);
     }
     if (bucket) {
       params = params.set('bucket', bucket);
+    }
+    if (warehouseId) {
+      params = params.set('warehouseId', warehouseId);
     }
     return this.http.get<AvailableLotForReturn[]>(`${this.apiUrl}/available-lots/${partId}`, { params });
   }
@@ -285,5 +293,10 @@ export class PurchaseReturnService {
    */
   getReturnPrefillFromGrn(goodsReceiptId: string): Observable<ReturnPrefillFromGrn> {
     return this.http.get<ReturnPrefillFromGrn>(`${this.apiUrl}/from-goods-receipt/${goodsReceiptId}`);
+  }
+
+  /** Download the server-rendered Purchase Return PDF and trigger the browser save dialog. */
+  downloadPdf(id: string, returnNumber: string): Observable<void> {
+    return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `purchase-return-${returnNumber}.pdf`);
   }
 }

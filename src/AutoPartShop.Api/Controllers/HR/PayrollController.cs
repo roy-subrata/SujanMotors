@@ -1,13 +1,17 @@
 using System.Text;
+using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Application.HR.Dtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers.HR;
 
@@ -15,7 +19,6 @@ namespace AutoPartShop.Api.Controllers.HR;
 /// Monthly payroll runs: generate DRAFT from the attendance summary, adjust payslips,
 /// approve, then pay — which posts a SALARIES DailyExpense in the same transaction.
 /// </summary>
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize(Roles = "Admin,Manager")]
@@ -107,7 +110,7 @@ public class PayrollController : ControllerBase
             PayrollRun run;
             if (existing is not null)
             {
-                if (existing.Status != "DRAFT")
+                if (existing.Status != PayrollRunStatus.DRAFT)
                     return BadRequest(new { message = $"Payroll for {request.Year}-{request.Month:D2} is already {existing.Status}" });
 
                 // Regenerate: drop existing draft payslips
@@ -124,7 +127,7 @@ public class PayrollController : ControllerBase
                 await _payrollRepository.AddAsync(run, cancellationToken);
             }
 
-            var employees = (await _employeeRepository.GetByStatusAsync("ACTIVE", cancellationToken)).ToList();
+            var employees = (await _employeeRepository.GetByStatusAsync(EmployeeStatus.ACTIVE, cancellationToken)).ToList();
             if (employees.Count == 0)
                 return BadRequest(new { message = "No active employees to run payroll for" });
 
@@ -257,7 +260,7 @@ public class PayrollController : ControllerBase
             var run = await _payrollRepository.GetByIdAsync(id, includePayslips: true, cancellationToken);
             if (run is null) return NotFound();
 
-            if (run.Status != "APPROVED")
+            if (run.Status != PayrollRunStatus.APPROVED)
                 return BadRequest(new { message = $"Cannot pay a {run.Status} payroll run; approve it first" });
 
             if (run.TotalNet <= 0)
@@ -314,7 +317,7 @@ public class PayrollController : ControllerBase
             var run = await _payrollRepository.GetByIdAsync(id, includePayslips: true, cancellationToken);
             if (run is null) return NotFound();
 
-            if (run.Status != "APPROVED" && run.Status != "PAID")
+            if (run.Status != PayrollRunStatus.APPROVED && run.Status != PayrollRunStatus.PAID)
                 return BadRequest(new { message = "Payslips can only be sent for approved or paid runs" });
 
             var employees = (await _employeeRepository.GetAllAsync(cancellationToken)).ToDictionary(e => e.Id);
@@ -373,6 +376,56 @@ public class PayrollController : ControllerBase
         }
     }
 
+    /// <summary>Download one employee's payslip from a run as a PDF.</summary>
+    [HttpGet("{id:guid}/payslips/{payslipId:guid}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadPayslipPdf(
+        Guid id,
+        Guid payslipId,
+        [FromServices] IShopProfileProvider shopProfiles,
+        CancellationToken cancellationToken)
+    {
+        var run = await _payrollRepository.GetByIdAsync(id, includePayslips: true, cancellationToken);
+        if (run is null) return NotFound();
+
+        var payslip = run.Payslips.FirstOrDefault(p => p.Id == payslipId && !p.Isdeleted);
+        if (payslip is null) return NotFound(new { message = "Payslip not found in this run" });
+
+        var monthName = new DateTime(run.Year, run.Month, 1).ToString("MMMM yyyy");
+        var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
+
+        var data = new PayslipDocumentData(
+            EmployeeCode: payslip.EmployeeCode,
+            EmployeeName: payslip.EmployeeName,
+            Designation: payslip.Designation,
+            Department: payslip.Department,
+            MonthName: monthName,
+            RunCode: run.RunCode,
+            Currency: run.Currency,
+            MonthlySalary: payslip.MonthlySalary,
+            OvertimeAmount: payslip.OvertimeAmount,
+            BonusAmount: payslip.BonusAmount,
+            OtherAllowance: payslip.OtherAllowance,
+            CommissionAmount: payslip.CommissionAmount,
+            GrossPay: payslip.GrossPay,
+            AbsenceDeduction: payslip.AbsenceDeduction,
+            AbsentDays: payslip.AbsentDays,
+            HalfDays: payslip.HalfDays,
+            AdvanceDeduction: payslip.AdvanceDeduction,
+            TaxDeduction: payslip.TaxDeduction,
+            OtherDeduction: payslip.OtherDeduction,
+            TotalDeduction: payslip.TotalDeduction,
+            NetPay: payslip.NetPay,
+            PresentDays: payslip.PresentDays,
+            LateDays: payslip.LateDays,
+            LeaveDays: payslip.LeaveDays);
+
+        var pdfBytes = new PayslipDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"payslip-{payslip.EmployeeCode}-{monthName.Replace(' ', '-')}.pdf");
+    }
+
     private static string BuildPayslipHtml(Payslip p, PayrollRun run, string monthName)
     {
         static string Row(string label, decimal value, string currency) =>
@@ -410,7 +463,7 @@ public class PayrollController : ControllerBase
             var run = await _payrollRepository.GetByIdAsync(id, includePayslips: false, cancellationToken);
             if (run is null) return NotFound();
 
-            if (run.Status == "PAID")
+            if (run.Status == PayrollRunStatus.PAID)
                 return BadRequest(new { message = "Cannot delete a PAID payroll run" });
 
             await _payrollRepository.DeleteAsync(id, cancellationToken);

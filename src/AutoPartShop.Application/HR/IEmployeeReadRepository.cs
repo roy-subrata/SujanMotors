@@ -11,6 +11,9 @@ namespace AutoPartShop.Application.HR
         /// excludes users already linked to another employee.
         /// </summary>
         Task<IReadOnlyCollection<LinkableUserResponse>> GetLinkableUsers(Guid? currentEmployeeId, CancellationToken cancellationToken);
+
+        /// <summary>Returns shift names for the given shift IDs.</summary>
+        Task<Dictionary<Guid, string>> GetShiftNamesAsync(IEnumerable<Guid> shiftIds, CancellationToken cancellationToken);
     }
 
     public class LinkableUserResponse

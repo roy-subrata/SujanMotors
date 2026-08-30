@@ -1,4 +1,5 @@
 ﻿using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
+using AutoPartShop.Domain.Enums;
 
 public class PurchaseOrderResponse
 {
@@ -7,10 +8,11 @@ public class PurchaseOrderResponse
     public Guid SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public string SupplierCode { get; set; } = string.Empty;
+    public Guid? WarehouseId { get; set; }
     public DateTime OrderDate { get; set; }
     public DateTime DeliveryDate { get; set; }
-    public string PaymentStatus { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty; // DRAFT, SUBMITTED, CONFIRMED, PARTIAL, DELIVERED, CANCELLED
+    public PurchaseOrderPaymentStatus PaymentStatus { get; set; }
+    public PurchaseOrderStatus Status { get; set; }
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TaxPercentage { get; set; }
@@ -22,6 +24,9 @@ public class PurchaseOrderResponse
     public string Currency { get; set; } = string.Empty;
     public decimal AmountPaid { get; set; }
     public decimal OutstandingAmount { get; set; }
+
+    /// <summary>Total value of supplier credit notes applied against this order.</summary>
+    public decimal CreditAppliedAmount { get; set; }
     public bool IsOverdue { get; set; }
     public string Notes { get; set; } = string.Empty;
     public List<PurchaseOrderLineResponse> Lines { get; set; } = new();

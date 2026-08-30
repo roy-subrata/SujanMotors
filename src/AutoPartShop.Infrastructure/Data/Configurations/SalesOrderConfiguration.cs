@@ -34,6 +34,7 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .HasPrecision(18, 2);
 
         builder.Property(so => so.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(30);
 
@@ -47,6 +48,7 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .IsRequired(false);
 
         builder.Property(so => so.PaymentStatus)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 
@@ -63,6 +65,12 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .IsRequired()
             .HasMaxLength(3)
             .HasDefaultValue("BDT");
+
+        builder.Property(so => so.BaseGrandTotal)
+            .HasPrecision(18, 2);
+
+        builder.Property(so => so.FxRateToBase)
+            .HasPrecision(18, 6);
 
         builder.Property(so => so.Channel)
             .IsRequired()
@@ -119,5 +127,13 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
         builder.HasIndex(so => so.CashierId);
         builder.HasIndex(so => so.Status);
         builder.HasIndex(so => so.SODate);
+        builder.HasIndex(so => so.CartDiscountRuleId);
+
+        // Cart-level discount rule — nullable, tracks auto-applied cart discount for audit
+        builder.HasOne(so => so.CartDiscountRule)
+            .WithMany()
+            .HasForeignKey(so => so.CartDiscountRuleId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 }

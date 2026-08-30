@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -61,9 +62,10 @@ public class WarrantyRegistrationConfiguration : IEntityTypeConfiguration<Warran
             .IsRequired();
 
         builder.Property(w => w.Status)
+            .HasConversion<string>()
             .HasMaxLength(20)
             .IsRequired()
-            .HasDefaultValue("ACTIVE");
+            .HasDefaultValue(WarrantyRegistrationStatus.ACTIVE);
 
         builder.Property(w => w.VoidReason)
             .HasMaxLength(500)

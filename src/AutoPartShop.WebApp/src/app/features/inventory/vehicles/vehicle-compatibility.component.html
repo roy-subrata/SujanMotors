@@ -1,27 +1,27 @@
 <app-page-container>
   <p-toast></p-toast>
 
-  <app-page-header title="Vehicle Compatibility Management" [subtitle]="vehicleSubtitle">
+  <app-page-header [title]="'vehicles.compatibility.title' | translate" [subtitle]="vehicleSubtitle">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Back to Vehicles" tooltipPosition="bottom" (click)="goBack()">
+      <button class="btn-icon" [pTooltip]="'vehicles.compatibility.backTooltip' | translate" tooltipPosition="bottom" (click)="goBack()">
         <i class="pi pi-arrow-left"></i>
       </button>
     </ng-container>
   </app-page-header>
 
   <!-- Add Compatibility Form -->
-  <p-card header="Add Part Compatibility">
+  <p-card [header]="'vehicles.compatibility.addPartCompatibility' | translate">
     <form [formGroup]="addForm" (ngSubmit)="addCompatibility()">
       <div class="add-form-grid">
         <!-- Part Autocomplete -->
         <div class="form-field">
-          <label for="part" class="required">Part</label>
+          <label for="part" class="required">{{ 'vehicles.compatibility.part' | translate }}</label>
           <app-lazy-autocomplete
             [(ngModel)]="selectedPart"
             [ngModelOptions]="{standalone: true}"
             [fetchFn]="fetchPartsLazy"
             optionLabel="displayName"
-            placeholder="Search by part name or SKU"
+            [placeholder]="'vehicles.compatibility.partSearchPlaceholder' | translate"
             [class.ng-invalid]="hasError('part')"
             [class.ng-dirty]="hasError('part')"
             (onItemSelect)="onPartSelected($event)"
@@ -35,32 +35,31 @@
             </ng-template>
           </app-lazy-autocomplete>
           <small class="p-error" *ngIf="hasError('part')">
-            Part is required
+            {{ 'vehicles.compatibility.partRequired' | translate }}
           </small>
         </div>
 
         <!-- Is Compatible Checkbox -->
         <div class="form-field">
-          <label for="isCompatible">Compatibility Status</label>
+          <label for="isCompatible">{{ 'vehicles.compatibility.compatibilityStatus' | translate }}</label>
           <div class="checkbox-wrapper">
             <p-checkbox
               inputId="isCompatible"
               formControlName="isCompatible"
-              [binary]="true"
-              label="Compatible">
+              [binary]="true">
             </p-checkbox>
           </div>
         </div>
 
         <!-- Notes Field -->
         <div class="form-field form-field-full">
-          <label for="notes">Notes</label>
+          <label for="notes">{{ 'common.labels.notes' | translate }}</label>
           <textarea
             pTextarea
             id="notes"
             formControlName="notes"
             rows="3"
-            placeholder="Enter compatibility notes (optional)">
+            [placeholder]="'vehicles.compatibility.notesPlaceholder' | translate">
           </textarea>
         </div>
 
@@ -70,7 +69,7 @@
             pButton
             pRipple
             type="submit"
-            label="Add Compatibility"
+            [label]="'vehicles.compatibility.addCompatibility' | translate"
             icon="pi pi-plus"
             [loading]="isSubmitting"
             [disabled]="!addForm.valid || isSubmitting">
@@ -81,7 +80,7 @@
   </p-card>
 
   <!-- Compatibilities List -->
-  <p-card header="Compatible Parts" styleClass="mt-3">
+  <p-card [header]="'vehicles.compatibility.compatiblePartsHeader' | translate" styleClass="mt-3">
     <p-table
       [value]="compatibilities"
       [loading]="loading"
@@ -90,19 +89,19 @@
       styleClass="p-datatable-striped">
 
       <!-- Header Template -->
-      <ng-template pTemplate="header">
+      <ng-template #header>
         <tr>
-          <th style="width: 20%">Part Name</th>
-          <th style="width: 15%">SKU</th>
-          <th style="width: 15%">Status</th>
-          <th style="width: 35%">Notes</th>
-          <th style="width: 10%">Created By</th>
-          <th style="width: 5%">Actions</th>
+          <th style="width: 20%">{{ 'vehicles.compatibility.partName' | translate }}</th>
+          <th style="width: 15%">{{ 'vehicles.compatibility.sku' | translate }}</th>
+          <th style="width: 15%">{{ 'common.labels.status' | translate }}</th>
+          <th style="width: 35%">{{ 'common.labels.notes' | translate }}</th>
+          <th style="width: 10%">{{ 'common.labels.createdBy' | translate }}</th>
+          <th style="width: 5%">{{ 'common.labels.actions' | translate }}</th>
         </tr>
       </ng-template>
 
       <!-- Data Rows -->
-      <ng-template pTemplate="body" let-compatibility>
+      <ng-template #body let-compatibility>
         <tr>
           <td>
             <span class="font-semibold">{{ compatibility.partName }}</span>
@@ -117,7 +116,7 @@
             </p-tag>
           </td>
           <td>
-            <span class="text-sm">{{ compatibility.notes || 'N/A' }}</span>
+            <span class="text-sm">{{ compatibility.notes || ('common.labels.notAvailable' | translate) }}</span>
           </td>
           <td>
             <span class="text-sm text-gray-600">{{ compatibility.createdBy }}</span>
@@ -129,7 +128,7 @@
               type="button"
               icon="pi pi-trash"
               class="p-button-text p-button-danger p-button-sm"
-              pTooltip="Remove"
+              [pTooltip]="'vehicles.compatibility.removeTooltip' | translate"
               tooltipPosition="left"
               (click)="removeCompatibility(compatibility)">
             </button>
@@ -138,11 +137,11 @@
       </ng-template>
 
       <!-- Empty Message -->
-      <ng-template pTemplate="emptymessage">
+      <ng-template #emptymessage>
         <tr>
           <td colspan="6" class="text-center py-4">
             <i class="pi pi-inbox mr-2"></i>
-            No compatible parts found. Add parts using the form above.
+            {{ 'vehicles.compatibility.noCompatiblePartsFound' | translate }}
           </td>
         </tr>
       </ng-template>

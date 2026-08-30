@@ -28,11 +28,18 @@ public class CustomerPaymentConfiguration : IEntityTypeConfiguration<CustomerPay
             .IsRequired()
             .HasMaxLength(10);
 
+        builder.Property(cp => cp.BaseAmount)
+            .HasPrecision(18, 2);
+
+        builder.Property(cp => cp.FxRateToBase)
+            .HasPrecision(18, 6);
+
         builder.Property(cp => cp.PaymentMethod)
             .IsRequired()
             .HasMaxLength(50);
 
         builder.Property(cp => cp.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

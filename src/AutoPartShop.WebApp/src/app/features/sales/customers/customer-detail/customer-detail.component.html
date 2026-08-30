@@ -6,16 +6,16 @@
     <!-- Top Bar: Back button, Title, Actions -->
     <div class="header-top-bar">
       <div class="header-left">
-        <button pButton icon="pi pi-arrow-left" class="back-button" (click)="goBack()" pTooltip="Back to Customers"
+        <button pButton icon="pi pi-arrow-left" class="back-button" (click)="goBack()" [pTooltip]="'customers.detail.backTooltip' | translate"
           tooltipPosition="bottom"></button>
-        <span class="header-title">Customer Details</span>
+        <span class="header-title">{{ 'customers.detail.title' | translate }}</span>
       </div>
       <div class="header-actions">
-        <button pButton label="Payments" icon="pi pi-list" class="action-btn action-btn-secondary"
+        <button pButton [label]="'customers.detail.payments' | translate" icon="pi pi-list" class="action-btn action-btn-secondary"
           (click)="viewPayments()"></button>
-        <button pButton label="New Payment" icon="pi pi-wallet" class="action-btn action-btn-primary"
+        <button pButton [label]="'customers.detail.newPayment' | translate" icon="pi pi-wallet" class="action-btn action-btn-primary"
           (click)="recordPayment()"></button>
-        <button pButton label="Edit" icon="pi pi-pencil" class="action-btn action-btn-secondary"
+        <button pButton [label]="'common.actions.edit' | translate" icon="pi pi-pencil" class="action-btn action-btn-secondary"
           (click)="editCustomer()"></button>
       </div>
     </div>
@@ -29,7 +29,7 @@
         <div class="profile-info">
           <div class="name-badges">
             <h2 class="customer-name">{{ cust.firstName }} {{ cust.lastName }}</h2>
-            <p-tag [value]="cust.status" [severity]="getStatusSeverity(cust.status)"></p-tag>
+            <p-tag [value]="formatStatus(cust.status)" [severity]="getStatusSeverity(cust.status)"></p-tag>
             <span class="customer-type-badge">
               <i class="pi pi-tag"></i>
               {{ cust.customerType }}
@@ -48,21 +48,21 @@
         <div class="stat-item stat-blue">
           <div class="stat-icon"><i class="pi pi-dollar"></i></div>
           <div class="stat-content">
-            <span class="stat-label">Total Purchases</span>
+            <span class="stat-label">{{ 'customers.detail.totalPurchases' | translate }}</span>
             <span class="stat-value">{{ cust.totalPurchaseAmount | appCurrency }}</span>
           </div>
         </div>
         <div class="stat-item stat-orange">
           <div class="stat-icon"><i class="pi pi-exclamation-triangle"></i></div>
           <div class="stat-content">
-            <span class="stat-label">Outstanding</span>
+            <span class="stat-label">{{ 'customers.detail.outstanding' | translate }}</span>
             <span class="stat-value">{{ cust.dueAmount | appCurrency }}</span>
           </div>
         </div>
         <div class="stat-item stat-purple">
           <div class="stat-icon"><i class="pi pi-credit-card"></i></div>
           <div class="stat-content">
-            <span class="stat-label">Advance Credit</span>
+            <span class="stat-label">{{ 'customers.detail.advanceCredit' | translate }}</span>
             <span class="stat-value">{{ cust.advanceAmount | appCurrency }}</span>
           </div>
         </div>
@@ -73,12 +73,12 @@
     <div class="contact-row">
       <div class="contact-item">
         <i class="pi pi-envelope"></i>
-        <span>{{ cust.email || 'N/A' }}</span>
+        <span>{{ cust.email || ('common.labels.notAvailable' | translate) }}</span>
       </div>
       <div class="contact-divider">|</div>
       <div class="contact-item">
         <i class="pi pi-phone"></i>
-        <span>{{ cust.phone || 'N/A' }}</span>
+        <span>{{ cust.phone || ('common.labels.notAvailable' | translate) }}</span>
       </div>
       <div class="contact-divider">|</div>
       <div class="contact-item">
@@ -88,13 +88,13 @@
             {{ cust.billingAddress }}{{ cust.billingAddress && cust.city ? ', ' : '' }}{{ cust.city }}{{ cust.city &&
             cust.state ? ', ' : '' }}{{ cust.state }} {{ cust.postalCode }}
           </ng-container>
-          <ng-container *ngIf="!cust.billingAddress && !cust.city && !cust.state && !cust.postalCode">N/A</ng-container>
+          <ng-container *ngIf="!cust.billingAddress && !cust.city && !cust.state && !cust.postalCode">{{ 'common.labels.notAvailable' | translate }}</ng-container>
         </span>
       </div>
       <div class="contact-divider">|</div>
       <div class="contact-item">
         <i class="pi pi-calendar"></i>
-        <span>Member Since {{ cust.createdAt | date:'MMM dd, yyyy' }}</span>
+        <span>{{ 'customers.detail.memberSince' | translate }} {{ cust.createdAt | date:'MMM dd, yyyy' }}</span>
       </div>
     </div>
   </div>
@@ -104,16 +104,16 @@
     <div class="vehicles-header">
       <div class="vehicles-title">
         <i class="pi pi-car"></i>
-        <span>Vehicles</span>
+        <span>{{ 'customers.detail.vehiclesTitle' | translate }}</span>
         <span class="vehicles-count">{{ vehicles().length }}</span>
       </div>
-      <button pButton label="Add Vehicle" icon="pi pi-plus" class="action-btn action-btn-primary"
+      <button pButton [label]="'customers.form.addVehicle' | translate" icon="pi pi-plus" class="action-btn action-btn-primary"
         (click)="openAddVehicle()"></button>
     </div>
 
     <div class="vehicles-empty" *ngIf="!vehiclesLoading() && vehicles().length === 0">
       <i class="pi pi-car"></i>
-      <span>No vehicles recorded for this customer.</span>
+      <span>{{ 'customers.detail.noVehicles' | translate }}</span>
     </div>
 
     <div class="vehicles-grid" *ngIf="vehicles().length > 0">
@@ -124,15 +124,15 @@
           <div class="vehicle-meta">
             <span *ngIf="v.engineType"><i class="pi pi-bolt"></i> {{ v.engineType }}</span>
             <span *ngIf="v.color"><i class="pi pi-palette"></i> {{ v.color }}</span>
-            <span *ngIf="v.mileage"><i class="pi pi-gauge"></i> {{ v.mileage | number }} km</span>
+            <span *ngIf="v.mileage"><i class="pi pi-gauge"></i> {{ v.mileage | number }} {{ 'customers.form.kmSuffix' | translate }}</span>
           </div>
-          <div class="vehicle-vin" *ngIf="v.vin">VIN: {{ v.vin }}</div>
+          <div class="vehicle-vin" *ngIf="v.vin">{{ 'customers.form.vinPrefix' | translate }} {{ v.vin }}</div>
           <div class="vehicle-notes" *ngIf="v.notes">{{ v.notes }}</div>
         </div>
         <div class="vehicle-card-actions">
-          <button pButton icon="pi pi-pencil" class="p-button-text p-button-sm" pTooltip="Edit"
+          <button pButton icon="pi pi-pencil" class="p-button-text p-button-sm" [pTooltip]="'common.actions.edit' | translate"
             (click)="openEditVehicle(v)"></button>
-          <button pButton icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" pTooltip="Delete"
+          <button pButton icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" [pTooltip]="'common.actions.delete' | translate"
             (click)="confirmDeleteVehicle(v)"></button>
         </div>
       </div>
@@ -142,60 +142,60 @@
 
 <!-- Add/Edit Vehicle Dialog -->
 <p-dialog [(visible)]="vehicleDialogVisible" [modal]="true" [style]="{ width: '32rem' }"
-  [header]="editingVehicleId() ? 'Edit Vehicle' : 'Add Vehicle'" [draggable]="false" [resizable]="false">
+  [header]="(editingVehicleId() ? 'customers.form.editVehicle' : 'customers.form.addVehicle') | translate" [draggable]="false" [resizable]="false">
   <form [formGroup]="vehicleForm" class="vehicle-form" (ngSubmit)="saveVehicle()">
     <div class="form-field">
-      <label>Registration No. <span class="required">*</span></label>
-      <input type="text" pInputText formControlName="registrationNo" placeholder="e.g. DHA-1234" />
+      <label>{{ 'customers.form.vehicle.registrationLabel' | translate }} <span class="required">*</span></label>
+      <input type="text" pInputText formControlName="registrationNo" [placeholder]="'customers.form.vehicle.registrationPlaceholder' | translate" />
       <small class="field-error"
         *ngIf="vehicleForm.get('registrationNo')?.invalid && vehicleForm.get('registrationNo')?.touched">
-        Registration number is required
+        {{ 'customers.form.vehicle.registrationRequired' | translate }}
       </small>
     </div>
     <div class="form-row">
       <div class="form-field">
-        <label>Make</label>
-        <input type="text" pInputText formControlName="make" placeholder="Toyota" />
+        <label>{{ 'customers.form.vehicle.makeLabel' | translate }}</label>
+        <input type="text" pInputText formControlName="make" [placeholder]="'customers.form.vehicle.makePlaceholder' | translate" />
       </div>
       <div class="form-field">
-        <label>Model</label>
-        <input type="text" pInputText formControlName="model" placeholder="Corolla" />
+        <label>{{ 'customers.form.vehicle.modelLabel' | translate }}</label>
+        <input type="text" pInputText formControlName="model" [placeholder]="'customers.form.vehicle.modelPlaceholder' | translate" />
       </div>
     </div>
     <div class="form-row">
       <div class="form-field">
-        <label>Year</label>
+        <label>{{ 'customers.form.vehicle.yearLabel' | translate }}</label>
         <p-inputNumber formControlName="year" [useGrouping]="false" [min]="1900" [max]="2100"
-          placeholder="2020"></p-inputNumber>
+          [placeholder]="'customers.form.vehicle.yearPlaceholder' | translate"></p-inputNumber>
       </div>
       <div class="form-field">
-        <label>Engine Type</label>
-        <input type="text" pInputText formControlName="engineType" placeholder="Petrol / Diesel / Hybrid" />
+        <label>{{ 'customers.form.vehicle.engineTypeLabel' | translate }}</label>
+        <input type="text" pInputText formControlName="engineType" [placeholder]="'customers.form.vehicle.engineTypePlaceholder' | translate" />
       </div>
     </div>
     <div class="form-row">
       <div class="form-field">
-        <label>Color</label>
-        <input type="text" pInputText formControlName="color" placeholder="Silver" />
+        <label>{{ 'customers.form.vehicle.colorLabel' | translate }}</label>
+        <input type="text" pInputText formControlName="color" [placeholder]="'customers.form.vehicle.colorPlaceholder' | translate" />
       </div>
       <div class="form-field">
-        <label>Mileage (km)</label>
-        <p-inputNumber formControlName="mileage" [min]="0" placeholder="50000"></p-inputNumber>
+        <label>{{ 'customers.form.vehicle.mileageLabel' | translate }}</label>
+        <p-inputNumber formControlName="mileage" [min]="0" [placeholder]="'customers.form.vehicle.mileagePlaceholder' | translate"></p-inputNumber>
       </div>
     </div>
     <div class="form-field">
-      <label>VIN / Chassis No.</label>
+      <label>{{ 'customers.form.vehicle.vinLabel' | translate }}</label>
       <input type="text" pInputText formControlName="vin" />
     </div>
     <div class="form-field">
-      <label>Notes</label>
+      <label>{{ 'customers.form.vehicle.notesLabel' | translate }}</label>
       <input type="text" pInputText formControlName="notes" />
     </div>
   </form>
   <ng-template pTemplate="footer">
-    <button pButton label="Cancel" icon="pi pi-times" class="p-button-text"
+    <button pButton [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text"
       (click)="vehicleDialogVisible.set(false)"></button>
-    <button pButton label="Save" icon="pi pi-check" [loading]="savingVehicle()" (click)="saveVehicle()"></button>
+    <button pButton [label]="'common.actions.save' | translate" icon="pi pi-check" [loading]="savingVehicle()" (click)="saveVehicle()"></button>
   </ng-template>
 </p-dialog>
 

@@ -72,13 +72,13 @@ public class ShiftReportDocument : IDocument
     private void ComposeHeader(IContainer container) =>
         // "Shift" and its hours are split into two short fields rather than one compound string
         // ("Shift A · 09:00 – 17:00") — that wraps to two lines in the meta column at this width.
-        new DocHeader(_theme, _shop, "Shift Report",
+        new DocHeader(_theme, _shop, _theme.T("shiftReport.title"),
         [
-            new MetaField("No.", _data.ReportNumber),
-            new MetaField("Date", _data.ReportDate.ToString("dd MMM yyyy")),
-            new MetaField("Shift", _data.ShiftLabel),
-            new MetaField("Hours", _data.ShiftHours),
-            new MetaField("Terminal", _data.TerminalLabel),
+            new MetaField(_theme.T("common.no"), _data.ReportNumber),
+            new MetaField(_theme.T("common.date"), _data.ReportDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("shiftReport.shift"), _data.ShiftLabel),
+            new MetaField(_theme.T("shiftReport.hours"), _data.ShiftHours),
+            new MetaField(_theme.T("common.terminal"), _data.TerminalLabel),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -96,7 +96,7 @@ public class ShiftReportDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeNote);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Cashier", "Head Cashier", "Manager").Compose(c));
+                new SignRow(_theme.T("shiftReport.cashier"), _theme.T("dailySales.headCashier"), _theme.T("common.manager")).Compose(c));
         });
     }
 
@@ -104,14 +104,14 @@ public class ShiftReportDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Cashier"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("shiftReport.cashier")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.CashierName)
                 .FontSize(DocTheme.TableCell).Bold().FontColor(DocTheme.Ink).LineHeight(1.6f);
 
             var signOff = _data.SignedOut is { } so
-                ? $"Signed in {_data.SignedIn:HH:mm} · Signed out {so:HH:mm}"
-                : $"Signed in {_data.SignedIn:HH:mm} · Still open";
+                ? _theme.T("shiftReport.signedInOut").Replace("{{in}}", _data.SignedIn.ToString("HH:mm")).Replace("{{out}}", so.ToString("HH:mm"))
+                : _theme.T("shiftReport.signedInOpen").Replace("{{in}}", _data.SignedIn.ToString("HH:mm"));
 
             col.Item().Text(signOff)
                 .FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink).LineHeight(1.6f);
@@ -122,11 +122,12 @@ public class ShiftReportDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Transactions"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.transactions")));
 
-            var summary = $"{_data.ReceiptCount} receipt{(_data.ReceiptCount == 1 ? "" : "s")} · " +
-                          $"{_data.ReturnCount} return{(_data.ReturnCount == 1 ? "" : "s")} · " +
-                          $"{_data.VoidCount} void{(_data.VoidCount == 1 ? "" : "s")}";
+            var summary = _theme.T("shiftReport.receiptsSummary")
+                .Replace("{{receipts}}", _data.ReceiptCount.ToString())
+                .Replace("{{returns}}", _data.ReturnCount.ToString())
+                .Replace("{{voids}}", _data.VoidCount.ToString());
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(summary)
                 .FontSize(DocTheme.TableCell).FontColor(DocTheme.Ink).LineHeight(1.6f);
@@ -144,7 +145,7 @@ public class ShiftReportDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().PaddingBottom(DocTheme.Px(6)).Element(c => SectionLabel(c, "Cash Drawer Reconciliation"));
+            col.Item().PaddingBottom(DocTheme.Px(6)).Element(c => SectionLabel(c, _theme.T("shiftReport.cashDrawerReconciliation")));
 
             col.Item().Table(table =>
             {
@@ -154,14 +155,14 @@ public class ShiftReportDocument : IDocument
                     c.ConstantColumn(DocTheme.Px(150));
                 });
 
-                Row(table, "Opening Float", DocTheme.Amount(_data.OpeningFloat));
-                Row(table, "Cash Sales", $"+ {DocTheme.Amount(_data.CashSales)}");
+                Row(table, _theme.T("shiftReport.openingFloat"), DocTheme.Amount(_data.OpeningFloat));
+                Row(table, _theme.T("shiftReport.cashSales"), $"+ {DocTheme.Amount(_data.CashSales)}");
                 if (_data.CashRefunds > 0)
-                    Row(table, "Cash Refunds", $"- {DocTheme.Amount(_data.CashRefunds)}");
+                    Row(table, _theme.T("shiftReport.cashRefunds"), $"- {DocTheme.Amount(_data.CashRefunds)}");
                 if (_data.CashDrops > 0)
-                    Row(table, "Cash Drops to Safe", $"- {DocTheme.Amount(_data.CashDrops)}");
-                Row(table, "Expected in Drawer", DocTheme.Amount(_data.ExpectedInDrawer));
-                Row(table, "Counted at Close", DocTheme.Amount(_data.CountedAtClose));
+                    Row(table, _theme.T("shiftReport.cashDropsToSafe"), $"- {DocTheme.Amount(_data.CashDrops)}");
+                Row(table, _theme.T("shiftReport.expectedInDrawer"), DocTheme.Amount(_data.ExpectedInDrawer));
+                Row(table, _theme.T("shiftReport.countedAtClose"), DocTheme.Amount(_data.CountedAtClose));
 
                 // Over/Short: bold, 2px top rule, accent-colored (the handoff shows the shortage in
                 // the brand accent regardless of sign — it's a flag-for-attention color here, not a
@@ -169,7 +170,7 @@ public class ShiftReportDocument : IDocument
                 var label = table.Cell()
                     .BorderTop(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
                     .PaddingVertical(DocTheme.Px(9)).PaddingHorizontal(DocTheme.Px(8));
-                label.Text("Over / Short").FontSize(DocTheme.TableCell).Bold().FontColor(DocTheme.Ink);
+                label.Text(_theme.T("shiftReport.overShort")).FontSize(DocTheme.TableCell).Bold().FontColor(DocTheme.Ink);
 
                 var value = table.Cell()
                     .BorderTop(DocTheme.RuleMedium).BorderColor(DocTheme.Ink)
@@ -199,8 +200,10 @@ public class ShiftReportDocument : IDocument
         var note = !string.IsNullOrWhiteSpace(_data.Note)
             ? _data.Note
             : _data.OverShort == 0
-                ? "Drawer balanced. Non-cash settlements reconcile with acquirer reports."
-                : $"{(_data.OverShort < 0 ? "Shortage" : "Overage")} of {_theme.Money(Math.Abs(_data.OverShort))} noted and logged. Non-cash settlements reconcile with acquirer reports.";
+                ? _theme.T("shiftReport.balancedNote")
+                : _theme.T("shiftReport.imbalanceNote")
+                    .Replace("{{type}}", _data.OverShort < 0 ? _theme.T("shiftReport.shortage") : _theme.T("shiftReport.overage"))
+                    .Replace("{{amount}}", _theme.Money(Math.Abs(_data.OverShort)));
 
         container.Text(note)
             .FontSize(DocTheme.Px(10)).FontColor(DocTheme.Muted).LineHeight(1.7f);

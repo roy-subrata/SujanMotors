@@ -1,0 +1,15 @@
+.page-size-native {
+      width: 64px;
+      padding: 6px 8px;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      background-color: var(--color-bg-primary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      outline: none;
+    }
+    .page-size-native:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-light);
+    }

@@ -1,0 +1,158 @@
+/* ============================================================
+   PRODUCT ATTRIBUTE VALUES MANAGER
+   Inline editor embedded in part-form, styled with the shared
+   color, radius and shadow tokens from assets/_data-page.scss
+   (matches attribute-group-manager's visual language) instead of a
+   bare PrimeNG Card/Panel.
+   ============================================================ */
+
+.avm-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.avm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.avm-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.avm-icon { color: var(--color-primary); font-size: 0.95rem; }
+
+.avm-count { font-size: 0.85rem; color: var(--color-text-secondary); font-weight: normal; }
+
+.avm-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.825rem;
+  color: var(--color-text-secondary);
+}
+
+.avm-link {
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.avm-save-first-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}
+
+.avm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.avm-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.avm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.7rem;
+}
+
+.avm-row-label {
+  flex: 0 0 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.avm-attr-name { font-size: 0.875rem; font-weight: 500; color: var(--color-text-primary); }
+.avm-attr-unit { font-size: 0.75rem; color: var(--color-text-muted); }
+
+.avm-group-badge {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  padding: 0 5px;
+  margin-top: 2px;
+}
+
+.avm-row-input { flex: 1; }
+
+.avm-w-full { width: 100%; }
+
+.avm-remove-btn { flex-shrink: 0; }
+
+.avm-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  padding: 0.5rem 0;
+}
+
+.avm-add-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.avm-hint-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  padding: 0.3rem 0;
+}
+
+.avm-hint-success { color: var(--color-success); }
+
+.avm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.avm-dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--color-warning);
+  margin-right: auto;
+}
+
+.avm-dirty i { font-size: 0.5rem; }
+
+@media (max-width: 580px) {
+  .avm-row { flex-direction: column; align-items: stretch; }
+  .avm-row-label { flex: none; }
+}

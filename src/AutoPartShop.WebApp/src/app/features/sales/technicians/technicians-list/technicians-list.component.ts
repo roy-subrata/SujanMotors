@@ -6,10 +6,10 @@ import { TechnicianService, TechnicianResponse } from '../../services/technician
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { SelectModule } from 'primeng/select';
 import { PaginatorState } from 'primeng/paginator';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -18,12 +18,28 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-technicians-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, TooltipModule, ToastModule, ConfirmDialogModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        TableModule,
+        ButtonModule,
+        InputTextModule,
+        TooltipModule,
+        ToastModule,
+        ConfirmDialogModule,
+        SelectModule,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent,
+        TranslatePipe
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './technicians-list.component.html',
     styleUrls: ['./technicians-list.component.css']
@@ -35,6 +51,7 @@ export class TechniciansListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     technicians: TechnicianResponse[] = [];
     loading = false;
@@ -59,8 +76,8 @@ export class TechniciansListComponent implements OnInit {
     private buildStatusOptions(): void {
         this.statusOptions = [
             { label: this.i18n.t('technicians.statusOptions.allStatuses'), value: '' },
-            { label: this.i18n.t('technicians.statusOptions.active'),      value: 'ACTIVE' },
-            { label: this.i18n.t('technicians.statusOptions.inactive'),    value: 'INACTIVE' }
+            { label: this.i18n.t('technicians.statusOptions.active'), value: 'ACTIVE' },
+            { label: this.i18n.t('technicians.statusOptions.inactive'), value: 'INACTIVE' }
         ];
     }
 
@@ -195,9 +212,7 @@ export class TechniciansListComponent implements OnInit {
             header: this.i18n.t('common.actions.confirm'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
-                const serviceAction = technician.status === 'ACTIVE'
-                    ? this.technicianService.deactivateTechnician(technician.id)
-                    : this.technicianService.activateTechnician(technician.id);
+                const serviceAction = technician.status === 'ACTIVE' ? this.technicianService.deactivateTechnician(technician.id) : this.technicianService.activateTechnician(technician.id);
 
                 serviceAction.subscribe({
                     next: () => {
@@ -222,11 +237,19 @@ export class TechniciansListComponent implements OnInit {
         });
     }
 
-    getStatusSeverity(status: string): 'success' | 'secondary' {
-        const severityMap: Record<string, 'success' | 'secondary'> = {
-            ACTIVE: 'success',
-            INACTIVE: 'secondary'
-        };
-        return severityMap[status] || 'secondary';
+    /** Technician status is a server enum rendered directly; map it to its translated label. */
+    formatStatus(status: string): string {
+        if (!status) return '-';
+        const key = 'common.status.' + status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        if (label !== key) return label;
+        return status
+            .split('_')
+            .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+            .join(' ');
+    }
+
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'technician');
     }
 }

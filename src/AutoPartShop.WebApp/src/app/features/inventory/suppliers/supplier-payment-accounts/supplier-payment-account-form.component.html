@@ -8,16 +8,16 @@
         <div class="breadcrumb">
           <a (click)="onCancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Payment Accounts
+            {{ 'suppliers.paymentAccounts' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ isEditing ? 'Edit' : 'New' }}</span>
+          <span class="breadcrumb-current">{{ isEditing ? ('common.actions.edit' | translate) : ('common.labels.new' | translate) }}</span>
         </div>
         <h1 class="form-title">
-          {{ isEditing ? 'Edit Payment Account' : 'Add Payment Account' }}
+          {{ isEditing ? ('supplierPaymentAccounts.editPaymentAccount' | translate) : ('supplierPaymentAccounts.addPaymentAccount' | translate) }}
         </h1>
         <p class="form-subtitle">
-          {{ isEditing ? 'Update payment account details for ' : 'Add a new payment account for ' }}{{ supplierName }}
+          {{ subtitle }}
         </p>
       </div>
     </div>
@@ -28,27 +28,27 @@
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-content">
       <!-- Basic Info - Always Visible -->
       <div class="form-section">
-        <h3 class="section-title">Basic Information</h3>
+        <h3 class="section-title">{{ 'common.labels.basicInformation' | translate }}</h3>
         <div class="form-row">
           <div class="form-group">
-            <label>Account Name *</label>
-            <input pInputText formControlName="accountName" placeholder="e.g., Primary Bank Account, bKash Personal" />
+            <label>{{ 'supplierPaymentAccounts.accountName' | translate }} *</label>
+            <input pInputText formControlName="accountName" [placeholder]="'supplierPaymentAccounts.placeholders.accountName' | translate" />
             <small *ngIf="form.get('accountName')?.invalid && form.get('accountName')?.touched" class="p-error">
-              Account name is required
+              {{ 'supplierPaymentAccounts.messages.accountNameRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Account Type *</label>
+            <label>{{ 'supplierPaymentAccounts.accountType' | translate }} *</label>
             <p-select
               [options]="accountTypes"
               formControlName="accountType"
               optionLabel="label"
               optionValue="value"
-              placeholder="Select Type"
+              [placeholder]="'supplierPaymentAccounts.placeholders.selectType' | translate"
               [style]="{ width: '100%' }"
             ></p-select>
             <small *ngIf="form.get('accountType')?.invalid && form.get('accountType')?.touched" class="p-error">
-              Account type is required
+              {{ 'supplierPaymentAccounts.messages.accountTypeRequired' | translate }}
             </small>
           </div>
         </div>
@@ -56,60 +56,60 @@
         <div class="form-row" *ngIf="!isEditing">
           <div class="form-group checkbox-group">
             <p-checkbox formControlName="isDefault" [binary]="true" inputId="isDefault"></p-checkbox>
-            <label for="isDefault" class="checkbox-label">Set as default payment account</label>
+            <label for="isDefault" class="checkbox-label">{{ 'supplierPaymentAccounts.setAsDefaultAccount' | translate }}</label>
           </div>
         </div>
       </div>
 
       <!-- Bank Transfer Fields -->
       <div class="form-section" *ngIf="showBankFields">
-        <h3 class="section-title">Bank Details</h3>
+        <h3 class="section-title">{{ 'supplierPaymentAccounts.bankDetails' | translate }}</h3>
         <div class="form-row">
           <div class="form-group">
-            <label>Bank Name *</label>
-            <input pInputText formControlName="bankName" placeholder="e.g., Bank of Ceylon, Commercial Bank" />
+            <label>{{ 'supplierPaymentAccounts.bankName' | translate }} *</label>
+            <input pInputText formControlName="bankName" [placeholder]="'supplierPaymentAccounts.placeholders.bankName' | translate" />
             <small *ngIf="form.get('bankName')?.invalid && form.get('bankName')?.touched" class="p-error">
-              Bank name is required
+              {{ 'supplierPaymentAccounts.messages.bankNameRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Account Number *</label>
-            <input pInputText formControlName="bankAccountNumber" placeholder="Account number" />
+            <label>{{ 'supplierPaymentAccounts.accountNumber' | translate }} *</label>
+            <input pInputText formControlName="bankAccountNumber" [placeholder]="'supplierPaymentAccounts.placeholders.accountNumber' | translate" />
             <small *ngIf="form.get('bankAccountNumber')?.invalid && form.get('bankAccountNumber')?.touched" class="p-error">
-              Account number is required
+              {{ 'supplierPaymentAccounts.messages.accountNumberRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Beneficiary Name *</label>
-            <input pInputText formControlName="beneficiaryName" placeholder="Account holder name" />
+            <label>{{ 'supplierPaymentAccounts.beneficiaryName' | translate }} *</label>
+            <input pInputText formControlName="beneficiaryName" [placeholder]="'supplierPaymentAccounts.placeholders.accountHolderName' | translate" />
             <small *ngIf="form.get('beneficiaryName')?.invalid && form.get('beneficiaryName')?.touched" class="p-error">
-              Beneficiary name is required
+              {{ 'supplierPaymentAccounts.messages.beneficiaryNameRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Branch Name</label>
-            <input pInputText formControlName="bankBranchName" placeholder="Branch name" />
+            <label>{{ 'supplierPaymentAccounts.branchName' | translate }}</label>
+            <input pInputText formControlName="bankBranchName" [placeholder]="'supplierPaymentAccounts.placeholders.branchName' | translate" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Branch Code</label>
-            <input pInputText formControlName="bankBranchCode" placeholder="Branch code" />
+            <label>{{ 'supplierPaymentAccounts.branchCode' | translate }}</label>
+            <input pInputText formControlName="bankBranchCode" [placeholder]="'supplierPaymentAccounts.placeholders.branchCode' | translate" />
           </div>
           <div class="form-group">
-            <label>IBAN</label>
-            <input pInputText formControlName="bankIBAN" placeholder="International Bank Account Number" />
+            <label>{{ 'supplierPaymentAccounts.iban' | translate }}</label>
+            <input pInputText formControlName="bankIBAN" [placeholder]="'supplierPaymentAccounts.placeholders.iban' | translate" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>SWIFT Code</label>
-            <input pInputText formControlName="bankSWIFT" placeholder="SWIFT/BIC code" />
+            <label>{{ 'supplierPaymentAccounts.swiftCode' | translate }}</label>
+            <input pInputText formControlName="bankSWIFT" [placeholder]="'supplierPaymentAccounts.placeholders.swiftCode' | translate" />
           </div>
           <div class="form-group"></div>
         </div>
@@ -117,35 +117,35 @@
 
       <!-- Mobile Banking Fields -->
       <div class="form-section" *ngIf="showMobileBankingFields">
-        <h3 class="section-title">Mobile Wallet Details</h3>
+        <h3 class="section-title">{{ 'supplierPaymentAccounts.mobileWalletDetails' | translate }}</h3>
         <div class="form-row">
           <div class="form-group">
-            <label>Mobile Provider *</label>
+            <label>{{ 'supplierPaymentAccounts.mobileProvider' | translate }} *</label>
             <p-select
               [options]="mobileProviders"
               formControlName="mobileProvider"
               optionLabel="label"
               optionValue="value"
-              placeholder="Select Provider"
+              [placeholder]="'supplierPaymentAccounts.placeholders.selectProvider' | translate"
               [style]="{ width: '100%' }"
             ></p-select>
             <small *ngIf="form.get('mobileProvider')?.invalid && form.get('mobileProvider')?.touched" class="p-error">
-              Mobile provider is required
+              {{ 'supplierPaymentAccounts.messages.mobileProviderRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Mobile Number *</label>
-            <input pInputText formControlName="mobileNumber" placeholder="e.g., 01XXXXXXXXX" />
+            <label>{{ 'supplierPaymentAccounts.mobileNumber' | translate }} *</label>
+            <input pInputText formControlName="mobileNumber" [placeholder]="'supplierPaymentAccounts.placeholders.mobileNumber' | translate" />
             <small *ngIf="form.get('mobileNumber')?.invalid && form.get('mobileNumber')?.touched" class="p-error">
-              Mobile number is required
+              {{ 'supplierPaymentAccounts.messages.mobileNumberRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Account Holder Name</label>
-            <input pInputText formControlName="mobileAccountHolderName" placeholder="Name registered with wallet" />
+            <label>{{ 'supplierPaymentAccounts.accountHolderName' | translate }}</label>
+            <input pInputText formControlName="mobileAccountHolderName" [placeholder]="'supplierPaymentAccounts.placeholders.walletHolderName' | translate" />
           </div>
           <div class="form-group"></div>
         </div>
@@ -153,11 +153,11 @@
 
       <!-- Notes - Show after account type selected -->
       <div class="form-section" *ngIf="showNotesField">
-        <h3 class="section-title">Additional Information</h3>
+        <h3 class="section-title">{{ 'common.labels.additionalInformation' | translate }}</h3>
         <div class="form-row">
           <div class="form-group full">
-            <label>Notes</label>
-            <textarea pInputTextarea formControlName="notes" placeholder="Additional notes about this payment account" rows="3"></textarea>
+            <label>{{ 'common.labels.notes' | translate }}</label>
+            <textarea pInputTextarea formControlName="notes" [placeholder]="'supplierPaymentAccounts.placeholders.notes' | translate" rows="3"></textarea>
           </div>
         </div>
 
@@ -165,14 +165,14 @@
         <div class="form-row" *ngIf="isEditing">
           <div class="form-group checkbox-group">
             <p-checkbox formControlName="isActive" [binary]="true" inputId="isActive"></p-checkbox>
-            <label for="isActive" class="checkbox-label">Account is active</label>
+            <label for="isActive" class="checkbox-label">{{ 'supplierPaymentAccounts.accountIsActive' | translate }}</label>
           </div>
         </div>
       </div>
 
       <div class="form-actions">
-        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
-        <button pButton type="submit" [label]="isEditing ? 'Update Account' : 'Save Account'" icon="pi pi-check" class="p-button-primary" [loading]="loading"></button>
+        <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
+        <button pButton type="submit" [label]="isEditing ? ('supplierPaymentAccounts.updateAccount' | translate) : ('supplierPaymentAccounts.saveAccount' | translate)" icon="pi pi-check" class="p-button-primary" [loading]="loading"></button>
       </div>
     </form>
   </p-card>

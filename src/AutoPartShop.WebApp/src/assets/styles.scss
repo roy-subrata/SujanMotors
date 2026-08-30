@@ -497,46 +497,6 @@ app-root {
     overflow: hidden;
 }
 
-/* Allow storefront (shop) routes to use normal page scrolling.
-   These rules must beat the mobile position:fixed lock below. */
-html.storefront-scroll,
-html.storefront-scroll body {
-    overflow: auto !important;
-    height: auto !important;
-    position: static !important;
-    overscroll-behavior: auto !important;
-}
-
-body.storefront-scroll {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    height: auto !important;
-    position: static !important;
-    width: 100% !important;
-}
-
-body.storefront-scroll app-root {
-    height: auto !important;
-    overflow: visible !important;
-    position: static !important;
-}
-
-body.storefront-scroll .layout-main-container {
-    position: static !important;
-    height: auto !important;
-    overflow: visible !important;
-    top: auto !important;
-}
-
-/* Mobile: un-fix the body for storefront */
-@media (max-width: 991px) {
-    body.storefront-scroll {
-        position: static !important;
-        width: 100% !important;
-        height: auto !important;
-    }
-}
-
 /* Main scrollable content area */
 .layout-main-container {
     overflow-y: auto;
@@ -710,6 +670,16 @@ body.storefront-scroll .layout-main-container {
         height: 56px !important;
     }
 
+    /* Re-hide the topbar search box on mobile/tablet. The global
+       "CRITICAL LAYOUT ALIGNMENT OVERRIDES" block above forces display:flex on
+       both with !important, which beats the hiding rules in _topbar.scss (they
+       load earlier, so equal-specificity !important goes to this later file).
+       Without this, the search + title squeeze the notification/theme/user icons
+       off the right edge of the viewport. */
+    .layout-topbar .topbar-search {
+        display: none !important;
+    }
+
     .layout-main-container {
         margin-left: 0 !important;
         margin-top: 0 !important;
@@ -725,6 +695,15 @@ body.storefront-scroll .layout-main-container {
 
     .layout-wrapper.layout-mobile-active .layout-sidebar {
         transform: translateX(0) !important;
+    }
+}
+
+/* Phones + small tablets — hide the topbar page title too (search is already
+   hidden above). Same reason as above: the global override block forces it
+   flex, beating the _topbar.scss ≤768px hiding rule. */
+@media (max-width: 768px) {
+    .layout-topbar .topbar-title {
+        display: none !important;
     }
 }
 
@@ -1000,6 +979,12 @@ body.storefront-scroll .layout-main-container {
         height: 1.75rem !important;
         font-size: 0.75rem !important;
     }
+}
+
+/* Dialog viewport cap — keeps fixed-width dialogs (700-780px) inside
+   tablets/narrow windows before the mobile clamps below take over. */
+.p-dialog {
+    max-width: calc(100vw - 1rem);
 }
 
 /* PrimeNG Dialog Mobile */

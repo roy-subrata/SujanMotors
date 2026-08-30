@@ -28,6 +28,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-invoices-list',
@@ -49,7 +51,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService, DialogService],
     templateUrl: './invoices-list.component.html',
@@ -67,6 +70,7 @@ export class InvoicesListComponent implements OnInit {
     private readonly dialogService = inject(DialogService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
     private activateRoute = inject(ActivatedRoute);
 
     private dialogRef: DynamicDialogRef | null | undefined;
@@ -121,22 +125,33 @@ export class InvoicesListComponent implements OnInit {
                             this.customerIdFilter = params['customerId'];
                         }
                     },
-                    error: (err) => { console.error('Error reading query params:', err); }
+                    error: (err) => {
+                        console.error('Error reading query params:', err);
+                    }
                 })
             )
             .subscribe();
         this.loadInvoices();
     }
 
+    /** Invoice status is a server enum rendered directly in the table; map it to its
+     *  translated label, falling back to the raw value for any unmapped member. */
+    formatStatus(status: string): string {
+        if (!status) return '';
+        const key = 'invoices.statusOptions.' + status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        return label === key ? status : label;
+    }
+
     private buildStatusOptions(): void {
         this.statusOptions = [
             { label: this.i18n.t('invoices.statusOptions.allStatuses'), value: '' },
-            { label: this.i18n.t('invoices.statusOptions.draft'),        value: 'DRAFT' },
-            { label: this.i18n.t('invoices.statusOptions.issued'),       value: 'ISSUED' },
+            { label: this.i18n.t('invoices.statusOptions.draft'), value: 'DRAFT' },
+            { label: this.i18n.t('invoices.statusOptions.issued'), value: 'ISSUED' },
             { label: this.i18n.t('invoices.statusOptions.partiallyPaid'), value: 'PARTIALLY_PAID' },
-            { label: this.i18n.t('invoices.statusOptions.paid'),         value: 'PAID' },
-            { label: this.i18n.t('invoices.statusOptions.overdue'),      value: 'OVERDUE' },
-            { label: this.i18n.t('invoices.statusOptions.cancelled'),    value: 'CANCELLED' }
+            { label: this.i18n.t('invoices.statusOptions.paid'), value: 'PAID' },
+            { label: this.i18n.t('invoices.statusOptions.overdue'), value: 'OVERDUE' },
+            { label: this.i18n.t('invoices.statusOptions.cancelled'), value: 'CANCELLED' }
         ];
     }
 
@@ -148,14 +163,14 @@ export class InvoicesListComponent implements OnInit {
                     value: p.providerType || 'CASH',
                     id: p.id
                 }));
-                this.paymentMethods = this.paymentProviders.map(p => ({ label: p.label, value: p.value }));
+                this.paymentMethods = this.paymentProviders.map((p) => ({ label: p.label, value: p.value }));
                 const hasCash = this.paymentMethods.some((m) => m.value === 'CASH');
                 if (!hasCash) {
-                    this.paymentMethods.unshift({ label: 'Cash', value: 'CASH' });
+                    this.paymentMethods.unshift({ label: this.i18n.t('invoices.cashLabel'), value: 'CASH' });
                 }
             },
             error: () => {
-                this.paymentMethods = [{ label: 'Cash', value: 'CASH' }];
+                this.paymentMethods = [{ label: this.i18n.t('invoices.cashLabel'), value: 'CASH' }];
                 this.paymentProviders = [];
             }
         });
@@ -241,7 +256,7 @@ export class InvoicesListComponent implements OnInit {
 
     private exportToCSV(data: InvoiceResponse[]): void {
         const headers = ['Invoice #', 'Sales Order', 'Customer', 'Invoice Date', 'Due Date', 'Status', 'Total', 'Outstanding'];
-        const csvData = data.map(invoice => [
+        const csvData = data.map((invoice) => [
             invoice.invoiceNumber,
             invoice.salesOrderNumber || '',
             invoice.customerName || '',
@@ -252,7 +267,7 @@ export class InvoicesListComponent implements OnInit {
             invoice.outstandingAmount.toString()
         ]);
 
-        const csvContent = [headers.join(','), ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
+        const csvContent = [headers.join(','), ...csvData.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -327,16 +342,36 @@ export class InvoicesListComponent implements OnInit {
         });
     }
 
-    getStatusSeverity(status: string): 'secondary' | 'info' | 'warn' | 'success' | 'danger' {
-        const severityMap: Record<string, 'secondary' | 'info' | 'warn' | 'success' | 'danger'> = {
-            DRAFT: 'secondary',
-            ISSUED: 'info',
-            PARTIALLY_PAID: 'warn',
-            PAID: 'success',
-            OVERDUE: 'danger',
-            CANCELLED: 'secondary'
-        };
-        return severityMap[status] || 'secondary';
+    cancelInvoice(invoice: InvoiceResponse): void {
+        this.confirmationService.confirm({
+            message: this.i18n.t('invoices.messages.cancelConfirm', { number: invoice.invoiceNumber }),
+            header: this.i18n.t('common.actions.cancelInvoice'),
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => {
+                this.invoiceService.cancelInvoice(invoice.id).subscribe({
+                    next: () => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('invoices.messages.cancelSuccess')
+                        });
+                        this.loadInvoices();
+                    },
+                    error: (err) => {
+                        const detail = err?.error?.message || this.i18n.t('invoices.messages.cancelFailed');
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.i18n.t('common.messages.error'),
+                            detail
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'invoice');
     }
 
     formatCurrency(amount: number): string {
@@ -374,6 +409,14 @@ export class InvoicesListComponent implements OnInit {
                 label: this.i18n.t('common.actions.issueInvoice'),
                 icon: 'pi pi-check-circle',
                 command: () => this.issueInvoice(invoice)
+            });
+        }
+
+        if (this.canCancelInvoice(invoice)) {
+            items.push({
+                label: this.i18n.t('common.actions.cancelInvoice'),
+                icon: 'pi pi-times-circle',
+                command: () => this.cancelInvoice(invoice)
             });
         }
 
@@ -434,7 +477,7 @@ export class InvoicesListComponent implements OnInit {
             return;
         }
 
-        const provider = this.paymentProviders.find(p => p.value === this.paymentMethod);
+        const provider = this.paymentProviders.find((p) => p.value === this.paymentMethod);
         const providerId = provider?.id || null;
 
         if (this.paymentAmount > this.selectedInvoice.outstandingAmount) {
@@ -442,7 +485,7 @@ export class InvoicesListComponent implements OnInit {
             this.messageService.add({
                 severity: 'info',
                 summary: this.i18n.t('common.messages.info'),
-                detail: `Payment exceeds outstanding by ${this.formatCurrency(creditAmount)}. This will create a credit balance.`,
+                detail: this.i18n.t('invoices.messages.paymentExceedsOutstanding', { amount: this.formatCurrency(creditAmount) }),
                 life: 5000
             });
         }
@@ -480,6 +523,10 @@ export class InvoicesListComponent implements OnInit {
 
     canRecordPayment(invoice: InvoiceResponse): boolean {
         return invoice.status !== 'CANCELLED' && invoice.status !== 'DRAFT';
+    }
+
+    canCancelInvoice(invoice: InvoiceResponse): boolean {
+        return invoice.status !== 'CANCELLED' && invoice.status !== 'PAID' && invoice.status !== 'PARTIALLY_PAID';
     }
 
     viewSalesOrder(invoice: InvoiceResponse): void {

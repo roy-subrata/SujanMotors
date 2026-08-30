@@ -50,13 +50,23 @@ public sealed class DocHeader
     {
         container.Row(row =>
         {
-            // 46x46 accent square with initials. The handoff notes this is a placeholder for the
-            // real logo mark.
-            row.ConstantItem(DocTheme.Px(46)).Height(DocTheme.Px(46))
-                .Background(_theme.Accent)
-                .AlignCenter().AlignMiddle()
-                .Text(Initials(_shop.Name))
-                .FontSize(DocTheme.Px(19)).Bold().FontColor(DocTheme.White).LetterSpacing(0.5f / 19f);
+            // 46x46 mark: the shop's real logo when SHOP_LOGO_URL resolves to one (fetched
+            // server-side by ShopProfileProvider), otherwise the handoff's accent-square initials
+            // placeholder — unchanged for shops that haven't configured a logo.
+            row.ConstantItem(DocTheme.Px(46)).Height(DocTheme.Px(46)).Element(mark =>
+            {
+                if (_shop.LogoBytes is { } logo)
+                {
+                    mark.Image(logo).FitArea();
+                }
+                else
+                {
+                    mark.Background(_theme.Accent)
+                        .AlignCenter().AlignMiddle()
+                        .Text(Initials(_shop.Name))
+                        .FontSize(DocTheme.Px(19)).Bold().FontColor(DocTheme.White).LetterSpacing(0.5f / 19f);
+                }
+            });
 
             row.ConstantItem(DocTheme.Px(12));
 

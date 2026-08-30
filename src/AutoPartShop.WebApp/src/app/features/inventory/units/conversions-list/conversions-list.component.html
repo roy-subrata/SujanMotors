@@ -20,12 +20,12 @@
 
       <ng-template #header>
         <tr>
-          <th class="col-from">From Unit</th>
-          <th class="col-to">To Unit</th>
-          <th class="col-factor">Factor</th>
-          <th class="col-desc">Description</th>
-          <th class="col-status">Status</th>
-          <th class="col-actions">Actions</th>
+          <th class="col-from">{{ 'conversions.fromUnit' | translate }}</th>
+          <th class="col-to">{{ 'conversions.toUnit' | translate }}</th>
+          <th class="col-factor">{{ 'conversions.factor' | translate }}</th>
+          <th class="col-desc">{{ 'common.labels.description' | translate }}</th>
+          <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+          <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -55,15 +55,15 @@
           </td>
           <td class="col-status">
             <span class="status-pill" [attr.data-status]="conversion.isActive ? 'active' : 'inactive'">
-              {{ conversion.isActive ? 'Active' : 'Inactive' }}
+              {{ getStatusLabel(conversion.isActive) }}
             </span>
           </td>
           <td class="col-actions">
             <div class="action-cell">
-              <button class="btn-action" pTooltip="Edit" (click)="onEdit(conversion)">
+              <button class="btn-action" [pTooltip]="'common.actions.edit' | translate" (click)="onEdit(conversion)">
                 <i class="pi pi-pencil"></i>
               </button>
-              <button class="btn-action" pTooltip="Delete" (click)="onDelete(conversion)">
+              <button class="btn-action" [pTooltip]="'common.actions.delete' | translate" (click)="onDelete(conversion)">
                 <i class="pi pi-trash"></i>
               </button>
             </div>
@@ -78,8 +78,8 @@
               <div class="empty-icon">
                 <i class="pi pi-arrows-h"></i>
               </div>
-              <h3>No Conversions Found</h3>
-              <p>Create a new conversion to get started</p>
+              <h3>{{ 'conversions.noResultsTitle' | translate }}</h3>
+              <p>{{ 'conversions.noResultsHint' | translate }}</p>
             </div>
           </td>
         </tr>
@@ -141,8 +141,8 @@
     <div class="empty-icon">
       <i class="pi pi-arrows-h"></i>
     </div>
-    <h3>No Conversions</h3>
-    <p>Create a new conversion to get started</p>
+    <h3>{{ 'conversions.noResultsTitle' | translate }}</h3>
+    <p>{{ 'conversions.noResultsHint' | translate }}</p>
   </div>
 
   <div *ngIf="!loading && conversions.length > 0" class="cards-grid">
@@ -150,7 +150,7 @@
       <div class="card-header">
         <span class="card-so-number">{{ conversion.fromUnitCode }} → {{ conversion.toUnitCode }}</span>
         <span class="status-pill" [attr.data-status]="conversion.isActive ? 'active' : 'inactive'">
-          {{ conversion.isActive ? 'Active' : 'Inactive' }}
+          {{ getStatusLabel(conversion.isActive) }}
         </span>
       </div>
 
@@ -168,7 +168,7 @@
 
       <div class="card-footer">
         <div class="card-amount">
-          <span class="amount-label">Factor</span>
+          <span class="amount-label">{{ 'conversions.factor' | translate }}</span>
           <span class="amount-value">{{ conversion.conversionFactor }}</span>
         </div>
         <div class="action-cell">

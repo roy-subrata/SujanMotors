@@ -27,11 +27,20 @@ services:
     # No ports exposed — frontend reaches API through nginx proxy only
     restart: always               # Always restart in prod
 
-  # Web: production Angular build + public port
+  # Web: production Angular build + TLS termination
   autopartshop.web:
     build:
       args:
         ENV_NAME: production      # Angular production build (optimized, no source maps)
     ports:
-      - "4200:80"                 # The ONLY public-facing port on the VPS
+      - "4200:80"                 # Kept for ACME renewals + redirect only (301 -> https)
+      - "443:443"                 # The ONLY real public entry point on the VPS
+    volumes:
+      # Production nginx config (TLS + security headers). Overrides the HTTP-only
+      # default.conf baked into the image.
+      - ../src/AutoPartShop.WebApp/nginx-ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      # REQUIRED before `up`: nginx fails fast if these are missing (by design).
+      #   mkdir -p deployment/certs   # then copy fullchain.pem + privkey.pem into it
+      - ./certs/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
+      - ./certs/privkey.pem:/etc/nginx/certs/privkey.pem:ro
     restart: always               # Always restart in prod

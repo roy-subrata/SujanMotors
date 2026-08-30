@@ -1,21 +1,22 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 using AutoPartShop.Application.PurchaseOrders;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
+using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -33,6 +34,8 @@ public class PurchaseOrderController : ControllerBase
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
     private readonly AutoPartDbContext _dbContext;
+    private readonly ICurrencyConversionService _currencyService;
+    private readonly IApplicationSettingsRepository _settingsRepository;
 
     public PurchaseOrderController(
         IPurchaseOrderRepository purchaseOrderRepository,
@@ -45,7 +48,9 @@ public class PurchaseOrderController : ControllerBase
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         AutoPartDbContext dbContext,
-        ILogger<PurchaseOrderController> logger)
+        ILogger<PurchaseOrderController> logger,
+        ICurrencyConversionService currencyService,
+        IApplicationSettingsRepository settingsRepository)
     {
         _purchaseOrderRepository = purchaseOrderRepository;
         _goodsReceiptRepository = goodsReceiptRepository;
@@ -58,6 +63,18 @@ public class PurchaseOrderController : ControllerBase
         _purchaseOrderReadRepository = purchaseOrderReadRepository;
         _dbContext = dbContext;
         _logger = logger;
+        _currencyService = currencyService;
+        _settingsRepository = settingsRepository;
+    }
+
+    /// <summary>
+    /// Configurable document-number prefix (Company Profile &gt; Document Numbering) —
+    /// falls back to the historical hardcoded prefix if no setting has been configured yet.
+    /// </summary>
+    private async Task<string> GetPrefixAsync(string settingKey, string fallback, CancellationToken cancellationToken)
+    {
+        var value = await _settingsRepository.GetValueAsync(settingKey, cancellationToken);
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
 
     [HttpGet]
@@ -137,7 +154,7 @@ public class PurchaseOrderController : ControllerBase
         var supplier = po.Supplier;
         var supplierAddress = supplier is null
             ? string.Empty
-            : string.Join(", ", new[] { supplier.Address, supplier.City, supplier.PostalCode }
+            : string.Join(", ", new[] { supplier.Address, supplier.Country }
                 .Where(s => !string.IsNullOrWhiteSpace(s)));
         // Supplier has no tax/BIN field; the contact person is the more useful second line.
         var supplierContact = supplier?.ContactPerson is { Length: > 0 } cp ? $"Attn: {cp}" : string.Empty;
@@ -182,7 +199,7 @@ public class PurchaseOrderController : ControllerBase
             TotalAmount: po.TotalAmount,
             Notes: po.Notes);
 
-        var pdfBytes = new PurchaseOrderDocument(data, shop).GeneratePdf();
+        var pdfBytes = new PurchaseOrderDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"purchase-order-{po.PONumber}.pdf");
     }
 
@@ -270,24 +287,13 @@ public class PurchaseOrderController : ControllerBase
             if (request.SupplierId == Guid.Empty || request.DeliveryDate == default)
                 return BadRequest(new { message = "SupplierId and DeliveryDate are required" });
 
-            var purchaseOrderNumber = await _codeGenerateService.GenerateAsync("PO", cancellationToken);
-            var order = PurchaseOrder.Create(
-                purchaseOrderNumber,
-                request.SupplierId,
-                null,  // warehouseId - optional
-                request.DeliveryDate,
-                request.Notes,
-                request.Currency
-            );
+            // Every line is resolved and validated BEFORE a PO number is allocated. This method has
+            // no transaction, so allocating first meant a rejected create burned the number for
+            // good — three rejected attempts left the next real order at PO005.
+            var resolvedLines = new List<(Guid PartId, int Quantity, decimal UnitPrice, Guid? UnitId, int QuantityInBaseUnit, Guid? VariantId)>();
 
-            // Set tax and discount
-            order.SetTaxPercentage(request.TaxPercentage);
-            order.SetDiscount(request.DiscountPercentage, request.DiscountAmount, request.DiscountType);
-
-            // Add line items if provided
             if (request.LineItems?.Any() == true)
             {
-                int lineNumber = 1;
                 foreach (var lineRequest in request.LineItems)
                 {
                     // Get part to determine base unit using repository
@@ -306,7 +312,7 @@ public class PurchaseOrderController : ControllerBase
                         // Part has no base unit, use provided unit and quantity as-is
                         quantityInBaseUnit = lineRequest.Quantity;
                     }
-                    // If unitId is provided and different from part's base unit, convert
+                    // If unitId is provided and different from part base unit, convert
                     else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
                     {
                         try
@@ -324,31 +330,56 @@ public class PurchaseOrderController : ControllerBase
                     }
                     else if (!unitId.HasValue)
                     {
-                        // If no unit specified, use part's base unit
+                        // If no unit specified, use part base unit
                         unitId = part.UnitId;
                     }
 
                     // Enforce variant selection when product has active variants
                     var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                     if (hasVariants && !lineRequest.VariantId.HasValue)
-                        return BadRequest(new { message = $"Product '{part.Name}' has variants â€” please select a specific variant" });
+                        return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
 
-                    var line = PurchaseOrderLine.Create(
-                        order.Id,
-                        lineRequest.PartId,
-                        lineRequest.Quantity,
-                        lineRequest.UnitPrice,
-                        lineNumber++,
-                        unitId,
-                        quantityInBaseUnit,
-                        variantId: lineRequest.VariantId
-                    );
-                    order.LineItems.Add(line);
+                    resolvedLines.Add((lineRequest.PartId, lineRequest.Quantity, lineRequest.UnitPrice,
+                        unitId, quantityInBaseUnit, lineRequest.VariantId));
                 }
+            }
+
+            var purchaseOrderNumber = await _codeGenerateService.GenerateAsync(await GetPrefixAsync("PURCHASE_ORDER_NUMBER_PREFIX", "PO", cancellationToken), cancellationToken);
+            var order = PurchaseOrder.Create(
+                purchaseOrderNumber,
+                request.SupplierId,
+                null,  // warehouseId - optional
+                request.DeliveryDate,
+                request.Notes,
+                request.Currency
+            );
+
+            // Set tax and discount
+            order.SetTaxPercentage(request.TaxPercentage);
+            order.SetDiscount(request.DiscountPercentage, request.DiscountAmount, request.DiscountType);
+
+            // Build the lines from the pre-resolved values above.
+            int lineNumber = 1;
+            foreach (var rl in resolvedLines)
+            {
+                var line = PurchaseOrderLine.Create(
+                    order.Id,
+                    rl.PartId,
+                    rl.Quantity,
+                    rl.UnitPrice,
+                    lineNumber++,
+                    rl.UnitId,
+                    rl.QuantityInBaseUnit,
+                    variantId: rl.VariantId
+                );
+                order.LineItems.Add(line);
             }
 
             // Calculate totals based on line items and tax/discount
             order.CalculateTotal();
+
+            var poFx = await _currencyService.ConvertToBaseWithRateAsync(order.TotalAmount, order.Currency, order.PODate, cancellationToken);
+            order.SetFxBaseAmount(poFx.BaseAmount, poFx.RateToBase);
 
             var currentUser = _currentUserService.GetCurrentUsername();
             order.CreatedBy = currentUser;
@@ -423,7 +454,7 @@ public class PurchaseOrderController : ControllerBase
 
                 var hasVariants = await _productRepository.HasActiveVariantsAsync(lineRequest.PartId, cancellationToken);
                 if (hasVariants && !lineRequest.VariantId.HasValue)
-                    return BadRequest(new { message = $"Product '{part.Name}' has variants â€” please select a specific variant" });
+                    return BadRequest(new { message = $"Product '{part.Name}' has variants — please select a specific variant" });
 
                 lineItemDataList.Add(new LineItemData(
                     lineRequest.Id,
@@ -444,6 +475,9 @@ public class PurchaseOrderController : ControllerBase
 
             // Domain handles line item sync (business logic)
             order.SyncLineItems(lineItemDataList);
+
+            var updatedPoFx = await _currencyService.ConvertToBaseWithRateAsync(order.TotalAmount, order.Currency, order.PODate, cancellationToken);
+            order.SetFxBaseAmount(updatedPoFx.BaseAmount, updatedPoFx.RateToBase);
 
             order.ModifiedBy = _currentUserService.GetCurrentUsername();
 
@@ -538,15 +572,15 @@ public class PurchaseOrderController : ControllerBase
             var order = await _purchaseOrderRepository.GetByIdAsync(id, cancellationToken);
             if (order is null) return NotFound(new { message = "Purchase order not found" });
 
-            // Block cancellation once goods have been accepted into stock â€” those movements must be
+            // Block cancellation once goods have been accepted into stock — those movements must be
             // reversed via a PurchaseReturn rather than simply cancelling the PO.
             var hasAcceptedGrns = await _dbContext.GoodsReceipts
-                .AnyAsync(g => g.PurchaseOrderId == id && g.Status == "ACCEPTED" && !g.Isdeleted, cancellationToken);
+                .AnyAsync(g => g.PurchaseOrderId == id && g.Status == GoodsReceiptStatus.ACCEPTED && !g.Isdeleted, cancellationToken);
             if (hasAcceptedGrns)
                 return BadRequest(new { message = "Cannot cancel a purchase order with accepted goods receipts. Create a purchase return to reverse the received stock first." });
 
             // Track if order was confirmed before cancellation (for balance reversal)
-            bool wasConfirmed = order.Status == "CONFIRMED";
+            bool wasConfirmed = order.Status == PurchaseOrderStatus.CONFIRMED;
             decimal orderTotal = order.TotalAmount;
             Guid supplierId = order.SupplierId;
 
@@ -589,8 +623,8 @@ public class PurchaseOrderController : ControllerBase
                 return NotFound(new { message = "Purchase order not found" });
 
             // Deleting a committed PO would orphan stock lots, payments, and returns.
-            // Cancel it first â€” the cancellation guard above ensures no accepted GRNs remain.
-            if (orderToDelete.Status is "CONFIRMED" or "PARTIAL" or "DELIVERED")
+            // Cancel it first — the cancellation guard above ensures no accepted GRNs remain.
+            if (orderToDelete.Status is PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL or PurchaseOrderStatus.DELIVERED)
                 return BadRequest(new { message = $"Cannot delete a {orderToDelete.Status} purchase order. Cancel it first to prevent orphaned stock and payment records." });
 
             await _purchaseOrderRepository.DeleteAsync(id, cancellationToken);
@@ -620,12 +654,14 @@ public class PurchaseOrderController : ControllerBase
 
             // Only CONFIRMED or PARTIAL POs are ready to receive goods. Raising a GRN against
             // a DRAFT/SUBMITTED PO would commit stock before the order is approved.
-            if (purchaseOrder.Status != "CONFIRMED" && purchaseOrder.Status != "PARTIAL")
+            if (purchaseOrder.Status != PurchaseOrderStatus.CONFIRMED && purchaseOrder.Status != PurchaseOrderStatus.PARTIAL)
                 return BadRequest(new { message = $"Goods receipts can only be created for CONFIRMED or PARTIAL purchase orders. Current status: {purchaseOrder.Status}" });
 
-            var grnNumber = await _codeGenerateService.GenerateAsync("GRN", cancellationToken);
+            // Built with a placeholder number; the real one is allocated further down, once every
+            // line has passed validation. Allocating here meant a rejected receipt burned a number
+            // permanently (the first real GRN in the QA run was GRN003).
             var grn = GoodsReceipt.Create(
-                grnNumber,
+                "GRN-PENDING",
                 request.PurchaseOrderId,
                 request.WarehouseId,
                 request.ReceivedDate
@@ -699,7 +735,7 @@ public class PurchaseOrderController : ControllerBase
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
                     // Only convert if part has a base unit AND received unit differs from base unit.
-                    // Fail fast if the conversion is required but not configured â€” stock is tracked
+                    // Fail fast if the conversion is required but not configured — stock is tracked
                     // in base units, so silently using display quantities would corrupt on-hand stock.
                     if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
                     {
@@ -765,6 +801,8 @@ public class PurchaseOrderController : ControllerBase
                 grn.UpdateCounts();
             }
 
+            grn.AssignGRNNumber(await _codeGenerateService.GenerateAsync("GRN", cancellationToken));
+
             await _goodsReceiptRepository.AddAsync(grn, cancellationToken);
             return CreatedAtAction(nameof(GetGRNById), new { id = grn.Id }, MapToGoodsReceiptResponse(grn));
         }
@@ -808,7 +846,9 @@ public class PurchaseOrderController : ControllerBase
             {
                 allGRNs = allGRNs.Where(g =>
                     g.GRNNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    g.PurchaseOrderId.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+
+                    (g.PurchaseOrder != null && g.PurchaseOrder.PONumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                    (g.Warehouse != null && g.Warehouse.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                 );
             }
 
@@ -868,7 +908,7 @@ public class PurchaseOrderController : ControllerBase
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
             // Only allow updates if GRN is still pending
-            if (grn.Status != "PENDING")
+            if (grn.Status != GoodsReceiptStatus.PENDING)
                 return BadRequest(new { message = "Only pending goods receipts can be edited" });
 
             // Get the purchase order to retrieve line items and their details
@@ -876,7 +916,7 @@ public class PurchaseOrderController : ControllerBase
             if (purchaseOrder is null)
                 return NotFound(new { message = "Purchase order not found" });
 
-            if (purchaseOrder.Status is not ("CONFIRMED" or "PARTIAL"))
+            if (purchaseOrder.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
                 return BadRequest(new { message = $"Cannot update a goods receipt for a {purchaseOrder.Status} purchase order." });
 
             // Update basic GRN info
@@ -931,7 +971,7 @@ public class PurchaseOrderController : ControllerBase
                     decimal unitCostInBaseUnit = lineRequest.UnitCost;
 
                     // Only convert if part has a base unit AND received unit differs from base unit.
-                    // Fail fast if the conversion is required but not configured â€” stock is tracked
+                    // Fail fast if the conversion is required but not configured — stock is tracked
                     // in base units, so silently using display quantities would corrupt on-hand stock.
                     if (part.BaseUnitId.HasValue && lineRequest.UnitId.HasValue && lineRequest.UnitId.Value != part.BaseUnitId.Value)
                     {
@@ -1022,8 +1062,8 @@ public class PurchaseOrderController : ControllerBase
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
             var poForVerify = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken);
-            if (poForVerify is null || poForVerify.Status is not ("CONFIRMED" or "PARTIAL"))
-                return BadRequest(new { message = $"Cannot verify a goods receipt for a {poForVerify?.Status ?? "missing"} purchase order." });
+            if (poForVerify is null || poForVerify.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
+                return BadRequest(new { message = $"Cannot verify a goods receipt for a {(poForVerify is null ? "missing" : poForVerify.Status.ToString())} purchase order." });
 
             // Record the actual authenticated user as the verifier — never a client-supplied name,
             // so the "who verified this receipt" audit trail can't be spoofed.
@@ -1054,12 +1094,12 @@ public class PurchaseOrderController : ControllerBase
             var grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken);
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
-            if (grn.Status != "VERIFIED")
+            if (grn.Status != GoodsReceiptStatus.VERIFIED)
                 return BadRequest(new { message = "Only verified goods receipts can be accepted" });
 
             // Atomic accept: stock processing + status flip in ONE transaction (under the global retry
             // strategy). If two requests race, the loser's grn.Accept() fails the RowVersion check
-            // (â†’ 409) and its whole transaction â€” including the stock changes it just made â€” rolls back,
+            // (→ 409) and its whole transaction — including the stock changes it just made — rolls back,
             // so stock is never double-added. Reload grn inside so a retry applies exactly once.
             var strategy = _dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
@@ -1069,12 +1109,12 @@ public class PurchaseOrderController : ControllerBase
                 {
                     grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken)
                         ?? throw new InvalidOperationException("Goods receipt not found");
-                    if (grn.Status != "VERIFIED")
+                    if (grn.Status != GoodsReceiptStatus.VERIFIED)
                         throw new InvalidOperationException("This goods receipt has already been accepted");
 
                     var poForAccept = await _purchaseOrderRepository.GetByIdAsync(grn.PurchaseOrderId, cancellationToken)
                         ?? throw new InvalidOperationException("Purchase order not found");
-                    if (poForAccept.Status is not ("CONFIRMED" or "PARTIAL"))
+                    if (poForAccept.Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
                         throw new InvalidOperationException($"Cannot accept a goods receipt for a {poForAccept.Status} purchase order.");
 
                     // Cost is lot-driven and permanent once posted. Refuse to create zero-cost stock —
@@ -1123,7 +1163,7 @@ public class PurchaseOrderController : ControllerBase
             var grn = await _goodsReceiptRepository.GetByIdAsync(id, cancellationToken);
             if (grn is null) return NotFound(new { message = "Goods receipt not found" });
 
-            if (grn.Status != "VERIFIED")
+            if (grn.Status != GoodsReceiptStatus.VERIFIED)
                 return BadRequest(new { message = "Pricing can only be set on verified goods receipts" });
 
             foreach (var linePricing in request.Lines)
@@ -1216,6 +1256,7 @@ public class PurchaseOrderController : ControllerBase
             SupplierId = order.SupplierId,
             SupplierName = order.Supplier is not null ? order.Supplier.Name : string.Empty,
             SupplierCode = order.Supplier is not null ? order.Supplier.Code : string.Empty,
+            WarehouseId = order.WarehouseId,
             OrderDate = order.PODate,
             DeliveryDate = order.ExpectedDeliveryDate,
             Status = order.Status,
@@ -1228,8 +1269,9 @@ public class PurchaseOrderController : ControllerBase
             DiscountType = order.DiscountType,
             GrandTotal = order.TotalAmount,
             AmountPaid = order.PaidAmount,
-            OutstandingAmount = order.TotalAmount - order.PaidAmount,
-            IsOverdue = DateTime.UtcNow > order.ExpectedDeliveryDate && order.Status != "DELIVERED" && order.Status != "CANCELLED",
+            OutstandingAmount = order.OutstandingAmount,
+            CreditAppliedAmount = order.CreditAppliedAmount,
+            IsOverdue = DateTime.UtcNow > order.ExpectedDeliveryDate && order.Status != PurchaseOrderStatus.DELIVERED && order.Status != PurchaseOrderStatus.CANCELLED,
             Notes = order.Notes,
             Lines = order.LineItems.Select(l => new PurchaseOrderLineResponse
             {

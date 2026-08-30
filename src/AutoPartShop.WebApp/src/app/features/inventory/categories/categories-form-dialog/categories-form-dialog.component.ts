@@ -12,6 +12,8 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/components/lazy-autocomplete/lazy-autocomplete.component';
 import { Observable } from 'rxjs';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-categories-form-dialog',
@@ -19,7 +21,7 @@ import { Observable } from 'rxjs';
     imports: [
         CommonModule, FormsModule, ReactiveFormsModule,
         DialogModule, ButtonModule, InputTextModule, TextareaModule,
-        CheckboxModule, InputNumberModule, ToastModule, LazyAutocompleteComponent
+        CheckboxModule, InputNumberModule, ToastModule, LazyAutocompleteComponent, TranslatePipe
     ],
     templateUrl: './categories-form-dialog.component.html',
     styleUrls: ['./categories-form-dialog.component.css'],
@@ -39,6 +41,7 @@ export class CategoriesFormDialogComponent implements OnChanges {
     private readonly fb = inject(FormBuilder);
     private readonly categoryService = inject(CategoryService);
     private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
 
     isCreating = signal(false);
     isUpdating = signal(false);
@@ -91,14 +94,14 @@ export class CategoriesFormDialogComponent implements OnChanges {
     private createRootOption(): CategoryResponse {
         return {
             id: null as any,
-            name: 'None (Root Category)',
-            description: 'Create as top-level category with no parent',
+            name: this.i18n.t('categories.rootCategoryLabel'),
+            description: this.i18n.t('categories.rootCategoryDescription'),
             parentCategoryId: null,
             displayOrder: 0,
             isActive: true,
             depthLevel: 0,
             childCount: 0,
-            breadcrumbPath: 'Root',
+            breadcrumbPath: this.i18n.t('common.labels.root'),
             createdBy: null,
             modifiedBy: null,
             subCategories: []
@@ -175,17 +178,17 @@ export class CategoriesFormDialogComponent implements OnChanges {
 
         this.categoryService.createCategory(request).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Created', detail: `Category "${request.name}" created` });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('categories.messages.createSuccess') });
                 this.isCreating.set(false);
                 this.onCreateDialogHide();
                 this.createSuccess.emit();
             },
             error: (err) => {
-                const detail = err.error?.detail ?? err.error?.message ?? 'Failed to create category';
+                const detail = err.error?.detail ?? err.error?.message ?? this.i18n.t('common.messages.createFailed');
                 const isConflict = err.status === 409;
                 this.messageService.add({
                     severity: 'error',
-                    summary: isConflict ? 'Conflict' : 'Error',
+                    summary: isConflict ? this.i18n.t('common.messages.conflict') : this.i18n.t('common.messages.error'),
                     detail
                 });
                 this.isCreating.set(false);
@@ -211,17 +214,17 @@ export class CategoriesFormDialogComponent implements OnChanges {
 
         this.categoryService.updateCategory(this.selectedCategory.id, request).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Updated', detail: `Category "${request.name}" updated` });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('categories.messages.updateSuccess') });
                 this.isUpdating.set(false);
                 this.onUpdateDialogHide();
                 this.updateSuccess.emit();
             },
             error: (err) => {
-                const detail = err.error?.detail ?? err.error?.message ?? 'Failed to update category';
+                const detail = err.error?.detail ?? err.error?.message ?? this.i18n.t('common.messages.updateFailed');
                 const isConflict = err.status === 409;
                 this.messageService.add({
                     severity: 'error',
-                    summary: isConflict ? 'Conflict' : 'Error',
+                    summary: isConflict ? this.i18n.t('common.messages.conflict') : this.i18n.t('common.messages.error'),
                     detail
                 });
                 this.isUpdating.set(false);

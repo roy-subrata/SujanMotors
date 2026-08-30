@@ -15,12 +15,13 @@ import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { CodeGenerationService } from '@/shared/services/CodeGenerationService';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { FileUploadService, UPLOAD_LIMITS, resolveFileUrl } from '@/shared/services/file-upload.service';
 
 @Component({
     selector: 'app-employee-form',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, ButtonModule, InputTextModule, InputNumberModule, DatePickerModule, SelectModule, CardModule, ToastModule, TextareaModule, TooltipModule],
+    imports: [CommonModule, ReactiveFormsModule, ButtonModule, InputTextModule, InputNumberModule, DatePickerModule, SelectModule, CardModule, ToastModule, TextareaModule, TooltipModule, TranslatePipe],
     providers: [MessageService],
     templateUrl: './employee-form.component.html',
     styleUrls: ['./employee-form.component.css']
@@ -323,6 +324,8 @@ export class EmployeeFormComponent implements OnInit {
                         },
                         error: (err: any) => {
                             this.photoUploading.set(false);
+                            // Nothing references the blob now — drop it rather than orphan it in storage.
+                            this.fileUploadService.delete(stored.id).subscribe({ error: () => undefined });
                             this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to save photo' });
                         }
                     });

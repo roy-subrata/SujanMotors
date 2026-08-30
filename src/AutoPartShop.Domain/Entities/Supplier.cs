@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -11,10 +13,7 @@ public class Supplier : AuditableEntity
     public string Email { get; private set; } = string.Empty;
     public string Phone { get; private set; } = string.Empty;
     public string Address { get; private set; } = string.Empty;
-    public string City { get; private set; } = string.Empty;
-    public string State { get; private set; } = string.Empty;
     public string Country { get; private set; } = string.Empty;
-    public string PostalCode { get; private set; } = string.Empty;
     public string PaymentTerms { get; private set; } = "NET30";
     public decimal CreditLimit { get; private set; } = 0;
     public decimal CurrentBalance { get; private set; } = 0;  // Outstanding balance we owe to supplier
@@ -30,14 +29,14 @@ public class Supplier : AuditableEntity
     public decimal AdvanceAmount =>
         SupplierPayments?
             .Where(p => p.PaymentType == PaymentType.ADVANCE &&
-                       p.Status == "COMPLETED" &&
+                       p.Status == SupplierPaymentStatus.COMPLETED &&
                        p.RemainingAmount > 0)
             .Sum(p => p.RemainingAmount) ?? 0;
 
     private Supplier() { }
 
     public static Supplier Create(string name, string code, string contactPerson, string email, string phone,
-        string address, string city, string state, string country, string postalCode,
+        string address, string country,
         string? paymentTerms = null, decimal creditLimit = 0)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -60,10 +59,7 @@ public class Supplier : AuditableEntity
             Email = email?.Trim() ?? string.Empty,
             Phone = phone?.Trim() ?? string.Empty,
             Address = address?.Trim() ?? string.Empty,
-            City = city?.Trim() ?? string.Empty,
-            State = state?.Trim() ?? string.Empty,
             Country = country?.Trim() ?? string.Empty,
-            PostalCode = postalCode?.Trim() ?? string.Empty,
             PaymentTerms = paymentTerms?.Trim() ?? "NET30",
             CreditLimit = Math.Max(0, creditLimit),
             IsActive = true,
@@ -72,7 +68,7 @@ public class Supplier : AuditableEntity
     }
 
     public void Update(string name, string contactPerson, string email, string phone,
-        string address, string city, string state, string country, string postalCode, bool isActive,
+        string address, string country, bool isActive,
         string? paymentTerms = null, decimal creditLimit = 0)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -83,10 +79,7 @@ public class Supplier : AuditableEntity
         Email = email?.Trim() ?? string.Empty;
         Phone = phone?.Trim() ?? string.Empty;
         Address = address?.Trim() ?? string.Empty;
-        City = city?.Trim() ?? string.Empty;
-        State = state?.Trim() ?? string.Empty;
         Country = country?.Trim() ?? string.Empty;
-        PostalCode = postalCode?.Trim() ?? string.Empty;
         PaymentTerms = paymentTerms?.Trim() ?? "NET30";
         CreditLimit = Math.Max(0, creditLimit);
         IsActive = isActive;

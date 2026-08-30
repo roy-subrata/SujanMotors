@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, DestroyRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +6,6 @@ import { FormsModule } from '@angular/forms';
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { PanelModule } from 'primeng/panel';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
@@ -16,10 +15,13 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputGroupModule } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
+import { SelectModule } from 'primeng/select';
 
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
 import { QuotationService, QuotationResponse } from '../../services/quotation.service';
+import { ConvertQuotationDialogComponent } from '../convert-quotation-dialog.component';
+import { QuotationStatus } from '@/shared/models/status.types';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
@@ -27,6 +29,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-quotations-list',
@@ -37,7 +41,6 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         TableModule,
         ButtonModule,
         InputTextModule,
-        Select,
         PanelModule,
         CardModule,
         TagModule,
@@ -47,10 +50,13 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         ConfirmDialogModule,
         InputGroupModule,
         InputGroupAddonModule,
+        SelectModule,
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        ConvertQuotationDialogComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './quotations-list.component.html',
@@ -65,6 +71,7 @@ export class QuotationsListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -78,7 +85,7 @@ export class QuotationsListComponent implements OnInit {
     first = 0;
 
     searchTerm = '';
-    filterStatus = '';
+    filterStatus: QuotationStatus | '' = '';
 
     statusOptions: { label: string; value: string }[] = [];
 
@@ -106,11 +113,11 @@ export class QuotationsListComponent implements OnInit {
         this.statusOptions = [
             { label: this.i18n.t('common.status.allStatuses'), value: '' },
             { label: this.i18n.t('common.status.draft'), value: 'DRAFT' },
-            { label: 'Sent', value: 'SENT' },
+            { label: this.i18n.t('quotations.statusOptions.sent'), value: 'SENT' },
             { label: this.i18n.t('common.status.approved'), value: 'ACCEPTED' },
             { label: this.i18n.t('common.status.rejected'), value: 'REJECTED' },
-            { label: 'Converted', value: 'CONVERTED' },
-            { label: 'Expired', value: 'EXPIRED' }
+            { label: this.i18n.t('quotations.statusOptions.converted'), value: 'CONVERTED' },
+            { label: this.i18n.t('quotations.statusOptions.expired'), value: 'EXPIRED' }
         ];
     }
 
@@ -334,29 +341,43 @@ export class QuotationsListComponent implements OnInit {
         });
     }
 
+    /**
+     * Opens the warehouse picker rather than converting straight away: the API needs a warehouse
+     * for the new order, and one created without it can never be confirmed.
+     */
+    /** Quotation awaiting a warehouse choice before it is converted. */
+    quotationToConvert = signal<QuotationResponse | null>(null);
+    convertDialogVisible = signal(false);
+    converting = signal(false);
+
     convertQuotation(quotation: QuotationResponse): void {
-        this.confirmationService.confirm({
-            message: `Convert quotation ${quotation.quotationNumber} into a new Sales Order?`,
-            header: 'Convert to Sales Order',
-            icon: 'pi pi-arrow-right-arrow-left',
-            acceptButtonStyleClass: 'p-button-success',
-            accept: () => {
-                this.quotationService.convertToSalesOrder(quotation.id).subscribe({
-                    next: (result) => {
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: this.i18n.t('common.messages.success'),
-                            detail: `Converted to Sales Order ${result.soNumber}.`
-                        });
-                        this.loadData();
-                    },
-                    error: (err) => {
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: this.i18n.t('common.messages.error'),
-                            detail: err?.error?.message ?? 'Failed to convert quotation.'
-                        });
-                    }
+        this.quotationToConvert.set(quotation);
+        this.convertDialogVisible.set(true);
+    }
+
+    onConvertConfirmed(warehouseId: string): void {
+        const quotation = this.quotationToConvert();
+        if (!quotation) return;
+
+        this.converting.set(true);
+        this.quotationService.convertToSalesOrder(quotation.id, warehouseId).subscribe({
+            next: (result) => {
+                this.converting.set(false);
+                this.convertDialogVisible.set(false);
+                this.quotationToConvert.set(null);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: `Converted to Sales Order ${result.soNumber}.`
+                });
+                this.loadData();
+            },
+            error: (err) => {
+                this.converting.set(false);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: err?.error?.message ?? 'Failed to convert quotation.'
                 });
             }
         });
@@ -379,20 +400,22 @@ export class QuotationsListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, currency || this.currencyService.selectedCurrency());
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            DRAFT: 'secondary',
-            SENT: 'info',
-            ACCEPTED: 'success',
-            REJECTED: 'danger',
-            CONVERTED: 'contrast',
-            EXPIRED: 'warn'
-        };
-        return map[status] ?? 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'quotation');
     }
 
     formatStatus(status: string): string {
-        return (status ?? '-').split('_')
-            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+        if (!status) return '-';
+        // Quotation statuses live partly in common.status (draft/approved/rejected) and partly
+        // in quotations.statusOptions (sent/converted/expired); try both before falling back.
+        const camel = status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        for (const prefix of ['quotations.statusOptions.', 'common.status.']) {
+            const label = this.i18n.t(prefix + camel);
+            if (label !== prefix + camel) return label;
+        }
+        return status
+            .split('_')
+            .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+            .join(' ');
     }
 }

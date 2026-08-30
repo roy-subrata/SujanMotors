@@ -36,6 +36,22 @@ public interface ICurrencyConversionService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Converts an amount to the base currency and returns both the converted amount and the
+    /// rate that was applied, so callers can snapshot the FX at transaction time.
+    /// When <paramref name="fromCurrency"/> equals the base currency, returns (amount, 1m).
+    /// </summary>
+    /// <param name="amount">Amount to convert</param>
+    /// <param name="fromCurrency">Source currency code</param>
+    /// <param name="effectiveDate">Date for which to use exchange rate (defaults to today)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Base-currency amount and the rate applied to reach it</returns>
+    Task<FxConversionResult> ConvertToBaseWithRateAsync(
+        decimal amount,
+        string fromCurrency,
+        DateTime? effectiveDate = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Get the base currency code
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>

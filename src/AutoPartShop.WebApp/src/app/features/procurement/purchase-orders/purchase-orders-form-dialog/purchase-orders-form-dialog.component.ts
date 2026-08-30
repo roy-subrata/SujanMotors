@@ -11,6 +11,8 @@ import { MessageService } from 'primeng/api';
 import { PurchaseOrderService, PurchaseOrderResponse, CreatePurchaseOrderRequest, UpdatePurchaseOrderRequest } from '../../services/purchase-order.service';
 import { SupplierService, SupplierResponse } from '../../../inventory/services/supplier.service';
 import { CurrencyService } from '../../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-purchase-orders-form-dialog',
@@ -23,7 +25,8 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
     InputNumberModule,
     AutoCompleteModule,
     ButtonModule,
-    TableModule
+    TableModule,
+    TranslatePipe
   ],
   templateUrl: './purchase-orders-form-dialog.component.html',
   styleUrls: ['./purchase-orders-form-dialog.component.css']
@@ -48,6 +51,7 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);
   private readonly currencyService = inject(CurrencyService);
+  private readonly i18n = inject(I18nService);
 
   constructor() {
     this.form = this.createForm();
@@ -158,8 +162,8 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
     if (this.linesArray.length === 0) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Please add at least one line item'
+        summary: this.i18n.t('purchaseOrder.error'),
+        detail: this.i18n.t('purchaseOrder.addAtLeastOneLine')
       });
       return;
     }
@@ -197,8 +201,8 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
       next: (po) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Purchase Order '${po.poNumber}' created successfully`
+          summary: this.i18n.t('purchaseOrder.success'),
+          detail: this.i18n.t('purchaseOrder.createdDetail', { number: po.poNumber })
         });
         this.submitted.emit(po);
         this.closeDialog();
@@ -207,8 +211,8 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to create purchase order'
+          summary: this.i18n.t('purchaseOrder.error'),
+          detail: error?.error?.message || this.i18n.t('purchaseOrder.createFailed')
         });
         console.error('Error creating purchase order:', error);
         this.isSubmitting = false;
@@ -243,8 +247,8 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
       next: (po) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Purchase Order '${po.poNumber}' updated successfully`
+          summary: this.i18n.t('purchaseOrder.success'),
+          detail: this.i18n.t('purchaseOrder.updatedDetail', { number: po.poNumber })
         });
         this.submitted.emit(po);
         this.closeDialog();
@@ -253,8 +257,8 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to update purchase order'
+          summary: this.i18n.t('purchaseOrder.error'),
+          detail: error?.error?.message || this.i18n.t('purchaseOrder.updateFailed')
         });
         console.error('Error updating purchase order:', error);
         this.isSubmitting = false;
@@ -300,10 +304,10 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
     const errors = control.errors;
 
     if (errors['required']) {
-      return `${this.formatFieldName(fieldName)} is required`;
+      return this.i18n.t('purchaseOrder.dialog.fieldRequired', { field: this.formatFieldName(fieldName) });
     }
 
-    return 'Invalid input';
+    return this.i18n.t('purchaseOrder.dialog.invalidInput');
   }
 
   /**
@@ -328,14 +332,14 @@ export class PurchaseOrdersFormDialogComponent implements OnInit {
    * Get dialog title
    */
   getDialogTitle(): string {
-    return this.isEditing ? 'Edit Purchase Order' : 'New Purchase Order';
+    return this.isEditing ? this.i18n.t('purchaseOrder.editTitle') : this.i18n.t('purchaseOrder.newTitle');
   }
 
   /**
    * Get submit button label
    */
   getSubmitButtonLabel(): string {
-    return this.isEditing ? 'Update' : 'Create';
+    return this.isEditing ? this.i18n.t('purchaseOrder.update') : this.i18n.t('purchaseOrder.create');
   }
 
   /**

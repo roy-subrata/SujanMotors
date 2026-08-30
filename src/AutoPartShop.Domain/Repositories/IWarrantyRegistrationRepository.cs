@@ -10,6 +10,7 @@ public interface IWarrantyRegistrationRepository : IBaseRepository<WarrantyRegis
     Task<IEnumerable<WarrantyRegistration>> GetByPartIdAsync(Guid partId, CancellationToken cancellationToken = default);
     Task<IEnumerable<WarrantyRegistration>> GetActiveWarrantiesAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<WarrantyRegistration>> GetExpiredWarrantiesAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<WarrantyRegistration>> GetDueForExpiryAsync(DateTime asOf, CancellationToken cancellationToken = default);
     Task<IEnumerable<WarrantyRegistration>> GetExpiringWarrantiesAsync(int daysFromNow, CancellationToken cancellationToken = default);
     Task<(IEnumerable<WarrantyRegistration> Warranties, int TotalCount)> SearchPagedAsync(
         string? searchTerm,

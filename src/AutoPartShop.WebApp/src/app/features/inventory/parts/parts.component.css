@@ -28,3 +28,35 @@
 }
 
 .warranty-meta { font-size: 11px; color: var(--color-success); }
+
+/* Search-match hint (shown only when the row matched via an attribute value) */
+.cell-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-hint .pi { font-size: 10px; }
+
+/* Attribute filters dialog trigger — badge mirrors the topbar notification-count style */
+.attribute-filter-trigger { position: relative; }
+
+.filter-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}

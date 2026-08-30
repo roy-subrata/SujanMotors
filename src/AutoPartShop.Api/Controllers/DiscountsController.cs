@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.DiscountDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [HasPermission(Permissions.InventoryView)]
 [Produces("application/json")]
@@ -197,7 +196,7 @@ public class DiscountsController : ControllerBase
         }
     }
 
-    // â”€â”€ Resolve endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Resolve endpoints ────────────────────────────────────────────────────
 
     [HttpGet("resolve/item")]
     public async Task<ActionResult<DiscountResolutionResult>> ResolveItemDiscount(

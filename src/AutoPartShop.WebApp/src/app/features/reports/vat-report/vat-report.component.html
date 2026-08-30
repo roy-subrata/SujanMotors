@@ -3,29 +3,29 @@
 <app-page-container>
 
   <app-page-header
-    title="VAT Report"
-    subtitle="Output VAT (sales) vs. input VAT (purchases) reconciliation for the period"
+    [title]="'reports.vat.title' | translate"
+    [subtitle]="'reports.vat.subtitle' | translate"
     [backLink]="['/reports']">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="load()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="load()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <ng-container *appHasPermission="'reports.export'">
         <button class="btn-secondary" (click)="downloadPdf()" [disabled]="downloading || loading || !report">
           <i [class]="downloading ? 'pi pi-spin pi-spinner' : 'pi pi-file-pdf'"></i>
-          <span>Download PDF</span>
+          <span>{{ 'reports.actions.downloadPdf' | translate }}</span>
         </button>
       </ng-container>
     </ng-container>
   </app-page-header>
 
-  <div class="report-filter">
-    <div class="filter-item">
-      <label class="filter-label">Period</label>
+  <app-filter-bar>
+    <div filters class="filter-group">
+      <label class="filter-label">{{ 'reports.filters.period' | translate }}</label>
       <p-datepicker
         [(ngModel)]="dateRange"
         selectionMode="range"
-        placeholder="Select date range"
+        [placeholder]="'reports.filters.selectDateRange' | translate"
         dateFormat="dd M yy"
         [showIcon]="true"
         [showButtonBar]="true"
@@ -34,8 +34,8 @@
         styleClass="filter-datepicker">
       </p-datepicker>
     </div>
-    <div class="filter-item">
-      <label class="filter-label">VAT Rate %</label>
+    <div filters class="filter-group">
+      <label class="filter-label">{{ 'reports.vat.vatRatePercent' | translate }}</label>
       <p-inputNumber
         [(ngModel)]="vatRatePercent"
         suffix="%"
@@ -47,7 +47,7 @@
         styleClass="filter-input-number">
       </p-inputNumber>
     </div>
-  </div>
+  </app-filter-bar>
 
   @if (loading) {
     <div class="report-skeleton">
@@ -58,35 +58,35 @@
   } @else if (report) {
     <div class="report-statement">
       <section class="report-section">
-        <h3>Output VAT — Sales</h3>
-        <div class="report-row"><span>Taxable Value</span><span class="amount-value">{{ report.salesTaxableValue | number:'1.2-2' }}</span></div>
-        <div class="report-row"><span>Invoice Count</span><span class="amount-value">{{ report.salesInvoiceCount }}</span></div>
-        <div class="report-row report-row-total"><span>Sales VAT Amount</span><span class="amount-value">{{ report.salesVatAmount | number:'1.2-2' }}</span></div>
+        <h3>{{ 'reports.vat.outputVatSales' | translate }}</h3>
+        <div class="report-row"><span>{{ 'reports.vat.taxableValue' | translate }}</span><span class="amount-value" [class]="report.salesTaxableValue | amountSign">{{ report.salesTaxableValue | moneyFormat }}</span></div>
+        <div class="report-row"><span>{{ 'reports.vat.invoiceCount' | translate }}</span><span class="amount-value">{{ report.salesInvoiceCount }}</span></div>
+        <div class="report-row report-row-total"><span>{{ 'reports.vat.salesVatAmount' | translate }}</span><span class="amount-value" [class]="report.salesVatAmount | amountSign">{{ report.salesVatAmount | moneyFormat }}</span></div>
       </section>
 
       <section class="report-section">
-        <h3>Less: Credit Note VAT</h3>
-        <div class="report-row"><span>Taxable Value</span><span class="amount-value">{{ report.creditTaxableValue | number:'1.2-2' }}</span></div>
-        <div class="report-row report-row-total"><span>Credit VAT Amount</span><span class="amount-value">{{ report.creditVatAmount | number:'1.2-2' }}</span></div>
+        <h3>{{ 'reports.vat.lessCreditNoteVat' | translate }}</h3>
+        <div class="report-row"><span>{{ 'reports.vat.taxableValue' | translate }}</span><span class="amount-value" [class]="report.creditTaxableValue | amountSign">{{ report.creditTaxableValue | moneyFormat }}</span></div>
+        <div class="report-row report-row-total"><span>{{ 'reports.vat.creditVatAmount' | translate }}</span><span class="amount-value" [class]="report.creditVatAmount | amountSign">{{ report.creditVatAmount | moneyFormat }}</span></div>
       </section>
 
       <section class="report-section">
-        <h3>Less: Input VAT — Purchases</h3>
-        <div class="report-row"><span>Taxable Value</span><span class="amount-value">{{ report.purchaseTaxableValue | number:'1.2-2' }}</span></div>
-        <div class="report-row"><span>Purchase Order Count</span><span class="amount-value">{{ report.purchaseOrderCount }}</span></div>
-        <div class="report-row report-row-total"><span>Purchase VAT Amount</span><span class="amount-value">{{ report.purchaseVatAmount | number:'1.2-2' }}</span></div>
+        <h3>{{ 'reports.vat.lessInputVatPurchases' | translate }}</h3>
+        <div class="report-row"><span>{{ 'reports.vat.taxableValue' | translate }}</span><span class="amount-value" [class]="report.purchaseTaxableValue | amountSign">{{ report.purchaseTaxableValue | moneyFormat }}</span></div>
+        <div class="report-row"><span>{{ 'reports.vat.purchaseOrderCount' | translate }}</span><span class="amount-value">{{ report.purchaseOrderCount }}</span></div>
+        <div class="report-row report-row-total"><span>{{ 'reports.vat.purchaseVatAmount' | translate }}</span><span class="amount-value" [class]="report.purchaseVatAmount | amountSign">{{ report.purchaseVatAmount | moneyFormat }}</span></div>
       </section>
 
       <section class="report-section report-section-highlight">
-        <h3>Reconciliation</h3>
-        <p class="report-note">Net VAT Payable = Sales VAT − Credit Note VAT − Purchase VAT</p>
-        <div class="report-row report-row-total"><span>Net VAT Payable</span><span class="amount-value">{{ report.netVatPayable | number:'1.2-2' }}</span></div>
+        <h3>{{ 'reports.vat.reconciliation' | translate }}</h3>
+        <p class="report-note">{{ 'reports.vat.reconciliationNote' | translate }}</p>
+        <div class="report-row report-row-total"><span>{{ 'reports.vat.netVatPayable' | translate }}</span><span class="amount-value" [class]="report.netVatPayable | amountSign">{{ report.netVatPayable | moneyFormat }}</span></div>
       </section>
     </div>
   } @else {
     <div class="empty-state">
       <i class="pi pi-percentage"></i>
-      <p>No data for the selected period</p>
+      <p>{{ 'reports.empty.noPeriodData' | translate }}</p>
     </div>
   }
 

@@ -2,7 +2,11 @@
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
-/// Defines a product attribute (e.g., RAM, Processor, Storage).
+/// Defines a product attribute (e.g., RAM, Processor, Storage). Assignable at either the
+/// product level (<see cref="ProductAttributeValue"/>) or the variant level
+/// (<see cref="VariantAttributeValue"/>) — not locked to one or the other. The one rule enforced
+/// at assignment time (see the controllers) is per-product: a given attribute can't be set both
+/// directly on a product and on that same product's variants at once, to avoid a value conflict.
 /// </summary>
 public class ProductAttribute : AuditableEntity
 {

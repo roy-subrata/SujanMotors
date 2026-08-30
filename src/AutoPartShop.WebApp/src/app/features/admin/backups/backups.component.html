@@ -1,0 +1,213 @@
+    <p-toast></p-toast>
+
+    <app-page-container>
+      <app-page-header
+        [title]="i18n.t('backups.title')"
+        [subtitle]="i18n.t('backups.subtitle')"
+        [count]="totalRecords"
+        [countLabel]="i18n.t('backups.itemLabel')">
+        <ng-container actions>
+          <button class="btn-icon" (click)="loadHistory()" [pTooltip]="i18n.t('common.actions.refresh')" tooltipPosition="bottom">
+            <i class="pi pi-refresh"></i>
+          </button>
+          <button class="btn-primary" (click)="backupNow()" [disabled]="operationRunning()">
+            <i class="pi" [class.pi-spin]="operationRunning()" [class.pi-spinner]="operationRunning()" [class.pi-play]="!operationRunning()"></i>
+            <span>{{ operationRunning() ? i18n.t('backups.working') : i18n.t('backups.backupNow') }}</span>
+          </button>
+        </ng-container>
+      </app-page-header>
+
+      <div class="w-full px-4 py-6">
+
+        <!-- Schedule settings -->
+        <p-card styleClass="mb-4">
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-calendar-clock text-blue-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('backups.schedule.title') }}</h2>
+            </div>
+          </ng-template>
+
+          <div *ngIf="settingsLoading()" class="flex justify-center py-8">
+            <i class="pi pi-spin pi-spinner text-2xl text-gray-400"></i>
+          </div>
+
+          <form *ngIf="!settingsLoading()" [formGroup]="form" (ngSubmit)="saveSettings()">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <p class="font-medium text-gray-700 m-0">{{ i18n.t('backups.schedule.enableDaily') }}</p>
+                <p class="text-sm text-gray-400 mt-1 m-0">{{ i18n.t('backups.schedule.enableDailyHint') }}</p>
+              </div>
+              <p-toggleswitch formControlName="enabled"></p-toggleswitch>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> {{ i18n.t('backups.schedule.backupTime') }}</label>
+                <input type="time" pInputText formControlName="localTime" class="w-full" />
+                <small class="text-gray-400">{{ i18n.t('backups.schedule.backupTimeHint') }}</small>
+                <small class="p-error block mt-1" *ngIf="form.get('localTime')?.invalid && form.get('localTime')?.touched">
+                  {{ i18n.t('backups.schedule.backupTimeRequired') }}
+                </small>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-2"><span class="required">*</span> {{ i18n.t('backups.schedule.retentionCount') }}</label>
+                <p-inputNumber
+                  formControlName="retentionCount"
+                  [min]="1" [max]="365"
+                  [showButtons]="true"
+                  styleClass="w-full"
+                  inputStyleClass="w-full">
+                </p-inputNumber>
+                <small class="text-gray-400">{{ i18n.t('backups.schedule.retentionHint') }}</small>
+                <small class="p-error block mt-1" *ngIf="form.get('retentionCount')?.invalid && form.get('retentionCount')?.touched">
+                  {{ i18n.t('backups.schedule.retentionInvalid') }}
+                </small>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-2">{{ i18n.t('backups.schedule.driveFolder') }}</label>
+                <input pInputText formControlName="gdriveFolderId" [placeholder]="i18n.t('backups.schedule.driveFolderPlaceholder')" class="w-full" />
+                <small class="text-gray-400">{{ i18n.t('backups.schedule.driveFolderHint') }}</small>
+              </div>
+            </div>
+
+            <!-- Drive status -->
+            <div class="mt-4 p-3 rounded-lg border"
+                 [class.bg-green-50]="driveStatus()?.ok"
+                 [class.border-green-200]="driveStatus()?.ok"
+                 [class.bg-amber-50]="driveStatus() && !driveStatus()?.ok"
+                 [class.border-amber-200]="driveStatus() && !driveStatus()?.ok">
+              <div class="flex items-center gap-2 text-sm">
+                <i class="pi" [class.pi-cloud-upload]="driveStatus()?.ok" [class.text-green-600]="driveStatus()?.ok"
+                   [class.pi-exclamation-triangle]="driveStatus() && !driveStatus()?.ok" [class.text-amber-600]="driveStatus() && !driveStatus()?.ok"></i>
+                <span *ngIf="!driveStatus()" class="text-gray-500">
+                  <i class="pi pi-spin pi-spinner mr-1"></i>{{ i18n.t('backups.schedule.driveChecking') }}
+                </span>
+                <span *ngIf="driveStatus()?.ok" class="text-green-700">
+                  {{ i18n.t('backups.schedule.driveConnected') }}
+                </span>
+                <span *ngIf="driveStatus() && !driveStatus()?.ok" class="text-amber-700">
+                  {{ driveStatus()?.error || i18n.t('backups.schedule.driveNotAvailable') }}
+                </span>
+              </div>
+              <div *ngIf="driveStatus()?.serviceAccountEmail" class="text-xs text-gray-500 mt-2">
+                {{ i18n.t('backups.schedule.driveShareHint') }}
+                <code class="bg-gray-100 px-1 rounded">{{ driveStatus()?.serviceAccountEmail }}</code>
+              </div>
+            </div>
+
+            <div class="flex justify-end mt-4">
+              <button pButton type="submit" [label]="i18n.t('backups.schedule.saveButton')" icon="pi pi-save"
+                      [loading]="settingsSaving()" [disabled]="form.invalid || settingsSaving()"
+                      class="p-button-success"></button>
+            </div>
+          </form>
+        </p-card>
+
+        <!-- History -->
+        <p-card>
+          <ng-template pTemplate="header">
+            <div class="flex items-center gap-2 px-5 pt-4">
+              <i class="pi pi-history text-gray-500 text-xl"></i>
+              <h2 class="text-lg font-semibold text-gray-700 m-0">{{ i18n.t('backups.history.title') }}</h2>
+            </div>
+          </ng-template>
+
+          <p-table [value]="records()" [loading]="historyLoading()" responsiveLayout="scroll" styleClass="p-datatable-sm">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>{{ i18n.t('backups.history.colFile') }}</th>
+                <th>{{ i18n.t('backups.history.colType') }}</th>
+                <th>{{ i18n.t('common.labels.status') }}</th>
+                <th>{{ i18n.t('backups.history.colSize') }}</th>
+                <th>{{ i18n.t('backups.history.colStarted') }}</th>
+                <th>{{ i18n.t('backups.history.colBy') }}</th>
+                <th style="width:110px">{{ i18n.t('common.labels.actions') }}</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-record>
+              <tr>
+                <td>
+                  <span class="font-mono text-sm">{{ record.fileName }}</span>
+                  <i *ngIf="record.uploadedToDrive" class="pi pi-cloud-upload text-blue-500 ml-2"
+                     [pTooltip]="i18n.t('backups.history.uploadedTooltip')" tooltipPosition="top"></i>
+                  <i *ngIf="!record.localFileExists && record.uploadedToDrive" class="pi pi-info-circle text-gray-400 ml-1"
+                     [pTooltip]="i18n.t('backups.history.localRemovedTooltip')" tooltipPosition="top"></i>
+                </td>
+                <td><p-tag [value]="triggerLabel(record.triggerType)" [severity]="triggerSeverity(record.triggerType)"></p-tag></td>
+                <td>
+                  <p-tag [value]="statusLabel(record.status)" [severity]="statusSeverity(record.status)"
+                         [pTooltip]="record.errorMessage ?? ''" tooltipPosition="top"></p-tag>
+                  <i *ngIf="record.status === 'Running'" class="pi pi-spin pi-spinner text-blue-500 ml-2"></i>
+                </td>
+                <td>{{ formatSize(record.sizeBytes) }}</td>
+                <td>
+                  <span [pTooltip]="((record.startedAt + 'Z') | date:'medium') ?? ''" tooltipPosition="top">
+                    {{ (record.startedAt + 'Z') | date:'MMM d, HH:mm' }}
+                  </span>
+                </td>
+                <td>{{ record.createdBy }}</td>
+                <td>
+                  <div class="flex gap-1">
+                    <button pButton type="button" icon="pi pi-download" class="p-button-text p-button-sm"
+                            [pTooltip]="i18n.t('backups.history.downloadTooltip')" tooltipPosition="top"
+                            [disabled]="!isRestorable(record) || downloadingId() === record.id"
+                            [loading]="downloadingId() === record.id"
+                            (click)="download(record)"></button>
+                    <button pButton type="button" icon="pi pi-replay" class="p-button-text p-button-sm p-button-danger"
+                            [pTooltip]="i18n.t('backups.history.restoreTooltip')" tooltipPosition="top"
+                            [disabled]="!isRestorable(record) || operationRunning()"
+                            (click)="openRestoreDialog(record)"></button>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="7" class="text-center text-gray-400 py-8">
+                  {{ i18n.t('backups.history.empty') }}
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+
+          <app-data-pagination
+            [first]="(page - 1) * pageSize"
+            [pageSize]="pageSize"
+            [totalRecords]="totalRecords"
+            [itemLabel]="i18n.t('backups.itemLabel')"
+            (pageChange)="goToPage($event)"
+            (pageSizeChange)="onPageSizeChange($event)">
+          </app-data-pagination>
+        </p-card>
+      </div>
+    </app-page-container>
+
+    <!-- Restore confirmation -->
+    <p-dialog [header]="i18n.t('backups.restore.title')" [(visible)]="restoreDialogVisible" [modal]="true" [style]="{ width: '480px' }"
+              [closable]="!restoring()">
+      <div *ngIf="restoreTarget" class="flex flex-col gap-3">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+          <p class="font-semibold m-0 mb-2"><i class="pi pi-exclamation-triangle mr-1"></i>{{ i18n.t('backups.restore.warningTitle') }}</p>
+          <ul class="m-0 pl-4 list-disc">
+            <li>{{ i18n.t('backups.restore.item1Prefix') }} <strong>{{ (restoreTarget.startedAt + 'Z') | date:'medium' }}</strong> {{ i18n.t('backups.restore.item1Suffix') }}</li>
+            <li>{{ i18n.t('backups.restore.item2') }}</li>
+            <li>{{ i18n.t('backups.restore.item3') }}</li>
+            <li>{{ i18n.t('backups.restore.item4') }}</li>
+          </ul>
+        </div>
+        <p class="text-sm text-gray-600 m-0">
+          {{ i18n.t('backups.restore.confirmPrefix') }} <span class="font-mono">{{ restoreTarget.fileName }}</span>.
+          {{ i18n.t('backups.restore.confirmSuffix') }}
+        </p>
+        <input pInputText [(ngModel)]="restoreConfirmation" [disabled]="restoring()"
+               [placeholder]="i18n.t('backups.restore.inputPlaceholder')" class="w-full" autocomplete="off" />
+      </div>
+      <ng-template pTemplate="footer">
+        <button pButton type="button" [label]="i18n.t('common.actions.cancel')" class="p-button-text" [disabled]="restoring()"
+                (click)="restoreDialogVisible = false"></button>
+        <button pButton type="button" [label]="i18n.t('backups.restore.confirmButton')" icon="pi pi-replay" class="p-button-danger"
+                [disabled]="restoreConfirmation !== 'RESTORE' || restoring()" [loading]="restoring()"
+                (click)="confirmRestore()"></button>
+      </ng-template>
+    </p-dialog>

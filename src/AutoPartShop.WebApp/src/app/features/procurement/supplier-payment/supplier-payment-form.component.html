@@ -8,16 +8,16 @@
         <div class="breadcrumb">
           <a (click)="onCancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Supplier Payments
+            {{ 'supplierPayments.title' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ isEditing ? 'Edit' : 'New' }}</span>
+          <span class="breadcrumb-current">{{ isEditing ? ('supplierPaymentForm.editCrumb' | translate) : ('supplierPaymentForm.newCrumb' | translate) }}</span>
         </div>
         <h1 class="form-title">
-          {{ isEditing ? 'Edit Supplier Payment' : 'Record Supplier Payment' }}
+          {{ isEditing ? ('supplierPaymentForm.editTitle' | translate) : ('supplierPaymentForm.createTitle' | translate) }}
         </h1>
         <p class="form-subtitle">
-          {{ isEditing ? 'Update payment details' : 'Record a payment to a supplier' }}
+          {{ isEditing ? ('supplierPaymentForm.editSubtitle' | translate) : ('supplierPaymentForm.createSubtitle' | translate) }}
         </p>
       </div>
     </div>
@@ -26,7 +26,7 @@
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-    <p>Loading...</p>
+    <p>{{ 'common.messages.loading' | translate }}</p>
   </div>
 
   <!-- Form -->
@@ -37,16 +37,16 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-building section-icon"></i>
-          Supplier
+          {{ 'supplierPayments.supplier' | translate }}
           <span *ngIf="isFromPurchaseOrder" class="locked-badge">
-            <i class="pi pi-lock"></i> From Purchase Order
+            <i class="pi pi-lock"></i> {{ 'supplierPaymentForm.fromPurchaseOrder' | translate }}
           </span>
         </h3>
         <div class="form-row">
           <div class="form-group">
-            <label>Supplier *</label>
+            <label>{{ 'supplierPayments.supplier' | translate }} <span class="required">*</span></label>
             <p-autoComplete [suggestions]="filteredSuppliers" formControlName="supplierId" [forceSelection]="true"
-              field="name" optionLabel="name" [dropdown]="true" placeholder="Search supplier..."
+              field="name" optionLabel="name" [dropdown]="true" [placeholder]="'supplierPaymentForm.searchSupplierPlaceholder' | translate"
               (completeMethod)="filterSuppliers($event)" [disabled]="isEditing || isFromPurchaseOrder"
               [style]="{ width: '100%' }">
               <ng-template let-supplier pTemplate="item">
@@ -58,11 +58,11 @@
             </p-autoComplete>
             <small *ngIf="isFromPurchaseOrder" class="field-hint locked-hint">
               <i class="pi pi-info-circle"></i>
-              Supplier is determined by the selected purchase order
+              {{ 'supplierPaymentForm.supplierDeterminedByPo' | translate }}
             </small>
             <small *ngIf="form.get('supplierId')?.invalid && form.get('supplierId')?.touched && !isFromPurchaseOrder"
               class="p-error">
-              Supplier is required
+              {{ 'supplierPaymentForm.supplierRequired' | translate }}
             </small>
           </div>
           <div class="form-group"></div>
@@ -73,15 +73,15 @@
       <div class="form-section" *ngIf="form.get('supplierId')?.value">
         <h3 class="section-title">
           <i class="pi pi-send section-icon"></i>
-          Payment Destination (Supplier's Account)
+          {{ 'supplierPaymentForm.destinationSection' | translate }}
         </h3>
 
         <div class="form-row" *ngIf="supplierPaymentAccounts.length > 0">
           <div class="form-group">
-            <label>Send To *</label>
+            <label>{{ 'supplierPaymentForm.sendToLabel' | translate }} <span class="required">*</span></label>
             <p-autoComplete [suggestions]="filteredSupplierPaymentAccounts" formControlName="supplierPaymentAccountId"
               [forceSelection]="true" field="accountName" optionLabel="accountName" [dropdown]="true"
-              placeholder="Select supplier's receiving account..."
+              [placeholder]="'supplierPaymentForm.selectReceivingAccountPlaceholder' | translate"
               (completeMethod)="filterSupplierPaymentAccounts($event)" [disabled]="isEditing"
               [style]="{ width: '100%' }">
               <ng-template let-account pTemplate="item">
@@ -107,7 +107,7 @@
             </p-autoComplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              Supplier's bank/mobile account where payment will be received
+              {{ 'supplierPaymentForm.receivingAccountHint' | translate }}
             </small>
           </div>
           <div class="form-group"></div>
@@ -117,11 +117,11 @@
         <div class="warning-box" *ngIf="supplierPaymentAccounts.length === 0 && !isEditing">
           <i class="pi pi-exclamation-triangle"></i>
           <div>
-            <strong>No payment accounts configured</strong>
-            <p>This supplier has no payment accounts.
+            <strong>{{ 'supplierPaymentForm.noAccountsTitle' | translate }}</strong>
+            <p>{{ 'supplierPaymentForm.noAccountsMessage' | translate }}
               <a [routerLink]="['/inventory/suppliers/payment-accounts']"
                 [queryParams]="{supplierId: form.get('supplierId')?.value?.id || form.get('supplierId')?.value}">
-                Add payment account
+                {{ 'supplierPaymentForm.addPaymentAccount' | translate }}
               </a>
             </p>
           </div>
@@ -132,30 +132,30 @@
       <div class="form-section" *ngIf="!isEditing">
         <h3 class="section-title">
           <i class="pi pi-tag section-icon"></i>
-          Payment Type
+          {{ 'supplierPayments.paymentType' | translate }}
         </h3>
         <div class="payment-type-selector">
           <div class="payment-type-option" [class.selected]="form.get('paymentType')?.value === 'REGULAR'"
             (click)="form.get('paymentType')?.setValue('REGULAR')">
             <p-radioButton name="paymentType" value="REGULAR" formControlName="paymentType"></p-radioButton>
             <div class="option-content">
-              <span class="option-label">Regular Payment</span>
-              <span class="option-desc">Payment for a specific purchase order</span>
+              <span class="option-label">{{ 'supplierPaymentForm.regularPayment' | translate }}</span>
+              <span class="option-desc">{{ 'supplierPaymentForm.regularPaymentDesc' | translate }}</span>
             </div>
           </div>
           <div class="payment-type-option" [class.selected]="form.get('paymentType')?.value === 'ADVANCE'"
             (click)="form.get('paymentType')?.setValue('ADVANCE')">
             <p-radioButton name="paymentType" value="ADVANCE" formControlName="paymentType"></p-radioButton>
             <div class="option-content">
-              <span class="option-label">Advance Payment</span>
-              <span class="option-desc">Prepayment without a specific order</span>
+              <span class="option-label">{{ 'supplierPaymentForm.advancePayment' | translate }}</span>
+              <span class="option-desc">{{ 'supplierPaymentForm.advancePaymentDesc' | translate }}</span>
             </div>
           </div>
         </div>
 
         <div class="info-box" *ngIf="isAdvancePayment">
           <i class="pi pi-info-circle"></i>
-          <span>Advance payment will be stored as credit for future orders.</span>
+          <span>{{ 'supplierPaymentForm.advanceCreditInfo' | translate }}</span>
         </div>
       </div>
 
@@ -163,14 +163,14 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-wallet section-icon"></i>
-          Payment Source (Your Account)
+          {{ 'supplierPaymentForm.sourceSection' | translate }}
         </h3>
         <div class="form-row">
           <div class="form-group">
-            <label>Pay From *</label>
+            <label>{{ 'supplierPaymentForm.payFromLabel' | translate }} <span class="required">*</span></label>
             <p-autoComplete [suggestions]="filteredPaymentProviders" formControlName="paymentProviderId"
               [forceSelection]="true" field="providerName" optionLabel="providerName" [dropdown]="true"
-              placeholder="Select your payment account..." (completeMethod)="filterPaymentProviders($event)"
+              [placeholder]="'supplierPaymentForm.selectPayAccountPlaceholder' | translate" (completeMethod)="filterPaymentProviders($event)"
               [disabled]="isEditing" [style]="{ width: '100%' }">
               <ng-template let-provider pTemplate="item">
                 <div class="provider-item">
@@ -195,11 +195,11 @@
             </p-autoComplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              Your bank/mobile/cash account from which payment will be sent
+              {{ 'supplierPaymentForm.payAccountHint' | translate }}
             </small>
             <small *ngIf="form.get('paymentProviderId')?.invalid && form.get('paymentProviderId')?.touched"
               class="p-error">
-              Payment provider is required
+              {{ 'supplierPaymentForm.providerRequired' | translate }}
             </small>
           </div>
           <div class="form-group"></div>
@@ -207,10 +207,10 @@
 
         <!-- Payment Flow Summary -->
         <div class="payment-flow-summary" *ngIf="selectedProviderInfo && selectedSupplierAccountInfo">
-          <div class="flow-title">Payment Flow</div>
+          <div class="flow-title">{{ 'supplierPaymentForm.flowTitle' | translate }}</div>
           <div class="flow-container">
             <div class="flow-card source">
-              <div class="flow-label">FROM (Your Account)</div>
+              <div class="flow-label">{{ 'supplierPaymentForm.flowFrom' | translate }}</div>
               <div class="flow-content">
                 <i [class]="selectedProviderInfo.icon"></i>
                 <div class="flow-details">
@@ -240,15 +240,15 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-dollar section-icon"></i>
-          Payment Amount
+          {{ 'supplierPayments.grossAmount' | translate }}
         </h3>
         <div class="form-row">
           <div class="form-group">
-            <label>Amount *</label>
+            <label>{{ 'common.labels.amount' | translate }} <span class="required">*</span></label>
             <div class="amount-with-currency">
               <p-select [options]="currencies" [(ngModel)]="selectedCurrency" [ngModelOptions]="{standalone: true}"
                 optionLabel="code" (onChange)="onCurrencyChange($event.value)" [disabled]="isEditing"
-                [style]="{ width: '100px' }" placeholder="Currency">
+                [style]="{ width: '100px' }" [placeholder]="'supplierPaymentForm.currencyPlaceholder' | translate">
                 <ng-template let-currency pTemplate="selectedItem">
                   {{ currency?.symbol }} {{ currency?.code }}
                 </ng-template>
@@ -262,15 +262,15 @@
             </div>
             <small *ngIf="form.get('amount')?.touched && form.get('amount')?.invalid" class="p-error">
               <span *ngIf="form.get('amount')?.hasError('required')">
-                Amount is required.
+                {{ 'supplierPaymentForm.amountRequired' | translate }}
               </span>
 
               <span *ngIf="form.get('amount')?.hasError('min')">
-                Amount must be greater than 0.
+                {{ 'supplierPaymentForm.amountMin' | translate }}
               </span>
 
               <span *ngIf="form.get('amount')?.hasError('max')">
-                Amount cannot be more than outstanding balance.
+                {{ 'supplierPaymentForm.amountMax' | translate }}
               </span>
             </small>
 
@@ -278,35 +278,41 @@
 
           </div>
           <div class="form-group">
-            <label>Payment Date</label>
+            <label>{{ 'supplierPayments.paymentDate' | translate }}</label>
             <p-datepicker formControlName="paymentDate" [showIcon]="true" [iconDisplay]="'input'" dateFormat="yy-mm-dd"
-              [disabled]="isEditing" [style]="{ width: '100%' }" placeholder="Select date">
+              [disabled]="isEditing" [style]="{ width: '100%' }" [placeholder]="'supplierPaymentForm.selectDate' | translate">
             </p-datepicker>
           </div>
         </div>
 
         <!-- Purchase Order (for REGULAR payments) -->
-        <div class="form-row" *ngIf="!isEditing && !isAdvancePayment">
+        <div class="form-row" *ngIf="!isAdvancePayment">
           <div class="form-group">
             <label>
-              Purchase Order *
-              <span *ngIf="isFromPurchaseOrder" class="locked-badge-inline">
-                <i class="pi pi-lock"></i> Locked
+              {{ 'supplierPaymentForm.purchaseOrderLabel' | translate }}<span *ngIf="!isEditing"> *</span>
+              <span *ngIf="isEditing || isFromPurchaseOrder" class="locked-badge-inline">
+                <i class="pi pi-lock"></i> {{ 'supplierPaymentForm.locked' | translate }}
               </span>
             </label>
-            <p-autoComplete formControlName="purchaseOrderId" [suggestions]="filteredPOs"
-              (completeMethod)="filterPOs($event)" [dropdown]="true" field="poNumber" optionLabel="poNumber"
-              placeholder="Select purchase order..." [disabled]="isFromPurchaseOrder" [style]="{ width: '100%' }">
-              <ng-template let-po pTemplate="item">
+            <app-lazy-autocomplete
+              #poAutoComplete
+              formControlName="purchaseOrderId"
+              [fetchFn]="fetchPurchaseOrdersLazy"
+              optionLabel="poNumber"
+              [placeholder]="'supplierPaymentForm.selectPoPlaceholder' | translate"
+              [minLength]="0"
+              [showClear]="!isEditing && !isFromPurchaseOrder"
+              [emptyMessage]="'supplierPaymentForm.noPosAvailable' | translate">
+              <ng-template let-po>
                 <div class="autocomplete-item">
                   <span class="item-name">{{ po.poNumber }}</span>
-                  <span class="item-code">{{ po.supplierName }} | {{ formatCurrency(po.grandTotal) }}</span>
+                  <span class="item-code">{{ po.supplierName }} | {{ formatCurrency(po.grandTotal) }} | {{ 'supplierPaymentForm.dueLabel' | translate }} {{ formatCurrency(po.outstandingAmount) }}</span>
                 </div>
               </ng-template>
-            </p-autoComplete>
+            </app-lazy-autocomplete>
             <small *ngIf="isFromPurchaseOrder" class="field-hint locked-hint">
               <i class="pi pi-info-circle"></i>
-              Recording payment for this specific purchase order
+              {{ 'supplierPaymentForm.poSpecificHint' | translate }}
             </small>
           </div>
           <div class="form-group"></div>
@@ -315,8 +321,8 @@
         <!-- Description (for ADVANCE payments) -->
         <div class="form-row" *ngIf="!isEditing && isAdvancePayment">
           <div class="form-group full">
-            <label>Description</label>
-            <input pInputText formControlName="description" placeholder="e.g., Advance for upcoming orders" />
+            <label>{{ 'common.labels.description' | translate }}</label>
+            <input pInputText formControlName="description" [placeholder]="'supplierPaymentForm.descriptionPlaceholder' | translate" />
           </div>
         </div>
       </div>
@@ -325,28 +331,28 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-hashtag section-icon"></i>
-          Reference Information
+          {{ 'supplierPaymentForm.referenceSection' | translate }}
         </h3>
         <div class="form-row">
           <div class="form-group">
-            <label>Transaction Number</label>
-            <input pInputText formControlName="transactionNumber" placeholder="Auto-generated"
+            <label>{{ 'supplierPaymentForm.transactionNumberLabel' | translate }}</label>
+            <input pInputText formControlName="transactionNumber" [placeholder]="'supplierPaymentForm.autoGeneratedPlaceholder' | translate"
               [readonly]="true" />
-            <small class="field-hint">Generated automatically on save</small>
+            <small class="field-hint">{{ 'supplierPaymentForm.autoGeneratedHint' | translate }}</small>
           </div>
           <div class="form-group">
-            <label>Reference Number</label>
-            <input pInputText formControlName="referenceNumber" placeholder="Reference number" />
+            <label>{{ 'common.labels.reference' | translate }}</label>
+            <input pInputText formControlName="referenceNumber" [placeholder]="'common.labels.reference' | translate" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Invoice Number</label>
-            <input pInputText formControlName="invoiceNumber" placeholder="Invoice number" />
+            <label>{{ 'supplierPayments.invoiceRef' | translate }}</label>
+            <input pInputText formControlName="invoiceNumber" [placeholder]="'supplierPayments.invoiceRef' | translate" />
           </div>
           <div class="form-group" *ngIf="isEditing">
-            <label>Authorization Code</label>
-            <input pInputText formControlName="authorizationCode" placeholder="Authorization code" />
+            <label>{{ 'supplierPaymentForm.authorizationCodeLabel' | translate }}</label>
+            <input pInputText formControlName="authorizationCode" [placeholder]="'supplierPaymentForm.authorizationCodeLabel' | translate" />
           </div>
         </div>
       </div>
@@ -355,12 +361,12 @@
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-file-edit section-icon"></i>
-          Additional Information
+          {{ 'common.labels.additionalInformation' | translate }}
         </h3>
         <div class="form-row">
           <div class="form-group full">
-            <label>Notes</label>
-            <textarea pTextarea formControlName="notes" placeholder="Additional notes about this payment"
+            <label>{{ 'common.labels.notes' | translate }}</label>
+            <textarea pTextarea formControlName="notes" [placeholder]="'supplierPaymentForm.notesPlaceholder' | translate"
               rows="3"></textarea>
           </div>
         </div>
@@ -368,9 +374,9 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined"
+        <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-outlined"
           (click)="onCancel()"></button>
-        <button pButton type="submit" [label]="isEditing ? 'Update Payment' : 'Record Payment'" icon="pi pi-check"
+        <button pButton type="submit" [label]="isEditing ? ('supplierPaymentForm.updatePayment' | translate) : ('supplierPaymentForm.recordPayment' | translate)" icon="pi pi-check"
           class="p-button-primary" [loading]="loading"></button>
       </div>
     </form>

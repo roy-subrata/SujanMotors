@@ -164,6 +164,11 @@
   color: var(--color-danger);
 }
 
+.field-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;

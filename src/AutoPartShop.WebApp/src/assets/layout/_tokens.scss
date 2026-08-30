@@ -11,24 +11,24 @@
 :root {
     --bg: #f4f5f7;
     --surface: #ffffff;
-    --surface2: #fafafb;
+    --surface2: #fafbfc;
 
-    --border: #e6e8ec;
+    --border: #e7e9ee;
     --border2: #eef0f3;
 
-    --text: #0f172a;
+    --text: #1c1f26;
     --text2: #5b6472;
     --text3: #8a93a2;
 
-    --accent: #0f172a;
+    --accent: #ea580c;
     --accent-fg: #ffffff;
 
-    --green: #0d8a53;
-    --green-bg: #e9f7f0;
-    --red: #d63841;
-    --red-bg: #fdeeef;
-    --amber: #b26a00;
-    --amber-bg: #fdf3e2;
+    --green: #15803d;
+    --green-bg: #f0fdf4;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --amber: #a16207;
+    --amber-bg: #fefce8;
 
     --shell-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 
@@ -36,7 +36,8 @@
     --chart-purch: #f59e0b;
     --chart-profit: #10b981;
 
-    --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Public Sans', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 .app-dark {
@@ -51,8 +52,8 @@
     --text2: #9aa4b5;
     --text3: #68738a;
 
-    --accent: #e2e8f0;
-    --accent-fg: #0f172a;
+    --accent: #fb923c;
+    --accent-fg: #1c1108;
 
     --green: #34d399;
     --green-bg: #0e2b20;

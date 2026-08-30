@@ -30,8 +30,7 @@ public class UnitRepository(AutoPartDbContext dbContext) : IUnitRepository
         var existing = await dbContext.Units.FirstOrDefaultAsync(u => u.Id == entity.Id, cancellationToken);
         if (existing != null)
         {
-            dbContext.Units.Remove(existing);
-            dbContext.Units.Add(entity);
+            existing.Update(entity.Name, entity.Symbol, entity.Description, entity.IsActive, entity.DisplayOrder);
         }
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -46,8 +45,8 @@ public class UnitRepository(AutoPartDbContext dbContext) : IUnitRepository
             if (await dbContext.Parts.AnyAsync(p => (p.BaseUnitId == id || p.UnitId == id) && !p.Isdeleted, cancellationToken))
                 throw new InvalidOperationException("Cannot delete a unit that is assigned to products.");
 
-            if (await dbContext.StockLevels.AnyAsync(sl => sl.UnitId == id && !sl.Isdeleted, cancellationToken))
-                throw new InvalidOperationException("Cannot delete a unit that is used by stock levels.");
+            if (await dbContext.StockLevels.AnyAsync(sl => sl.UnitId == id && !sl.Isdeleted && (sl.QuantityOnHandInBaseUnit > 0 || sl.QuantityReservedInBaseUnit > 0 || sl.QuantityDamagedInBaseUnit > 0 || sl.QuantityQuarantineInBaseUnit > 0), cancellationToken))
+                throw new InvalidOperationException("Cannot delete a unit that is used by stock levels with existing quantities.");
 
             if (await dbContext.UnitConversions.AnyAsync(c => (c.FromUnitId == id || c.ToUnitId == id) && !c.Isdeleted, cancellationToken))
                 throw new InvalidOperationException("Cannot delete a unit that is used by unit conversions.");
@@ -147,11 +146,11 @@ public class UnitConversionRepository(AutoPartDbContext dbContext) : IUnitConver
 
     public async Task UpdateAsync(UnitConversion entity, CancellationToken cancellationToken = default)
     {
-        var existing = await dbContext.UnitConversions.FirstOrDefaultAsync(c => c.Id == entity.Id, cancellationToken);
+        var existing = await dbContext.UnitConversions
+            .FirstOrDefaultAsync(c => c.Id == entity.Id, cancellationToken);
         if (existing != null)
         {
-            dbContext.UnitConversions.Remove(existing);
-            dbContext.UnitConversions.Add(entity);
+            existing.Update(entity.ConversionFactor, entity.Description, entity.IsActive);
         }
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -161,7 +160,7 @@ public class UnitConversionRepository(AutoPartDbContext dbContext) : IUnitConver
         var conversion = await dbContext.UnitConversions.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         if (conversion != null)
         {
-            dbContext.UnitConversions.Remove(conversion);
+            conversion.Isdeleted = true;
         }
         await dbContext.SaveChangesAsync(cancellationToken);
     }

@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -26,9 +27,10 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
             .HasMaxLength(10);
 
         builder.Property(sl => sl.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20)
-            .HasDefaultValue("AVAILABLE");
+            .HasDefaultValue(StockLotStatus.AVAILABLE);
 
         // Relationships
         builder.HasOne(sl => sl.Part)
@@ -50,7 +52,8 @@ public class StockLotConfiguration : IEntityTypeConfiguration<StockLot>
         builder.HasOne(sl => sl.Supplier)
             .WithMany()
             .HasForeignKey(sl => sl.SupplierId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);  // adjustment lots have no supplier provenance
 
         builder.HasOne(sl => sl.Unit)
             .WithMany()

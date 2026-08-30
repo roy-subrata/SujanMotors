@@ -27,8 +27,16 @@ public interface IProductImportService
     /// Returns a per-row report of validity, the action each row would take, and the
     /// master data (brands/categories/units) the batch would create.
     /// </summary>
+    /// <param name="xlsxStream">The uploaded workbook.</param>
+    /// <param name="mode">Create-only (default) or create-and-update.</param>
+    /// <param name="allowNewReferenceData">
+    /// When false (the default), a brand/category/unit name that does not already exist is a row
+    /// error instead of a silent insert — a typo must not create master data.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     Task<ProductImportValidationResult> ValidateAsync(
-        Stream xlsxStream, ProductImportMode mode, CancellationToken cancellationToken = default);
+        Stream xlsxStream, ProductImportMode mode, bool allowNewReferenceData = false,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Re-validates and persists the supplied rows in a single transaction — reference data,
@@ -36,5 +44,6 @@ public interface IProductImportService
     /// re-validation are skipped and reported in <see cref="ProductImportCommitResult.Failures"/>.
     /// </summary>
     Task<ProductImportCommitResult> CommitAsync(
-        IEnumerable<ProductImportRow> rows, ProductImportMode mode, CancellationToken cancellationToken = default);
+        IEnumerable<ProductImportRow> rows, ProductImportMode mode, bool allowNewReferenceData = false,
+        CancellationToken cancellationToken = default);
 }

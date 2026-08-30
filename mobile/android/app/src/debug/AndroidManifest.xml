@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Debug builds only: the dev API runs on plain HTTP (10.0.2.2 emulator loopback).
+         Release builds keep cleartext forbidden via the main manifest, and the merger
+         takes the more restrictive value across manifests. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

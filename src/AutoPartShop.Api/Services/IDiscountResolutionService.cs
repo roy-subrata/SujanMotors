@@ -20,4 +20,12 @@ public interface IDiscountResolutionService
         decimal cartSubtotal,
         string? promoCode,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Batch-resolves item discounts for multiple line items in one pass (avoids N+1 queries).
+    /// Returns a list of results in the same order as the input items.
+    /// </summary>
+    Task<IList<DiscountResolutionResult>> ResolveItemDiscountsAsync(
+        IList<(Guid PartId, Guid? ProductVariantId, decimal UnitPrice)> items,
+        CancellationToken cancellationToken = default);
 }

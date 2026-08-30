@@ -1,5 +1,5 @@
+import { CurrencyPipe, CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -14,6 +14,10 @@ import { CurrencyService } from '../../../shared/services/currency.service';
 import { PriceCodeService } from '../../../shared/services/price-code.service';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
 import { map } from 'rxjs';
 
 @Component({
@@ -29,7 +33,10 @@ import { map } from 'rxjs';
     ToastModule,
     TooltipModule,
     LazyAutocompleteComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    StatStripComponent,
+    TranslatePipe,
+    AppCurrencyPipe
   ],
   providers: [MessageService],
   templateUrl: './stock-price-history.component.html',
@@ -41,6 +48,7 @@ export class StockPriceHistoryComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly currencyService = inject(CurrencyService);
   readonly priceCodeService = inject(PriceCodeService);
+  private readonly i18n = inject(I18nService);
 
   priceHistory: StockLotPriceHistoryResponse | null = null;
   selectedPart: PartResponse | null = null;
@@ -55,6 +63,22 @@ export class StockPriceHistoryComponent implements OnInit {
 
   get currencyCode(): string {
     return this.currencyService.selectedCurrency();
+  }
+
+  get priceStats(): StatStripItem[] {
+    if (!this.priceHistory) return [];
+    const fmt = new CurrencyPipe('en-US');
+    const formatPrice = (price: number): string => {
+      const coded = this.priceCodeService.getDisplayPrice(price);
+      if (coded !== null) return coded;
+      return fmt.transform(price, this.currencyCode, 'symbol', '1.2-4') ?? String(price);
+    };
+    return [
+      { label: this.i18n.t('priceHistory.stats.latest'), value: formatPrice(this.priceHistory.latestPrice) },
+      { label: this.i18n.t('priceHistory.stats.average'), value: formatPrice(this.priceHistory.averagePrice) },
+      { label: this.i18n.t('priceHistory.stats.minimum'), value: formatPrice(this.priceHistory.minPrice) },
+      { label: this.i18n.t('priceHistory.stats.maximum'), value: formatPrice(this.priceHistory.maxPrice) },
+    ];
   }
 
   // Lazy autocomplete fetch function for parts
@@ -101,8 +125,8 @@ export class StockPriceHistoryComponent implements OnInit {
       error: (_error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load price history'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('priceHistory.messages.loadFailed')
         });
         this.loading = false;
       }
@@ -157,8 +181,8 @@ export class StockPriceHistoryComponent implements OnInit {
   }
 
   getExpiryDisplay(lot: StockLotHistoryItem): string {
-    if (!lot.expiryDate) return 'N/A';
-    if (lot.isExpired) return 'Expired';
+    if (!lot.expiryDate) return this.i18n.t('priceHistory.notAvailable');
+    if (lot.isExpired) return this.i18n.t('priceHistory.expired');
     return new Date(lot.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 }

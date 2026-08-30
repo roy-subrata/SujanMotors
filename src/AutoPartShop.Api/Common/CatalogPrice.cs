@@ -8,7 +8,7 @@ namespace AutoPartShop.Api.Common;
 /// columns are the canonical read value; <c>ProductVariantPriceHistory</c> + the scheduled
 /// price-sync background service keep them equal to the currently-active scheduled price.
 ///
-/// Every read path (POS search, barcode scan, ecommerce checkout) must use this rule so the
+/// Every read path (POS search, barcode scan) must use this rule so the
 /// same part can never ring up at two different prices.
 /// </summary>
 public static class CatalogPrice

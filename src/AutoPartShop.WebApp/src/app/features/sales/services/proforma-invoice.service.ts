@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PdfDownloadService } from '@/shared/services/pdf-download.service';
+import { ProformaInvoiceStatus } from '@/shared/models/status.types';
 
 export interface CreateProformaInvoiceRequest {
     salesOrderId: string;
@@ -25,7 +26,7 @@ export interface ProformaInvoiceResponse {
     grandTotal: number;
     issueDate: string;
     validUntil: string;
-    status: string; // ISSUED | EXPIRED | SUPERSEDED
+    status: ProformaInvoiceStatus;
     isExpired: boolean;
     notes: string;
     createdAt: string;

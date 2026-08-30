@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -83,13 +84,18 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
             .ToListAsync(cancellationToken);
 
     public async Task<IEnumerable<SupplierPayment>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
-        => await _db.SupplierPayments
+    {
+        if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<SupplierPaymentStatus>(status.Trim(), true, out var parsedStatus))
+            return Enumerable.Empty<SupplierPayment>();
+
+        return await _db.SupplierPayments
             .Include(x => x.Supplier)
             .Include(x => x.PaymentProvider)
             .Include(x => x.SupplierPaymentAccount)
-            .Where(x => x.Status == status && !x.Isdeleted)
+            .Where(x => x.Status == parsedStatus && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
+    }
 
     public async Task<IEnumerable<SupplierPayment>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
         => await _db.SupplierPayments
@@ -114,7 +120,7 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
             .Include(x => x.Supplier)
             .Include(x => x.PaymentProvider)
             .Include(x => x.SupplierPaymentAccount)
-            .Where(x => x.Status == "PENDING" && !x.Isdeleted)
+            .Where(x => x.Status == SupplierPaymentStatus.PENDING && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
 
@@ -123,7 +129,7 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
             .Include(x => x.Supplier)
             .Include(x => x.PaymentProvider)
             .Include(x => x.SupplierPaymentAccount)
-            .Where(x => x.Status == "FAILED" && !x.Isdeleted)
+            .Where(x => x.Status == SupplierPaymentStatus.FAILED && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
 
@@ -133,18 +139,18 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
 
     public async Task<decimal> GetTotalBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
         => await _db.SupplierPayments
-            .Where(x => x.SupplierId == supplierId && x.Status == "COMPLETED" && !x.Isdeleted)
+            .Where(x => x.SupplierId == supplierId && x.Status == SupplierPaymentStatus.COMPLETED && !x.Isdeleted)
             .SumAsync(x => x.Amount, cancellationToken);
 
     public async Task<decimal> GetTotalByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
         => await _db.SupplierPayments
-            .Where(x => x.PaymentDate >= startDate && x.PaymentDate <= endDate && x.Status == "COMPLETED" && !x.Isdeleted)
+            .Where(x => x.PaymentDate >= startDate && x.PaymentDate <= endDate && x.Status == SupplierPaymentStatus.COMPLETED && !x.Isdeleted)
             .SumAsync(x => x.Amount, cancellationToken);
 
     public async Task<decimal> GetTotalCompletedPaymentsBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
         => await _db.SupplierPayments
             .Where(x => x.SupplierId == supplierId &&
-                        x.Status == "COMPLETED" &&
+                        x.Status == SupplierPaymentStatus.COMPLETED &&
                         x.PaymentMethod != "REFUND" &&
                         x.PaymentMethod != "CREDIT_NOTE" &&
                         (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null) &&
@@ -155,7 +161,7 @@ public class SupplierPaymentRepository(AutoPartDbContext _db) : ISupplierPayment
         => await _db.SupplierPayments
             .Where(x => x.SupplierId == supplierId &&
                         x.PaymentType == PaymentType.ADVANCE &&
-                        x.Status == "COMPLETED" &&
+                        x.Status == SupplierPaymentStatus.COMPLETED &&
                         x.RemainingAmount > 0 &&
                         !x.Isdeleted)
             .SumAsync(x => x.RemainingAmount, cancellationToken);

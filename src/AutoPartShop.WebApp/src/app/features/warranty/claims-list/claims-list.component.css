@@ -158,34 +158,6 @@
 
 .clear-icon:hover { color: var(--red); }
 
-/* Standard flow guide */
-.flow-guide {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-    padding: 0.75rem 1rem;
-    border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
-    border-radius: 10px;
-    background: var(--amber-bg);
-    color: var(--amber);
-    font-size: 0.82rem;
-}
-
-.flow-guide-label {
-    font-weight: 700;
-    margin-right: 0.4rem;
-}
-
-.flow-step {
-    background: var(--surface-card);
-    border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
-    border-radius: 999px;
-    padding: 0.18rem 0.55rem;
-    font-weight: 500;
-}
-
 /* Table Container */
 .table-container {
     background: var(--surface-card);

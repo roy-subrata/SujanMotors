@@ -26,6 +26,8 @@ import { InvoicePdfService } from '../../sales/services/invoice-pdf.service';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 @Component({
     selector: 'app-supplier-account-summary',
@@ -42,7 +44,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         LazyAutocompleteComponent,
         PageHeaderComponent,
         PageContainerComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './supplier-account-summary.component.html',
@@ -58,6 +61,7 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
     private readonly route = inject(ActivatedRoute);
     private readonly messageService = inject(MessageService);
     private readonly currencyService = inject(CurrencyService);
+    private readonly i18n = inject(I18nService);
     private readonly destroy$ = new Subject<void>();
 
     // Filter state
@@ -74,8 +78,6 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
 
     // PDF state
     pdfLoading = signal(false);
-    allEntries = signal<SupplierLedgerEntryDto[]>([]);
-    allEntriesLoaded = signal(false);
 
     // Pagination
     pageNumber = 1;
@@ -111,7 +113,7 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
                     }, 0);
                 },
                 error: () => {
-                    this.messageService.add({ severity: 'warn', summary: 'Not Found', detail: 'Supplier not found', life: 3000 });
+                    this.messageService.add({ severity: 'warn', summary: this.i18n.t('supplierAccountSummary.messages.notFound'), detail: this.i18n.t('supplierAccountSummary.messages.supplierNotFound'), life: 3000 });
                 }
             });
         }
@@ -126,16 +128,14 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
         this.summary.set(null);
         this.entries.set([]);
         this.totalEntryCount.set(0);
-        this.allEntries.set([]);
-        this.allEntriesLoaded.set(false);
     }
 
     generateReport(): void {
         if (!this.selectedSupplier) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Warning',
-                detail: 'Please select a supplier',
+                summary: this.i18n.t('common.messages.warning'),
+                detail: this.i18n.t('supplierAccountSummary.messages.selectSupplier'),
                 life: 3000
             });
             return;
@@ -143,7 +143,6 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
 
         this.pageNumber = 1;
         this.first = 0;
-        this.allEntriesLoaded.set(false);
         this.loadReport();
     }
 
@@ -177,12 +176,12 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
                 },
                 error: (err) => {
                     console.error('Error loading supplier account summary:', err);
-                    this.error.set('Failed to load account summary. Please try again.');
+                    this.error.set(this.i18n.t('supplierAccountSummary.messages.loadErrorHint'));
                     this.loading.set(false);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load supplier account summary',
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('supplierAccountSummary.messages.loadFailed'),
                         life: 5000
                     });
                 }
@@ -205,52 +204,10 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
         this.onPageChange({ page: 0, rows: size, first: 0 } as PaginatorState);
     }
 
-    private loadAllEntriesThen(action: 'print'): void {
-        if (!this.selectedSupplier || !this.summary()) return;
-
-        const total = this.totalEntryCount();
-
-        if (total <= this.entries().length) {
-            this.allEntries.set(this.entries());
-            this.allEntriesLoaded.set(true);
-            setTimeout(() => this.printReport(), 100);
-            return;
-        }
-
-        this.pdfLoading.set(true);
-        const query: SupplierLedgerQueryDto = {
-            supplierId: this.selectedSupplier.id,
-            pageNumber: 1,
-            pageSize: total,
-            fromDate: this.fromDate ? this.fromDate.toISOString() : undefined,
-            toDate: this.toDate ? this.toDate.toISOString() : undefined
-        };
-
-        this.ledgerService
-            .getLedgerEntries(query)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (data) => {
-                    this.allEntries.set(data.entries);
-                    this.allEntriesLoaded.set(true);
-                    setTimeout(() => this.printReport(), 200);
-                },
-                error: () => {
-                    this.pdfLoading.set(false);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load all entries for print',
-                        life: 5000
-                    });
-                }
-            });
-    }
-
     /** Server-rendered QuestPDF statement — the full ledger, not just the on-screen page of entries. */
     onDownloadPdf(): void {
         if (!this.selectedSupplier) {
-            this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Please select a supplier', life: 3000 });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.warning'), detail: this.i18n.t('supplierAccountSummary.messages.selectSupplier'), life: 3000 });
             return;
         }
 
@@ -266,82 +223,13 @@ export class SupplierAccountSummaryComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: () => {
                     this.pdfLoading.set(false);
-                    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'PDF downloaded successfully', life: 3000 });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('supplierAccountSummary.messages.pdfSuccess'), life: 3000 });
                 },
                 error: () => {
                     this.pdfLoading.set(false);
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to generate PDF', life: 5000 });
+                    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('supplierAccountSummary.messages.pdfFailed'), life: 5000 });
                 }
             });
-    }
-
-    onPrint(): void {
-        this.loadAllEntriesThen('print');
-    }
-
-    private printReport(): void {
-        const printContent = document.getElementById('supplier-account-summary-print');
-        if (!printContent) {
-            this.pdfLoading.set(false);
-            return;
-        }
-
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        if (!printWindow) {
-            this.pdfLoading.set(false);
-            return;
-        }
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Supplier Account Summary</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; padding: 10mm; }
-                    @page { size: A4; margin: 10mm; }
-                    @media print {
-                        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                    }
-                    .print-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px; }
-                    .print-company-name { font-size: 20px; font-weight: 700; color: #1f2937; }
-                    .print-company-info { font-size: 11px; color: #6b7280; margin-top: 4px; }
-                    .print-title { font-size: 16px; font-weight: 600; margin-top: 10px; color: #374151; }
-                    .print-supplier-info { display: flex; justify-content: space-between; margin-bottom: 16px; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; }
-                    .print-supplier-info div { font-size: 12px; }
-                    .print-supplier-name { font-size: 14px; font-weight: 600; color: #1f2937; }
-                    .print-metrics { display: flex; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
-                    .print-metric { flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 4px; text-align: center; }
-                    .print-metric-label { font-size: 10px; text-transform: uppercase; color: #6b7280; font-weight: 500; }
-                    .print-metric-value { font-size: 16px; font-weight: 700; color: #1f2937; margin-top: 4px; }
-                    .print-metric.due .print-metric-value { color: #dc2626; }
-                    .print-metric.paid .print-metric-value { color: #16a34a; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
-                    th { background: #f3f4f6; font-weight: 600; text-align: left; padding: 8px 6px; border: 1px solid #d1d5db; }
-                    td { padding: 6px; border: 1px solid #e5e7eb; }
-                    tr:nth-child(even) { background: #f9fafb; }
-                    .text-right { text-align: right; }
-                    .font-bold { font-weight: 700; }
-                    .print-table-title { font-size: 13px; font-weight: 600; margin-top: 16px; margin-bottom: 4px; }
-                    .print-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #9ca3af; }
-                    .print-due-box { margin-top: 12px; padding: 10px; border: 2px solid #dc2626; border-radius: 4px; text-align: right; }
-                    .print-due-box .label { font-size: 12px; color: #6b7280; }
-                    .print-due-box .value { font-size: 18px; font-weight: 700; color: #dc2626; }
-                    .text-debit { color: #dc2626; }
-                    .text-credit { color: #16a34a; }
-                </style>
-            </head>
-            <body>
-                ${printContent.innerHTML}
-                <script>
-                    window.onload = function() { window.print(); window.close(); }
-                </script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        this.pdfLoading.set(false);
     }
 
     getTransactionTypeLabel(type: SupplierLedgerTransactionType): string {

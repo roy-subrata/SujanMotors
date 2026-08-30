@@ -34,6 +34,8 @@
   <ItemGroup>
     <!-- Document fonts are embedded so PDF rendering does not depend on host-installed fonts. -->
     <EmbeddedResource Include="Fonts\*.ttf" />
+    <!-- Document label translations, loaded once at startup by DocStrings.Load(). -->
+    <EmbeddedResource Include="Pdf\Localization\*.json" />
   </ItemGroup>
 
   <ItemGroup>

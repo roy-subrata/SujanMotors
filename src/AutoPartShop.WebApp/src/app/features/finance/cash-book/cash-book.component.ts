@@ -12,6 +12,8 @@ import { CashBookService, DailyCashBook, LedgerRow, CashBookEntry } from '../ser
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { StatStripComponent, StatStripItem } from '@/shared/components/stat-strip/stat-strip.component';
+import { I18nService } from '@/shared/services/i18n.service';
 
 type Preset = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'custom';
 type ViewMode = 'ledger' | 'split';
@@ -22,7 +24,7 @@ const CREDIT_METHODS = new Set(['DUE', 'PART_PAY']);
 @Component({
   selector: 'app-cash-book',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TableModule, DatePickerModule, TooltipModule, SelectModule, PageContainerComponent, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, RouterModule, ToastModule, TableModule, DatePickerModule, TooltipModule, SelectModule, PageContainerComponent, PageHeaderComponent, StatStripComponent],
   providers: [MessageService],
   templateUrl: './cash-book.component.html',
   styleUrls: ['./cash-book.component.css']
@@ -31,6 +33,7 @@ export class CashBookComponent implements OnInit {
   private readonly svc    = inject(CashBookService);
   private readonly toast  = inject(MessageService);
   private readonly fxSvc  = inject(CurrencyService);
+  readonly i18n           = inject(I18nService);
 
   // ── State ────────────────────────────────────────────────────────
   loading   = signal(false);
@@ -93,7 +96,17 @@ export class CashBookComponent implements OnInit {
     const b = this.book();
     if (!b) return [];
     const methods = [...new Set([...b.cashIn, ...b.cashOut].map(e => e.paymentMethod))].sort();
-    return [{ label: 'All Methods', value: '' }, ...methods.map(m => ({ label: this.methodLabel(m), value: m }))];
+    return [{ label: this.i18n.t('cashBook.allMethods'), value: '' }, ...methods.map(m => ({ label: this.methodLabel(m), value: m }))];
+  });
+
+  headerStats = computed<StatStripItem[]>(() => {
+    const b = this.book();
+    if (!b) return [];
+    return [
+      { label: this.i18n.t('cashBook.in'), value: this.formatCurrency(b.totalCashIn) },
+      { label: this.i18n.t('cashBook.out'), value: this.formatCurrency(b.totalCashOut) },
+      { label: this.i18n.t('cashBook.net'), value: (b.netCash >= 0 ? '+' : '') + this.formatCurrency(b.netCash) },
+    ];
   });
 
   // ── Lifecycle ────────────────────────────────────────────────────
@@ -153,8 +166,8 @@ export class CashBookComponent implements OnInit {
     if (days > MAX_RANGE_DAYS) {
       this.toast.add({
         severity: 'warn',
-        summary: 'Range Too Large',
-        detail: `Maximum range is ${MAX_RANGE_DAYS} days. Please narrow your selection.`
+        summary: this.i18n.t('cashBook.rangeTooLargeSummary'),
+        detail: this.i18n.t('cashBook.rangeTooLargeDetail', { days: String(MAX_RANGE_DAYS) })
       });
       return;
     }
@@ -171,8 +184,8 @@ export class CashBookComponent implements OnInit {
     obs.subscribe({
       next: b => { this.book.set(b); this.loading.set(false); },
       error: (err) => {
-        const msg = err?.error?.data?.detail ?? err?.error?.message ?? 'Failed to load cash book';
-        this.toast.add({ severity: 'error', summary: 'Error', detail: msg });
+        const msg = err?.error?.data?.detail ?? err?.error?.message ?? this.i18n.t('cashBook.loadFailed');
+        this.toast.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: msg });
         this.loading.set(false);
       }
     });
@@ -184,7 +197,11 @@ export class CashBookComponent implements OnInit {
     if (!b) return;
 
     const rows = this.ledgerRows();
-    const header = ['Time', 'Type', 'Description', 'Reference', 'Payment Method', 'Cash In', 'Cash Out', 'Balance', 'Status', 'Notes'].join(',');
+    const header = [
+      this.i18n.t('cashBook.colTime'), this.i18n.t('cashBook.colType'), this.i18n.t('cashBook.colDescription'),
+      this.i18n.t('common.labels.reference'), this.i18n.t('cashBook.colPaymentMethod'), this.i18n.t('cashBook.colCashIn'),
+      this.i18n.t('cashBook.colCashOut'), this.i18n.t('cashBook.colBalance'), this.i18n.t('common.labels.status'), this.i18n.t('common.labels.notes')
+    ].join(',');
     const lines  = rows.map(r => [
       `"${new Date(r.time).toLocaleString('en-GB')}"`,
       `"${this.typeLabel(r.type)}"`,
@@ -250,22 +267,22 @@ export class CashBookComponent implements OnInit {
 
   typeLabel(type: string): string {
     const m: Record<string, string> = {
-      CUSTOMER_PAYMENT: 'Sale / Receipt',
-      EXPENSE:          'Expense',
-      SUPPLIER_PAYMENT: 'Supplier Pmt',
-      REFUND:           'Refund'
+      CUSTOMER_PAYMENT: 'cashBook.types.customerPayment',
+      EXPENSE:          'cashBook.types.expense',
+      SUPPLIER_PAYMENT: 'cashBook.types.supplierPayment',
+      REFUND:           'cashBook.types.refund'
     };
-    return m[type] ?? type;
+    return m[type] ? this.i18n.t(m[type]) : type;
   }
 
   methodLabel(m: string): string {
     const map: Record<string, string> = {
-      CASH: 'Cash', MOBILE_BANKING: 'Mobile Banking', CARD: 'Card',
-      BANK_TRANSFER: 'Bank Transfer', CHEQUE: 'Cheque', CHECK: 'Cheque',
-      DUE: 'Due / Credit', PART_PAY: 'Part Pay', ADVANCE: 'Advance',
-      REFUND: 'Refund', REFUND_REVERSAL: 'Refund Reversal'
+      CASH: 'cashBook.methods.cash', MOBILE_BANKING: 'cashBook.methods.mobileBanking', CARD: 'cashBook.methods.card',
+      BANK_TRANSFER: 'cashBook.methods.bankTransfer', CHEQUE: 'cashBook.methods.cheque', CHECK: 'cashBook.methods.cheque',
+      DUE: 'cashBook.methods.due', PART_PAY: 'cashBook.methods.partPay', ADVANCE: 'cashBook.methods.advance',
+      REFUND: 'cashBook.methods.refund', REFUND_REVERSAL: 'cashBook.methods.refundReversal'
     };
-    return map[m] ?? m;
+    return map[m] ? this.i18n.t(map[m]) : m;
   }
 
   methodIcon(m: string): string {
@@ -282,9 +299,9 @@ export class CashBookComponent implements OnInit {
 
   headingDate(): string {
     if (this.isSingleDay()) {
-      if (this.isToday()) return 'Today';
+      if (this.isToday()) return this.i18n.t('cashBook.today');
       const y = new Date(); y.setDate(y.getDate() - 1);
-      if (this.dateFrom.toDateString() === y.toDateString()) return 'Yesterday';
+      if (this.dateFrom.toDateString() === y.toDateString()) return this.i18n.t('cashBook.yesterday');
       return this.dateFrom.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
     }
     return `${this.dateFrom.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} – ${this.dateTo.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;

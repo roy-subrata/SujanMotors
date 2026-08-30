@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../shared/models/status_enums.dart';
+
 /// App strings for the supported languages (English / Bengali).
 ///
 /// Usage: `S.of(context).products`. New screens add a getter here with both
@@ -75,6 +77,9 @@ class S {
       _t('Search name, SKU, brand...', 'নাম, SKU, ব্র্যান্ড খুঁজুন...');
   String get noProductsFound =>
       _t('No products found.', 'কোনো পণ্য পাওয়া যায়নি।');
+  String get matchedHint => _t('Matched', 'মিলেছে');
+  String get variantsMatchedSuffix =>
+      _t('variants matched', 'টি ভ্যারিয়েন্ট মিলেছে');
   String get all => _t('All', 'সব');
   String get more => _t('More', 'আরও');
   String get lowStock => _t('Low stock', 'কম স্টক');
@@ -123,7 +128,7 @@ class S {
   String get reserved => _t('Reserved', 'রিজার্ভড');
   String get reorderAt => _t('Reorder at', 'রিঅর্ডার লেভেল');
   String get overview => _t('Overview', 'সারসংক্ষেপ');
-  String get specifications => _t('Specifications', 'স্পেসিফিকেশন');
+  String get attributes => _t('Attributes', 'অ্যাট্রিবিউট');
   String get compatibility => _t('Compatibility', 'সামঞ্জস্য');
   String get stockAndLots => _t('Stock & lots', 'স্টক ও লট');
   String get details => _t('Details', 'বিবরণ');
@@ -135,10 +140,13 @@ class S {
   String get type => _t('Type', 'ধরন');
   String get variants => _t('Variants', 'ভ্যারিয়েন্ট');
   String get notes => _t('Notes', 'নোট');
-  String get noSpecificationsYet =>
-      _t('No specifications yet.', 'এখনও কোনো স্পেসিফিকেশন নেই।');
-  String get technicalSpecification =>
-      _t('Technical specification', 'টেকনিক্যাল স্পেসিফিকেশন');
+  String get productAttributes =>
+      _t('Product attributes', 'পণ্যের অ্যাট্রিবিউট');
+  String get filterByAttributes =>
+      _t('Filter by Attributes', 'অ্যাট্রিবিউট দিয়ে ফিল্টার করুন');
+  String get noAttributesForCategory => _t(
+      'No filterable attributes for this category',
+      'এই বিভাগের জন্য কোনো ফিল্টারযোগ্য অ্যাট্রিবিউট নেই');
   String get compatibleVehicles =>
       _t('Compatible vehicles', 'সামঞ্জস্যপূর্ণ গাড়ি');
   String get noCompatibleVehiclesYet => _t(
@@ -234,6 +242,13 @@ class S {
   String get confirmSale => _t('Confirm Sale', 'বিক্রয় নিশ্চিত করুন');
   String get cartTotal => _t('Cart Total', 'কার্ট মোট');
   String get grandTotalLabel => _t('Grand Total', 'সর্বমোট');
+  String get promoCode => _t('Promo code', 'প্রোমো কোড');
+  String get itemDiscounts => _t('Item discounts', 'আইটেম ডিসকাউন্ট');
+  String get storeDiscount => _t('Store discount', 'স্টোর ডিসকাউন্ট');
+  String promoRowLabel(String code) =>
+      _t('Promo · $code', 'প্রোমো · $code');
+  String get invalidPromoCode => _t(
+      'Invalid or expired promo code', 'প্রোমো কোডটি অবৈধ বা মেয়াদোত্তীর্ণ');
   String get customer => _t('Customer', 'গ্রাহক');
   String get walkInSelectCustomer =>
       _t('Walk-in / Select customer', 'ওয়াক-ইন / গ্রাহক নির্বাচন');
@@ -438,8 +453,13 @@ class S {
   String get outstanding => _t('Outstanding', 'বকেয়া');
 
   // ── Statuses / history lists ────────────────────────────────────────────
-  /// Localized label for a backend status code such as "PARTIALLY_PAID".
-  String statusName(String code) => switch (code.toUpperCase()) {
+  /// Localized label for any backend status enum (invoice, customer payment,
+  /// sales return, ...) — shared because their wire values overlap heavily
+  /// (PENDING/PAID/CANCELLED/COMPLETED/...). Values only one domain uses
+  /// (e.g. invoice's PARTIALLY_PAID, payment's REFUNDED) still get a
+  /// dedicated branch; anything else falls back to a humanized form of the
+  /// wire string.
+  String statusName(WireStatus status) => switch (status.wire) {
         'DRAFT' => _t('Draft', 'খসড়া'),
         'ISSUED' => _t('Issued', 'ইস্যুকৃত'),
         'PARTIALLY_PAID' => _t('Partially paid', 'আংশিক পরিশোধিত'),
@@ -450,7 +470,7 @@ class S {
         'PENDING' => _t('Pending', 'অপেক্ষমাণ'),
         'FAILED' => _t('Failed', 'ব্যর্থ'),
         'REFUNDED' => _t('Refunded', 'ফেরত দেওয়া'),
-        _ => _humanize(code),
+        _ => _humanize(status.wire),
       };
 
   static String _humanize(String s) {
@@ -746,14 +766,16 @@ class S {
   String get received => _t('Received', 'গৃহীত');
   String get noStockInOrders => _t(
       'No stock-in orders found.', 'কোনো স্টক-ইন অর্ডার পাওয়া যায়নি।');
-  /// Localized pill label for a purchase-order status code.
-  String poStatusName(String status) => switch (status) {
-        'DELIVERED' => received,
-        'DRAFT' => _t('Draft', 'খসড়া'),
-        'SUBMITTED' || 'CONFIRMED' => pending,
-        'PARTIAL' => statusPartial,
-        'CANCELLED' => statusCancelled,
-        _ => status,
+  /// Localized pill label for a purchase-order status.
+  String poStatusName(PurchaseOrderStatus status) => switch (status) {
+        PurchaseOrderStatus.delivered => received,
+        PurchaseOrderStatus.draft => _t('Draft', 'খসড়া'),
+        PurchaseOrderStatus.submitted ||
+        PurchaseOrderStatus.confirmed =>
+          pending,
+        PurchaseOrderStatus.partial => statusPartial,
+        PurchaseOrderStatus.cancelled => statusCancelled,
+        PurchaseOrderStatus.unknown => status.wire,
       };
   String get submittingOrder =>
       _t('Submitting order...', 'অর্ডার জমা হচ্ছে...');
@@ -960,16 +982,6 @@ class S {
   String get oemNumber => _t('OEM number', 'OEM নম্বর');
   String get descriptionLabel => _t('Description', 'বিবরণ');
   String get activeLabel => _t('Active', 'সক্রিয়');
-
-  // ── Product specs edit ────────────────────────────────────────────────
-  String get specificationsSaved =>
-      _t('Specifications saved', 'স্পেসিফিকেশন সংরক্ষিত');
-  String get addSpecification =>
-      _t('Add specification', 'স্পেসিফিকেশন যোগ করুন');
-  String get saveSpecifications =>
-      _t('Save specifications', 'স্পেসিফিকেশন সংরক্ষণ');
-  String get labelLabel => _t('Label', 'লেবেল');
-  String get valueLabel => _t('Value', 'মান');
 
   // ── Product compatibility edit ────────────────────────────────────────
   String get noVehiclesFound =>

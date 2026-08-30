@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { PdfDownloadService } from '@/shared/services/pdf-download.service';
+import { SalesOrderStatus } from '@/shared/models/status.types';
 
 export interface SalesOrderLineRequest {
     partId: string;
@@ -65,7 +66,8 @@ export interface SalesOrderResponse {
     vehicleLabel?: string;
     orderDate: string;
     deliveryDate: string;
-    status: string;
+    status: SalesOrderStatus;
+    channel?: string;
     subTotal: number;
     taxAmount: number;
     discount: number;
@@ -83,7 +85,7 @@ export interface SaleOrderQuery {
     search: string;
     pageSize: number;
     pageNumber: number;
-    status?: string;
+    status?: SalesOrderStatus;
     fromDate?:string,
     toDate?:string
 }
@@ -124,7 +126,7 @@ export class SalesOrderService {
         return this.http.get<SalesOrderResponse[]>(`${this.apiUrl}/customer/${customerId}`);
     }
 
-    getSalesOrdersByStatus(status: string): Observable<SalesOrderResponse[]> {
+    getSalesOrdersByStatus(status: SalesOrderStatus): Observable<SalesOrderResponse[]> {
         return this.http.get<SalesOrderResponse[]>(`${this.apiUrl}/status/${status}`);
     }
 

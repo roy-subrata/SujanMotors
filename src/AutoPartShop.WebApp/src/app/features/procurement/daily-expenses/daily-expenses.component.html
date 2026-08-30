@@ -3,12 +3,12 @@
 
 <app-page-container>
     <app-page-header
-        title="Daily Expenses"
-        subtitle="Track and manage day-to-day shop expenses"
-        [count]="expenses().length" countLabel="expenses" countIcon="pi pi-wallet">
+        [title]="'dailyExpenses.title' | translate"
+        [subtitle]="'dailyExpenses.subtitle' | translate"
+        [count]="expenses().length" [countLabel]="'dailyExpenses.countLabel' | translate" countIcon="pi pi-wallet">
         <ng-container actions>
             <button class="btn-primary" (click)="openNewExpenseDialog()">
-                <i class="pi pi-plus"></i><span>Add Expense</span>
+                <i class="pi pi-plus"></i><span>{{ 'dailyExpenses.addExpense' | translate }}</span>
             </button>
         </ng-container>
     </app-page-header>
@@ -16,31 +16,26 @@
     <section class="table-section desktop-only">
         <div class="table-container">
     <p-table
-        [value]="expenses()"
+        [value]="pagedExpenses()"
         [loading]="loading()"
-        [paginator]="true"
-        [rows]="10"
-        [rowsPerPageOptions]="[10, 25, 50]"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} expenses"
-        [globalFilterFields]="['description', 'category', 'vendorName', 'paymentMethod']"
+        [paginator]="false"
         [scrollable]="true"
         styleClass="app-table"
     >
-        <ng-template pTemplate="header">
+        <ng-template #header>
             <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Description</th>
-                <th>Vendor</th>
-                <th>Amount</th>
-                <th>Payment Method</th>
-                <th>Recurring</th>
-                <th style="width: 120px">Actions</th>
+                <th>{{ 'common.labels.date' | translate }}</th>
+                <th>{{ 'dailyExpenses.table.category' | translate }}</th>
+                <th>{{ 'common.labels.description' | translate }}</th>
+                <th>{{ 'dailyExpenses.table.vendor' | translate }}</th>
+                <th>{{ 'common.labels.amount' | translate }}</th>
+                <th>{{ 'dailyExpenses.table.paymentMethod' | translate }}</th>
+                <th>{{ 'dailyExpenses.table.recurring' | translate }}</th>
+                <th style="width: 120px">{{ 'common.labels.actions' | translate }}</th>
             </tr>
         </ng-template>
 
-        <ng-template pTemplate="body" let-expense>
+        <ng-template #body let-expense>
             <tr>
                 <td>{{ formatDate(expense.expenseDate) }}</td>
                 <td>
@@ -65,7 +60,7 @@
                             icon="pi pi-pencil"
                             class="p-button-rounded p-button-text p-button-info"
                             (click)="editExpense(expense)"
-                            pTooltip="Edit"
+                            [pTooltip]="'common.actions.edit' | translate"
                         ></button>
                         <button
                             pButton
@@ -73,16 +68,16 @@
                             icon="pi pi-trash"
                             class="p-button-rounded p-button-text p-button-danger"
                             (click)="deleteExpense(expense)"
-                            pTooltip="Delete"
+                            [pTooltip]="'common.actions.delete' | translate"
                         ></button>
                     </div>
                 </td>
             </tr>
         </ng-template>
 
-        <ng-template pTemplate="emptymessage">
+        <ng-template #emptymessage>
             <tr>
-                <td colspan="8" class="text-center py-8 text-gray-500">No expenses found</td>
+                <td colspan="8" class="text-center py-8 text-gray-500">{{ 'dailyExpenses.empty' | translate }}</td>
             </tr>
         </ng-template>
     </p-table>
@@ -107,12 +102,12 @@
 
         <div *ngIf="!loading() && expenses().length === 0" class="empty-state-mobile">
             <div class="empty-icon"><i class="pi pi-wallet"></i></div>
-            <h3>No Expenses Found</h3>
-            <p>Add a new expense to get started</p>
+            <h3>{{ 'dailyExpenses.emptyTitle' | translate }}</h3>
+            <p>{{ 'dailyExpenses.emptyHint' | translate }}</p>
         </div>
 
         <div *ngIf="!loading() && expenses().length > 0" class="cards-grid">
-            <div *ngFor="let expense of expenses()" class="order-card">
+            <div *ngFor="let expense of pagedExpenses()" class="order-card">
 
                 <div class="card-header">
                     <span class="card-so-number">{{ expense.description }}</span>
@@ -125,23 +120,32 @@
                         <span class="card-meta-item"><i class="pi {{ getCategoryIcon(expense.category) }}"></i>&nbsp;{{ getCategoryLabel(expense.category) }}</span>
                         <span *ngIf="expense.vendorName" class="card-meta-item"><i class="pi pi-building"></i>&nbsp;{{ expense.vendorName }}</span>
                         <span class="card-meta-item"><i class="pi pi-credit-card"></i>&nbsp;{{ expense.paymentMethod }}</span>
-                        <span *ngIf="expense.isRecurring" class="card-meta-item" [title]="expense.recurrencePattern"><i class="pi pi-sync"></i>&nbsp;Recurring</span>
+                        <span *ngIf="expense.isRecurring" class="card-meta-item" [title]="expense.recurrencePattern"><i class="pi pi-sync"></i>&nbsp;{{ 'dailyExpenses.recurringBadge' | translate }}</span>
                     </div>
                 </div>
 
                 <div class="card-footer">
-                    <button class="btn-card-action" pTooltip="Edit" (click)="editExpense(expense)"><i class="pi pi-pencil"></i></button>
-                    <button class="btn-card-action" pTooltip="Delete" (click)="deleteExpense(expense)"><i class="pi pi-trash"></i></button>
+                    <button class="btn-card-action" [pTooltip]="'common.actions.edit' | translate" (click)="editExpense(expense)"><i class="pi pi-pencil"></i></button>
+                    <button class="btn-card-action" [pTooltip]="'common.actions.delete' | translate" (click)="deleteExpense(expense)"><i class="pi pi-trash"></i></button>
                 </div>
             </div>
         </div>
 
     </section>
 
+    <app-data-pagination
+        [first]="first()"
+        [pageSize]="pageSize()"
+        [totalRecords]="expenses().length"
+        [itemLabel]="'dailyExpenses.countLabel' | translate"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+    </app-data-pagination>
+
 <!-- Add/Edit Expense Dialog -->
 <p-dialog
     [(visible)]="displayDialog"
-    [header]="isEditMode ? 'Edit Expense' : 'Add New Expense'"
+    [header]="isEditMode ? ('dailyExpenses.dialog.editTitle' | translate) : ('dailyExpenses.dialog.addTitle' | translate)"
     [modal]="true"
     [style]="{ width: '600px' }"
     [draggable]="false"
@@ -149,25 +153,25 @@
 >
     <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-2">
-            <label for="expenseDate" class="font-semibold">Date *</label>
+            <label for="expenseDate" class="font-semibold">{{ 'common.labels.date' | translate }} *</label>
             <p-datepicker
                 id="expenseDate"
                 [(ngModel)]="expenseForm.expenseDate"
                 dateFormat="yy-mm-dd"
                 [showIcon]="true"
-                placeholder="Select date"
+                [placeholder]="'dailyExpenses.form.selectDate' | translate"
             />
         </div>
 
         <div class="flex flex-col gap-2">
-            <label for="category" class="font-semibold">Category *</label>
+            <label for="category" class="font-semibold">{{ 'dailyExpenses.table.category' | translate }} *</label>
             <p-select
                 id="category"
                 [(ngModel)]="expenseForm.category"
                 [options]="categories()"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Select category"
+                [placeholder]="'dailyExpenses.form.selectCategory' | translate"
                 [filter]="true"
             >
                 <ng-template let-item pTemplate="item">
@@ -180,17 +184,17 @@
         </div>
 
         <div class="flex flex-col gap-2">
-            <label for="description" class="font-semibold">Description *</label>
+            <label for="description" class="font-semibold">{{ 'common.labels.description' | translate }} *</label>
             <input
                 pInputText
                 id="description"
                 [(ngModel)]="expenseForm.description"
-                placeholder="Enter description"
+                [placeholder]="'dailyExpenses.form.descriptionPlaceholder' | translate"
             />
         </div>
 
         <div class="flex flex-col gap-2">
-            <label for="amount" class="font-semibold">Amount *</label>
+            <label for="amount" class="font-semibold">{{ 'common.labels.amount' | translate }} *</label>
             <p-inputNumber
                 id="amount"
                 [(ngModel)]="expenseForm.amount"
@@ -203,34 +207,34 @@
         </div>
 
         <div class="flex flex-col gap-2">
-            <label for="vendorName" class="font-semibold">Vendor</label>
+            <label for="vendorName" class="font-semibold">{{ 'dailyExpenses.table.vendor' | translate }}</label>
             <input
                 pInputText
                 id="vendorName"
                 [(ngModel)]="expenseForm.vendorName"
-                placeholder="Enter vendor name"
+                [placeholder]="'dailyExpenses.form.vendorPlaceholder' | translate"
             />
         </div>
 
         <div class="flex flex-col gap-2">
-            <label for="paymentMethod" class="font-semibold">Payment Method *</label>
+            <label for="paymentMethod" class="font-semibold">{{ 'dailyExpenses.table.paymentMethod' | translate }} *</label>
             <p-select
                 id="paymentMethod"
                 [(ngModel)]="expenseForm.paymentMethod"
                 [options]="paymentMethods"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Select payment method"
+                [placeholder]="'dailyExpenses.form.selectPaymentMethod' | translate"
             />
         </div>
 
         <div class="flex flex-col gap-2">
-            <label for="referenceNumber" class="font-semibold">Reference Number</label>
+            <label for="referenceNumber" class="font-semibold">{{ 'common.labels.reference' | translate }}</label>
             <input
                 pInputText
                 id="referenceNumber"
                 [(ngModel)]="expenseForm.referenceNumber"
-                placeholder="Check number, transfer ref, etc."
+                [placeholder]="'dailyExpenses.form.referencePlaceholder' | translate"
             />
         </div>
 
@@ -240,29 +244,29 @@
                 [binary]="true"
                 inputId="isRecurring"
             />
-            <label for="isRecurring" class="font-semibold">Recurring Expense</label>
+            <label for="isRecurring" class="font-semibold">{{ 'dailyExpenses.form.recurringLabel' | translate }}</label>
         </div>
 
         <div *ngIf="expenseForm.isRecurring" class="flex flex-col gap-2">
-            <label for="recurrencePattern" class="font-semibold">Recurrence Pattern</label>
+            <label for="recurrencePattern" class="font-semibold">{{ 'dailyExpenses.form.patternLabel' | translate }}</label>
             <p-select
                 id="recurrencePattern"
                 [(ngModel)]="expenseForm.recurrencePattern"
                 [options]="recurrencePatterns"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Select pattern"
+                [placeholder]="'dailyExpenses.form.selectPattern' | translate"
             />
         </div>
 
         <div class="flex flex-col gap-2">
-            <label for="notes" class="font-semibold">Notes</label>
+            <label for="notes" class="font-semibold">{{ 'common.labels.notes' | translate }}</label>
             <textarea
                 pTextarea
                 id="notes"
                 [(ngModel)]="expenseForm.notes"
                 rows="3"
-                placeholder="Additional notes..."
+                [placeholder]="'dailyExpenses.form.notesPlaceholder' | translate"
             ></textarea>
         </div>
     </div>
@@ -271,7 +275,7 @@
         <button
             pButton
             type="button"
-            label="Cancel"
+            [label]="'common.actions.cancel' | translate"
             icon="pi pi-times"
             class="p-button-text"
             (click)="displayDialog = false"
@@ -279,7 +283,7 @@
         <button
             pButton
             type="button"
-            [label]="isEditMode ? 'Update' : 'Save'"
+            [label]="isEditMode ? ('common.actions.update' | translate) : ('common.actions.save' | translate)"
             icon="pi pi-check"
             (click)="saveExpense()"
             [loading]="loading()"

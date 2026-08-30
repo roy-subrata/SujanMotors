@@ -46,6 +46,18 @@ export class AppMenuComponent implements OnInit {
                 routerLink: ['/']
             },
 
+            // ==================== NOTIFICATIONS ====================
+            {
+                label: this.i18n.t('menu.notifications'),
+                icon: 'pi pi-bell',
+                routerLink: ['/notifications']
+            },
+            {
+                label: this.i18n.t('menu.shortcuts'),
+                icon: 'pi pi-key',
+                routerLink: ['/shortcuts']
+            },
+
             // ==================== CATALOG ====================
             {
                 label: this.i18n.t('menu.catalog'),
@@ -331,13 +343,6 @@ export class AppMenuComponent implements OnInit {
                 ]
             },
 
-            // ==================== ONLINE STORE ====================
-            {
-                label: this.i18n.t('menu.onlineStore'),
-                icon: 'pi pi-globe',
-                routerLink: ['/shop']
-            },
-
             // ==================== ADMINISTRATION (admin only) ====================
             {
                 label: this.i18n.t('menu.administration'),
@@ -353,11 +358,6 @@ export class AppMenuComponent implements OnInit {
                         label: this.i18n.t('menu.currencies'),
                         icon: 'pi pi-dollar',
                         routerLink: ['/admin/currencies']
-                    },
-                    {
-                        label: this.i18n.t('menu.shopPolicies'),
-                        icon: 'pi pi-shield',
-                        routerLink: ['/admin/shop-policies']
                     },
                     {
                         label: this.i18n.t('menu.settings'),

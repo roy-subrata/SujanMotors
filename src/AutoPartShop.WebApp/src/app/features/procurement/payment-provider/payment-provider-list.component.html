@@ -3,12 +3,12 @@
 
 <app-page-container>
   <app-page-header
-    title="Payment Providers"
-    subtitle="Manage payment methods and gateway configurations"
-    [count]="totalCount" countLabel="providers" countIcon="pi pi-credit-card">
+    [title]="'paymentProviders.title' | translate"
+    [subtitle]="'paymentProviders.subtitle' | translate"
+    [count]="totalCount" [countLabel]="'paymentProviders.countLabel' | translate" countIcon="pi pi-credit-card">
     <ng-container actions>
       <button class="btn-primary" (click)="createNew()">
-        <i class="pi pi-plus"></i><span>New Provider</span>
+        <i class="pi pi-plus"></i><span>{{ 'paymentProviders.addProvider' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -20,7 +20,7 @@
         <input
           type="text"
           class="search-input"
-          placeholder="Search by provider name..."
+          [placeholder]="'paymentProviders.searchPlaceholder' | translate"
           [(ngModel)]="searchTerm"
           (keyup.enter)="onSearch()" />
         <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
@@ -36,20 +36,20 @@
         [loading]="loading" (onLazyLoad)="onPageChange($event)" [lazy]="true" [scrollable]="true"
         styleClass="app-table" [globalFilterFields]="['providerName', 'providerType', 'status']">
 
-        <ng-template pTemplate="header">
+        <ng-template #header>
           <tr>
-            <th>Provider Name</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Account/Number</th>
-            <th>Fee Type</th>
-            <th>Settlement Days</th>
-            <th>Default</th>
-            <th>Actions</th>
+            <th>{{ 'paymentProviders.table.providerName' | translate }}</th>
+            <th>{{ 'common.labels.type' | translate }}</th>
+            <th>{{ 'common.labels.status' | translate }}</th>
+            <th>{{ 'paymentProviders.table.accountNumber' | translate }}</th>
+            <th>{{ 'paymentProviders.table.feeType' | translate }}</th>
+            <th>{{ 'paymentProviders.table.settlementDays' | translate }}</th>
+            <th>{{ 'paymentProviders.table.default' | translate }}</th>
+            <th>{{ 'common.labels.actions' | translate }}</th>
           </tr>
         </ng-template>
 
-        <ng-template pTemplate="body" let-provider>
+        <ng-template #body let-provider>
           <tr>
             <td>{{ provider.providerName }}</td>
             <td>{{ provider.providerType }}</td>
@@ -58,7 +58,7 @@
             </td>
             <td>{{ getAccountDisplay(provider) }}</td>
             <td>{{ provider.transactionFeeType }} ({{ provider.transactionFeeAmount | appCurrency }})</td>
-            <td>{{ provider.settlementDays }} days</td>
+            <td>{{ 'paymentProviders.settlementDaysValue' | translate:{count: provider.settlementDays} }}</td>
             <td>
               <ng-container *ngIf="provider.isDefault; else notDefault">
                 <p-tag value="DEFAULT" severity="success"></p-tag>
@@ -74,7 +74,7 @@
                 type="button"
                 icon="pi pi-ellipsis-v"
                 class="p-button-text p-button-sm"
-                pTooltip="Actions"
+                [pTooltip]="'common.labels.actions' | translate"
                 tooltipPosition="left"
                 (contextmenu)="showContextMenu($event, provider)"
                 (click)="showContextMenu($event, provider)">
@@ -83,9 +83,9 @@
           </tr>
         </ng-template>
 
-        <ng-template pTemplate="emptymessage">
+        <ng-template #emptymessage>
           <tr>
-            <td colspan="8" class="text-center py-8 text-gray-500">No payment providers found</td>
+            <td colspan="8" class="text-center py-8 text-gray-500">{{ 'paymentProviders.empty' | translate }}</td>
           </tr>
         </ng-template>
       </p-table>
@@ -97,7 +97,7 @@
     [first]="first"
     [pageSize]="pageSize"
     [totalRecords]="totalCount"
-    itemLabel="providers"
+    [itemLabel]="'paymentProviders.countLabel' | translate"
     (pageChange)="goToPage($event)"
     (pageSizeChange)="onPageSizeChange($event)">
   </app-data-pagination>
@@ -120,8 +120,8 @@
 
     <div *ngIf="!loading && paymentProviders.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-credit-card"></i></div>
-      <h3>No Payment Providers Found</h3>
-      <p>Add a new provider to get started</p>
+      <h3>{{ 'paymentProviders.emptyTitle' | translate }}</h3>
+      <p>{{ 'paymentProviders.emptyHint' | translate }}</p>
     </div>
 
     <div *ngIf="!loading && paymentProviders.length > 0" class="cards-grid">
@@ -137,13 +137,13 @@
             <span class="card-meta-item"><i class="pi pi-tag"></i>&nbsp;{{ provider.providerType }}</span>
             <span class="card-meta-item"><i class="pi pi-hashtag"></i>&nbsp;{{ getAccountDisplay(provider) }}</span>
             <span class="card-meta-item"><i class="pi pi-percentage"></i>&nbsp;{{ provider.transactionFeeType }} ({{ provider.transactionFeeAmount | appCurrency }})</span>
-            <span class="card-meta-item"><i class="pi pi-calendar-clock"></i>&nbsp;{{ provider.settlementDays }} days</span>
+            <span class="card-meta-item"><i class="pi pi-calendar-clock"></i>&nbsp;{{ 'paymentProviders.settlementDaysValue' | translate:{count: provider.settlementDays} }}</span>
             <span *ngIf="provider.isDefault" class="card-meta-item"><i class="pi pi-star-fill"></i>&nbsp;Default</span>
           </div>
         </div>
 
         <div class="card-footer">
-          <button class="btn-card-action" pTooltip="Actions" (click)="showContextMenu($event, provider)">
+          <button class="btn-card-action" [pTooltip]="'common.labels.actions' | translate" (click)="showContextMenu($event, provider)">
             <i class="pi pi-ellipsis-h"></i>
           </button>
         </div>

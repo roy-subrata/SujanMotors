@@ -16,6 +16,6 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-page-container',
   standalone: true,
-  template: `<div class="page-wrapper"><ng-content></ng-content></div>`
+  templateUrl: './page-container.component.html',
 })
 export class PageContainerComponent {}

@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { PaymentProviderStatus } from '@/shared/models/status.types';
 
 export interface CreatePaymentProviderRequest {
   providerName: string;
@@ -60,7 +61,7 @@ export interface PaymentProviderResponse {
   id: string;
   providerName: string;
   providerType: string;
-  status: string;
+  status: PaymentProviderStatus;
   // Bank Transfer fields
   bankName: string;
   bankAccountNumber: string;

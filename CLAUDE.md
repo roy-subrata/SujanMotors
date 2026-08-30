@@ -86,7 +86,7 @@ All domain entities inherit from `AuditableEntity` (created/modified timestamps)
 
 ```
 src/AutoPartShop.WebApp/src/app/
-  features/        # Feature modules: admin, audit, dashboard, ecommerce,
+  features/        # Feature modules: admin, audit, dashboard,
                    #   inventory, procurement, sales, warranty
   layout/          # Shell layout components (sidebar, navbar)
   pages/           # Top-level routed pages
@@ -115,10 +115,20 @@ Riverpod for state, Dio for HTTP against the same REST API. Built as APK via `.g
 
 ### Deployment
 
-`deployment/docker-compose.yml` contains service definitions for:
-- SQL Server (always-on, required for local dev)
-- API, WebApp (commented out — build locally instead)
-- Seq (structured log server + UI, port 5341) — the API ships Serilog logs to it
+`deployment/` contains full Docker stacks, deploy scripts, and CI workflows:
+
+- `docker-compose.yml` — production base stack (SQL Server 2025, API, Angular/nginx web, Seq).
+  Combine with `docker-compose.prod.yml` for production: TLS termination + certs (`deployment/certs/`)
+  and fail-fast secrets from `deployment/.env` (copy `.env.prod.example`). Required env vars:
+  `DB_PASSWORD`, `JWT_SECRET`, `SEED_ADMIN_PASSWORD`.
+- `docker-compose.test.yml` — staging/test stack (separate project name and ports; DB/API loopback-only).
+- `docker-compose.dev.yml` — optional Seq for local development.
+- Host port bindings for db/api/seq are loopback-only (`127.0.0.1:`) in every stack; only nginx
+  (`443`, plus `4200`/`4201` for ACME redirects) is public.
+- Deploys are GitHub Actions: `.github/workflows/prod-deploy.yml` (on `main`) and
+  `test-deploy.yml` (on `test`), both gated by a backend test job; VPS paths:
+  `/opt/sujanmotors-prod` and `/opt/sujanmotors-test`. Auth via the `VPS_SSH_KEY` secret.
+- `mobile-apk.yml` builds release APKs; tag builds require the four signing secrets.
 
 ## Important Notes
 

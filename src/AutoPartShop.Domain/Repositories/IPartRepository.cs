@@ -13,6 +13,8 @@ public interface IProductRepository : IBaseRepository<Product>
     Task<bool> HasActiveVariantsAsync(Guid partId, CancellationToken cancellationToken = default);
     Task<Product?> GetByBarcodeOrPartNumberAsync(string code, CancellationToken cancellationToken = default);
     Task<(Product Product, ProductVariant Variant)?> GetByVariantCodeAsync(string code, CancellationToken cancellationToken = default);
+    /// <summary>True when the variant exists and belongs to the given part — guards cross-product references.</summary>
+    Task<bool> VariantBelongsToPartAsync(Guid partId, Guid variantId, CancellationToken cancellationToken = default);
 }
 
 

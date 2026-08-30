@@ -9,11 +9,12 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TagModule } from 'primeng/tag';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
-import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { SupplierPaymentService, SupplierPaymentResponse, PaginatedSupplierPaymentResponse, SupplierPaymentQuery } from '../services/supplier-payment.service';
+import { SupplierPaymentStatus } from '@/shared/models/status.types';
 import { StatusBadgeComponent } from '../components/status-badge.component';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { SupplierService } from '../../inventory/services/supplier.service';
@@ -23,14 +24,32 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-supplier-payment-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, RouterModule, ButtonModule, TableModule, InputTextModule,
-              ToastModule, ConfirmDialogModule, TagModule, ContextMenuModule, Select, DatePicker,
-              TooltipModule, StatusBadgeComponent, PageContainerComponent, PageHeaderComponent,
-              FilterBarComponent, DataPaginationComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        RouterModule,
+        ButtonModule,
+        TableModule,
+        InputTextModule,
+        ToastModule,
+        ConfirmDialogModule,
+        TagModule,
+        ContextMenuModule,
+        DatePicker,
+        TooltipModule,
+        StatusBadgeComponent,
+        PageContainerComponent,
+        PageHeaderComponent,
+        FilterBarComponent,
+        DataPaginationComponent,
+        SelectModule,
+        TranslatePipe
+    ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './supplier-payment-list.component.html',
     styleUrls: ['./supplier-payment-list.component.css']
@@ -57,7 +76,7 @@ export class SupplierPaymentListComponent implements OnInit {
     loading: boolean = false;
     contextMenuItems: MenuItem[] = [];
     selectedPayment: SupplierPaymentResponse | null = null;
-    filterStatus: string | null = null;
+    filterStatus: SupplierPaymentStatus | '' = '';
     dateRange: Date[] = [];
     sortField: string | null = null;
     sortOrder: number | null = null;
@@ -66,7 +85,7 @@ export class SupplierPaymentListComponent implements OnInit {
     supplierFilter: string | null = null;
     supplierFilterName: string = '';
 
-    statusOptions: { label: string; value: string | null }[] = [];
+    statusOptions: { label: string; value: string }[] = [];
 
     ngOnInit(): void {
         this.buildStatusOptions();
@@ -87,12 +106,12 @@ export class SupplierPaymentListComponent implements OnInit {
 
     private buildStatusOptions(): void {
         this.statusOptions = [
-            { label: this.i18n.t('supplierPayments.statusOptions.all'),        value: null },
-            { label: this.i18n.t('supplierPayments.statusOptions.pending'),     value: 'PENDING' },
-            { label: this.i18n.t('supplierPayments.statusOptions.completed'),   value: 'COMPLETED' },
-            { label: this.i18n.t('supplierPayments.statusOptions.processing'),  value: 'PROCESSING' },
-            { label: this.i18n.t('supplierPayments.statusOptions.failed'),      value: 'FAILED' },
-            { label: this.i18n.t('supplierPayments.statusOptions.cancelled'),   value: 'CANCELLED' }
+            { label: this.i18n.t('supplierPayments.statusOptions.all'), value: '' },
+            { label: this.i18n.t('supplierPayments.statusOptions.pending'), value: 'PENDING' },
+            { label: this.i18n.t('supplierPayments.statusOptions.completed'), value: 'COMPLETED' },
+            { label: this.i18n.t('supplierPayments.statusOptions.processing'), value: 'PROCESSING' },
+            { label: this.i18n.t('supplierPayments.statusOptions.failed'), value: 'FAILED' },
+            { label: this.i18n.t('supplierPayments.statusOptions.cancelled'), value: 'CANCELLED' }
         ];
     }
 
@@ -102,52 +121,68 @@ export class SupplierPaymentListComponent implements OnInit {
             {
                 label: this.i18n.t('common.actions.viewDetails'),
                 icon: 'pi pi-eye',
-                command: () => { if (payment) this.viewDetails(payment); }
+                command: () => {
+                    if (payment) this.viewDetails(payment);
+                }
             },
             {
                 label: this.i18n.t('common.actions.edit'),
                 icon: 'pi pi-pencil',
-                command: () => { if (payment) this.edit(payment); },
-                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
+                command: () => {
+                    if (payment) this.edit(payment);
+                },
+                visible: payment ? payment.status !== 'CANCELLED' : false
             },
             { separator: true },
             {
                 label: this.i18n.t('common.actions.markAsAdvance'),
                 icon: 'pi pi-arrow-up',
-                command: () => { if (payment) this.markAsAdvance(payment); },
+                command: () => {
+                    if (payment) this.markAsAdvance(payment);
+                },
                 visible: payment ? payment.paymentType !== 'ADVANCE' : false
             },
             {
                 label: this.i18n.t('common.actions.markAsRegular'),
                 icon: 'pi pi-arrow-down',
-                command: () => { if (payment) this.markAsRegular(payment); },
+                command: () => {
+                    if (payment) this.markAsRegular(payment);
+                },
                 visible: payment ? payment.paymentType === 'ADVANCE' : false
             },
             { separator: true },
             {
                 label: this.i18n.t('common.actions.confirmPayment'),
                 icon: 'pi pi-check-circle',
-                command: () => { if (payment) this.confirmPayment(payment); },
-                visible: payment ? (payment.status === 'PENDING' || payment.status === 'PROCESSING') : false
+                command: () => {
+                    if (payment) this.confirmPayment(payment);
+                },
+                visible: payment ? payment.status === 'PENDING' || payment.status === 'PROCESSING' : false
             },
             {
                 label: this.i18n.t('common.actions.reconcile'),
                 icon: 'pi pi-sync',
-                command: () => { if (payment) this.reconcilePayment(payment); },
-                visible: payment ? payment.status === 'CONFIRMED' && !payment.isReconciled : false
+                command: () => {
+                    if (payment) this.reconcilePayment(payment);
+                },
+                visible: payment ? payment.status === 'COMPLETED' && !payment.isReconciled : false
             },
             { separator: true },
             {
                 label: this.i18n.t('common.actions.cancel'),
                 icon: 'pi pi-times',
-                command: () => { if (payment) this.cancelPayment(payment); },
-                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
+                command: () => {
+                    if (payment) this.cancelPayment(payment);
+                },
+                visible: payment ? payment.status !== 'COMPLETED' && payment.status !== 'RETURNED' && payment.status !== 'CANCELLED' : false
             },
             {
                 label: this.i18n.t('common.actions.delete'),
                 icon: 'pi pi-trash',
-                command: () => { if (payment) this.deletePayment(payment); },
-                visible: payment ? payment.status !== 'CONFIRMED' && payment.status !== 'RECONCILED' : false
+                command: () => {
+                    if (payment) this.deletePayment(payment);
+                },
+                visible: payment ? payment.status !== 'COMPLETED' && !payment.isReconciled : false
             }
         ];
     }
@@ -433,7 +468,7 @@ export class SupplierPaymentListComponent implements OnInit {
 
     clearFilters(): void {
         this.searchTerm = '';
-        this.filterStatus = null;
+        this.filterStatus = '';
         this.dateRange = [];
         this.supplierFilter = null;
         this.supplierFilterName = '';
@@ -485,7 +520,7 @@ export class SupplierPaymentListComponent implements OnInit {
 
     private exportToCSV(): void {
         const headers = ['Supplier', 'Payment Type', 'Gross Amount', 'Payment Fee', 'Net Amount', 'Payment Date', 'Payment Method', 'Status', 'Provider', 'Invoice #', 'Reconciled'];
-        const rows = this.supplierPayments.map(payment => [
+        const rows = this.supplierPayments.map((payment) => [
             payment.supplierName,
             payment.paymentType || 'N/A',
             payment.amount.toString(),
@@ -499,7 +534,7 @@ export class SupplierPaymentListComponent implements OnInit {
             payment.isReconciled ? 'YES' : 'NO'
         ]);
 
-        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');

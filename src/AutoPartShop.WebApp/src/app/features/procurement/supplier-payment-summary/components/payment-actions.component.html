@@ -1,0 +1,60 @@
+
+    <div>
+      <h3 class="text-lg font-bold mb-4">{{ i18n.t('supplierPaymentSummary.actions.title') }}</h3>
+
+      <div class="grid grid-cols-12 gap-3">
+        <!-- New Payment Button -->
+        <div class="col-span-12 sm:col-span-6 md:col-span-3">
+          <button pButton
+            type="button"
+            icon="pi pi-plus"
+            [label]="i18n.t('supplierPayments.addPayment')"
+            class="w-full"
+            (click)="createNewPayment()">
+          </button>
+        </div>
+
+        <!-- View All Payments Button -->
+        <div class="col-span-12 sm:col-span-6 md:col-span-3">
+          <button pButton
+            type="button"
+            icon="pi pi-list"
+            [label]="i18n.t('supplierPaymentSummary.actions.allPayments')"
+            class="w-full"
+            [outlined]="true"
+            (click)="viewAllPayments()">
+          </button>
+        </div>
+
+        <!-- Download Report Button -->
+        <div class="col-span-12 sm:col-span-6 md:col-span-3">
+          <button pButton
+            type="button"
+            icon="pi pi-download"
+            [label]="i18n.t('supplierPaymentSummary.actions.downloadReport')"
+            class="w-full"
+            [outlined]="true"
+            (click)="downloadReport()">
+          </button>
+        </div>
+
+        <!-- Refresh Summary Button -->
+        <div class="col-span-12 sm:col-span-6 md:col-span-3">
+          <button pButton
+            type="button"
+            icon="pi pi-refresh"
+            [label]="i18n.t('common.actions.refresh')"
+            class="w-full"
+            [text]="true"
+            (click)="refreshSummary()">
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="text-xs text-blue-700">
+          <i class="pi pi-info-circle mr-2"></i>
+          {{ i18n.t('supplierPaymentSummary.actions.hint') }}
+        </p>
+      </div>
+    </div>

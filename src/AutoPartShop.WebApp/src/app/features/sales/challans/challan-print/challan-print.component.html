@@ -1,16 +1,16 @@
 <!-- Toolbar (hidden on print) -->
 <div class="print-toolbar no-print" *ngIf="!loading() && !error()">
   <button class="btn-print" (click)="print()">
-    <i class="pi pi-print"></i> Print / Save PDF
+    <i class="pi pi-print"></i> {{ 'common.document.printSavePdf' | translate }}
   </button>
   <a class="btn-back" routerLink="/sales/pending-deliveries">
-    <i class="pi pi-arrow-left"></i> Back
+    <i class="pi pi-arrow-left"></i> {{ 'common.actions.back' | translate }}
   </a>
-  <span class="doc-label">Delivery Challan — {{ challan()?.challanNumber }}</span>
+  <span class="doc-label">{{ 'challanPrint.docTitle' | translate }} — {{ challan()?.challanNumber }}</span>
 </div>
 
 <div class="loading-wrap no-print" *ngIf="loading()">
-  <i class="pi pi-spin pi-spinner"></i> Loading…
+  <i class="pi pi-spin pi-spinner"></i> {{ 'common.messages.loading' | translate }}
 </div>
 <div class="error-wrap no-print" *ngIf="error()">
   <i class="pi pi-exclamation-circle"></i> {{ error() }}
@@ -19,30 +19,30 @@
 <!-- ══ DOCUMENT ══════════════════════════════════════════════════ -->
 <div class="document" *ngIf="!loading() && !error() && challan() as c">
 
-  <div class="watermark" *ngIf="isDelivered">DELIVERED</div>
+  <div class="watermark" *ngIf="isDelivered">{{ 'challanPrint.watermarkDelivered' | translate }}</div>
 
   <!-- Header -->
   <div class="doc-header">
     <div class="shop-info">
       <img *ngIf="shop()?.logoUrl && !shop()?.logoUrl?.startsWith('assets')"
            [src]="shop()?.logoUrl" class="shop-logo" alt="logo">
-      <div class="shop-name">{{ shop()?.name || 'Your Company' }}</div>
+      <div class="shop-name">{{ shop()?.name || ('challanPrint.defaultCompany' | translate) }}</div>
       <div class="shop-sub" *ngIf="shop()?.tagline">{{ shop()?.tagline }}</div>
-      <div class="shop-sub" *ngIf="!shop()?.tagline">Delivery Challan</div>
+      <div class="shop-sub" *ngIf="!shop()?.tagline">{{ 'challanPrint.docTitle' | translate }}</div>
       <div class="shop-detail" *ngIf="shop()?.address">{{ shop()?.address }}</div>
       <div class="shop-detail" *ngIf="shop()?.phone">{{ shop()?.phone }}</div>
       <div class="shop-detail" *ngIf="shop()?.email">{{ shop()?.email }}</div>
-      <div class="shop-detail" *ngIf="shop()?.taxNo">Tax Reg: {{ shop()?.taxNo }}</div>
+      <div class="shop-detail" *ngIf="shop()?.taxNo">{{ 'common.document.taxReg' | translate }} {{ shop()?.taxNo }}</div>
     </div>
     <div class="doc-meta">
-      <div class="doc-type">DELIVERY CHALLAN</div>
+      <div class="doc-type">{{ 'challanPrint.docType' | translate }}</div>
       <table class="meta-table">
-        <tr><td>Challan No.</td><td><strong>{{ c.challanNumber }}</strong></td></tr>
-        <tr><td>Date</td><td>{{ formatDateTime(c.createdAt) }}</td></tr>
-        <tr *ngIf="c.issuedAt"><td>Issued At</td><td>{{ formatDateTime(c.issuedAt) }}</td></tr>
-        <tr *ngIf="c.salesOrderNumber"><td>SO No.</td><td>{{ c.salesOrderNumber }}</td></tr>
+        <tr><td>{{ 'challanPrint.challanNo' | translate }}</td><td><strong>{{ c.challanNumber }}</strong></td></tr>
+        <tr><td>{{ 'common.labels.date' | translate }}</td><td>{{ formatDateTime(c.createdAt) }}</td></tr>
+        <tr *ngIf="c.issuedAt"><td>{{ 'challanPrint.issuedAt' | translate }}</td><td>{{ formatDateTime(c.issuedAt) }}</td></tr>
+        <tr *ngIf="c.salesOrderNumber"><td>{{ 'common.document.soNo' | translate }}</td><td>{{ c.salesOrderNumber }}</td></tr>
         <tr>
-          <td>Status</td>
+          <td>{{ 'common.labels.status' | translate }}</td>
           <td><span class="status-pill" [attr.data-status]="c.status">{{ statusLabel }}</span></td>
         </tr>
       </table>
@@ -54,20 +54,20 @@
   <!-- Deliver To + Transport -->
   <div class="info-row">
     <div class="info-box">
-      <div class="info-label">Deliver To</div>
-      <div class="info-name">{{ c.receiverName || 'Customer' }}</div>
+      <div class="info-label">{{ 'common.document.deliverTo' | translate }}</div>
+      <div class="info-name">{{ c.receiverName || ('challanPrint.customer' | translate) }}</div>
       <div class="info-detail" *ngIf="c.receiverPhone">{{ c.receiverPhone }}</div>
       <div class="info-detail" *ngIf="c.deliveryAddress">{{ c.deliveryAddress }}</div>
     </div>
     <div class="info-box" *ngIf="c.transportCompany || c.vehicleNumber || c.driverName">
-      <div class="info-label">Transport Details</div>
+      <div class="info-label">{{ 'challanPrint.transportDetails' | translate }}</div>
       <div class="info-name" *ngIf="c.transportCompany">{{ c.transportCompany }}</div>
-      <div class="info-detail" *ngIf="c.vehicleNumber">Vehicle: <strong>{{ c.vehicleNumber }}</strong></div>
-      <div class="info-detail" *ngIf="c.driverName">Driver: {{ c.driverName }}</div>
-      <div class="info-detail" *ngIf="c.driverPhone">Driver Ph: {{ c.driverPhone }}</div>
+      <div class="info-detail" *ngIf="c.vehicleNumber">{{ 'challanPrint.vehicle' | translate }} <strong>{{ c.vehicleNumber }}</strong></div>
+      <div class="info-detail" *ngIf="c.driverName">{{ 'challanPrint.driver' | translate }} {{ c.driverName }}</div>
+      <div class="info-detail" *ngIf="c.driverPhone">{{ 'challanPrint.driverPhone' | translate }} {{ c.driverPhone }}</div>
     </div>
     <div class="info-box" *ngIf="c.notes">
-      <div class="info-label">Notes</div>
+      <div class="info-label">{{ 'common.labels.notes' | translate }}</div>
       <div class="info-detail">{{ c.notes }}</div>
     </div>
   </div>
@@ -79,10 +79,10 @@
     <thead>
       <tr>
         <th class="col-num">#</th>
-        <th class="col-item">Item Description</th>
-        <th class="col-sku">SKU</th>
-        <th class="col-qty">Qty</th>
-        <th class="col-unit">Unit</th>
+        <th class="col-item">{{ 'common.document.itemDescription' | translate }}</th>
+        <th class="col-sku">{{ 'common.document.sku' | translate }}</th>
+        <th class="col-qty">{{ 'common.document.qty' | translate }}</th>
+        <th class="col-unit">{{ 'common.document.unit' | translate }}</th>
       </tr>
     </thead>
     <tbody>
@@ -91,12 +91,12 @@
         <td class="col-item"><span class="item-name">{{ line.displayName || line.partName }}</span></td>
         <td class="col-sku">{{ line.partSku }}</td>
         <td class="col-qty"><strong>{{ line.quantity }}</strong></td>
-        <td class="col-unit">{{ line.unitName || 'PCS' }}</td>
+        <td class="col-unit">{{ line.unitName || ('common.document.pcs' | translate) }}</td>
       </tr>
     </tbody>
     <tfoot>
       <tr class="total-row">
-        <td colspan="3" class="total-label">Total Items</td>
+        <td colspan="3" class="total-label">{{ 'challanPrint.totalItems' | translate }}</td>
         <td class="col-qty"><strong>{{ c.lines.length }}</strong></td>
         <td></td>
       </tr>
@@ -108,22 +108,22 @@
   <div class="signatures">
     <div class="sig-box">
       <div class="sig-line"></div>
-      <div class="sig-label">Dispatched By (Authorised Signatory)</div>
+      <div class="sig-label">{{ 'challanPrint.dispatchedBy' | translate }}</div>
     </div>
     <div class="sig-box">
       <div class="sig-line"></div>
-      <div class="sig-label">Driver / Transport Acknowledgement</div>
+      <div class="sig-label">{{ 'challanPrint.driverAck' | translate }}</div>
     </div>
     <div class="sig-box">
       <div class="sig-line">
         <span *ngIf="c.deliveredAt" class="delivered-stamp">{{ formatDate(c.deliveredAt) }}</span>
       </div>
-      <div class="sig-label">Received By (Signature &amp; Date)</div>
+      <div class="sig-label">{{ 'common.document.receivedBy' | translate }}</div>
     </div>
   </div>
 
   <div class="doc-footer">
-    <p>{{ shop()?.challanFooterText || 'Goods once dispatched will not be accepted back without prior notice.' }}</p>
+    <p>{{ shop()?.challanFooterText || ('challanPrint.footerDefault' | translate) }}</p>
   </div>
 
 </div>

@@ -9,6 +9,8 @@ import { MessageService } from 'primeng/api';
 import { UnitService, UnitResponse } from '../../services/unit.service';
 import { UnitConversionService } from '../../services/unit-conversion.service';
 import { AutoCompleteModule } from 'primeng/autocomplete';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-conversions-form-dialog',
@@ -20,7 +22,8 @@ import { AutoCompleteModule } from 'primeng/autocomplete';
     InputTextModule,
     InputNumberModule,
     AutoCompleteModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    TranslatePipe
   ],
   templateUrl: './conversions-form-dialog.component.html',
   styleUrls: ['./conversions-form-dialog.component.css']
@@ -40,6 +43,7 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
   private readonly unitService = inject(UnitService);
   private readonly messageService = inject(MessageService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
 
   createForm!: FormGroup;
   updateForm!: FormGroup;
@@ -83,8 +87,8 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load units'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('units.messages.loadFailed')
         });
       }
     });
@@ -161,8 +165,8 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
     if (fromUnit.id === toUnit.id) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: 'From Unit and To Unit cannot be the same'
+        summary: this.i18n.t('common.messages.validationError'),
+        detail: this.i18n.t('conversions.messages.sameUnitError')
       });
       return false;
     }
@@ -238,8 +242,8 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
     if (this.createForm.invalid) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required fields correctly'
+        summary: this.i18n.t('common.messages.validationError'),
+        detail: this.i18n.t('common.messages.fillRequiredFields')
       });
       return;
     }
@@ -260,18 +264,22 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
       next: (response) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Conversion created successfully: 1 ${response.fromUnitCode} = ${response.conversionFactor} ${response.toUnitCode}`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('conversions.messages.createSuccessDetailed', {
+            from: response.fromUnitCode,
+            factor: String(response.conversionFactor),
+            to: response.toUnitCode
+          })
         });
         this.createSuccess.emit();
         this.onCreateDialogHide();
         this.isSubmitting = false;
       },
       error: (error) => {
-        const errorMessage = error?.error?.message || 'Failed to create conversion';
+        const errorMessage = error?.error?.message || this.i18n.t('common.messages.createFailed');
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
+          summary: this.i18n.t('common.messages.error'),
           detail: errorMessage
         });
         this.isSubmitting = false;
@@ -286,8 +294,8 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
     if (this.updateForm.invalid) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required fields correctly'
+        summary: this.i18n.t('common.messages.validationError'),
+        detail: this.i18n.t('common.messages.fillRequiredFields')
       });
       return;
     }
@@ -304,8 +312,12 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
       next: (response) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Conversion updated successfully: 1 ${response.fromUnitCode} = ${response.conversionFactor} ${response.toUnitCode}`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('conversions.messages.updateSuccessDetailed', {
+            from: response.fromUnitCode,
+            factor: String(response.conversionFactor),
+            to: response.toUnitCode
+          })
         });
         this.updateSuccess.emit();
         this.onUpdateDialogHide();
@@ -314,8 +326,8 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to update conversion'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('common.messages.updateFailed')
         });
         this.isSubmitting = false;
       }
@@ -332,15 +344,15 @@ export class ConversionsFormDialogComponent implements OnInit, OnChanges {
     }
 
     if (control.errors['required']) {
-      return `${this.formatFieldName(fieldName)} is required`;
+      return this.i18n.t('common.messages.fieldRequired', { field: this.formatFieldName(fieldName) });
     }
     if (control.errors['min']) {
-      return `${this.formatFieldName(fieldName)} must be greater than 0`;
+      return this.i18n.t('common.messages.fieldMustBeGreaterThanZero', { field: this.formatFieldName(fieldName) });
     }
     if (control.errors['maxlength']) {
-      return `${this.formatFieldName(fieldName)} cannot exceed ${control.errors['maxlength'].requiredLength} characters`;
+      return this.i18n.t('common.messages.fieldMaxLength', { field: this.formatFieldName(fieldName), max: String(control.errors['maxlength'].requiredLength) });
     }
-    return 'Invalid input';
+    return this.i18n.t('common.messages.invalidInput');
   }
 
   /**

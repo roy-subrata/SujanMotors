@@ -1,6 +1,7 @@
 ﻿using AutoPartShop.Application.Suppliers;
 using AutoPartShop.Application.Suppliers.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,8 +18,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                  (EF.Functions.Like(x.Name, $"%{term}%") ||
                  EF.Functions.Like(x.Country, $"%{term}%") ||
                  EF.Functions.Like(x.Phone, $"%{term}%") ||
-                 EF.Functions.Like(x.Email, $"%{term}%") ||
-                 EF.Functions.Like(x.City, $"%{term}%")
+                 EF.Functions.Like(x.Email, $"%{term}%")
                 )));
 
 
@@ -46,10 +46,7 @@ namespace AutoPartShop.Infrastructure.Repositories
                     Email = supplier.Email,
                     Phone = supplier.Phone,
                     Address = supplier.Address,
-                    City = supplier.City,
-                    State = supplier.State,
                     Country = supplier.Country,
-                    PostalCode = supplier.PostalCode,
                     CurrentBalance = supplier.CurrentBalance,
                     IsActive = supplier.IsActive,
                     Rating = supplier.Rating,
@@ -67,9 +64,9 @@ namespace AutoPartShop.Infrastructure.Repositories
             {
                 var purchases = await _db.PurchaseOrders
                     .Where(x => ids.Contains(x.SupplierId) &&
-                                x.Status != "DRAFT" &&
-                                x.Status != "SUBMITTED" &&
-                                x.Status != "CANCELLED" &&
+                                x.Status != PurchaseOrderStatus.DRAFT &&
+                                x.Status != PurchaseOrderStatus.SUBMITTED &&
+                                x.Status != PurchaseOrderStatus.CANCELLED &&
                                 !x.Isdeleted)
                     .GroupBy(x => x.SupplierId)
                     .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.TotalAmount) })
@@ -77,7 +74,7 @@ namespace AutoPartShop.Infrastructure.Repositories
 
                 var payments = await _db.SupplierPayments
                     .Where(x => ids.Contains(x.SupplierId) &&
-                                x.Status == "COMPLETED" &&
+                                x.Status == SupplierPaymentStatus.COMPLETED &&
                                 x.PaymentMethod != "REFUND" &&
                                 (x.PaymentType == PaymentType.ADVANCE || x.SourceAdvancePaymentId == null) &&
                                 !x.Isdeleted)
@@ -87,7 +84,7 @@ namespace AutoPartShop.Infrastructure.Repositories
 
                 var refunds = await _db.PurchaseReturns
                     .Where(x => ids.Contains(x.SupplierId) &&
-                                x.SettlementStatus == "SETTLED" &&
+                                x.SettlementStatus == PurchaseReturnSettlementStatus.SETTLED &&
                                 !x.Isdeleted)
                     .GroupBy(x => x.SupplierId)
                     .Select(g => new { SupplierId = g.Key, Total = g.Sum(x => x.SettledAmount) })

@@ -1,5 +1,6 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -25,6 +26,9 @@ import {
   ProductAttributeGroup,
   ProductAttribute
 } from '../../services/product-attribute.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 
 interface AttrRow {
   attributeId: string;
@@ -52,7 +56,9 @@ interface AttrRow {
     TooltipModule,
     DialogModule,
     Select,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    TranslatePipe,
+    MoneyFormatPipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './product-variant-manager.component.html'
@@ -67,6 +73,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
 
   variants: ProductVariantResponse[] = [];
   attributeGroups: ProductAttributeGroup[] = [];
@@ -125,6 +133,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
     this.attributeService.getAllGroups().subscribe({
       next: (groups) => {
         this.attributeGroups = groups.filter(g => g.isActive);
+        // Any active attribute can be attached to a variant — the backend rejects one already
+        // set directly on the parent product (a product can't have a value both ways at once).
         this.allAttributes = groups.flatMap(g => g.attributes.filter(a => a.isActive));
       }
     });
@@ -198,7 +208,9 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
     }
 
     this.isSubmitting = true;
-    const v = this.variantForm.value;
+    // getRawValue(), not value: sku is a disabled control, so .value would omit it and the
+    // server would regenerate a fresh SKU on every edit save instead of keeping the existing one.
+    const v = this.variantForm.getRawValue();
 
     const attributeValues: VariantAttributeValueRequest[] = this.attrValuesArray.controls
       .map((ctrl, i) => {
@@ -235,8 +247,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: this.isEditing ? 'Variant Updated' : 'Variant Added',
-          detail: `Variant '${req.name}' saved`
+          summary: this.i18n.t(this.isEditing ? 'parts.variantManager.messages.variantUpdatedSummary' : 'parts.variantManager.messages.variantAddedSummary'),
+          detail: this.i18n.t('parts.variantManager.messages.variantSavedDetail', { name: req.name })
         });
         this.isSubmitting = false;
         this.dialogVisible = false;
@@ -245,8 +257,8 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
       error: (err) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: err?.error?.message || 'Failed to save variant'
+          summary: this.i18n.t('common.messages.error'),
+          detail: err?.error?.message || this.i18n.t('parts.variantManager.messages.saveFailed')
         });
         this.isSubmitting = false;
       }
@@ -255,18 +267,18 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
 
   confirmDelete(variant: ProductVariantResponse): void {
     this.confirmationService.confirm({
-      header: 'Delete Variant',
-      message: `Delete variant '${variant.name}'?`,
+      header: this.i18n.t('parts.variantManager.messages.deleteVariantHeader'),
+      message: this.i18n.t('parts.variantManager.messages.deleteVariantMessage', { name: variant.name }),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         this.variantService.deleteVariant(this.partId, variant.id).subscribe({
           next: () => {
-            this.messageService.add({ severity: 'success', summary: 'Deleted', detail: `'${variant.name}' deleted` });
+            this.messageService.add({ severity: 'success', summary: this.i18n.t('common.messages.success'), detail: this.i18n.t('parts.variantManager.messages.deletedDetail', { name: variant.name }) });
             this.loadVariants();
           },
           error: (err) => {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to delete' });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('parts.variantManager.messages.deleteFailed') });
           }
         });
       }
@@ -283,7 +295,9 @@ export class ProductVariantManagerComponent implements OnInit, OnChanges {
       code: ['', [Validators.required, Validators.maxLength(50)]],
       partNumber: [''],
       oemNumber: [''],
-      sku: [''],
+      // Always auto-generated from Product SKU + Code (see GenerateVariantSkuAsync on the
+      // backend) — disabled so it can't drift from what the server will actually assign.
+      sku: [{ value: '', disabled: true }],
       barcode: [''],
       costPrice: [null],
       sellingPrice: [null],

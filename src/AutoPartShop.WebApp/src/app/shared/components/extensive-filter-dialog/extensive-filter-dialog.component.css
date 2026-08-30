@@ -1,0 +1,130 @@
+/* Rounds/shadows the dialog panel to match this app's card styling (PrimeNG's default is
+   flatter) — ::ng-deep since `styleClass` renders outside this component's own template. */
+::ng-deep .efd-dialog.p-dialog {
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+::ng-deep .efd-dialog .p-dialog-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+::ng-deep .efd-dialog .p-dialog-content {
+    padding: 18px 20px;
+}
+
+::ng-deep .efd-dialog .p-dialog-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--color-border-light);
+}
+
+/* Custom header — icon + title + active-count badge, replacing p-dialog's plain text header. */
+.efd-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.efd-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-md);
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.efd-header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.efd-header-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background-color: var(--color-primary);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Body — projected filter controls (e.g. .filter-group / .filter-dropdown from the
+   shared filter-bar) are laid out in a wrapping row inline; inside this narrower
+   modal they stack full-width instead, each with breathing room. */
+.extensive-filter-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 260px;
+    padding-top: 2px;
+}
+
+.extensive-filter-body ::ng-deep .filter-group {
+    width: 100%;
+    gap: 6px;
+}
+
+.extensive-filter-body ::ng-deep .filter-label {
+    font-size: 12px;
+}
+
+.extensive-filter-body ::ng-deep .filter-dropdown,
+.extensive-filter-body ::ng-deep .p-multiselect,
+.extensive-filter-body ::ng-deep .p-select {
+    width: 100%;
+}
+
+.extensive-filter-body ::ng-deep .p-multiselect {
+    border-radius: var(--radius-md);
+    min-height: 38px;
+}
+
+/* Footer — Clear on the left (muted, disables once nothing's selected so there's
+   nothing dead to click), Done on the right as the primary action. */
+.efd-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+
+.efd-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.efd-clear-btn i { font-size: 12px; }
+
+.efd-clear-btn:hover:not(:disabled) {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-danger);
+}
+
+.efd-clear-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

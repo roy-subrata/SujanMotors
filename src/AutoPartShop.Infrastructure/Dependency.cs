@@ -6,7 +6,6 @@ using AutoPartShop.Infrastructure.Services.Providers;
 using AutoPartShop.Application.Brands;
 using AutoPartShop.Application.Categories;
 using AutoPartShop.Application.Catgories;
-using AutoPartShop.Application.Catalog;
 using AutoPartShop.Application.CustomerPayment;
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Parts;
@@ -90,6 +89,7 @@ public static class Dependency
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IPartVehicleCompatibilityRepository, PartVehicleCompatibilityRepository>();
+        services.AddScoped<ICategoryAttributeGroupRepository, CategoryAttributeGroupRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<IWarehouseRepository, WarehouseRepository>();
         services.AddScoped<IStockLevelRepository, StockLevelRepository>();
@@ -138,6 +138,9 @@ public static class Dependency
         services.AddScoped<ICurrencyRepository, CurrencyRepository>();
         services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
         services.AddScoped<IApplicationSettingsRepository, ApplicationSettingsRepository>();
+
+        // Persistent staff inbox notifications (reorder alerts, etc.)
+        services.AddScoped<IInboxNotificationRepository, InboxNotificationRepository>();
 
         // Warranty repositories
         services.AddScoped<IWarrantyRegistrationRepository, WarrantyRegistrationRepository>();
@@ -198,7 +201,6 @@ public static class Dependency
         services.AddScoped<ISupplierPaymentReadRespository, SupplierPaymentReadRespository>();
 
         services.AddScoped<IProductReadRepository, ProductReadRepository>();
-        services.AddScoped<ICatalogReadRepository, CatalogReadRepository>();
         services.AddScoped<IPurchaseOrderReadRepository, PurchaseOrderReadRepository>();
 
         services.AddScoped<ISaleOrderReadRepository, SaleOrderReadRepository>();

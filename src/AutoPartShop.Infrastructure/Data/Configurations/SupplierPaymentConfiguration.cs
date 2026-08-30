@@ -1,4 +1,5 @@
 ﻿using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -52,15 +53,22 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
 
             builder.Property(x => x.Currency)
                    .HasMaxLength(10)
-                   .HasDefaultValue("USD");
+                   .HasDefaultValue("BDT");
+
+            builder.Property(x => x.BaseAmount)
+                   .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.FxRateToBase)
+                   .HasColumnType("decimal(18,6)");
 
             builder.Property(x => x.PaymentMethod)
                    .HasMaxLength(50)
                    .IsRequired();
 
             builder.Property(x => x.Status)
+                   .HasConversion<string>()
                    .HasMaxLength(50)
-                   .HasDefaultValue("PENDING")
+                   .HasDefaultValue(SupplierPaymentStatus.PENDING)
                    .IsRequired();
 
             builder.Property(x => x.ReferenceNumber)

@@ -35,6 +35,7 @@ public class TechnicianConfiguration : IEntityTypeConfiguration<Technician>
             .HasMaxLength(100);
 
         builder.Property(t => t.Status)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(20);
 

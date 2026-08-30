@@ -8,16 +8,16 @@
 
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Manage Suppliers"
-    subtitle="Manage and track all suppliers"
-    [count]="totalRecords" countLabel="suppliers">
+    [title]="'suppliers.manageSuppliers' | translate"
+    [subtitle]="'suppliers.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'suppliers.countLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createSupplier()">
         <i class="pi pi-plus"></i>
-        <span>New Supplier</span>
+        <span>{{ 'suppliers.newSupplier' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -31,7 +31,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by supplier name, code, email, phone..."
+          [placeholder]="'suppliers.searchPlaceholder' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="onSearchClear()">
@@ -44,19 +44,19 @@
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Search
+        {{ 'common.actions.search' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <!-- Active Filters Display -->
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="onSearchClear()"></i>
       </span>
     </div>
@@ -81,12 +81,12 @@
         <!-- Table Header -->
         <ng-template #header>
           <tr>
-            <th class="col-code">Code</th>
-            <th class="col-customer">Supplier Name</th>
-            <th class="col-contact">Contact</th>
-            <th class="col-balance">Balance</th>
-            <th class="col-status">Status</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-code">{{ 'common.labels.code' | translate }}</th>
+            <th class="col-customer">{{ 'suppliers.supplierName' | translate }}</th>
+            <th class="col-contact">{{ 'suppliers.contact' | translate }}</th>
+            <th class="col-balance">{{ 'suppliers.balance' | translate }}</th>
+            <th class="col-status">{{ 'common.labels.status' | translate }}</th>
+            <th class="col-actions">{{ 'common.labels.actions' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -141,7 +141,7 @@
             <!-- Actions -->
             <td class="col-actions">
               <div class="action-cell">
-                <button class="btn-action" pTooltip="More" (click)="showActionMenu($event, supplier)">
+                <button class="btn-action" [pTooltip]="'common.labels.more' | translate" (click)="showActionMenu($event, supplier)">
                   <i class="pi pi-ellipsis-v"></i>
                 </button>
               </div>
@@ -157,16 +157,16 @@
                 <div class="empty-icon">
                   <i class="pi pi-truck"></i>
                 </div>
-                <h3>No Suppliers Found</h3>
-                <p *ngIf="hasActiveFilters()">Try adjusting your filters or search criteria</p>
-                <p *ngIf="!hasActiveFilters()">Get started by creating your first supplier</p>
+                <h3>{{ 'suppliers.noResultsTitle' | translate }}</h3>
+                <p *ngIf="hasActiveFilters()">{{ 'suppliers.noResultsHint' | translate }}</p>
+                <p *ngIf="!hasActiveFilters()">{{ 'suppliers.noResultsHintEmpty' | translate }}</p>
                 <button *ngIf="!hasActiveFilters()" class="btn-primary" (click)="createSupplier()">
                   <i class="pi pi-plus"></i>
-                  Create Supplier
+                  {{ 'suppliers.createSupplier' | translate }}
                 </button>
                 <button *ngIf="hasActiveFilters()" class="btn-secondary" (click)="clearFilters()">
                   <i class="pi pi-filter-slash"></i>
-                  Clear Filters
+                  {{ 'common.actions.clearFilters' | translate }}
                 </button>
               </div>
             </td>
@@ -229,11 +229,11 @@
       <div class="empty-icon">
         <i class="pi pi-truck"></i>
       </div>
-      <h3>No Suppliers</h3>
-      <p>{{ hasActiveFilters() ? 'Try different filters' : 'Create your first supplier' }}</p>
+      <h3>{{ 'suppliers.noSuppliersMobileTitle' | translate }}</h3>
+      <p>{{ hasActiveFilters() ? ('common.labels.tryDifferentFilters' | translate) : ('suppliers.createFirstSupplier' | translate) }}</p>
       <button class="btn-primary" (click)="hasActiveFilters() ? clearFilters() : createSupplier()">
         <i class="pi" [class.pi-plus]="!hasActiveFilters()" [class.pi-filter-slash]="hasActiveFilters()"></i>
-        {{ hasActiveFilters() ? 'Clear Filters' : 'New Supplier' }}
+        {{ hasActiveFilters() ? ('common.actions.clearFilters' | translate) : ('suppliers.newSupplier' | translate) }}
       </button>
     </div>
 
@@ -271,7 +271,7 @@
         <!-- Card Footer -->
         <div class="card-footer">
           <div class="card-amount">
-            <span class="amount-label">Balance</span>
+            <span class="amount-label">{{ 'suppliers.balance' | translate }}</span>
             <span class="amount-value" [class.text-danger]="supplier.currentBalance > 0">{{ formatCurrency(supplier.currentBalance || 0) }}</span>
           </div>
           <button class="btn-card-action" (click)="showActionMenu($event, supplier); $event.stopPropagation()">

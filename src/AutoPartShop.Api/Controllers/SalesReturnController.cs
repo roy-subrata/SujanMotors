@@ -1,7 +1,8 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SalesOrderDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Common;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Repositories;
 using AutoPartShop.Api.Authorization;
@@ -14,7 +15,6 @@ using System.Linq;
 namespace AutoPartShop.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
     [Route("api/v1/[controller]")]
     [Authorize]
     public class SalesReturnController : ControllerBase
@@ -25,6 +25,7 @@ namespace AutoPartShop.Api.Controllers
         private readonly ICustomerCreditNoteRepository _customerCreditNoteRepository;
         private readonly ICurrentUserService _currentUserService;
         private readonly ICodeGenerateService _codeGenerateService;
+        private readonly ICurrencyConversionService _currencyConversionService;
         private readonly AutoPartDbContext _dbContext;
         private readonly ILogger<SalesReturnController> _logger;
 
@@ -35,6 +36,7 @@ namespace AutoPartShop.Api.Controllers
             ICustomerCreditNoteRepository customerCreditNoteRepository,
             ICurrentUserService currentUserService,
             ICodeGenerateService codeGenerateService,
+            ICurrencyConversionService currencyConversionService,
             AutoPartDbContext dbContext,
             ILogger<SalesReturnController> logger)
         {
@@ -42,6 +44,7 @@ namespace AutoPartShop.Api.Controllers
             _salesOrderRepository = salesOrderRepository;
             _customerPaymentRepository = customerPaymentRepository;
             _customerCreditNoteRepository = customerCreditNoteRepository;
+            _currencyConversionService = currencyConversionService;
             _currentUserService = currentUserService;
             _codeGenerateService = codeGenerateService;
             _dbContext = dbContext;
@@ -62,19 +65,19 @@ namespace AutoPartShop.Api.Controllers
         public async Task<ActionResult<SalesReturnResponse>> Create([FromBody] CreateSalesReturnRequest request)
         {
             if (request.Lines == null || request.Lines.Count == 0)
-                return BadRequest("At least one return line is required.");
+                return BadRequest(new { message = "At least one return line is required." });
 
             var salesOrder = await _salesOrderRepository.GetByIdAsync(request.SalesOrderId);
             if (salesOrder == null)
-                return BadRequest("Sales order not found.");
+                return BadRequest(new { message = "Sales order not found." });
 
-            var returnableStatuses = new[] { "PARTIALLY_SHIPPED", "SHIPPED", "DELIVERED" };
+            var returnableStatuses = new[] { SalesOrderStatus.PARTIALLY_SHIPPED, SalesOrderStatus.SHIPPED, SalesOrderStatus.DELIVERED };
             if (!returnableStatuses.Contains(salesOrder.Status))
-                return BadRequest($"Cannot create a return for a sales order with status '{salesOrder.Status}'. Only shipped or delivered orders can be returned.");
+                return BadRequest(new { message = $"Cannot create a return for a sales order with status '{salesOrder.Status}'. Only shipped or delivered orders can be returned." });
 
             // Block if any returned line has an active warranty claim to prevent double-refunds.
             var lineIds = request.Lines.Select(l => l.SalesOrderLineId).ToList();
-            var activeClaimStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+            var activeClaimStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
             var conflictingClaim = await _dbContext.Set<WarrantyRegistration>()
                 .Where(w => lineIds.Contains(w.SalesOrderLineId))
                 .Join(_dbContext.Set<WarrantyClaim>(),
@@ -86,12 +89,12 @@ namespace AutoPartShop.Api.Controllers
                 .FirstOrDefaultAsync();
 
             if (conflictingClaim != null)
-                return BadRequest($"Cannot create a sales return while active warranty claim '{conflictingClaim}' exists for one of these items. Resolve the claim first.");
+                return BadRequest(new { message = $"Cannot create a sales return while active warranty claim '{conflictingClaim}' exists for one of these items. Resolve the claim first." });
 
             // Load existing returns for this sales order to check cumulative quantities
             var existingReturns = await _salesReturnRepository.GetBySalesOrderAsync(request.SalesOrderId);
             var activeReturns = existingReturns
-                .Where(r => r.Status != "REJECTED")
+                .Where(r => r.Status != SalesReturnStatus.REJECTED)
                 .ToList();
 
             var returnNumber = await _codeGenerateService.GenerateAsync("SR");
@@ -102,7 +105,7 @@ namespace AutoPartShop.Api.Controllers
             {
                 var orderLine = salesOrder.LineItems.FirstOrDefault(ol => ol.Id == line.SalesOrderLineId);
                 if (orderLine == null)
-                    return BadRequest($"Sales order line {line.SalesOrderLineId} not found on order {salesOrder.SONumber}.");
+                    return BadRequest(new { message = $"Sales order line {line.SalesOrderLineId} not found on order {salesOrder.SONumber}." });
 
                 // Use shipped quantity when available; fall back to ordered quantity until dispatch tracking is built.
                 // Once UpdateShippedQuantity is called by a dispatch endpoint, this automatically enforces the tighter limit.
@@ -110,7 +113,7 @@ namespace AutoPartShop.Api.Controllers
                 var returnableLabel = orderLine.ShippedQuantity > 0 ? "shipped" : "ordered";
 
                 if (line.Quantity > returnableQty)
-                    return BadRequest($"Return quantity ({line.Quantity}) exceeds {returnableLabel} quantity ({returnableQty}) for part {line.PartId}.");
+                    return BadRequest(new { message = $"Return quantity ({line.Quantity}) exceeds {returnableLabel} quantity ({returnableQty}) for part {line.PartId}." });
 
                 // Check cumulative returned quantity across all active returns for this SO line
                 var alreadyReturned = activeReturns
@@ -119,7 +122,7 @@ namespace AutoPartShop.Api.Controllers
                     .Sum(rl => rl.Quantity);
 
                 if (alreadyReturned + line.Quantity > returnableQty)
-                    return BadRequest($"Total return quantity ({alreadyReturned + line.Quantity}) would exceed {returnableLabel} quantity ({returnableQty}) for part {line.PartId}. Already returned: {alreadyReturned}.");
+                    return BadRequest(new { message = $"Total return quantity ({alreadyReturned + line.Quantity}) would exceed {returnableLabel} quantity ({returnableQty}) for part {line.PartId}. Already returned: {alreadyReturned}." });
 
                 var returnLine = SalesReturnLine.Create(
                     salesReturn.Id,
@@ -150,8 +153,8 @@ namespace AutoPartShop.Api.Controllers
             if (salesReturn == null)
                 return NotFound();
 
-            if (salesReturn.Status != "PENDING")
-                return BadRequest("Only pending returns can be updated.");
+            if (salesReturn.Status != SalesReturnStatus.PENDING)
+                return BadRequest(new { message = "Only pending returns can be updated." });
 
             salesReturn.UpdateNotes(request.Notes);
             // For simplicity, not updating lines in this example. Implement as needed.
@@ -206,7 +209,7 @@ namespace AutoPartShop.Api.Controllers
                         return;
                     }
 
-                    if (salesReturn.Status != "PENDING")
+                    if (salesReturn.Status != SalesReturnStatus.PENDING)
                     {
                         await transaction.RollbackAsync(cancellationToken);
                         return;
@@ -232,8 +235,8 @@ namespace AutoPartShop.Api.Controllers
             if (salesReturn == null)
                 return NotFound();
 
-            if (salesReturn.Status != "APPROVED")
-                return BadRequest($"Cannot approve return with current status '{salesReturn.Status}'. Only PENDING returns can be approved.");
+            if (salesReturn.Status != SalesReturnStatus.APPROVED)
+                return BadRequest(new { message = $"Cannot approve return with current status '{salesReturn.Status}'. Only PENDING returns can be approved." });
 
             return Ok(MapToResponse(salesReturn));
         }
@@ -245,8 +248,8 @@ namespace AutoPartShop.Api.Controllers
             var salesReturn = await _salesReturnRepository.GetByIdAsync(id, cancellationToken);
             if (salesReturn == null)
                 return NotFound();
-            if (salesReturn.Status != "APPROVED")
-                return BadRequest("Only approved returns can be marked as received.");
+            if (salesReturn.Status != SalesReturnStatus.APPROVED)
+                return BadRequest(new { message = "Only approved returns can be marked as received." });
             salesReturn.MarkAsReceived();
             await _salesReturnRepository.UpdateAsync(salesReturn, cancellationToken);
             return Ok(MapToResponse(salesReturn));
@@ -259,15 +262,15 @@ namespace AutoPartShop.Api.Controllers
             var salesReturn = await _salesReturnRepository.GetByIdAsync(id, cancellationToken);
             if (salesReturn == null)
                 return NotFound();
-            if (salesReturn.Status != "RECEIVED")
-                return BadRequest("Only received returns can be processed.");
+            if (salesReturn.Status != SalesReturnStatus.RECEIVED)
+                return BadRequest(new { message = "Only received returns can be processed." });
 
             // Use execution strategy to support SqlServerRetryingExecutionStrategy with transactions
             var strategy = _dbContext.Database.CreateExecutionStrategy();
 
             var warehouseId = salesReturn.WarehouseId;
             if (warehouseId == Guid.Empty)
-                return BadRequest("WarehouseId is required for stock adjustment.");
+                return BadRequest(new { message = "WarehouseId is required for stock adjustment." });
 
             try
             {
@@ -282,8 +285,8 @@ namespace AutoPartShop.Api.Controllers
                         // row lock that serializes callers; the loser matches 0 rows and aborts. If the
                         // transaction later rolls back, this status change rolls back with it.
                         var claimed = await _dbContext.Set<Domain.Entities.SalesReturn>()
-                            .Where(sr => sr.Id == salesReturn.Id && sr.Status == "RECEIVED" && !sr.Isdeleted)
-                            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, "PROCESSED"), cancellationToken);
+                            .Where(sr => sr.Id == salesReturn.Id && sr.Status == SalesReturnStatus.RECEIVED && !sr.Isdeleted)
+                            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, SalesReturnStatus.PROCESSED), cancellationToken);
                         if (claimed == 0)
                             throw new InvalidOperationException("This return has already been processed.");
 
@@ -331,7 +334,7 @@ namespace AutoPartShop.Api.Controllers
                             _dbContext.StockMovements.Add(stockMovement);
 
                             // Restore returned stock to the exact lot(s) it was sold from by reversing the
-                            // original SALE lot movements â€” keeps FIFO cost accurate and never creates a
+                            // original SALE lot movements — keeps FIFO cost accurate and never creates a
                             // supplier-less lot. Lot tracking is best-effort: a failure here must not abort
                             // the return (StockLevel above is the source of truth for on-hand counts).
                             try
@@ -426,7 +429,7 @@ namespace AutoPartShop.Api.Controllers
                             }
                             catch (Exception lotEx)
                             {
-                                // Lot tracking is best-effort â€” never block the return on it.
+                                // Lot tracking is best-effort — never block the return on it.
                                 _logger.LogWarning(lotEx, "Failed to restore lot tracking for part {PartId} in return {ReturnNumber}", line.PartId, salesReturn.ReturnNumber);
                             }
                         }
@@ -458,11 +461,18 @@ namespace AutoPartShop.Api.Controllers
                                     // Cash can only be refunded up to what the customer actually paid. Any
                                     // remainder is value they never paid for (credit / partially-paid sale),
                                     // so it just reduces their outstanding balance instead of handing back cash.
-                                    var cashPart = Math.Min(salesReturn.RefundAmount, salesOrder.PaidAmount);
+                                    // Proportionally reduce the refund by the order-level discount so that a
+                                    // discounted sale doesn't over-refund. E.g. 2 x 100 with 20 discount
+                                    // means each unit cost the customer 90, not 100.
+                                    var discountRatio = salesOrder.SubTotal > 0 && salesOrder.DiscountAmount > 0
+                                        ? (salesOrder.GrandTotal / salesOrder.SubTotal)
+                                        : 1m;
+                                    var effectiveRefund = Math.Round(salesReturn.RefundAmount * discountRatio, 2);
+                                    var cashPart = Math.Min(effectiveRefund, salesOrder.PaidAmount);
                                     // The remainder can only reduce what the customer still owes on this order;
                                     // clamp it so an over-stated refund can't push the balance negative.
                                     var outstanding = Math.Max(0, salesOrder.GrandTotal - salesOrder.PaidAmount);
-                                    var balancePart = Math.Min(salesReturn.RefundAmount - cashPart, outstanding);
+                                    var balancePart = Math.Min(effectiveRefund - cashPart, outstanding);
 
                                     if (cashPart > 0)
                                     {
@@ -485,6 +495,8 @@ namespace AutoPartShop.Api.Controllers
                                         }
 
                                         refundPayment.MarkAsCompleted();
+                                        var refundFx = await _currencyConversionService.ConvertToBaseWithRateAsync(refundPayment.Amount, refundPayment.Currency, refundPayment.PaymentDate, CancellationToken.None);
+                                        refundPayment.SetFxBaseAmount(refundFx.BaseAmount, refundFx.RateToBase);
                                         refundPayment.CreatedBy = _currentUserService.GetCurrentUsername();
                                         refundPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
                                         refundPayment.UpdateNotes($"Cash refund for sales return {salesReturn.ReturnNumber}. Reason: {salesReturn.Reason}");
@@ -500,6 +512,17 @@ namespace AutoPartShop.Api.Controllers
 
                                     // Call ProcessRefund for the total refunded value (cash + balance write-off)
                                     var totalRefunded = cashPart + balancePart;
+
+                                    // Credit the return against the invoice as well. The refund lowers
+                                    // AmountPaid, so without this the invoice keeps its pre-return total
+                                    // and a fully-settled customer reads as owing the returned value.
+                                    if (invoice != null && totalRefunded > 0)
+                                    {
+                                        invoice.ApplyReturnCredit(Math.Min(totalRefunded, invoice.GrandTotal));
+                                        invoice.UpdatePaymentStatus();
+                                        invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                    }
+
                                     if (totalRefunded > 0)
                                     {
                                         salesOrder!.ProcessRefund(totalRefunded);
@@ -509,8 +532,9 @@ namespace AutoPartShop.Api.Controllers
 
                                     if (balancePart > 0)
                                     {
-                                        // Goods returned that were never paid for â†’ the customer owes that much less.
-                                        customer.UpdateBalance(-balancePart);
+                                        // Goods returned that were never paid for ? the customer owes that much less.
+                                        var balancePartFx = await _currencyConversionService.ConvertToBaseWithRateAsync(balancePart, salesOrder?.Currency ?? "BDT", DateTime.UtcNow, CancellationToken.None);
+                                        customer.UpdateBalance(-balancePartFx.BaseAmount);
                                         customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                                     }
                                 }
@@ -538,7 +562,7 @@ namespace AutoPartShop.Api.Controllers
                                     salesReturn.SetCustomerCreditNote(customerCreditNote.Id);
                                 }
 
-                                // Reverse TotalPurchaseAmount â€” applies regardless of refund type
+                                // Reverse TotalPurchaseAmount — applies regardless of refund type
                                 customer.ReverseRecordPurchase(salesReturn.RefundAmount);
                                 customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                             }
@@ -546,6 +570,22 @@ namespace AutoPartShop.Api.Controllers
 
                         salesReturn.Process();
                         await _salesReturnRepository.UpdateAsync(salesReturn);
+
+                        // If this return completes the order (all shipped quantities returned), mark
+                        // the order as RETURNED so revenue/dashboard reports exclude it.
+                        if (salesOrder != null && await IsOrderFullyReturnedAsync(salesOrder, cancellationToken))
+                        {
+                            try
+                            {
+                                salesOrder.MarkAsReturned();
+                                salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+                                await _salesOrderRepository.UpdateAsync(salesOrder);
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                // Order is not in a returnable status (e.g. still CONFIRMED) - skip.
+                            }
+                        }
 
                         // Commit the transaction
                         await transaction.CommitAsync();
@@ -591,7 +631,7 @@ namespace AutoPartShop.Api.Controllers
                         return;
                     }
 
-                    if (salesReturn.Status != "PENDING" && salesReturn.Status != "APPROVED" && salesReturn.Status != "RECEIVED" && salesReturn.Status != "PROCESSED")
+                    if (salesReturn.Status != SalesReturnStatus.PENDING && salesReturn.Status != SalesReturnStatus.APPROVED && salesReturn.Status != SalesReturnStatus.RECEIVED && salesReturn.Status != SalesReturnStatus.PROCESSED)
                     {
                         validationError = "Only pending, approved, received, or processed returns can be rejected.";
                         await transaction.RollbackAsync(cancellationToken);
@@ -602,7 +642,7 @@ namespace AutoPartShop.Api.Controllers
                     if (string.IsNullOrWhiteSpace(actor))
                         actor = "system";
 
-                    if (salesReturn.Status == "PROCESSED")
+                    if (salesReturn.Status == SalesReturnStatus.PROCESSED)
                     {
                         // Map each return line back to the variant it was sold under
                         var soLineIds = salesReturn.LineItems.Select(l => l.SalesOrderLineId).Distinct().ToList();
@@ -720,7 +760,8 @@ namespace AutoPartShop.Api.Controllers
 
                                         if (customer != null)
                                         {
-                                            customer.UpdateBalance(salesReturn.RefundAmount);
+                                            var reversalFx = await _currencyConversionService.ConvertToBaseWithRateAsync(salesReturn.RefundAmount, salesOrder?.Currency ?? "BDT", DateTime.UtcNow, cancellationToken);
+                                            customer.UpdateBalance(reversalFx.BaseAmount);
                                             customer.ModifiedBy = actor;
                                         }
 
@@ -754,6 +795,8 @@ namespace AutoPartShop.Api.Controllers
                                             reversalPayment.LinkToInvoice(salesReturn.InvoiceId.Value);
 
                                         reversalPayment.MarkAsCompleted();
+                                        var reversalPaymentFx = await _currencyConversionService.ConvertToBaseWithRateAsync(reversalPayment.Amount, reversalPayment.Currency, reversalPayment.PaymentDate, cancellationToken);
+                                        reversalPayment.SetFxBaseAmount(reversalPaymentFx.BaseAmount, reversalPaymentFx.RateToBase);
                                         reversalPayment.UpdateNotes($"Compensation payment for rejected processed return {salesReturn.ReturnNumber}");
                                         reversalPayment.CreatedBy = actor;
                                         reversalPayment.ModifiedBy = actor;
@@ -773,6 +816,18 @@ namespace AutoPartShop.Api.Controllers
                     salesReturn.Reject(request?.Reason ?? string.Empty);
                     salesReturn.ModifiedBy = actor;
 
+                    // If the order had been marked RETURNED, re-evaluate: rejecting this return may
+                    // mean the order is no longer fully returned, so restore it to DELIVERED (the
+                    // revenue report counts it again). Runs after Reject() so this return is excluded.
+                    var returnedOrder = await _dbContext.SalesOrders
+                        .Include(so => so.LineItems)
+                        .FirstOrDefaultAsync(so => so.Id == salesReturn.SalesOrderId && so.Status == SalesOrderStatus.RETURNED && !so.Isdeleted, cancellationToken);
+                    if (returnedOrder != null && !await IsOrderFullyReturnedAsync(returnedOrder, cancellationToken))
+                    {
+                        returnedOrder.RevertFromReturned();
+                        returnedOrder.ModifiedBy = actor;
+                    }
+
                     await _dbContext.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
                 }
@@ -790,6 +845,36 @@ namespace AutoPartShop.Api.Controllers
                 return BadRequest(validationError);
 
             return Ok(MapToResponse(salesReturn));
+        }
+
+        /// <summary>
+        /// Determines whether every shipped line of the order has been fully returned (sum of
+        /// non-rejected return line quantities &gt;= the shipped/ordered quantity in base units).
+        /// </summary>
+        private async Task<bool> IsOrderFullyReturnedAsync(SalesOrder salesOrder, CancellationToken cancellationToken)
+        {
+            if (salesOrder is null || salesOrder.LineItems.Count == 0)
+                return false;
+
+            var returns = await _salesReturnRepository.GetBySalesOrderAsync(salesOrder.Id, cancellationToken);
+            var activeReturns = returns.Where(r => r.Status != SalesReturnStatus.REJECTED).ToList();
+
+            foreach (var orderLine in salesOrder.LineItems)
+            {
+                var returnableBaseQty = orderLine.ShippedQuantityInBaseUnit > 0
+                    ? orderLine.ShippedQuantityInBaseUnit
+                    : orderLine.QuantityInBaseUnit;
+
+                var returnedBaseQty = activeReturns
+                    .SelectMany(r => r.LineItems)
+                    .Where(rl => rl.SalesOrderLineId == orderLine.Id)
+                    .Sum(rl => rl.QuantityInBaseUnit > 0 ? rl.QuantityInBaseUnit : rl.Quantity);
+
+                if (returnedBaseQty < returnableBaseQty)
+                    return false;
+            }
+
+            return true;
         }
 
         private static SalesReturnResponse MapToResponse(SalesReturn entity)

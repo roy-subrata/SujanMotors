@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -12,6 +12,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import {
     DailyExpenseService,
@@ -21,9 +22,12 @@ import {
     ExpenseCategory
 } from '../services/daily-expense.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
 import { EXPENSE_PAYMENT_METHODS, PaymentMethodOption } from '../../../shared/constants/payment-methods.constants';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-daily-expenses',
@@ -42,8 +46,11 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
         ToastModule,
         ConfirmDialogModule,
         CheckboxModule,
+        TooltipModule,
         PageContainerComponent,
-        PageHeaderComponent
+        PageHeaderComponent,
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './daily-expenses.component.html',
@@ -54,10 +61,24 @@ export class DailyExpensesComponent implements OnInit {
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly i18n = inject(I18nService);
 
     expenses = signal<DailyExpenseResponse[]>([]);
     categories = signal<ExpenseCategory[]>([]);
     loading = signal(false);
+
+    first = signal(0);
+    pageSize = signal(10);
+    pagedExpenses = computed(() => this.expenses().slice(this.first(), this.first() + this.pageSize()));
+
+    goToPage(page: number): void {
+        this.first.set((page - 1) * this.pageSize());
+    }
+
+    onPageSizeChange(size: number): void {
+        this.pageSize.set(size);
+        this.first.set(0);
+    }
 
     displayDialog = false;
     isEditMode = false;
@@ -68,12 +89,14 @@ export class DailyExpensesComponent implements OnInit {
     // Use shared payment methods from centralized constants
     paymentMethods: PaymentMethodOption[] = EXPENSE_PAYMENT_METHODS;
 
-    recurrencePatterns = [
-        { label: 'Daily', value: 'DAILY' },
-        { label: 'Weekly', value: 'WEEKLY' },
-        { label: 'Monthly', value: 'MONTHLY' },
-        { label: 'Yearly', value: 'YEARLY' }
-    ];
+    get recurrencePatterns(): { label: string; value: string }[] {
+        return [
+            { label: this.i18n.t('dailyExpenses.patterns.daily'), value: 'DAILY' },
+            { label: this.i18n.t('dailyExpenses.patterns.weekly'), value: 'WEEKLY' },
+            { label: this.i18n.t('dailyExpenses.patterns.monthly'), value: 'MONTHLY' },
+            { label: this.i18n.t('dailyExpenses.patterns.yearly'), value: 'YEARLY' }
+        ];
+    }
 
     get currencyCode(): string {
         return this.currencyService.selectedCurrency();
@@ -99,8 +122,8 @@ export class DailyExpensesComponent implements OnInit {
                 console.error('Error loading expenses:', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load expenses'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('dailyExpenses.messages.loadFailed')
                 });
                 this.loading.set(false);
             }
@@ -147,8 +170,8 @@ export class DailyExpensesComponent implements OnInit {
         if (!this.validateForm()) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Validation Error',
-                detail: 'Please fill in all required fields'
+                summary: this.i18n.t('dailyExpenses.messages.validationError'),
+                detail: this.i18n.t('dailyExpenses.messages.fillRequired')
             });
             return;
         }
@@ -161,8 +184,8 @@ export class DailyExpensesComponent implements OnInit {
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Expense updated successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('dailyExpenses.messages.updated')
                         });
                         this.displayDialog = false;
                         this.loadExpenses();
@@ -171,8 +194,8 @@ export class DailyExpensesComponent implements OnInit {
                         console.error('Error updating expense:', error);
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: 'Failed to update expense'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: this.i18n.t('dailyExpenses.messages.updateFailed')
                         });
                         this.loading.set(false);
                     }
@@ -183,8 +206,8 @@ export class DailyExpensesComponent implements OnInit {
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Expense created successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('dailyExpenses.messages.created')
                         });
                         this.displayDialog = false;
                         this.loadExpenses();
@@ -193,8 +216,8 @@ export class DailyExpensesComponent implements OnInit {
                         console.error('Error creating expense:', error);
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: 'Failed to create expense'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: this.i18n.t('dailyExpenses.messages.createFailed')
                         });
                         this.loading.set(false);
                     }
@@ -204,16 +227,16 @@ export class DailyExpensesComponent implements OnInit {
 
     deleteExpense(expense: DailyExpenseResponse): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete this expense (${expense.description})?`,
-            header: 'Confirm Delete',
+            message: this.i18n.t('dailyExpenses.messages.deleteConfirm', { description: expense.description }),
+            header: this.i18n.t('dailyExpenses.messages.deleteHeader'),
             icon: 'pi pi-exclamation-triangle',
             accept: () => {
                 this.expenseService.delete(expense.id).subscribe({
                     next: () => {
                         this.messageService.add({
                             severity: 'success',
-                            summary: 'Success',
-                            detail: 'Expense deleted successfully'
+                            summary: this.i18n.t('common.messages.success'),
+                            detail: this.i18n.t('dailyExpenses.messages.deleted')
                         });
                         this.loadExpenses();
                     },
@@ -221,8 +244,8 @@ export class DailyExpensesComponent implements OnInit {
                         console.error('Error deleting expense:', error);
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: 'Failed to delete expense'
+                            summary: this.i18n.t('common.messages.error'),
+                            detail: this.i18n.t('dailyExpenses.messages.deleteFailed')
                         });
                     }
                 });

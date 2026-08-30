@@ -1,5 +1,6 @@
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Customers.Dtos;
+using AutoPartShop.Domain.Enums;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -82,8 +83,8 @@ public class CustomerReadRepository(AutoPartDbContext _dbContext) : ICustomerRea
         {
             var dues = await _dbContext.SalesOrders
                 .Where(o => ids.Contains(o.CustomerId) &&
-                            o.Status != "CANCELLED" &&
-                            o.Status != "RETURNED" &&
+                            o.Status != SalesOrderStatus.CANCELLED &&
+                            o.Status != SalesOrderStatus.RETURNED &&
                             !o.Isdeleted)
                 .GroupBy(o => o.CustomerId)
                 .Select(g => new { CustomerId = g.Key, Total = g.Sum(o => o.TotalAmount + o.TaxAmount - o.PaidAmount) })

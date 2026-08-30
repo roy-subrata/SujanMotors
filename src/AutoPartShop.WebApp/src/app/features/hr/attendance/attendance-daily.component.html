@@ -4,16 +4,16 @@
 
   <!-- ==================== HEADER ==================== -->
   <app-page-header
-    title="Daily Attendance"
-    subtitle="Mark attendance for shop staff"
-    [count]="markedCount" countLabel="marked" countIcon="pi pi-check-circle">
+    [title]="'hr.attendance.title' | translate"
+    [subtitle]="'hr.attendance.subtitle' | translate"
+    [count]="markedCount" [countLabel]="'hr.attendance.countLabel' | translate" countIcon="pi pi-check-circle">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Mark all present" tooltipPosition="bottom" (click)="markAll('PRESENT')">
+      <button class="btn-icon" [pTooltip]="'hr.attendance.markAllTooltip' | translate" tooltipPosition="bottom" (click)="markAll('PRESENT')">
         <i class="pi pi-check-square"></i>
       </button>
       <button class="btn-primary" (click)="saveAll()" [disabled]="saving || loading">
         <i class="pi" [ngClass]="saving ? 'pi-spin pi-spinner' : 'pi-save'"></i>
-        <span>{{ saving ? 'Saving...' : 'Save All' }}</span>
+        <span>{{ (saving ? 'hr.attendance.saving' : 'hr.attendance.saveAll') | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -35,14 +35,14 @@
 
         <ng-template #header>
           <tr>
-            <th class="col-code">Code</th>
-            <th class="col-name">Name</th>
-            <th class="col-designation">Designation</th>
-            <th class="col-shift">Shift</th>
-            <th class="col-status">Status</th>
-            <th class="col-time">Check In</th>
-            <th class="col-time">Check Out</th>
-            <th class="col-notes">Notes</th>
+            <th class="col-code">{{ 'hr.attendance.columns.code' | translate }}</th>
+            <th class="col-name">{{ 'hr.attendance.columns.name' | translate }}</th>
+            <th class="col-designation">{{ 'hr.attendance.columns.designation' | translate }}</th>
+            <th class="col-shift">{{ 'hr.attendance.columns.shift' | translate }}</th>
+            <th class="col-status">{{ 'hr.attendance.columns.status' | translate }}</th>
+            <th class="col-time">{{ 'hr.attendance.columns.checkIn' | translate }}</th>
+            <th class="col-time">{{ 'hr.attendance.columns.checkOut' | translate }}</th>
+            <th class="col-notes">{{ 'hr.attendance.columns.notes' | translate }}</th>
           </tr>
         </ng-template>
 
@@ -51,12 +51,12 @@
             <td class="col-code"><span class="code-link">{{ row.employeeCode }}</span></td>
             <td class="col-name">
               <span class="cell-primary">{{ row.name }}</span>
-              <i *ngIf="row.isMarked" class="pi pi-check-circle marked-icon" pTooltip="Already marked"></i>
+              <i *ngIf="row.isMarked" class="pi pi-check-circle marked-icon" [pTooltip]="'hr.attendance.alreadyMarkedTooltip' | translate"></i>
             </td>
             <td class="col-designation"><span class="text-muted">{{ row.designation || '-' }}</span></td>
             <td class="col-shift"><span class="text-muted">{{ row.shiftName || '-' }}</span></td>
             <td class="col-status">
-              <p-select [options]="statusOptions" [(ngModel)]="row.status" placeholder="Not marked"
+              <p-select [options]="statusOptions" [(ngModel)]="row.status" [placeholder]="'hr.attendance.statusPlaceholder' | translate"
                 [showClear]="true" appendTo="body" styleClass="status-select" (onChange)="markRow(row)"></p-select>
             </td>
             <td class="col-time">
@@ -66,7 +66,7 @@
               <input type="time" class="time-input" [(ngModel)]="row.checkOut" (change)="markRow(row)" />
             </td>
             <td class="col-notes">
-              <input pInputText type="text" [(ngModel)]="row.notes" placeholder="Notes" (input)="markRow(row)" />
+              <input pInputText type="text" [(ngModel)]="row.notes" [placeholder]="'hr.attendance.mobileLabels.notes' | translate" (input)="markRow(row)" />
             </td>
           </tr>
         </ng-template>
@@ -76,8 +76,8 @@
             <td colspan="8">
               <div class="empty-state">
                 <div class="empty-icon"><i class="pi pi-calendar"></i></div>
-                <h3>No Active Employees</h3>
-                <p>Add employees in HR &gt; Employees first</p>
+                <h3>{{ 'hr.attendance.emptyTitle' | translate }}</h3>
+                <p>{{ 'hr.attendance.emptyHint' | translate }}</p>
               </div>
             </td>
           </tr>
@@ -106,8 +106,8 @@
 
     <div *ngIf="!loading && rows.length === 0" class="empty-state-mobile">
       <div class="empty-icon"><i class="pi pi-calendar"></i></div>
-      <h3>No Active Employees</h3>
-      <p>Add employees in HR &gt; Employees first</p>
+      <h3>{{ 'hr.attendance.emptyTitle' | translate }}</h3>
+      <p>{{ 'hr.attendance.emptyHint' | translate }}</p>
     </div>
 
     <div *ngIf="!loading && rows.length > 0" class="cards-grid">
@@ -116,7 +116,7 @@
         <div class="card-header">
           <span class="card-so-number">
             {{ row.name }}
-            <i *ngIf="row.isMarked" class="pi pi-check-circle marked-icon" pTooltip="Already marked"></i>
+            <i *ngIf="row.isMarked" class="pi pi-check-circle marked-icon" [pTooltip]="'hr.attendance.alreadyMarkedTooltip' | translate"></i>
           </span>
           <span class="code-link">{{ row.employeeCode }}</span>
         </div>
@@ -128,25 +128,25 @@
           </div>
 
           <div class="attendance-field">
-            <label>Status</label>
-            <p-select [options]="statusOptions" [(ngModel)]="row.status" placeholder="Not marked"
+            <label>{{ 'hr.attendance.mobileLabels.status' | translate }}</label>
+            <p-select [options]="statusOptions" [(ngModel)]="row.status" [placeholder]="'hr.attendance.statusPlaceholder' | translate"
               [showClear]="true" appendTo="body" styleClass="status-select-mobile" (onChange)="markRow(row)"></p-select>
           </div>
 
           <div class="attendance-time-row">
             <div class="attendance-field">
-              <label>Check In</label>
+              <label>{{ 'hr.attendance.mobileLabels.checkIn' | translate }}</label>
               <input type="time" class="time-input" [(ngModel)]="row.checkIn" (change)="markRow(row)" />
             </div>
             <div class="attendance-field">
-              <label>Check Out</label>
+              <label>{{ 'hr.attendance.mobileLabels.checkOut' | translate }}</label>
               <input type="time" class="time-input" [(ngModel)]="row.checkOut" (change)="markRow(row)" />
             </div>
           </div>
 
           <div class="attendance-field">
-            <label>Notes</label>
-            <input pInputText type="text" [(ngModel)]="row.notes" placeholder="Notes" (input)="markRow(row)" />
+            <label>{{ 'hr.attendance.mobileLabels.notes' | translate }}</label>
+            <input pInputText type="text" [(ngModel)]="row.notes" [placeholder]="'hr.attendance.mobileLabels.notes' | translate" (input)="markRow(row)" />
           </div>
         </div>
       </div>

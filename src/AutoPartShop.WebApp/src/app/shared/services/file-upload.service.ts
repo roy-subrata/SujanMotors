@@ -62,7 +62,7 @@ export class FileUploadService {
         return this.http.get<{ data: StoredFile[] }>(this.apiUrl, { params: { ownerType, ownerId } }).pipe(map((r) => r.data));
     }
 
-    /** Admin/Manager only: removes the record and the stored blob. */
+    /** Removes the record and the stored blob. Admin/Manager for any file; others only their own uploads. */
     delete(fileId: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${fileId}`);
     }

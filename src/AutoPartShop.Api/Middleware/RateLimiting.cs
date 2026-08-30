@@ -41,6 +41,12 @@ public static class RateLimiting
     /// <summary>Anonymous data endpoints.</summary>
     public const string PublicPolicy = "public";
 
+    /// <summary>
+    /// File uploads. Bodies here are orders of magnitude larger than a normal request
+    /// (up to 100 MB for video), so the generous global tier is the wrong bucket for them.
+    /// </summary>
+    public const string UploadPolicy = "upload";
+
     // Long-lived or infrastructural paths that must never be throttled: SignalR holds a
     // connection open and reconnects in bursts, and a throttled health probe would take the
     // container down.
@@ -89,6 +95,15 @@ public static class RateLimiting
                 {
                     PermitLimit = options.PublicPermitLimit,
                     Window = TimeSpan.FromSeconds(options.PublicWindowSeconds),
+                    QueueLimit = 0
+                }));
+
+            limiter.AddPolicy(UploadPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: $"upload:{ClientKey(context)}",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = options.UploadPermitLimit,
+                    Window = TimeSpan.FromSeconds(options.UploadWindowSeconds),
                     QueueLimit = 0
                 }));
 
@@ -199,6 +214,9 @@ public sealed record RateLimitSettings
     public int PublicPermitLimit { get; init; } = 60;
     public int PublicWindowSeconds { get; init; } = 60;
 
+    public int UploadPermitLimit { get; init; } = 30;
+    public int UploadWindowSeconds { get; init; } = 60;
+
     public int GlobalPermitLimit { get; init; } = 600;
     public int GlobalWindowSeconds { get; init; } = 60;
 
@@ -217,6 +235,8 @@ public sealed record RateLimitSettings
             SessionWindowSeconds = Positive(section, "SessionWindowSeconds", defaults.SessionWindowSeconds),
             PublicPermitLimit = Positive(section, "PublicPermitLimit", defaults.PublicPermitLimit),
             PublicWindowSeconds = Positive(section, "PublicWindowSeconds", defaults.PublicWindowSeconds),
+            UploadPermitLimit = Positive(section, "UploadPermitLimit", defaults.UploadPermitLimit),
+            UploadWindowSeconds = Positive(section, "UploadWindowSeconds", defaults.UploadWindowSeconds),
             GlobalPermitLimit = Positive(section, "GlobalPermitLimit", defaults.GlobalPermitLimit),
             GlobalWindowSeconds = Positive(section, "GlobalWindowSeconds", defaults.GlobalWindowSeconds)
         };

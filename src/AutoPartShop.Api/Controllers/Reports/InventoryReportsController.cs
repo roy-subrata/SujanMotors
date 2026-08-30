@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Common;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.ReportDtos;
@@ -14,7 +15,6 @@ namespace AutoPartShop.Api.Controllers.Reports;
 /// require reports.export. Data comes from dbo.usp_Report_* stored procedures.
 /// </summary>
 [ApiController]
-[Route("api/reports/inventory")]
 [Route("api/v1/reports/inventory")]
 [HasPermission(Permissions.ReportsView)]
 public class InventoryReportsController(
@@ -52,8 +52,9 @@ public class InventoryReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetStockSummaryAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Stock Summary & Valuation", BuildFilterSummary(query), page.Data, ReportColumnMaps.StockSummary, "stock-summary");
+            return ExportFile(format, DocStrings.T("report.titles.stockSummaryValuation", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.StockSummary(lang), "stock-summary");
         }
         catch (ArgumentException ex)
         {
@@ -97,7 +98,7 @@ public class InventoryReportsController(
                 Rows: page.Data,
                 TotalStockValue: page.Totals?.TotalStockValue ?? page.Data.Sum(r => r.StockValue));
 
-            var pdfBytes = new AutoPartShop.Api.Pdf.StockReportDocument(data, shop).GeneratePdf();
+            var pdfBytes = new AutoPartShop.Api.Pdf.StockReportDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
 
             return File(pdfBytes, "application/pdf", $"stock-report-{asOf:yyyyMMdd}.pdf");
         }
@@ -141,8 +142,9 @@ public class InventoryReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetLowStockAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Low Stock", BuildFilterSummary(query), page.Data, ReportColumnMaps.LowStock, "low-stock");
+            return ExportFile(format, DocStrings.T("report.titles.lowStock", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.LowStock(lang), "low-stock");
         }
         catch (ArgumentException ex)
         {
@@ -184,8 +186,9 @@ public class InventoryReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetStockMovementsAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Stock Movements", BuildFilterSummary(query), page.Data, ReportColumnMaps.StockMovements, "stock-movements");
+            return ExportFile(format, DocStrings.T("report.titles.stockMovements", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.StockMovements(lang), "stock-movements");
         }
         catch (ArgumentException ex)
         {
@@ -227,8 +230,9 @@ public class InventoryReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetExpiringLotsAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Expiring Lots", BuildFilterSummary(query), page.Data, ReportColumnMaps.ExpiringLots, "expiring-lots");
+            return ExportFile(format, DocStrings.T("report.titles.expiringLots", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.ExpiringLots(lang), "expiring-lots");
         }
         catch (ArgumentException ex)
         {
@@ -270,8 +274,9 @@ public class InventoryReportsController(
     {
         try
         {
+            var lang = this.GetLanguage();
             var page = await reportRepository.GetSlowMovingStockAsync(query, ExportRowCap, cancellationToken);
-            return ExportFile(format, "Slow-Moving Stock", BuildFilterSummary(query), page.Data, ReportColumnMaps.SlowMovingStock, "slow-moving-stock");
+            return ExportFile(format, DocStrings.T("report.titles.slowMovingStock", lang), BuildFilterSummary(query), page.Data, ReportColumnMaps.SlowMovingStock(lang), "slow-moving-stock");
         }
         catch (ArgumentException ex)
         {

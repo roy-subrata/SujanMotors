@@ -17,15 +17,6 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-filter-bar',
   standalone: true,
-  template: `
-    <section class="filter-section">
-      <div class="filter-container">
-        <ng-content select="[search]"></ng-content>
-        <ng-content select="[filters]"></ng-content>
-        <ng-content select="[filterActions]"></ng-content>
-      </div>
-      <ng-content select="[activeFilters]"></ng-content>
-    </section>
-  `
+  templateUrl: './filter-bar.component.html',
 })
 export class FilterBarComponent {}

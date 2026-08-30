@@ -10,6 +10,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { SupplierService, SupplierPerformanceResponse } from '../../inventory/services/supplier.service';
 
 @Component({
@@ -25,7 +26,8 @@ import { SupplierService, SupplierPerformanceResponse } from '../../inventory/se
     PageContainerComponent,
     PageHeaderComponent,
     FilterBarComponent,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './supplier-performance.component.html'

@@ -11,6 +11,8 @@ import { map } from 'rxjs';
 import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '@/shared/components/lazy-autocomplete';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { SalesOrderService, SalesOrderResponse } from '../../services/sales-order.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import {
     ProformaInvoiceService,
     ProformaInvoiceResponse,
@@ -34,7 +36,8 @@ import {
         ButtonModule,
         TextareaModule,
         DatePickerModule,
-        LazyAutocompleteComponent
+        LazyAutocompleteComponent,
+        TranslatePipe
     ],
     templateUrl: './generate-proforma-dialog.component.html',
     styleUrls: ['./generate-proforma-dialog.component.scss']
@@ -44,6 +47,7 @@ export class GenerateProformaDialogComponent implements OnChanges {
     private readonly proformaInvoiceService = inject(ProformaInvoiceService);
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
 
     @Input() visible = false;
     @Output() visibleChange = new EventEmitter<boolean>();
@@ -108,7 +112,7 @@ export class GenerateProformaDialogComponent implements OnChanges {
 
     submit(): void {
         if (!this.selectedOrder) {
-            this.error = 'Please select a sales order.';
+            this.error = this.i18n.t('proformaInvoices.dialog.messages.selectOrder');
             return;
         }
 
@@ -132,15 +136,15 @@ export class GenerateProformaDialogComponent implements OnChanges {
                 this.saving = false;
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Proforma ${proforma.proformaNumber} generated.`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('proformaInvoices.dialog.messages.generated', { number: proforma.proformaNumber })
                 });
                 this.created.emit(proforma);
                 this.onHide();
             },
             error: (err) => {
                 this.saving = false;
-                this.error = err?.error?.message ?? 'Failed to generate the proforma invoice.';
+                this.error = err?.error?.message ?? this.i18n.t('proformaInvoices.dialog.messages.generateFailed');
             }
         });
     }

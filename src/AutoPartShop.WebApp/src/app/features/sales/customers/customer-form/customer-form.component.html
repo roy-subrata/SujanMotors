@@ -8,16 +8,16 @@
         <div class="breadcrumb">
           <a (click)="cancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Customers
+            {{ 'customers.title' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : mode() === 'edit' ? 'Edit' : 'View' }}</span>
+          <span class="breadcrumb-current">{{ (mode() === 'create' ? 'common.labels.new' : mode() === 'edit' ? 'common.labels.edit' : 'common.labels.view') | translate }}</span>
         </div>
         <h1 class="form-title">{{ getPageTitle() }}</h1>
         <p class="form-subtitle">{{ getPageSubtitle() }}</p>
       </div>
       <div class="header-actions" *ngIf="mode() === 'view'">
-        <button pButton icon="pi pi-pencil" label="Edit" class="p-button-outlined"
+        <button pButton icon="pi pi-pencil" [label]="'common.actions.edit' | translate" class="p-button-outlined"
           (click)="mode.set('edit'); customerForm.enable()">
         </button>
       </div>
@@ -27,7 +27,7 @@
   <!-- Loading State -->
   <div *ngIf="loading()" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-    <p>Loading customer details...</p>
+    <p>{{ 'customers.form.loading' | translate }}</p>
   </div>
 
   <!-- Form -->
@@ -38,63 +38,77 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-user section-icon"></i>
-          Basic Information
+          {{ 'customers.form.basicSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Customer Code <span class="required">*</span></label>
+            <label>{{ 'customers.form.codeLabel' | translate }} <span class="required">*</span></label>
             <div class="code-input-wrapper">
-              <input pInputText formControlName="customerCode" placeholder="Auto-generated" [disabled]="true" />
+              <input pInputText formControlName="customerCode" [placeholder]="'customers.form.codePlaceholder' | translate" [disabled]="true" />
               <i *ngIf="generatingCode()" class="pi pi-spin pi-spinner code-spinner"></i>
             </div>
             <small class="field-hint" *ngIf="mode() === 'create'">
               <i class="pi pi-info-circle"></i>
-              Code is auto-generated and cannot be changed
+              {{ 'customers.form.codeHint' | translate }}
             </small>
             <small class="p-error"
               *ngIf="customerForm.get('customerCode')?.invalid && customerForm.get('customerCode')?.touched && mode() !== 'create'">
-              Customer code is required (min 3 characters)
+              {{ 'customers.form.codeRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Customer Type <span class="required">*</span></label>
+            <label>{{ 'customers.form.typeLabel' | translate }} <span class="required">*</span></label>
             <p-select formControlName="customerType" [options]="customerTypes" optionLabel="label" optionValue="value"
-              placeholder="Select type" [style]="{ width: '100%' }">
+              [placeholder]="'customers.form.typePlaceholder' | translate" [style]="{ width: '100%' }">
             </p-select>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>First Name <span class="required">*</span></label>
-            <input pInputText formControlName="firstName" placeholder="e.g., John" />
+            <label>{{ 'customers.form.firstNameLabel' | translate }} <span class="required">*</span></label>
+            <input pInputText formControlName="firstName" [placeholder]="'customers.form.firstNamePlaceholder' | translate" />
             <small class="p-error"
               *ngIf="customerForm.get('firstName')?.invalid && customerForm.get('firstName')?.touched">
-              First name is required (min 2 characters)
+              {{ 'customers.form.firstNameRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Last Name <span class="required">*</span></label>
-            <input pInputText formControlName="lastName" placeholder="e.g., Doe" />
+            <label>{{ 'customers.form.lastNameLabel' | translate }} <span class="required">*</span></label>
+            <input pInputText formControlName="lastName" [placeholder]="'customers.form.lastNamePlaceholder' | translate" />
             <small class="p-error"
               *ngIf="customerForm.get('lastName')?.invalid && customerForm.get('lastName')?.touched">
-              Last name is required (min 2 characters)
+              {{ 'customers.form.lastNameRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Phone <span class="required">*</span></label>
-            <input pInputText formControlName="phone" placeholder="e.g., +8801716625369" />
+            <label>{{ 'customers.form.phoneLabel' | translate }} <span class="required">*</span></label>
+            <input pInputText formControlName="phone" [placeholder]="'customers.form.phonePlaceholder' | translate" />
             <small class="p-error" *ngIf="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched">
-              Phone is required
+              {{ 'customers.form.phoneRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Company Name</label>
-            <input pInputText formControlName="companyName" placeholder="e.g., ABC Auto Parts Inc." />
+            <label>{{ 'customers.form.companyLabel' | translate }}</label>
+            <input pInputText formControlName="companyName" [placeholder]="'customers.form.companyPlaceholder' | translate" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>{{ 'customers.form.paymentTermsLabel' | translate }}</label>
+            <p-select formControlName="paymentTerms" [options]="paymentTermsOptions" optionLabel="label" optionValue="value"
+              [editable]="true"
+              [placeholder]="'customers.form.paymentTermsPlaceholder' | translate" [showClear]="true" [style]="{ width: '100%' }">
+            </p-select>
+            <small class="field-hint">{{ 'customers.form.paymentTermsEditableHint' | translate }}</small>
+          </div>
+          <div class="form-group">
+            <!-- Empty for alignment -->
           </div>
         </div>
       </div>
@@ -103,27 +117,27 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-phone section-icon"></i>
-          Contact Information
+          {{ 'customers.form.contactSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Email</label>
-            <input pInputText formControlName="email" type="email" placeholder="e.g., customer@example.com" />
+            <label>{{ 'customers.form.emailLabel' | translate }}</label>
+            <input pInputText formControlName="email" type="email" [placeholder]="'customers.form.emailPlaceholder' | translate" />
             <small class="p-error" *ngIf="customerForm.get('email')?.invalid && customerForm.get('email')?.touched">
-              Valid email is required
+              {{ 'customers.form.emailInvalid' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Alternate Phone</label>
-            <input pInputText formControlName="alternatePhone" placeholder="e.g., +91 98765 43211" />
+            <label>{{ 'customers.form.altPhoneLabel' | translate }}</label>
+            <input pInputText formControlName="alternatePhone" [placeholder]="'customers.form.altPhonePlaceholder' | translate" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Primary Contact Person</label>
-            <input pInputText formControlName="primaryContactPerson" placeholder="Contact person name" />
+            <label>{{ 'customers.form.contactPersonLabel' | translate }}</label>
+            <input pInputText formControlName="primaryContactPerson" [placeholder]="'customers.form.contactPersonPlaceholder' | translate" />
           </div>
           <div class="form-group">
             <!-- Empty for alignment -->
@@ -135,43 +149,43 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-map-marker section-icon"></i>
-          Address Information
+          {{ 'customers.form.addressSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Billing Address</label>
-            <input pInputText formControlName="billingAddress" placeholder="e.g., 123 Main Street" />
+            <label>{{ 'customers.form.billingAddressLabel' | translate }}</label>
+            <input pInputText formControlName="billingAddress" [placeholder]="'customers.form.billingAddressPlaceholder' | translate" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Shipping Address</label>
-            <input pInputText formControlName="shippingAddress" placeholder="Leave blank to use billing address" />
+            <label>{{ 'customers.form.shippingAddressLabel' | translate }}</label>
+            <input pInputText formControlName="shippingAddress" [placeholder]="'customers.form.shippingAddressPlaceholder' | translate" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>City</label>
-            <input pInputText formControlName="city" placeholder="e.g., Tangail" />
+            <label>{{ 'customers.form.cityLabel' | translate }}</label>
+            <input pInputText formControlName="city" [placeholder]="'customers.form.cityPlaceholder' | translate" />
           </div>
           <div class="form-group">
-            <label>State</label>
-            <input pInputText formControlName="state" placeholder="e.g., Dhaka" />
+            <label>{{ 'customers.form.stateLabel' | translate }}</label>
+            <input pInputText formControlName="state" [placeholder]="'customers.form.statePlaceholder' | translate" />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Postal Code</label>
-            <input pInputText formControlName="postalCode" placeholder="e.g., 400001" />
+            <label>{{ 'customers.form.postalCodeLabel' | translate }}</label>
+            <input pInputText formControlName="postalCode" [placeholder]="'customers.form.postalCodePlaceholder' | translate" />
           </div>
           <div class="form-group">
-            <label>Country</label>
+            <label>{{ 'customers.form.countryLabel' | translate }}</label>
             <p-select formControlName="country" [options]="countries" optionLabel="label" optionValue="value"
-              placeholder="Select country" [style]="{ width: '100%' }">
+              [placeholder]="'customers.form.countryPlaceholder' | translate" [style]="{ width: '100%' }">
             </p-select>
           </div>
         </div>
@@ -181,13 +195,13 @@
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-file-edit section-icon"></i>
-          Additional Notes
+          {{ 'customers.form.notesSection' | translate }}
         </h3>
         <div class="form-row">
           <div class="form-group full">
-            <label>Notes</label>
+            <label>{{ 'customers.form.notesLabel' | translate }}</label>
             <textarea pInputTextarea formControlName="notes" rows="3"
-              placeholder="Additional notes about this customer...">
+              [placeholder]="'customers.form.notesPlaceholder' | translate">
             </textarea>
           </div>
         </div>
@@ -197,25 +211,25 @@
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-car section-icon"></i>
-          Vehicles
+          {{ 'customers.form.vehiclesSection' | translate }}
           <span class="vehicles-count" *ngIf="customerId()">{{ vehicles().length }}</span>
         </h3>
 
         <!-- Create mode: vehicles need a saved customer first -->
         <div class="vehicles-hint" *ngIf="!customerId()">
           <i class="pi pi-info-circle"></i>
-          Save the customer first, then re-open to add the vehicles they own.
+          {{ 'customers.form.vehiclesSaveFirstHint' | translate }}
         </div>
 
         <ng-container *ngIf="customerId()">
           <div class="vehicles-toolbar">
-            <button pButton type="button" label="Add Vehicle" icon="pi pi-plus"
+            <button pButton type="button" [label]="'customers.form.addVehicle' | translate" icon="pi pi-plus"
               class="p-button-sm" (click)="openAddVehicle()" [disabled]="mode() === 'view'"></button>
           </div>
 
           <div class="vehicles-empty" *ngIf="!vehiclesLoading() && vehicles().length === 0">
             <i class="pi pi-car"></i>
-            <span>No vehicles recorded yet.</span>
+            <span>{{ 'customers.form.noVehicles' | translate }}</span>
           </div>
 
           <div class="vehicles-grid" *ngIf="vehicles().length > 0">
@@ -226,16 +240,16 @@
                 <div class="vehicle-meta">
                   <span *ngIf="v.engineType"><i class="pi pi-bolt"></i> {{ v.engineType }}</span>
                   <span *ngIf="v.color"><i class="pi pi-palette"></i> {{ v.color }}</span>
-                  <span *ngIf="v.mileage"><i class="pi pi-gauge"></i> {{ v.mileage | number }} km</span>
+                  <span *ngIf="v.mileage"><i class="pi pi-gauge"></i> {{ v.mileage | number }} {{ 'customers.form.kmSuffix' | translate }}</span>
                 </div>
-                <div class="vehicle-vin" *ngIf="v.vin">VIN: {{ v.vin }}</div>
+                <div class="vehicle-vin" *ngIf="v.vin">{{ 'customers.form.vinPrefix' | translate }} {{ v.vin }}</div>
                 <div class="vehicle-notes" *ngIf="v.notes">{{ v.notes }}</div>
               </div>
               <div class="vehicle-card-actions" *ngIf="mode() !== 'view'">
                 <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm"
-                  pTooltip="Edit" (click)="openEditVehicle(v)"></button>
+                  [pTooltip]="'common.actions.edit' | translate" (click)="openEditVehicle(v)"></button>
                 <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
-                  pTooltip="Delete" (click)="confirmDeleteVehicle(v)"></button>
+                  [pTooltip]="'common.actions.delete' | translate" (click)="confirmDeleteVehicle(v)"></button>
               </div>
             </div>
           </div>
@@ -244,11 +258,11 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
+        <button pButton type="button" [label]="(mode() === 'view' ? 'common.actions.back' : 'common.actions.cancel') | translate" icon="pi pi-times"
           class="p-button-outlined" (click)="cancel()">
         </button>
         <button pButton *ngIf="mode() !== 'view'" type="submit"
-          [label]="saving() ? 'Saving...' : (mode() === 'edit' ? 'Update Customer' : 'Create Customer')"
+          [label]="(saving() ? 'common.actions.saving' : mode() === 'edit' ? 'customers.form.submitEdit' : 'customers.form.submitCreate') | translate"
           icon="pi pi-check" class="p-button-primary" (click)="onSubmit()" [loading]="saving()"
           [disabled]="saving() || customerForm.invalid">
         </button>
@@ -259,60 +273,60 @@
 
 <!-- Add/Edit Vehicle Dialog -->
 <p-dialog [(visible)]="vehicleDialogVisible" [modal]="true" [style]="{ width: '32rem' }"
-  [header]="editingVehicleId() ? 'Edit Vehicle' : 'Add Vehicle'" [draggable]="false" [resizable]="false">
+  [header]="(editingVehicleId() ? 'customers.form.editVehicle' : 'customers.form.addVehicle') | translate" [draggable]="false" [resizable]="false">
   <form [formGroup]="vehicleForm" class="vehicle-form" (ngSubmit)="saveVehicle()">
     <div class="form-field">
-      <label>Registration No. <span class="required">*</span></label>
-      <input type="text" pInputText formControlName="registrationNo" placeholder="e.g. DHA-1234" />
+      <label>{{ 'customers.form.vehicle.registrationLabel' | translate }} <span class="required">*</span></label>
+      <input type="text" pInputText formControlName="registrationNo" [placeholder]="'customers.form.vehicle.registrationPlaceholder' | translate" />
       <small class="field-error"
         *ngIf="vehicleForm.get('registrationNo')?.invalid && vehicleForm.get('registrationNo')?.touched">
-        Registration number is required
+        {{ 'customers.form.vehicle.registrationRequired' | translate }}
       </small>
     </div>
     <div class="form-row2">
       <div class="form-field">
-        <label>Make</label>
-        <input type="text" pInputText formControlName="make" placeholder="Toyota" />
+        <label>{{ 'customers.form.vehicle.makeLabel' | translate }}</label>
+        <input type="text" pInputText formControlName="make" [placeholder]="'customers.form.vehicle.makePlaceholder' | translate" />
       </div>
       <div class="form-field">
-        <label>Model</label>
-        <input type="text" pInputText formControlName="model" placeholder="Corolla" />
+        <label>{{ 'customers.form.vehicle.modelLabel' | translate }}</label>
+        <input type="text" pInputText formControlName="model" [placeholder]="'customers.form.vehicle.modelPlaceholder' | translate" />
       </div>
     </div>
     <div class="form-row2">
       <div class="form-field">
-        <label>Year</label>
+        <label>{{ 'customers.form.vehicle.yearLabel' | translate }}</label>
         <p-inputNumber formControlName="year" [useGrouping]="false" [min]="1900" [max]="2100"
-          placeholder="2020"></p-inputNumber>
+          [placeholder]="'customers.form.vehicle.yearPlaceholder' | translate"></p-inputNumber>
       </div>
       <div class="form-field">
-        <label>Engine Type</label>
-        <input type="text" pInputText formControlName="engineType" placeholder="Petrol / Diesel / Hybrid" />
+        <label>{{ 'customers.form.vehicle.engineTypeLabel' | translate }}</label>
+        <input type="text" pInputText formControlName="engineType" [placeholder]="'customers.form.vehicle.engineTypePlaceholder' | translate" />
       </div>
     </div>
     <div class="form-row2">
       <div class="form-field">
-        <label>Color</label>
-        <input type="text" pInputText formControlName="color" placeholder="Silver" />
+        <label>{{ 'customers.form.vehicle.colorLabel' | translate }}</label>
+        <input type="text" pInputText formControlName="color" [placeholder]="'customers.form.vehicle.colorPlaceholder' | translate" />
       </div>
       <div class="form-field">
-        <label>Mileage (km)</label>
-        <p-inputNumber formControlName="mileage" [min]="0" placeholder="50000"></p-inputNumber>
+        <label>{{ 'customers.form.vehicle.mileageLabel' | translate }}</label>
+        <p-inputNumber formControlName="mileage" [min]="0" [placeholder]="'customers.form.vehicle.mileagePlaceholder' | translate"></p-inputNumber>
       </div>
     </div>
     <div class="form-field">
-      <label>VIN / Chassis No.</label>
+      <label>{{ 'customers.form.vehicle.vinLabel' | translate }}</label>
       <input type="text" pInputText formControlName="vin" />
     </div>
     <div class="form-field">
-      <label>Notes</label>
+      <label>{{ 'customers.form.vehicle.notesLabel' | translate }}</label>
       <input type="text" pInputText formControlName="notes" />
     </div>
   </form>
   <ng-template pTemplate="footer">
-    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-text"
+    <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-text"
       (click)="vehicleDialogVisible.set(false)"></button>
-    <button pButton type="button" label="Save" icon="pi pi-check" [loading]="savingVehicle()"
+    <button pButton type="button" [label]="'common.actions.save' | translate" icon="pi pi-check" [loading]="savingVehicle()"
       (click)="saveVehicle()"></button>
   </ng-template>
 </p-dialog>

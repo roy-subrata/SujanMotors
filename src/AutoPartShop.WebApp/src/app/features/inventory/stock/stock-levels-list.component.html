@@ -14,24 +14,24 @@
       styleClass="app-table">
 
       <!-- Header Template -->
-      <ng-template pTemplate="header">
+      <ng-template #header>
         <tr>
-          <th style="width: 15%">Part Name</th>
-          <th style="width: 12%">Warehouse</th>
-          <th style="width: 14%" class="text-right">On Hand</th>
-          <th style="width: 12%" class="text-right">Reserved</th>
-          <th style="width: 13%" class="text-right">Available</th>
-          <th style="width: 9%" class="text-right">Damaged</th>
-          <th style="width: 9%" class="text-right">Quarantine</th>
-          <th style="width: 8%" class="text-right">Reorder Level</th>
-          <th style="width: 8%" class="text-right">Reorder Qty</th>
-          <th style="width: 9%">Status</th>
-          <th style="width: 8%">Actions</th>
+          <th style="width: 15%">{{ 'stockLevels.columns.partName' | translate }}</th>
+          <th style="width: 12%">{{ 'stockLevels.columns.warehouse' | translate }}</th>
+          <th style="width: 14%" class="text-right">{{ 'stockLevels.columns.onHand' | translate }}</th>
+          <th style="width: 12%" class="text-right">{{ 'stockLevels.columns.reserved' | translate }}</th>
+          <th style="width: 13%" class="text-right">{{ 'stockLevels.columns.available' | translate }}</th>
+          <th style="width: 9%" class="text-right">{{ 'stockLevels.columns.damaged' | translate }}</th>
+          <th style="width: 9%" class="text-right">{{ 'stockLevels.columns.quarantine' | translate }}</th>
+          <th style="width: 8%" class="text-right">{{ 'stockLevels.columns.reorderLevel' | translate }}</th>
+          <th style="width: 8%" class="text-right">{{ 'stockLevels.columns.reorderQty' | translate }}</th>
+          <th style="width: 9%">{{ 'stockLevels.columns.status' | translate }}</th>
+          <th style="width: 8%">{{ 'stockLevels.columns.actions' | translate }}</th>
         </tr>
       </ng-template>
 
       <!-- Data Rows -->
-      <ng-template pTemplate="body" let-stock>
+      <ng-template #body let-stock>
         <tr>
           <td>
             <span class="font-semibold">{{ stock.partName || (getPartInfo ? getPartInfo(stock.partId) : stock.partId) }}</span>
@@ -95,7 +95,7 @@
                 type="button"
                 icon="pi pi-sliders-h"
                 class="p-button-text p-button-sm"
-                pTooltip="Adjust Stock"
+                [pTooltip]="'stockLevels.adjustStock' | translate"
                 tooltipPosition="left"
                 (click)="onAdjustClick(stock)">
               </button>
@@ -105,19 +105,19 @@
       </ng-template>
 
       <!-- Empty Message -->
-      <ng-template pTemplate="emptymessage">
+      <ng-template #emptymessage>
         <tr>
           <td colspan="11">
             <div class="empty-state">
               <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-              <h3>No Stock Levels Found</h3>
-              <p>Try adjusting your filters or search</p>
+              <h3>{{ 'stockLevels.emptyTitle' | translate }}</h3>
+              <p>{{ 'stockLevels.emptyHint' | translate }}</p>
             </div>
           </td>
         </tr>
       </ng-template>
 
-      <ng-template pTemplate="loadingbody">
+      <ng-template #loadingbody>
         <tr *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton-row">
           <td><div class="skeleton skeleton-text"></div></td>
           <td><div class="skeleton skeleton-text-sm"></div></td>
@@ -141,7 +141,7 @@
   [first]="first"
   [pageSize]="rows"
   [totalRecords]="totalRecords"
-  itemLabel="stock levels"
+  [itemLabel]="'stockLevels.itemLabel' | translate"
   (pageChange)="goToPage($event)"
   (pageSizeChange)="onPageSizeChange($event)">
 </app-data-pagination>
@@ -164,8 +164,8 @@
 
   <div *ngIf="!loading && stockLevels.length === 0" class="empty-state-mobile">
     <div class="empty-icon"><i class="pi pi-inbox"></i></div>
-    <h3>No Stock Levels</h3>
-    <p>Try adjusting your filters or search</p>
+    <h3>{{ 'stockLevels.emptyTitleMobile' | translate }}</h3>
+    <p>{{ 'stockLevels.emptyHint' | translate }}</p>
   </div>
 
   <div *ngIf="!loading && stockLevels.length > 0" class="cards-grid">
@@ -188,26 +188,26 @@
             <i class="pi pi-building"></i>&nbsp;{{ stock.warehouseName || (getWarehouseName ? getWarehouseName(stock.warehouseId) : stock.warehouseId) }}
           </span>
           <span class="card-meta-item">
-            <i class="pi pi-box"></i>&nbsp;On Hand: {{ stock.quantity }} {{ stock.unitSymbol || '' }}
+            <i class="pi pi-box"></i>&nbsp;{{ 'stockLevels.columns.onHand' | translate }}: {{ stock.quantity }} {{ stock.unitSymbol || '' }}
           </span>
           <span class="card-meta-item">
-            <i class="pi pi-check-circle"></i>&nbsp;Available: {{ stock.availableQuantity }} {{ stock.unitSymbol || '' }}
+            <i class="pi pi-check-circle"></i>&nbsp;{{ 'stockLevels.columns.available' | translate }}: {{ stock.availableQuantity }} {{ stock.unitSymbol || '' }}
           </span>
           <span class="card-meta-item" *ngIf="stock.reservedQuantity">
-            <i class="pi pi-lock"></i>&nbsp;Reserved: {{ stock.reservedQuantity }} {{ stock.unitSymbol || '' }}
+            <i class="pi pi-lock"></i>&nbsp;{{ 'stockLevels.columns.reserved' | translate }}: {{ stock.reservedQuantity }} {{ stock.unitSymbol || '' }}
           </span>
           <span class="card-meta-item" *ngIf="stock.damagedQuantity">
-            <i class="pi pi-exclamation-circle"></i>&nbsp;Damaged: {{ stock.damagedQuantity }}
+            <i class="pi pi-exclamation-circle"></i>&nbsp;{{ 'stockLevels.columns.damaged' | translate }}: {{ stock.damagedQuantity }}
           </span>
           <span class="card-meta-item" *ngIf="stock.quarantineQuantity">
-            <i class="pi pi-ban"></i>&nbsp;Quarantine: {{ stock.quarantineQuantity }}
+            <i class="pi pi-ban"></i>&nbsp;{{ 'stockLevels.columns.quarantine' | translate }}: {{ stock.quarantineQuantity }}
           </span>
         </div>
       </div>
 
       <div class="card-footer">
         <div class="card-amount">
-          <span class="amount-label">Reorder Level</span>
+          <span class="amount-label">{{ 'stockLevels.columns.reorderLevel' | translate }}</span>
           <span class="amount-value">{{ stock.reorderLevel }}</span>
         </div>
         <button class="btn-card-action" (click)="onAdjustClick(stock)">

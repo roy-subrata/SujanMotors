@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartsShop.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -94,7 +95,7 @@ public class CustomerPaymentRepository(AutoPartDbContext _dbContext) : ICustomer
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<CustomerPayment>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<CustomerPayment>> GetByStatusAsync(CustomerPaymentStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
             .Include(x => x.Customer)
@@ -129,7 +130,7 @@ public class CustomerPaymentRepository(AutoPartDbContext _dbContext) : ICustomer
         return await _dbContext.CustomerPayments
             .Include(x => x.Customer)
             .Include(x => x.PaymentProvider)
-            .Where(x => x.Status == "PENDING" && !x.Isdeleted)
+            .Where(x => x.Status == CustomerPaymentStatus.PENDING && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
     }
@@ -139,7 +140,7 @@ public class CustomerPaymentRepository(AutoPartDbContext _dbContext) : ICustomer
         return await _dbContext.CustomerPayments
             .Include(x => x.Customer)
             .Include(x => x.PaymentProvider)
-            .Where(x => x.Status == "FAILED" && !x.Isdeleted)
+            .Where(x => x.Status == CustomerPaymentStatus.FAILED && !x.Isdeleted)
             .OrderByDescending(x => x.PaymentDate)
             .ToListAsync(cancellationToken);
     }
@@ -151,14 +152,14 @@ public class CustomerPaymentRepository(AutoPartDbContext _dbContext) : ICustomer
     public async Task<decimal> GetTotalByCustomerAsync(Guid customerId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
-            .Where(x => x.CustomerId == customerId && x.Status == "COMPLETED" && !x.Isdeleted)
+            .Where(x => x.CustomerId == customerId && x.Status == CustomerPaymentStatus.COMPLETED && !x.Isdeleted)
             .SumAsync(x => x.Amount, cancellationToken);
     }
 
     public async Task<decimal> GetTotalByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerPayments
-            .Where(x => x.PaymentDate >= startDate && x.PaymentDate <= endDate && x.Status == "COMPLETED" && !x.Isdeleted)
+            .Where(x => x.PaymentDate >= startDate && x.PaymentDate <= endDate && x.Status == CustomerPaymentStatus.COMPLETED && !x.Isdeleted)
             .SumAsync(x => x.Amount, cancellationToken);
     }
 

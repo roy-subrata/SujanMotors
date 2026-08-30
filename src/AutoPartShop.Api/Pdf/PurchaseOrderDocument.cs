@@ -72,12 +72,12 @@ public class PurchaseOrderDocument : IDocument
     }
 
     private void ComposeHeader(IContainer container) =>
-        new DocHeader(_theme, _shop, "Purchase Order",
+        new DocHeader(_theme, _shop, _theme.T("purchaseOrder.title"),
         [
-            new MetaField("No.", _data.PONumber),
-            new MetaField("Date", _data.PODate.ToString("dd MMM yyyy")),
-            new MetaField("Delivery By", _data.ExpectedDeliveryDate.ToString("dd MMM yyyy")),
-            new MetaField("Payment", _data.PaymentTerms),
+            new MetaField(_theme.T("common.no"), _data.PONumber),
+            new MetaField(_theme.T("common.date"), _data.PODate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.deliveryBy"), _data.ExpectedDeliveryDate.ToString("dd MMM yyyy")),
+            new MetaField(_theme.T("common.payment"), _data.PaymentTerms),
         ]).Compose(container);
 
     private void ComposeContent(IContainer container)
@@ -95,7 +95,7 @@ public class PurchaseOrderDocument : IDocument
             col.Item().PaddingTop(DocTheme.Px(20)).ShowEntire().Element(ComposeConditions);
 
             col.Item().ShowEntire().Element(c =>
-                new SignRow("Prepared By", "Approved By", "Supplier Acknowledgement").Compose(c));
+                new SignRow(_theme.T("common.preparedBy"), _theme.T("common.approvedBy"), _theme.T("common.supplierAcknowledgement")).Compose(c));
         });
     }
 
@@ -103,7 +103,7 @@ public class PurchaseOrderDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Supplier"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.supplier")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.SupplierName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
@@ -121,7 +121,7 @@ public class PurchaseOrderDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Deliver To"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.deliverTo")));
 
             col.Item().PaddingTop(DocTheme.Px(6)).Text(_data.DeliverToName)
                 .FontSize(DocTheme.Px(13)).SemiBold().FontColor(DocTheme.Ink);
@@ -140,19 +140,19 @@ public class PurchaseOrderDocument : IDocument
             Rate: DocTheme.Amount(l.UnitPrice),
             Amount: DocTheme.Amount(l.LineTotal))).ToList();
 
-        var totals = new List<TotalRow> { new("Subtotal", DocTheme.Amount(_data.SubTotal)) };
+        var totals = new List<TotalRow> { new(_theme.T("common.subtotal"), DocTheme.Amount(_data.SubTotal)) };
 
         if (_data.DiscountAmount > 0)
-            totals.Add(new TotalRow("Discount", $"({DocTheme.Amount(_data.DiscountAmount)})"));
+            totals.Add(new TotalRow(_theme.T("common.discount"), $"({DocTheme.Amount(_data.DiscountAmount)})"));
 
         if (_data.TaxAmount > 0)
             totals.Add(new TotalRow(
-                _data.TaxPercentage > 0 ? $"VAT ({_data.TaxPercentage:N0}%)" : "VAT",
+                _data.TaxPercentage > 0 ? $"{_theme.T("common.vat")} ({_data.TaxPercentage:N0}%)" : _theme.T("common.vat"),
                 DocTheme.Amount(_data.TaxAmount)));
 
         new ItemsTable(
             _theme, items, totals,
-            grandLabel: "PO Total",
+            grandLabel: _theme.T("common.poTotal"),
             grandValue: DocTheme.Amount(_data.TotalAmount),
             words: AmountInWords.Convert(_data.TotalAmount)).Compose(container);
     }
@@ -161,16 +161,16 @@ public class PurchaseOrderDocument : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(c => SectionLabel(c, "Conditions"));
+            col.Item().Element(c => SectionLabel(c, _theme.T("common.conditions")));
 
             // PO notes replace the standing conditions when the buyer has written their own.
             var conditions = !string.IsNullOrWhiteSpace(_data.Notes)
                 ? [_data.Notes]
                 : new[]
                 {
-                    "1. Supply genuine parts only; counterfeit items will be rejected at supplier's cost.",
-                    $"2. Deliver with challan and Mushak-6.3 invoice quoting this PO number ({_data.PONumber}).",
-                    "3. Short or damaged supply must be replaced within 7 days.",
+                    _theme.T("purchaseOrder.standingCondition1"),
+                    _theme.T("purchaseOrder.standingCondition2").Replace("{{poNumber}}", _data.PONumber),
+                    _theme.T("purchaseOrder.standingCondition3"),
                 };
 
             col.Item().PaddingTop(DocTheme.Px(5)).Column(c =>

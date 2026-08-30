@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -12,7 +14,7 @@ public class WarrantyClaim : AuditableEntity
     public DateTime ClaimDate { get; private set; }
     public string IssueDescription { get; private set; } = string.Empty;
     public string ServiceType { get; private set; } = string.Empty;  // REPAIR, REPLACEMENT, REFUND
-    public string Status { get; private set; } = "PENDING";  // PENDING, UNDER_REVIEW, APPROVED, REJECTED, IN_PROGRESS, COMPLETED, CLOSED
+    public WarrantyClaimStatus Status { get; private set; } = WarrantyClaimStatus.PENDING;
     public string? RejectionReason { get; private set; }
     public DateTime? RejectedDate { get; private set; }
     public DateTime? ApprovedDate { get; private set; }
@@ -68,7 +70,7 @@ public class WarrantyClaim : AuditableEntity
             IssueDescription = issueDescription.Trim(),
             ServiceType = serviceType.Trim().ToUpper(),
             ServiceCostCurrency = serviceCostCurrency.Trim().ToUpper(),
-            Status = "PENDING",
+            Status = WarrantyClaimStatus.PENDING,
             CreatedBy = "System",
             ModifiedBy = "System"
         };
@@ -76,22 +78,22 @@ public class WarrantyClaim : AuditableEntity
 
     public void SubmitForReview()
     {
-        if (Status != "PENDING")
+        if (Status != WarrantyClaimStatus.PENDING)
             throw new InvalidOperationException($"Cannot submit for review. Current status: {Status}");
 
-        Status = "UNDER_REVIEW";
+        Status = WarrantyClaimStatus.UNDER_REVIEW;
         ModifiedBy = "System";
     }
 
     public void Approve(string approvedBy)
     {
-        if (Status != "UNDER_REVIEW")
+        if (Status != WarrantyClaimStatus.UNDER_REVIEW)
             throw new InvalidOperationException($"Cannot approve. Current status: {Status}");
 
         if (string.IsNullOrWhiteSpace(approvedBy))
             throw new ArgumentException("Approver name is required", nameof(approvedBy));
 
-        Status = "APPROVED";
+        Status = WarrantyClaimStatus.APPROVED;
         ApprovedDate = DateTime.UtcNow;
         ApprovedBy = approvedBy.Trim();
         ModifiedBy = "System";
@@ -99,16 +101,13 @@ public class WarrantyClaim : AuditableEntity
 
     public void Reject(string rejectionReason, string rejectedBy)
     {
-        if (Status == "REJECTED")
-            throw new InvalidOperationException("Claim is already rejected");
-
-        if (Status == "IN_PROGRESS" || Status == "COMPLETED" || Status == "CLOSED")
+        if (Status is not (WarrantyClaimStatus.PENDING or WarrantyClaimStatus.UNDER_REVIEW))
             throw new InvalidOperationException($"Cannot reject. Current status: {Status}");
 
         if (string.IsNullOrWhiteSpace(rejectionReason))
             throw new ArgumentException("Rejection reason is required", nameof(rejectionReason));
 
-        Status = "REJECTED";
+        Status = WarrantyClaimStatus.REJECTED;
         RejectionReason = rejectionReason.Trim();
         RejectedDate = DateTime.UtcNow;
         ModifiedBy = rejectedBy?.Trim() ?? "System";
@@ -116,33 +115,33 @@ public class WarrantyClaim : AuditableEntity
 
     public void AssignTechnician(Guid technicianId)
     {
-        if (Status != "APPROVED")
+        if (Status != WarrantyClaimStatus.APPROVED)
             throw new InvalidOperationException($"Cannot assign technician. Claim must be approved first. Current status: {Status}");
 
         if (technicianId == Guid.Empty)
             throw new ArgumentException("Technician ID cannot be empty", nameof(technicianId));
 
         TechnicianId = technicianId;
-        Status = "IN_PROGRESS";
+        Status = WarrantyClaimStatus.IN_PROGRESS;
         ServiceStartDate = DateTime.UtcNow;
         ModifiedBy = "System";
     }
 
     public void StartServiceWithoutTechnician()
     {
-        if (Status != "APPROVED")
+        if (Status != WarrantyClaimStatus.APPROVED)
             throw new InvalidOperationException($"Cannot start service. Claim must be approved first. Current status: {Status}");
 
         // Allowed for replacement/refund (handled at completion) and for repairs that don't use an
         // in-house technician — e.g. a unit sent out to the manufacturer for repair.
-        Status = "IN_PROGRESS";
+        Status = WarrantyClaimStatus.IN_PROGRESS;
         ServiceStartDate = DateTime.UtcNow;
         ModifiedBy = "System";
     }
 
     public void UpdateServiceCost(decimal serviceCost, string? serviceNotes = null)
     {
-        if (Status == "CLOSED" || Status == "REJECTED")
+        if (Status == WarrantyClaimStatus.CLOSED || Status == WarrantyClaimStatus.REJECTED)
             throw new InvalidOperationException($"Cannot update service cost on a {Status} claim");
 
         if (serviceCost < 0)
@@ -158,13 +157,13 @@ public class WarrantyClaim : AuditableEntity
 
     public void Complete(string resolutionDetails)
     {
-        if (Status != "IN_PROGRESS")
+        if (Status != WarrantyClaimStatus.IN_PROGRESS)
             throw new InvalidOperationException($"Cannot complete. Current status: {Status}");
 
         if (string.IsNullOrWhiteSpace(resolutionDetails))
             throw new ArgumentException("Resolution details are required", nameof(resolutionDetails));
 
-        Status = "COMPLETED";
+        Status = WarrantyClaimStatus.COMPLETED;
         ServiceCompletedDate = DateTime.UtcNow;
         ResolutionDetails = resolutionDetails.Trim();
         ModifiedBy = "System";
@@ -172,10 +171,10 @@ public class WarrantyClaim : AuditableEntity
 
     public void Close(string? notes = null)
     {
-        if (Status != "COMPLETED" && Status != "REJECTED")
+        if (Status != WarrantyClaimStatus.COMPLETED && Status != WarrantyClaimStatus.REJECTED)
             throw new InvalidOperationException($"Cannot close. Claim must be completed or rejected first. Current status: {Status}");
 
-        Status = "CLOSED";
+        Status = WarrantyClaimStatus.CLOSED;
         if (!string.IsNullOrWhiteSpace(notes))
         {
             ServiceNotes = string.IsNullOrWhiteSpace(ServiceNotes)
@@ -187,11 +186,11 @@ public class WarrantyClaim : AuditableEntity
 
     public bool IsOpen()
     {
-        return Status != "CLOSED" && Status != "REJECTED";
+        return Status != WarrantyClaimStatus.CLOSED && Status != WarrantyClaimStatus.REJECTED;
     }
 
     public bool CanBeModified()
     {
-        return Status == "PENDING" || Status == "UNDER_REVIEW";
+        return Status == WarrantyClaimStatus.PENDING || Status == WarrantyClaimStatus.UNDER_REVIEW;
     }
 }

@@ -11,7 +11,7 @@ namespace AutoPartShop.Api.Tests.Architecture;
 
 /// <summary>
 /// Enforces the boundary of the HR module — the pilot for a future "modular monolith" split
-/// (HR, Ecommerce, future CRM) that could eventually be licensed/deployed independently.
+/// (HR, future CRM) that could eventually be licensed/deployed independently.
 ///
 /// One cross-module coupling was found while auditing the HR code and is deliberately
 /// allowed (not hidden):

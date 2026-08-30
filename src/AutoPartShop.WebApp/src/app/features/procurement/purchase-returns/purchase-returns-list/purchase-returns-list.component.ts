@@ -20,6 +20,8 @@ import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-purchase-returns-list',
@@ -38,7 +40,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     InputGroupModule,
     InputGroupAddonModule,
     InputTextModule,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   templateUrl: './purchase-returns-list.component.html',
   styleUrls: ['./purchase-returns-list.component.css']
@@ -73,6 +76,7 @@ export class PurchaseReturnsListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
+  private readonly statusDisplay = inject(StatusDisplayService);
 
   /** Procurement mutations (create/edit/delete) are restricted to back-office roles. */
   get canManage(): boolean {
@@ -207,16 +211,8 @@ export class PurchaseReturnsListComponent implements OnInit {
     this.onSearchClear.emit();
   }
 
-  getStatusSeverity(status: string): string {
-    switch (status?.toUpperCase()) {
-      case 'PENDING': return 'warning';
-      case 'APPROVED': return 'info';
-      case 'RETURNED': return 'primary';
-      case 'RECEIVED': return 'success';
-      case 'CREDITED': return 'success';
-      case 'REJECTED': return 'danger';
-      default: return 'secondary';
-    }
+  getStatusSeverity(status: string): StatusSeverity {
+    return this.statusDisplay.getSeverity(status, 'purchase-return');
   }
 
   formatCurrency(value: number): string {

@@ -12,6 +12,8 @@ import { PageContainerComponent } from '../../../shared/components/page-containe
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { PdfDownloadService } from '../../../shared/services/pdf-download.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { WarehouseService } from '../../inventory/services/warehouse.service';
 import { ReportQuery } from '../services/reports.service';
 
@@ -31,7 +33,7 @@ interface WarehouseOption {
     standalone: true,
     imports: [
         CommonModule, FormsModule, DatePickerModule, SelectModule, ToastModule, TooltipModule,
-        PageContainerComponent, PageHeaderComponent, HasPermissionDirective
+        PageContainerComponent, PageHeaderComponent, HasPermissionDirective, TranslatePipe
     ],
     providers: [MessageService],
     templateUrl: './daily-z-report.component.html',
@@ -41,6 +43,7 @@ export class DailyZReportComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly pdfDownloadService = inject(PdfDownloadService);
     private readonly warehouseService = inject(WarehouseService);
+    readonly i18n = inject(I18nService);
 
     businessDate: Date = new Date();
     warehouseId: string | null = null;
@@ -80,8 +83,8 @@ export class DailyZReportComponent implements OnInit {
                 this.downloading = false;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Download failed',
-                    detail: 'Could not generate the Daily Sales (Z) Report PDF. Please try again.'
+                    summary: this.i18n.t('reports.messages.downloadFailed'),
+                    detail: this.i18n.t('reports.dailyZ.downloadFailed')
                 });
             }
         });

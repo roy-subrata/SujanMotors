@@ -17,6 +17,7 @@ import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-supplier-payment-account-list',
@@ -34,7 +35,8 @@ import { PageHeaderComponent } from '@/shared/components/page-header/page-header
     TagModule,
     TooltipModule,
     PageContainerComponent,
-    PageHeaderComponent
+    PageHeaderComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './supplier-payment-account-list.component.html',
@@ -81,9 +83,14 @@ export class SupplierPaymentAccountListComponent implements OnInit {
         this.supplierName = supplier.name;
       },
       error: () => {
-        this.supplierName = 'Unknown Supplier';
+        this.supplierName = this.i18n.t('suppliers.unknownSupplier');
       }
     });
+  }
+
+  /** Subtitle composed with the supplier name — re-evaluated on every CD cycle (incl. language switch). */
+  get subtitle(): string {
+    return this.i18n.t('supplierPaymentAccounts.subtitle', { name: this.supplierName });
   }
 
   showContextMenu(event: MouseEvent, account: SupplierPaymentAccountResponse): void {
@@ -204,11 +211,11 @@ export class SupplierPaymentAccountListComponent implements OnInit {
 
   getAccountTypeLabel(accountType: string): string {
     switch (accountType?.toUpperCase()) {
-      case 'BANK_TRANSFER': return 'Bank Transfer';
-      case 'MOBILE_BANKING': return 'Mobile Banking';
-      case 'CASH': return 'Cash';
-      case 'CHECK': return 'Check';
-      case 'OTHER': return 'Other';
+      case 'BANK_TRANSFER': return this.i18n.t('supplierPaymentAccounts.accountTypes.bankTransfer');
+      case 'MOBILE_BANKING': return this.i18n.t('supplierPaymentAccounts.accountTypes.mobileBanking');
+      case 'CASH': return this.i18n.t('supplierPaymentAccounts.accountTypes.cash');
+      case 'CHECK': return this.i18n.t('supplierPaymentAccounts.accountTypes.check');
+      case 'OTHER': return this.i18n.t('supplierPaymentAccounts.accountTypes.other');
       default: return accountType;
     }
   }

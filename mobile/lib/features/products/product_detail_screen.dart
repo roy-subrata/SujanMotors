@@ -157,8 +157,7 @@ class _BodyState extends ConsumerState<_Body> {
         ref.invalidate(stockLotsProvider(product.id));
         ref.invalidate(compatibleVehiclesProvider(product.id));
         ref.invalidate(productLocationsProvider(product.id));
-        ref.invalidate(productVariantAttributesProvider(product.id));
-        ref.invalidate(productSpecificationsProvider(product.id));
+        ref.invalidate(productAttributeValuesProvider(product.id));
         ref.invalidate(productMediaProvider(product.id));
       },
       child: Stack(
@@ -201,9 +200,8 @@ class _BodyState extends ConsumerState<_Body> {
                   onSelect: _jumpToSection,
                 ),
 
-                // ── Specifications (editable label/value) + details ────────
+                // ── Details + product attributes ────────────────────────────
                 if (_activeSection == 0 || _activeSection == 1) ...[
-                  _ProductSpecsCard(productId: product.id),
                   _DetailsCard(product: product),
                   _TechSpecCard(productId: product.id),
                 ],
@@ -686,7 +684,7 @@ class _TitleCard extends ConsumerWidget {
 
     // Attribute tag chips (design: position / pack size / warranty).
     final attrs =
-        ref.watch(productVariantAttributesProvider(product.id)).value ??
+        ref.watch(productAttributeValuesProvider(product.id)).value ??
             const [];
     final chipLabels = attrs.map((a) => a.displayValue).take(3).toList();
 
@@ -868,7 +866,7 @@ class _SectionPillNav extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final labels = [
       S.of(context).overview,
-      S.of(context).specifications,
+      S.of(context).attributes,
       S.of(context).compatibility,
       S.of(context).stockAndLots,
     ];
@@ -1003,102 +1001,7 @@ class _SpecCell extends StatelessWidget {
   }
 }
 
-// ── Editable product specs card (simple Label/Value) ──────────────────────────
-
-class _ProductSpecsCard extends ConsumerWidget {
-  const _ProductSpecsCard({required this.productId});
-
-  final String productId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final specs =
-        ref.watch(productSpecificationsProvider(productId)).value ?? const [];
-
-    return Column(
-      children: [
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Theme.of(context).colorScheme.outline),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(15, 12, 8, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(S.of(context).specifications,
-                          style: GoogleFonts.instrumentSans(
-                              fontSize: 14, fontWeight: FontWeight.w600)),
-                    ),
-                    TextButton.icon(
-                      onPressed: () =>
-                          context.push('/product/$productId/specs'),
-                      icon: Icon(specs.isEmpty
-                          ? Icons.add
-                          : Icons.edit_outlined, size: 16),
-                      label: Text(specs.isEmpty
-                          ? S.of(context).add
-                          : S.of(context).edit),
-                      style: TextButton.styleFrom(
-                        foregroundColor: context.colors.ink,
-                        textStyle: GoogleFonts.instrumentSans(
-                            fontSize: 12.5, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (specs.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
-                  child: Text(S.of(context).noSpecificationsYet,
-                      style: GoogleFonts.instrumentSans(
-                          fontSize: 12.5, color: context.colors.muted)),
-                )
-              else
-                for (final spec in specs)
-                  Container(
-                    decoration: BoxDecoration(
-                      border:
-                          Border(top: BorderSide(color: _hairline(context))),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 15, vertical: 9),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(spec.label,
-                              style: GoogleFonts.instrumentSans(
-                                  fontSize: 12.5, color: context.colors.muted)),
-                        ),
-                        const SizedBox(width: 12),
-                        Flexible(
-                          child: Text(spec.value,
-                              textAlign: TextAlign.right,
-                              style: GoogleFonts.instrumentSans(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                  ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Technical specification card (variant attributes) ─────────────────────────
+// ── Attributes card (product + variant attributes, merged) ────────────────────
 
 class _TechSpecCard extends ConsumerWidget {
   const _TechSpecCard({required this.productId});
@@ -1108,7 +1011,7 @@ class _TechSpecCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async =
-        ref.watch(productVariantAttributesProvider(productId));
+        ref.watch(productAttributeValuesProvider(productId));
     return async.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
@@ -1118,7 +1021,7 @@ class _TechSpecCard extends ConsumerWidget {
           children: [
             const SizedBox(height: 12),
             _SectionCard(
-              title: S.of(context).technicalSpecification,
+              title: S.of(context).productAttributes,
               child: Column(
                 children: [
                   for (final attr in attrs)

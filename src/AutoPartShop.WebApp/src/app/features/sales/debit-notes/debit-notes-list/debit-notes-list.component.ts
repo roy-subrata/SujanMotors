@@ -6,21 +6,25 @@ import { FormsModule } from '@angular/forms';
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { MenuModule, Menu } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { SelectModule } from 'primeng/select';
 
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 
 import { CustomerDebitNoteService, CustomerDebitNoteResponse } from '../../services/customer-debit-note.service';
+import { CustomerDebitNoteStatus } from '@/shared/models/status.types';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-debit-notes-list',
@@ -31,16 +35,17 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         TableModule,
         ButtonModule,
         InputTextModule,
-        Select,
         TagModule,
         MenuModule,
         TooltipModule,
         ToastModule,
         ConfirmDialogModule,
+        SelectModule,
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './debit-notes-list.component.html',
@@ -51,6 +56,8 @@ export class DebitNotesListComponent implements OnInit {
     private readonly currencyService = inject(CurrencyService);
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
+    private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -63,13 +70,17 @@ export class DebitNotesListComponent implements OnInit {
     pageSize = 10;
     first = 0;
 
-    filterStatus = '';
-    statusOptions: { label: string; value: string }[] = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Issued', value: 'ISSUED' },
-        { label: 'Settled', value: 'SETTLED' },
-        { label: 'Cancelled', value: 'CANCELLED' }
-    ];
+    filterStatus: CustomerDebitNoteStatus | '' = '';
+    /** Getter, not a field: t() resolved at construction would freeze these labels in
+     *  whichever language was active then, instead of following the language switcher. */
+    get statusOptions(): { label: string; value: string }[] {
+        return [
+            { label: this.i18n.t('debitNotes.statusOptions.allStatuses'), value: '' },
+            { label: this.i18n.t('debitNotes.statusOptions.issued'), value: 'ISSUED' },
+            { label: this.i18n.t('debitNotes.statusOptions.settled'), value: 'SETTLED' },
+            { label: this.i18n.t('debitNotes.statusOptions.cancelled'), value: 'CANCELLED' }
+        ];
+    }
 
     actionMenuItems: MenuItem[] = [];
 
@@ -83,19 +94,19 @@ export class DebitNotesListComponent implements OnInit {
         const open = debitNote.status === 'ISSUED';
         this.actionMenuItems = [
             {
-                label: 'Download PDF',
+                label: this.i18n.t('debitNotes.actions.downloadPdf'),
                 icon: 'pi pi-file-pdf',
                 command: () => this.downloadPdf(debitNote)
             },
             { separator: true },
             {
-                label: 'Mark as Settled',
+                label: this.i18n.t('debitNotes.actions.markSettled'),
                 icon: 'pi pi-check-circle',
                 command: () => this.settleDebitNote(debitNote),
                 visible: open
             },
             {
-                label: 'Cancel',
+                label: this.i18n.t('debitNotes.actions.cancel'),
                 icon: 'pi pi-times-circle',
                 command: () => this.cancelDebitNote(debitNote),
                 visible: open,
@@ -123,8 +134,8 @@ export class DebitNotesListComponent implements OnInit {
                     console.error('Error loading debit notes:', err);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load customer debit notes.'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('debitNotes.messages.loadFailed')
                     });
                     this.loading = false;
                 }
@@ -186,8 +197,8 @@ export class DebitNotesListComponent implements OnInit {
             error: () => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to download the debit note PDF'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('debitNotes.messages.pdfFailed')
                 });
             }
         });
@@ -198,39 +209,39 @@ export class DebitNotesListComponent implements OnInit {
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Debit note ${debitNote.debitNoteNumber} marked as Settled.`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('debitNotes.messages.settleSuccess', { number: debitNote.debitNoteNumber })
                 });
                 this.loadData();
             },
             error: (err) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: err?.error?.message ?? 'Failed to settle debit note.'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: err?.error?.message ?? this.i18n.t('debitNotes.messages.settleFailed')
                 });
             }
         });
     }
 
     cancelDebitNote(debitNote: CustomerDebitNoteResponse): void {
-        const reason = prompt(`Reason for cancelling debit note ${debitNote.debitNoteNumber}:`);
+        const reason = prompt(this.i18n.t('debitNotes.messages.cancelPrompt', { number: debitNote.debitNoteNumber }));
         if (reason === null) return;
 
         this.debitNoteService.cancel(debitNote.id, reason).subscribe({
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: `Debit note ${debitNote.debitNoteNumber} cancelled.`
+                    summary: this.i18n.t('common.messages.success'),
+                    detail: this.i18n.t('debitNotes.messages.cancelSuccess', { number: debitNote.debitNoteNumber })
                 });
                 this.loadData();
             },
             error: (err) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: err?.error?.message ?? 'Failed to cancel debit note.'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: err?.error?.message ?? this.i18n.t('debitNotes.messages.cancelFailed')
                 });
             }
         });
@@ -253,17 +264,18 @@ export class DebitNotesListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, currency || this.currencyService.selectedCurrency());
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const map: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            ISSUED: 'info',
-            SETTLED: 'success',
-            CANCELLED: 'danger'
-        };
-        return map[status] ?? 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'customer-debit-note');
     }
 
     formatStatus(status: string): string {
-        return (status ?? '-').split('_')
-            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+        if (!status) return '-';
+        const key = 'debitNotes.statusOptions.' + status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        if (label !== key) return label;
+        return status
+            .split('_')
+            .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+            .join(' ');
     }
 }

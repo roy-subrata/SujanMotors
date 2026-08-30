@@ -99,18 +99,25 @@ export class PartImportService {
         return this.http.get(`${this.apiUrl}/export`, { responseType: 'blob' });
     }
 
-    /** Upload a filled workbook for a dry-run validation report. */
-    validate(file: File, mode: ProductImportMode = 'CreateOnly'): Observable<ProductImportValidationResult> {
+    /**
+     * Upload a filled workbook for a dry-run validation report.
+     *
+     * `allowNewReferenceData` is off by default: brand/category/unit names that do not already
+     * exist come back as row errors rather than being created on the fly, so a spreadsheet typo
+     * cannot silently become permanent master data.
+     */
+    validate(file: File, mode: ProductImportMode = 'CreateOnly', allowNewReferenceData = false): Observable<ProductImportValidationResult> {
         const form = new FormData();
         form.append('file', file);
         return this.http.post<{ data: ProductImportValidationResult }>(
-            `${this.apiUrl}/validate?mode=${mode}`, form)
+            `${this.apiUrl}/validate?mode=${mode}&allowNewReferenceData=${allowNewReferenceData}`, form)
             .pipe(map(r => r.data));
     }
 
-    /** Commit the confirmed rows. Mode must match the one they were validated under. */
-    commit(rows: ProductImportRow[], mode: ProductImportMode = 'CreateOnly'): Observable<ProductImportCommitResult> {
-        return this.http.post<{ data: ProductImportCommitResult }>(`${this.apiUrl}/commit`, { rows, mode })
+    /** Commit the confirmed rows. Mode and allowNewReferenceData must match the validate call. */
+    commit(rows: ProductImportRow[], mode: ProductImportMode = 'CreateOnly', allowNewReferenceData = false): Observable<ProductImportCommitResult> {
+        return this.http.post<{ data: ProductImportCommitResult }>(
+            `${this.apiUrl}/commit`, { rows, mode, allowNewReferenceData })
             .pipe(map(r => r.data));
     }
 

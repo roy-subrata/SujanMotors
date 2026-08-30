@@ -1,6 +1,9 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 // PrimeNG imports
 import { CardModule } from 'primeng/card';
@@ -18,10 +21,30 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DashboardService, DashboardResponse, FinancialSummaryRequest } from './services/dashboard.service';
 import { CurrencyService } from '../../shared/services/currency.service';
 import { MessageService } from 'primeng/api';
+import { PurchaseOrderService } from '../procurement/services/purchase-order.service';
+import { SalesOrderService } from '../sales/services/sales-order.service';
+import { WarrantyService } from '../warranty/services/warranty.service';
+import { InvoiceService } from '../sales/services/invoice.service';
+import { SalesReturnService } from '../sales/services/sales-return.service';
+import { StockTakeService } from '../inventory/services/stock-take.service';
+import { StockService, StockLevelResponse } from '../inventory/services/stock.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 interface PeriodOption {
   label: string;
   value: 'DAILY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM';
+}
+
+interface WorkQueueItem {
+  label: string;
+  sub: string;
+  count: number;
+  icon: string;
+  link: string[];
+  queryParams?: Record<string, string>;
 }
 
 @Component({
@@ -30,6 +53,7 @@ interface PeriodOption {
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     CardModule,
     SelectModule,
     ButtonModule,
@@ -39,7 +63,10 @@ interface PeriodOption {
     TagModule,
     ToastModule,
     SkeletonModule,
-    TooltipModule
+    TooltipModule,
+    TranslatePipe,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService],
   templateUrl: './dashboard.component.html',
@@ -49,19 +76,33 @@ export class DashboardComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly currencyService = inject(CurrencyService);
   private readonly messageService = inject(MessageService);
+  private readonly purchaseOrderService = inject(PurchaseOrderService);
+  private readonly salesOrderService = inject(SalesOrderService);
+  private readonly warrantyService = inject(WarrantyService);
+  private readonly invoiceService = inject(InvoiceService);
+  private readonly salesReturnService = inject(SalesReturnService);
+  private readonly stockTakeService = inject(StockTakeService);
+  private readonly stockService = inject(StockService);
+  readonly i18n = inject(I18nService);
 
   // Signals for state management
   loading = signal(false);
   dashboardData = signal<DashboardResponse | null>(null);
   hasError = signal(false);
 
+  // Work Queue + Low Stock — point-in-time operational widgets, loaded once,
+  // independent of the period selector so they don't jump around as the user
+  // changes the KPI date range. Each fails soft/independently (see loadWorkQueue()).
+  workQueueItems = signal<WorkQueueItem[]>([]);
+  lowStockRows = signal<StockLevelResponse[]>([]);
+
   // Period selection
-  periodOptions: PeriodOption[] = [
-    { label: 'Today', value: 'DAILY' },
-    { label: 'This Month', value: 'MONTHLY' },
-    { label: 'This Year', value: 'YEARLY' },
-    { label: 'Custom Range', value: 'CUSTOM' }
-  ];
+  periodOptions = computed<PeriodOption[]>(() => [
+    { label: this.i18n.t('dashboard.periods.today'), value: 'DAILY' },
+    { label: this.i18n.t('dashboard.periods.thisMonth'), value: 'MONTHLY' },
+    { label: this.i18n.t('dashboard.periods.thisYear'), value: 'YEARLY' },
+    { label: this.i18n.t('dashboard.periods.customRange'), value: 'CUSTOM' }
+  ]);
 
   selectedPeriod: 'DAILY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM' = 'MONTHLY';
   startDate: Date | null = null;
@@ -79,6 +120,80 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.initializeChartOptions();
     this.loadDashboard();
+    this.loadWorkQueue();
+    this.loadLowStock();
+  }
+
+  /**
+   * Six operational counts, each from an existing list endpoint (pageSize:1 where a
+   * paginated endpoint exists, reading only the total count — same technique as the
+   * Phase 3/4 stat strips). Each call is wrapped in its own catchError so a 403 on
+   * one (these are gated by their own domain permission, not the dashboard's
+   * reports.view) just drops that item instead of blanking the whole panel.
+   */
+  private loadWorkQueue(): void {
+    forkJoin({
+      purchaseOrders: this.purchaseOrderService
+        .getPurchaseOrders({ search: '', pageNumber: 1, pageSize: 1, status: 'CONFIRMED' })
+        .pipe(catchError(() => of(null))),
+      deliveries: this.salesOrderService.getPendingDeliveries().pipe(catchError(() => of(null))),
+      warrantyClaims: this.warrantyService.getClaimsByStatus('PENDING').pipe(catchError(() => of(null))),
+      invoices: this.invoiceService
+        .getAllInvoices(1, 1, { status: 'OVERDUE' })
+        .pipe(catchError(() => of(null))),
+      salesReturns: this.salesReturnService.getAllSalesReturns().pipe(catchError(() => of(null))),
+      stockTakes: this.stockTakeService
+        .getStockTakes({ pageNumber: 1, pageSize: 1, status: 'COUNTING' })
+        .pipe(catchError(() => of(null)))
+    }).subscribe(({ purchaseOrders, deliveries, warrantyClaims, invoices, salesReturns, stockTakes }) => {
+      const items: WorkQueueItem[] = [];
+      if (purchaseOrders) {
+        items.push({
+          label: this.i18n.t('dashboard.workQueue.purchaseOrders'), sub: this.i18n.t('dashboard.workQueue.purchaseOrdersSub'), icon: 'pi pi-file',
+          count: purchaseOrders.pagination.totalCount, link: ['/procurement/purchase-orders']
+        });
+      }
+      if (deliveries) {
+        items.push({
+          label: this.i18n.t('dashboard.workQueue.deliveries'), sub: this.i18n.t('dashboard.workQueue.deliveriesSub'), icon: 'pi pi-truck',
+          count: deliveries.data.length, link: ['/sales/pending-deliveries']
+        });
+      }
+      if (warrantyClaims) {
+        items.push({
+          label: this.i18n.t('dashboard.workQueue.warrantyClaims'), sub: this.i18n.t('dashboard.workQueue.warrantyClaimsSub'), icon: 'pi pi-exclamation-triangle',
+          count: warrantyClaims.length, link: ['/warranty/claims']
+        });
+      }
+      if (invoices) {
+        items.push({
+          label: this.i18n.t('dashboard.workQueue.invoicesOverdue'), sub: this.i18n.t('dashboard.workQueue.invoicesOverdueSub'), icon: 'pi pi-file-check',
+          count: invoices.pagination.totalCount, link: ['/sales/invoices']
+        });
+      }
+      if (salesReturns) {
+        items.push({
+          label: this.i18n.t('dashboard.workQueue.salesReturns'), sub: this.i18n.t('dashboard.workQueue.salesReturnsSub'), icon: 'pi pi-replay',
+          count: salesReturns.filter(r => r.status === 'PENDING').length, link: ['/sales/sales-returns']
+        });
+      }
+      if (stockTakes) {
+        items.push({
+          label: this.i18n.t('dashboard.workQueue.stockTakes'), sub: this.i18n.t('dashboard.workQueue.stockTakesSub'), icon: 'pi pi-list-check',
+          count: stockTakes.pagination.totalCount, link: ['/inventory/stock-takes']
+        });
+      }
+      this.workQueueItems.set(items);
+    });
+  }
+
+  private loadLowStock(): void {
+    this.stockService
+      .getStockLevels({ pageNumber: 1, pageSize: 6, lowStockOnly: true })
+      .pipe(catchError(() => of(null)))
+      .subscribe(response => {
+        this.lowStockRows.set(response?.data ?? []);
+      });
   }
 
   onPeriodChange(): void {
@@ -98,8 +213,8 @@ export class DashboardComponent implements OnInit {
       if (!this.startDate || !this.endDate) {
         this.messageService.add({
           severity: 'warn',
-          summary: 'Warning',
-          detail: 'Please select both start and end dates',
+          summary: this.i18n.t('common.messages.warning'),
+          detail: this.i18n.t('dashboard.messages.selectDatesWarning'),
           life: 3000
         });
         this.loading.set(false);
@@ -109,8 +224,8 @@ export class DashboardComponent implements OnInit {
       if (this.endDate < this.startDate) {
         this.messageService.add({
           severity: 'warn',
-          summary: 'Invalid Range',
-          detail: 'End date must be on or after start date',
+          summary: this.i18n.t('dashboard.messages.invalidRangeSummary'),
+          detail: this.i18n.t('dashboard.messages.invalidRangeDetail'),
           life: 3000
         });
         this.loading.set(false);
@@ -166,8 +281,8 @@ export class DashboardComponent implements OnInit {
         this.hasError.set(true);
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load dashboard data',
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('dashboard.messages.loadFailed'),
           life: 5000
         });
         this.loading.set(false);
@@ -210,7 +325,7 @@ export class DashboardComponent implements OnInit {
       labels,
       datasets: [
         {
-          label: 'Sales',
+          label: this.i18n.t('dashboard.chart.sales'),
           data: salesData,
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.09)',
@@ -219,7 +334,7 @@ export class DashboardComponent implements OnInit {
           pointRadius: 3
         },
         {
-          label: 'Purchases',
+          label: this.i18n.t('dashboard.chart.purchases'),
           data: purchasesData,
           borderColor: '#f59e0b',
           backgroundColor: 'rgba(245, 158, 11, 0.07)',
@@ -228,7 +343,7 @@ export class DashboardComponent implements OnInit {
           pointRadius: 3
         },
         {
-          label: 'Profit',
+          label: this.i18n.t('dashboard.chart.profit'),
           data: profitData,
           borderColor: '#10b981',
           backgroundColor: 'rgba(16, 185, 129, 0.07)',

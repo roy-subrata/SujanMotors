@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -8,7 +10,7 @@ public class PurchaseOrder : AuditableEntity
     public string PONumber { get; private set; } = string.Empty;  // Unique PO number
     public Guid SupplierId { get; private set; }
     public Guid? WarehouseId { get; private set; }  // Expected delivery warehouse
-    public string Status { get; private set; } = "DRAFT";  // DRAFT, SUBMITTED, CONFIRMED, PARTIAL, DELIVERED, CANCELLED
+    public PurchaseOrderStatus Status { get; private set; } = PurchaseOrderStatus.DRAFT;
     public DateTime PODate { get; private set; }
     public DateTime ExpectedDeliveryDate { get; private set; }
     public DateTime? ActualDeliveryDate { get; private set; }
@@ -20,13 +22,23 @@ public class PurchaseOrder : AuditableEntity
     public decimal DiscountFixedAmount { get; private set; } = 0;  // User-entered fixed discount amount (optional)
     public string DiscountType { get; private set; } = "TOTAL";  // BULK or TOTAL
     public decimal TotalAmount { get; private set; } = 0;
-    public string PaymentStatus { get; private set; } = "PENDING";  // PENDING, PARTIAL, PAID
+    public PurchaseOrderPaymentStatus PaymentStatus { get; private set; } = PurchaseOrderPaymentStatus.PENDING;
     public decimal PaidAmount { get; private set; } = 0;
     public decimal CreditAppliedAmount { get; private set; } = 0;  // Total credit notes applied to this PO
+
+    /// <summary>
+    /// What is still payable: the order total less cash paid AND credit notes applied. A credit
+    /// note settles part of the order just as a payment does, so leaving it out reported the full
+    /// balance as still owing after a note had been consumed — the note was recorded and delivered
+    /// nothing.
+    /// </summary>
+    public decimal OutstandingAmount => TotalAmount - PaidAmount - CreditAppliedAmount;
     public string Notes { get; private set; } = string.Empty;
     public string ApprovedBy { get; private set; } = string.Empty;
     public DateTime? ApprovedDate { get; private set; }
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
+    public decimal? BaseTotalAmount { get; private set; }  // TotalAmount converted to base currency at PO time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseTotalAmount was captured (1 = same as base)
 
     // Navigation properties
     public Supplier? Supplier { get; set; }
@@ -56,7 +68,7 @@ public class PurchaseOrder : AuditableEntity
             WarehouseId = warehouseId,
             PODate = DateTime.UtcNow,
             ExpectedDeliveryDate = expectedDeliveryDate,
-            Status = "DRAFT",
+            Status = PurchaseOrderStatus.DRAFT,
             Notes = notes?.Trim() ?? string.Empty,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper()
         };
@@ -64,31 +76,31 @@ public class PurchaseOrder : AuditableEntity
 
     public void Submit()
     {
-        if (Status != "DRAFT")
+        if (Status != PurchaseOrderStatus.DRAFT)
             throw new InvalidOperationException("Only draft POs can be submitted");
 
         if (!LineItems.Any())
             throw new InvalidOperationException("PO must have at least one line item");
 
-        Status = "SUBMITTED";
+        Status = PurchaseOrderStatus.SUBMITTED;
     }
 
     public void Confirm(string approvedBy)
     {
-        if (Status != "SUBMITTED")
+        if (Status != PurchaseOrderStatus.SUBMITTED)
             throw new InvalidOperationException("Only submitted POs can be confirmed");
 
-        Status = "CONFIRMED";
+        Status = PurchaseOrderStatus.CONFIRMED;
         ApprovedBy = approvedBy;
         ApprovedDate = DateTime.UtcNow;
     }
 
     public void Cancel()
     {
-        if (Status is "DELIVERED" or "CANCELLED" or "PARTIAL")
+        if (Status is PurchaseOrderStatus.DELIVERED or PurchaseOrderStatus.CANCELLED or PurchaseOrderStatus.PARTIAL)
             throw new InvalidOperationException($"Cannot cancel a {Status} PO. A PARTIAL order has accepted goods receipts — create a purchase return first.");
 
-        Status = "CANCELLED";
+        Status = PurchaseOrderStatus.CANCELLED;
     }
 
     public void CalculateTotal()
@@ -151,11 +163,15 @@ public class PurchaseOrder : AuditableEntity
         if (amount <= 0)
             throw new ArgumentException("Payment amount must be greater than 0", nameof(amount));
 
-        if (amount > TotalAmount - PaidAmount)
+        // Credits already applied settle part of the order, so they reduce what is still payable.
+        // Ignoring them here let a PO be paid past its true balance once a credit note was applied.
+        if (amount > OutstandingAmount)
             throw new InvalidOperationException("Payment exceeds outstanding amount");
 
         PaidAmount += amount;
-        PaymentStatus = PaidAmount >= TotalAmount ? "PAID" : "PARTIAL";
+        PaymentStatus = PaidAmount + CreditAppliedAmount >= TotalAmount
+            ? PurchaseOrderPaymentStatus.PAID
+            : PurchaseOrderPaymentStatus.PARTIAL;
     }
 
     /// <summary>
@@ -166,30 +182,29 @@ public class PurchaseOrder : AuditableEntity
         if (amount <= 0)
             throw new ArgumentException("Credit amount must be greater than 0", nameof(amount));
 
-        var outstandingAmount = TotalAmount - PaidAmount;
-        if (amount > outstandingAmount)
+        if (amount > OutstandingAmount)
             throw new InvalidOperationException("Credit amount exceeds outstanding amount");
 
         CreditAppliedAmount += amount;
 
         // Update payment status based on total payments + credits
         var totalApplied = PaidAmount + CreditAppliedAmount;
-        PaymentStatus = totalApplied >= TotalAmount ? "PAID" : "PARTIAL";
+        PaymentStatus = totalApplied >= TotalAmount ? PurchaseOrderPaymentStatus.PAID : PurchaseOrderPaymentStatus.PARTIAL;
     }
 
     public void MarkAsDelivered(DateTime? deliveryDate = null)
     {
-        if (Status is not ("CONFIRMED" or "PARTIAL"))
+        if (Status is not (PurchaseOrderStatus.CONFIRMED or PurchaseOrderStatus.PARTIAL))
             throw new InvalidOperationException($"Only CONFIRMED or PARTIAL purchase orders can be marked as delivered. Current: {Status}");
 
-        Status = "DELIVERED";
+        Status = PurchaseOrderStatus.DELIVERED;
         ActualDeliveryDate = deliveryDate ?? DateTime.UtcNow;
     }
 
     public void UpdateReceiptStatus()
     {
         // Only update status if PO is CONFIRMED or PARTIAL
-        if (Status != "CONFIRMED" && Status != "PARTIAL")
+        if (Status != PurchaseOrderStatus.CONFIRMED && Status != PurchaseOrderStatus.PARTIAL)
             return;
 
         // Calculate total ordered quantity across all line items
@@ -206,12 +221,12 @@ public class PurchaseOrder : AuditableEntity
         // Update status based on received quantities
         if (totalAccepted >= totalOrdered)
         {
-            Status = "DELIVERED";
+            Status = PurchaseOrderStatus.DELIVERED;
             ActualDeliveryDate = DateTime.UtcNow;
         }
         else if (totalAccepted > 0)
         {
-            Status = "PARTIAL";
+            Status = PurchaseOrderStatus.PARTIAL;
         }
     }
 
@@ -231,13 +246,13 @@ public class PurchaseOrder : AuditableEntity
             return 0;
 
         var accepted = GoodsReceipts
-            .Where(gr => gr.Status == "ACCEPTED")
+            .Where(gr => gr.Status == GoodsReceiptStatus.ACCEPTED)
             .SelectMany(gr => gr.LineItems)
             .Where(grl => grl.PurchaseOrderLineId == purchaseOrderLineId)
             .Sum(grl => grl.AcceptedQuantity);
 
         var inFlight = GoodsReceipts
-            .Where(gr => (gr.Status == "PENDING" || gr.Status == "VERIFIED")
+            .Where(gr => (gr.Status == GoodsReceiptStatus.PENDING || gr.Status == GoodsReceiptStatus.VERIFIED)
                 && gr.Id != (excludeGoodsReceiptId ?? Guid.Empty))
             .SelectMany(gr => gr.LineItems)
             .Where(grl => grl.PurchaseOrderLineId == purchaseOrderLineId)
@@ -249,6 +264,22 @@ public class PurchaseOrder : AuditableEntity
     public void UpdateNotes(string notes)
     {
         Notes = notes?.Trim() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="TotalAmount"/> at PO time so reports
+    /// stay stable even if exchange rates change later. Call after totals are final.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        if (baseAmount < 0)
+            throw new ArgumentException("Base amount cannot be negative", nameof(baseAmount));
+
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseTotalAmount = baseAmount;
+        FxRateToBase = rateToBase;
     }
 
     public void UpdateExpectedDeliveryDate(DateTime date)
@@ -290,7 +321,7 @@ public class PurchaseOrder : AuditableEntity
     /// </summary>
     public void UpdateSupplier(Guid supplierId)
     {
-        if (Status != "DRAFT")
+        if (Status != PurchaseOrderStatus.DRAFT)
             throw new InvalidOperationException("Can only change supplier on draft POs");
 
         if (supplierId == Guid.Empty)
@@ -307,7 +338,7 @@ public class PurchaseOrder : AuditableEntity
     /// </summary>
     public void SyncLineItems(IEnumerable<LineItemData> items)
     {
-        if (Status != "DRAFT")
+        if (Status != PurchaseOrderStatus.DRAFT)
             throw new InvalidOperationException("Can only modify line items on draft POs");
 
         var itemsList = items.ToList();

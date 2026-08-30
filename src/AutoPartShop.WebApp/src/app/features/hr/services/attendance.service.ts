@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { AttendanceStatus } from 'src/app/shared/models/status.types';
 
 export interface DailyAttendanceRow {
     employeeId: string;
@@ -11,7 +12,7 @@ export interface DailyAttendanceRow {
     department: string;
     shiftName: string | null;
     isMarked: boolean;
-    status: string;
+    status: AttendanceStatus | '';
     checkInTime: string | null;   // "HH:mm:ss"
     checkOutTime: string | null;
     notes: string;
@@ -19,7 +20,7 @@ export interface DailyAttendanceRow {
 
 export interface MarkAttendanceEntry {
     employeeId: string;
-    status: string;
+    status: AttendanceStatus | '';
     checkInTime: string | null;
     checkOutTime: string | null;
     notes: string;

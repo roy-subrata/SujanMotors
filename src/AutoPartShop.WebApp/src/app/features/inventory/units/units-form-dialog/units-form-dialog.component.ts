@@ -6,11 +6,13 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageService } from 'primeng/api';
 import { UnitService, UnitResponse } from '../../services/unit.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-units-form-dialog',
   standalone: true,
-  imports: [CommonModule, DialogModule, ButtonModule, InputTextModule, ReactiveFormsModule],
+  imports: [CommonModule, DialogModule, ButtonModule, InputTextModule, ReactiveFormsModule, TranslatePipe],
   templateUrl: './units-form-dialog.component.html',
   styleUrls: ['./units-form-dialog.component.css']
 })
@@ -27,6 +29,7 @@ export class UnitsFormDialogComponent implements OnChanges {
   private readonly unitService = inject(UnitService);
   private readonly messageService = inject(MessageService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
 
   createForm!: FormGroup;
   updateForm!: FormGroup;
@@ -102,8 +105,8 @@ export class UnitsFormDialogComponent implements OnChanges {
     if (this.createForm.invalid) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required fields correctly'
+        summary: this.i18n.t('common.messages.validationError'),
+        detail: this.i18n.t('common.messages.fillRequiredFields')
       });
       return;
     }
@@ -115,8 +118,8 @@ export class UnitsFormDialogComponent implements OnChanges {
       next: (response) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Unit "${response.name}" created successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('units.messages.createSuccess')
         });
         this.createSuccess.emit();
         this.onCreateDialogHide();
@@ -125,8 +128,8 @@ export class UnitsFormDialogComponent implements OnChanges {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to create unit'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('common.messages.createFailed')
         });
         this.isSubmitting = false;
       }
@@ -140,8 +143,8 @@ export class UnitsFormDialogComponent implements OnChanges {
     if (this.updateForm.invalid) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required fields correctly'
+        summary: this.i18n.t('common.messages.validationError'),
+        detail: this.i18n.t('common.messages.fillRequiredFields')
       });
       return;
     }
@@ -160,8 +163,8 @@ export class UnitsFormDialogComponent implements OnChanges {
       next: (response) => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: `Unit "${response.name}" updated successfully`
+          summary: this.i18n.t('common.messages.success'),
+          detail: this.i18n.t('units.messages.updateSuccess')
         });
         this.updateSuccess.emit();
         this.onUpdateDialogHide();
@@ -170,8 +173,8 @@ export class UnitsFormDialogComponent implements OnChanges {
       error: (error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: error?.error?.message || 'Failed to update unit'
+          summary: this.i18n.t('common.messages.error'),
+          detail: error?.error?.message || this.i18n.t('common.messages.updateFailed')
         });
         this.isSubmitting = false;
       }
@@ -188,15 +191,15 @@ export class UnitsFormDialogComponent implements OnChanges {
     }
 
     if (control.errors['required']) {
-      return `${this.formatFieldName(fieldName)} is required`;
+      return this.i18n.t('common.messages.fieldRequired', { field: this.formatFieldName(fieldName) });
     }
     if (control.errors['minlength']) {
-      return `${this.formatFieldName(fieldName)} must be at least ${control.errors['minlength'].requiredLength} characters`;
+      return this.i18n.t('common.messages.fieldMinLength', { field: this.formatFieldName(fieldName), min: String(control.errors['minlength'].requiredLength) });
     }
     if (control.errors['maxlength']) {
-      return `${this.formatFieldName(fieldName)} cannot exceed ${control.errors['maxlength'].requiredLength} characters`;
+      return this.i18n.t('common.messages.fieldMaxLength', { field: this.formatFieldName(fieldName), max: String(control.errors['maxlength'].requiredLength) });
     }
-    return 'Invalid input';
+    return this.i18n.t('common.messages.invalidInput');
   }
 
   /**

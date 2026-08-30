@@ -5,12 +5,11 @@ using AutoPartShop.Application.DTOs.TechnicianDtos;
 using AutoPartShop.Application.Technecians;
 using AutoPartShop.Application.Technecians.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [HasPermission(Permissions.SalesView)]  // was previously unauthenticated — closed as part of the permission audit
@@ -59,15 +58,15 @@ public class TechnicianController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
             if (query.PageNumber < 0)
             {
-                return BadRequest($"Page number can not be {query.PageNumber}");
+                return BadRequest(new { message = $"Page number can not be {query.PageNumber}" });
             }
             if (query.PageSize < 0)
             {
-                return BadRequest($"Page size can not be {query.PageSize}");
+                return BadRequest(new { message = $"Page size can not be {query.PageSize}" });
             }
 
             var (technicians, totalCount) = await _technecianReadRepository.FindAllQuery(query, cancellationToken);
@@ -116,7 +115,7 @@ public class TechnicianController : ControllerBase
     }
 
     [HttpGet("status/{status}")]
-    public async Task<IActionResult> GetByStatus(string status, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByStatus(TechnicianStatus status, CancellationToken cancellationToken)
     {
         try
         {

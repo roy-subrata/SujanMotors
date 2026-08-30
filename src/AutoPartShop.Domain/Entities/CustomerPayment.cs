@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
@@ -26,9 +28,11 @@ public class CustomerPayment : AuditableEntity
     public decimal PaymentFee { get; private set; } = 0;  // Fee charged by provider
     public decimal NetAmount { get; private set; }  // Amount - Fee
     public string Currency { get; private set; } = "BDT";
+    public decimal? BaseAmount { get; private set; }  // Amount converted to base currency at payment time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseAmount was captured (1 = same as base)
     public DateTime PaymentDate { get; private set; }
     public string PaymentMethod { get; private set; } = string.Empty;  // CREDIT_CARD, BANK_TRANSFER, CHECK, CASH, etc.
-    public string Status { get; private set; } = "PENDING";  // PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED, CANCELLED
+    public CustomerPaymentStatus Status { get; private set; } = CustomerPaymentStatus.PENDING;
     public string ReferenceNumber { get; private set; } = string.Empty;  // Check number, transfer ref, card last 4, etc.
     public string AuthorizationCode { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
@@ -84,7 +88,7 @@ public class CustomerPayment : AuditableEntity
             ReferenceNumber = referenceNumber?.Trim() ?? string.Empty,
             PaymentDate = paymentDate ?? DateTime.UtcNow,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
-            Status = "PENDING"
+            Status = CustomerPaymentStatus.PENDING
         };
     }
 
@@ -110,6 +114,21 @@ public class CustomerPayment : AuditableEntity
         NetAmount = Amount - PaymentFee;
     }
 
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="Amount"/> at payment time so balances
+    /// and reports stay stable even if exchange rates change later.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        // BaseAmount mirrors the payment's own Amount, which is legitimately negative for cash
+        // refunds (money going out) — so only the rate is range-checked here.
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseAmount = baseAmount;
+        FxRateToBase = rateToBase;
+    }
+
     public void SetAuthorizationCode(string code)
     {
         AuthorizationCode = code?.Trim() ?? string.Empty;
@@ -117,16 +136,16 @@ public class CustomerPayment : AuditableEntity
 
     public void MarkAsProcessing()
     {
-        if (Status != "PENDING")
+        if (Status != CustomerPaymentStatus.PENDING)
             throw new InvalidOperationException("Only pending payments can be marked as processing");
-        Status = "PROCESSING";
+        Status = CustomerPaymentStatus.PROCESSING;
     }
 
     public void MarkAsCompleted()
     {
-        if (Status != "PROCESSING" && Status != "PENDING")
+        if (Status != CustomerPaymentStatus.PROCESSING && Status != CustomerPaymentStatus.PENDING)
             throw new InvalidOperationException("Only pending or processing payments can be completed");
-        Status = "COMPLETED";
+        Status = CustomerPaymentStatus.COMPLETED;
     }
 
     public void MarkAsSettled(string settledBy)
@@ -134,20 +153,20 @@ public class CustomerPayment : AuditableEntity
         if (string.IsNullOrWhiteSpace(settledBy))
             throw new ArgumentException("SettledBy cannot be empty", nameof(settledBy));
 
-        if (Status is "REFUNDED" or "CANCELLED")
+        if (Status is CustomerPaymentStatus.REFUNDED or CustomerPaymentStatus.CANCELLED)
             throw new InvalidOperationException($"Cannot settle a {Status} payment.");
 
-        Status = "COMPLETED";
+        Status = CustomerPaymentStatus.COMPLETED;
         SettledDate = DateTime.UtcNow;
         SettledBy = settledBy.Trim();
     }
 
     public void MarkAsFailed()
     {
-        if (Status is "COMPLETED" or "REFUNDED")
+        if (Status is CustomerPaymentStatus.COMPLETED or CustomerPaymentStatus.REFUNDED)
             throw new InvalidOperationException($"Cannot mark a {Status} payment as failed. Reverse or refund it first.");
 
-        Status = "FAILED";
+        Status = CustomerPaymentStatus.FAILED;
     }
 
     public void MarkAsRefunded(decimal refundAmount)
@@ -158,19 +177,19 @@ public class CustomerPayment : AuditableEntity
         if (refundAmount > Amount)
             throw new InvalidOperationException("Refund amount cannot exceed payment amount");
 
-        Status = "REFUNDED";
+        Status = CustomerPaymentStatus.REFUNDED;
     }
 
     public void Cancel()
     {
-        if (Status == "COMPLETED" || Status == "REFUNDED")
+        if (Status == CustomerPaymentStatus.COMPLETED || Status == CustomerPaymentStatus.REFUNDED)
             throw new InvalidOperationException($"Cannot cancel a {Status} payment");
-        Status = "CANCELLED";
+        Status = CustomerPaymentStatus.CANCELLED;
     }
 
     public void Reconcile()
     {
-        if (Status != "COMPLETED")
+        if (Status != CustomerPaymentStatus.COMPLETED)
             throw new InvalidOperationException("Only completed payments can be reconciled");
 
         IsReconciled = true;
@@ -197,7 +216,7 @@ public class CustomerPayment : AuditableEntity
         if (PaymentType == CustomerPaymentType.ADVANCE)
             return; // idempotent
 
-        if (Status != "PENDING" && Status != "PROCESSING")
+        if (Status != CustomerPaymentStatus.PENDING && Status != CustomerPaymentStatus.PROCESSING)
             throw new InvalidOperationException($"Cannot convert a {Status} payment to advance. Only PENDING or PROCESSING payments can be converted.");
 
         PaymentType = CustomerPaymentType.ADVANCE;
@@ -278,7 +297,7 @@ public class CustomerPayment : AuditableEntity
             PaymentMethod = "ADVANCE_CREDIT",
             TransactionNumber = transactionNumber,
             PaymentDate = DateTime.UtcNow,
-            Status = "COMPLETED",
+            Status = CustomerPaymentStatus.COMPLETED,
             PaymentType = CustomerPaymentType.REGULAR,
             Notes = description.Trim(),
             RemainingAmount = 0,

@@ -50,7 +50,7 @@ public class StockLotResponse
     public string DisplayName { get; set; } = string.Empty;
     public Guid WarehouseId { get; set; }
     public string WarehouseName { get; set; } = string.Empty;
-    public Guid SupplierId { get; set; }
+    public Guid? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public int QuantityReceived { get; set; }
     public int QuantityReceivedInBaseUnit { get; set; }
@@ -95,7 +95,7 @@ public class StockLotHistoryItem
 {
     public Guid LotId { get; set; }
     public string LotNumber { get; set; } = string.Empty;
-    public Guid SupplierId { get; set; }
+    public Guid? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public int QuantityReceived { get; set; }
     public int QuantityReceivedInBaseUnit { get; set; }

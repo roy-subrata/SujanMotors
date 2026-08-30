@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -65,6 +66,7 @@ public class WarrantyService(
     ICustomerRepository customerRepository,
     ICustomerPaymentRepository customerPaymentRepository,
     ICustomerCreditNoteRepository customerCreditNoteRepository,
+    ICurrencyConversionService currencyConversionService,
     AutoPartDbContext dbContext) : IWarrantyService
 {
     private const string WarrantyReplacementOutReason = "WARRANTY_REPLACEMENT_OUT";
@@ -211,7 +213,7 @@ public class WarrantyService(
             ?? throw new InvalidOperationException("Warranty claim not found");
 
         // For replacement/refund, the claim can be completed directly from APPROVED.
-        if (claim.Status == "APPROVED" &&
+        if (claim.Status == WarrantyClaimStatus.APPROVED &&
             (claim.ServiceType.Equals("REPLACEMENT", StringComparison.OrdinalIgnoreCase) ||
              claim.ServiceType.Equals("REFUND", StringComparison.OrdinalIgnoreCase)))
         {
@@ -268,14 +270,14 @@ public class WarrantyService(
                 // Reactivate the warranty if no other active claim remains,
                 // so the customer can file a new claim on a still-valid warranty.
                 var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
-                if (warranty != null && warranty.Status == "CLAIMED")
+                if (warranty != null && warranty.Status == WarrantyRegistrationStatus.CLAIMED)
                 {
-                    var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+                    var activeStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
                     var allClaims = await claimRepository.GetByWarrantyRegistrationIdAsync(
                         claim.WarrantyRegistrationId, cancellationToken);
                     var hasOtherActiveClaims = allClaims.Any(c =>
                         c.Id != claim.Id &&
-                        activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+                        activeStatuses.Contains(c.Status));
 
                     if (!hasOtherActiveClaims)
                     {
@@ -318,14 +320,14 @@ public class WarrantyService(
                 if (claim.ServiceType.Equals("REPAIR", StringComparison.OrdinalIgnoreCase))
                 {
                     var warranty = await warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
-                    if (warranty != null && warranty.Status == "CLAIMED")
+                    if (warranty != null && warranty.Status == WarrantyRegistrationStatus.CLAIMED)
                     {
-                        var activeStatuses = new[] { "PENDING", "UNDER_REVIEW", "APPROVED", "IN_PROGRESS" };
+                        var activeStatuses = new[] { WarrantyClaimStatus.PENDING, WarrantyClaimStatus.UNDER_REVIEW, WarrantyClaimStatus.APPROVED, WarrantyClaimStatus.IN_PROGRESS };
                         var allClaims = await claimRepository.GetByWarrantyRegistrationIdAsync(
                             claim.WarrantyRegistrationId, cancellationToken);
                         var hasOtherActiveClaims = allClaims.Any(c =>
                             c.Id != claim.Id &&
-                            activeStatuses.Contains(c.Status, StringComparer.OrdinalIgnoreCase));
+                            activeStatuses.Contains(c.Status));
 
                         if (!hasOtherActiveClaims)
                         {
@@ -503,10 +505,6 @@ public class WarrantyService(
             var customer = await customerRepository.GetByIdAsync(claim.CustomerId, ct)
                 ?? throw new InvalidOperationException("Customer not found for refund processing");
 
-            customer.UpdateBalance(-effectiveRefundAmount);
-            customer.ModifiedBy = actor;
-            await customerRepository.UpdateAsync(customer, ct);
-
             var refundPayment = CustomerPayment.Create(
                 customerId: claim.CustomerId,
                 paymentProviderId: null,
@@ -514,7 +512,10 @@ public class WarrantyService(
                 paymentMethod: "REFUND",
                 transactionNumber: $"WREFUND-{claim.ClaimNumber}",
                 referenceNumber: referenceNumber ?? claim.ClaimNumber,
-                paymentDate: DateTime.UtcNow);
+                paymentDate: DateTime.UtcNow,
+                currency: salesOrder.Currency);
+            var warrantyRefundFx = await currencyConversionService.ConvertToBaseWithRateAsync(refundPayment.Amount, refundPayment.Currency, refundPayment.PaymentDate, ct);
+            refundPayment.SetFxBaseAmount(warrantyRefundFx.BaseAmount, warrantyRefundFx.RateToBase);
 
             refundPayment.LinkToWarrantyClaim(claim.Id);
             refundPayment.MarkAsCompleted();
@@ -522,6 +523,12 @@ public class WarrantyService(
             refundPayment.ModifiedBy = actor;
             refundPayment.UpdateNotes($"Warranty cash refund for claim {claim.ClaimNumber}. {refundNotes}".Trim());
             await customerPaymentRepository.AddAsync(refundPayment, ct);
+
+            // Refund payment's Amount/BaseAmount are negative (money out), so passing it straight
+            // to UpdateBalance reduces what the customer owes.
+            customer.UpdateBalance(refundPayment.BaseAmount ?? refundPayment.Amount);
+            customer.ModifiedBy = actor;
+            await customerRepository.UpdateAsync(customer, ct);
 
             salesOrder.ProcessRefund(effectiveRefundAmount);
             salesOrder.ModifiedBy = actor;

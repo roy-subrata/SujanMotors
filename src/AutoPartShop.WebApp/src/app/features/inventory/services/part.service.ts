@@ -6,12 +6,31 @@ import { PaginatedResponse } from '../../sales/services/customer.service';
 import { SupplierQuery } from './supplier.service';
 import { environment } from 'src/environments/environment';
 
+/** Mirrors the variant-level `VariantAttributeValue` shape (see product-variant.service.ts), scoped to the product itself. */
+export interface ProductAttributeValueResponse {
+    attributeId: string;
+    attributeName: string;
+    dataType: string;
+    optionId?: string | null;
+    optionValue?: string | null;
+    valueText?: string | null;
+    valueNumber?: number | null;
+    valueBool?: boolean | null;
+}
+
+export interface ProductAttributeValueRequest {
+    attributeId: string;
+    optionId?: string | null;
+    valueText?: string | null;
+    valueNumber?: number | null;
+    valueBool?: boolean | null;
+}
+
 export interface PartResponse {
     id: string;
     name: string;
     displayName: string;
     description: string;
-    richDescription?: string | null;
     partNumber: string;
     sku: string;
     barcode?: string | null;
@@ -59,12 +78,14 @@ export interface PartResponse {
     vehicleFit?: string | null;
     createdBy: string;
     modifiedBy: string;
+    attributeValues?: ProductAttributeValueResponse[];
+    matchedAttributeLabel?: string;
+    matchedVariantCount?: number;
 }
 
 export interface CreatePartRequest {
     name: string;
     description: string;
-    richDescription?: string | null;
     partNumber?: string | null;
     oemNumber?: string | null;
     localName?: string | null;
@@ -94,7 +115,6 @@ export interface UpdatePartRequest {
     id: string;
     name: string;
     description: string;
-    richDescription?: string | null;
     partNumber?: string | null;
     oemNumber?: string | null;
     localName?: string | null;
@@ -150,6 +170,8 @@ export interface PartsQuery {
     isActive?: boolean;
     flattenVariants?: boolean;
     categoryId?: string;
+    vehicleIds?: string[];
+    attributeOptionIds?: string[];
     sortBy?: string;
     sortDirection?: 'asc' | 'desc';
 }
@@ -162,14 +184,15 @@ export class PartService {
     private readonly apiUrl = `${environment.apiUrl}/v1/products`;
 
     getAllParts(): Observable<PartResponse[]> {
-        return this.http.get<{ data: PartResponse[] }>(this.apiUrl, { params: new HttpParams().set('pageSize', '500') })
-            .pipe(map(r => r.data));
+        return this.http.get<{ data: PartResponse[] }>(this.apiUrl, { params: new HttpParams().set('pageSize', '500') }).pipe(map((r) => r.data));
     }
 
     getActiveParts(): Observable<PartResponse[]> {
-        return this.http.get<{ data: PartResponse[] }>(this.apiUrl, {
-            params: new HttpParams().set('isActive', 'true').set('pageSize', '500')
-        }).pipe(map(r => r.data));
+        return this.http
+            .get<{ data: PartResponse[] }>(this.apiUrl, {
+                params: new HttpParams().set('isActive', 'true').set('pageSize', '500')
+            })
+            .pipe(map((r) => r.data));
     }
 
     getParts(rQuery: PartsQuery): Observable<PaginatedResponse<PartResponse>> {
@@ -180,26 +203,32 @@ export class PartService {
             .set('flattenVariants', (rQuery.flattenVariants ?? false).toString());
         if (rQuery.isActive != null) params = params.set('isActive', rQuery.isActive.toString());
         if (rQuery.categoryId) params = params.set('categoryId', rQuery.categoryId);
+        if (rQuery.vehicleIds && rQuery.vehicleIds.length > 0) {
+            rQuery.vehicleIds.forEach((id) => (params = params.append('vehicleIds', id)));
+        }
+        if (rQuery.attributeOptionIds && rQuery.attributeOptionIds.length > 0) {
+            rQuery.attributeOptionIds.forEach((id) => (params = params.append('attributeOptionIds', id)));
+        }
         if (rQuery.sortBy) {
             params = params.set('sortBy', rQuery.sortBy).set('sortDirection', rQuery.sortDirection ?? 'asc');
         }
-        return this.http.get<{ data: PartResponse[]; pagination: any }>(this.apiUrl, { params })
-            .pipe(map(r => ({
+        return this.http.get<{ data: PartResponse[]; pagination: any }>(this.apiUrl, { params }).pipe(
+            map((r) => ({
                 data: r.data,
                 pagination: { ...r.pagination, pageNumber: r.pagination.page }
-            })));
+            }))
+        );
     }
 
     getPartById(id: string): Observable<PartResponse> {
-        return this.http.get<{ data: any }>(`${this.apiUrl}/${id}`)
-            .pipe(map(r => {
+        return this.http.get<{ data: any }>(`${this.apiUrl}/${id}`).pipe(
+            map((r) => {
                 const p = r.data;
                 return {
                     id: p.id,
                     name: p.name,
                     displayName: p.name,
                     description: p.description ?? '',
-                    richDescription: p.richDescription ?? null,
                     partNumber: p.partNumber,
                     sku: p.sku,
                     barcode: p.barcode ?? null,
@@ -240,28 +269,26 @@ export class PartService {
                     warrantyCertificateTemplate: p.warranty?.certificateTemplate ?? null,
                     createdBy: p.createdBy ?? '',
                     modifiedBy: p.modifiedBy ?? '',
+                    attributeValues: p.attributeValues ?? []
                 } as PartResponse;
-            }));
+            })
+        );
     }
 
     createPart(request: CreatePartRequest): Observable<PartResponse> {
-        return this.http.post<{ data: PartResponse }>(this.apiUrl, request)
-            .pipe(map(r => r.data));
+        return this.http.post<{ data: PartResponse }>(this.apiUrl, request).pipe(map((r) => r.data));
     }
 
     updatePart(id: string, request: UpdatePartRequest): Observable<PartResponse> {
-        return this.http.put<{ data: PartResponse }>(`${this.apiUrl}/${id}`, request)
-            .pipe(map(r => r.data));
+        return this.http.put<{ data: PartResponse }>(`${this.apiUrl}/${id}`, request).pipe(map((r) => r.data));
     }
 
     activatePart(id: string): Observable<PartResponse> {
-        return this.http.patch<{ data: PartResponse }>(`${this.apiUrl}/${id}/status`, { isActive: true })
-            .pipe(map(r => r.data));
+        return this.http.patch<{ data: PartResponse }>(`${this.apiUrl}/${id}/status`, { isActive: true }).pipe(map((r) => r.data));
     }
 
     deactivatePart(id: string): Observable<PartResponse> {
-        return this.http.patch<{ data: PartResponse }>(`${this.apiUrl}/${id}/status`, { isActive: false })
-            .pipe(map(r => r.data));
+        return this.http.patch<{ data: PartResponse }>(`${this.apiUrl}/${id}/status`, { isActive: false }).pipe(map((r) => r.data));
     }
 
     deletePart(id: string): Observable<void> {
@@ -269,7 +296,11 @@ export class PartService {
     }
 
     getPartCompatibleVehicles(partId: string): Observable<VehicleCompatibilityResponse[]> {
-        return this.http.get<{ data: VehicleCompatibilityResponse[] }>(`${this.apiUrl}/${partId}/compatible-vehicles`)
-            .pipe(map(r => r.data));
+        return this.http.get<{ data: VehicleCompatibilityResponse[] }>(`${this.apiUrl}/${partId}/compatible-vehicles`).pipe(map((r) => r.data));
+    }
+
+    /** Full replace of the product's own (scope === 'product') attribute values. */
+    saveAttributeValues(partId: string, values: ProductAttributeValueRequest[]): Observable<ProductAttributeValueResponse[]> {
+        return this.http.put<{ data: ProductAttributeValueResponse[] }>(`${this.apiUrl}/${partId}/attribute-values`, { attributeValues: values }).pipe(map((r) => r.data));
     }
 }

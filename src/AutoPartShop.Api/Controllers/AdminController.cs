@@ -1,4 +1,4 @@
-ï»¿using AutoPartShop.Api.Authorization;
+using AutoPartShop.Api.Authorization;
 using AutoPartShop.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 // Access is now permission-gated per action (users.* / roles.*) so user management can be
 // delegated via role-permission assignment; Admin still bypasses everything.
@@ -37,13 +36,26 @@ public class AdminController : ControllerBase
     /// <summary>
     /// Get all users with their roles
     /// </summary>
+    /// <param name="pageNumber">1-based page. Values below 1 are clamped to 1.</param>
+    /// <param name="pageSize">Rows per page, clamped to 1..200.</param>
     [HttpGet("users")]
     [HasPermission(Permissions.UsersView)]
-    public async Task<IActionResult> GetAllUsers()
+    public async Task<IActionResult> GetAllUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
     {
         try
         {
+            // This endpoint used to return every user in one array. Roles are then resolved per
+            // user (an N+1), so paging bounds the query cost as well as the payload. Clamped the
+            // same way BaseQuery clamps the POST /list endpoints.
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize < 1 ? 50 : (pageSize > 200 ? 200 : pageSize);
+
+            var totalCount = await _userManager.Users.CountAsync();
+
             var users = await _userManager.Users
+                .OrderBy(u => u.UserName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(u => new
                 {
                     u.Id,
@@ -77,7 +89,7 @@ public class AdminController : ControllerBase
                 });
             }
 
-            return Ok(usersWithRoles);
+            return Ok(new { data = usersWithRoles, totalCount, pageNumber, pageSize });
         }
         catch (Exception ex)
         {
@@ -167,25 +179,33 @@ public class AdminController : ControllerBase
                 });
             }
 
-            // Assign roles
+            // Assign roles. An unrecognised name used to be dropped in silence, so the admin was
+            // told the user was created while the account ended up with no roles and no access.
             if (request.Roles != null && request.Roles.Any())
             {
-                var validRoles = new List<string>();
+                var unknownRoles = new List<string>();
                 foreach (var role in request.Roles)
                 {
-                    if (await _roleManager.RoleExistsAsync(role))
-                    {
-                        validRoles.Add(role);
-                    }
+                    if (!await _roleManager.RoleExistsAsync(role))
+                        unknownRoles.Add(role);
                 }
 
-                if (validRoles.Any())
+                if (unknownRoles.Count > 0)
                 {
-                    await _userManager.AddToRolesAsync(user, validRoles);
+                    // The account itself was already created, so report what it is missing rather
+                    // than implying nothing happened.
+                    return BadRequest(new
+                    {
+                        message = $"User created, but these roles do not exist and were not assigned: {string.Join(", ", unknownRoles)}",
+                        userId = user.Id,
+                        unknownRoles
+                    });
                 }
+
+                await _userManager.AddToRolesAsync(user, request.Roles);
             }
 
-            return Ok(new
+            return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, new
             {
                 message = "User created successfully",
                 userId = user.Id,
@@ -378,7 +398,7 @@ public class AdminController : ControllerBase
                 });
             }
 
-            return Ok(new
+            return CreatedAtAction(nameof(GetAllRoles), new { }, new
             {
                 message = "Role created successfully",
                 roleId = role.Id,
@@ -505,19 +525,17 @@ public class AdminController : ControllerBase
 
             if (rolesToAdd.Any())
             {
-                var validRoles = new List<string>();
+                var unknownRoles = new List<string>();
                 foreach (var role in rolesToAdd)
                 {
-                    if (await _roleManager.RoleExistsAsync(role))
-                    {
-                        validRoles.Add(role);
-                    }
+                    if (!await _roleManager.RoleExistsAsync(role))
+                        unknownRoles.Add(role);
                 }
 
-                if (validRoles.Any())
-                {
-                    await _userManager.AddToRolesAsync(user, validRoles);
-                }
+                if (unknownRoles.Count > 0)
+                    return BadRequest(new { message = $"These roles do not exist: {string.Join(", ", unknownRoles)}" });
+
+                await _userManager.AddToRolesAsync(user, rolesToAdd);
             }
 
             return Ok(new { message = "Roles assigned successfully" });
@@ -614,7 +632,7 @@ public class AdminController : ControllerBase
             await _dbContext.Permissions.AddAsync(permission);
             await _dbContext.SaveChangesAsync();
 
-            return Ok(new
+            return CreatedAtAction(nameof(GetAllPermissions), new { }, new
             {
                 message = "Permission created successfully",
                 permissionId = permission.Id
@@ -623,6 +641,42 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating permission");
+            return StatusCode(500, new { message = "An error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Deletes a permission. Refused while any role still grants it — dropping it silently would
+    /// revoke access from every holder with no trace of why.
+    /// </summary>
+    [HttpDelete("permissions/{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeletePermission(Guid id)
+    {
+        try
+        {
+            var permission = await _dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == id);
+            if (permission is null)
+                return NotFound(new { message = "Permission not found" });
+
+            var assignedRoles = await _dbContext.RolePermissions
+                .Where(rp => rp.PermissionId == id)
+                .CountAsync();
+
+            if (assignedRoles > 0)
+                return Conflict(new
+                {
+                    message = $"Cannot delete '{permission.Name}': it is still granted to {assignedRoles} role(s). Revoke it from those roles first."
+                });
+
+            _dbContext.Permissions.Remove(permission);
+            await _dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting permission {PermissionId}", id);
             return StatusCode(500, new { message = "An error occurred" });
         }
     }

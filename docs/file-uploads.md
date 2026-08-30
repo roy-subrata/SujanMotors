@@ -21,9 +21,19 @@ abstraction and tracked in the `StoredFiles` table. The only URL surface is the 
 }
 ```
 
-**VPS deployment:** bind-mount `RootPath` into the container (e.g. `-v /srv/autopartshop/uploads:/app/App_Data/uploads`)
-so files survive rebuilds, and include that folder in the backup strategy alongside the database.
-`src/AutoPartShop.Api/App_Data/` is gitignored — uploads must never be committed.
+**VPS deployment:** the upload root **must** be bind-mounted, or every rebuild/recreate of the
+API container destroys the blobs while the `StoredFiles` / `ProductMedia` rows survive and start
+returning 404s. All three compose files mount it:
+
+```yaml
+volumes:
+  - ./uploads:/app/App_Data/uploads   # docker-compose.yml (prod) and .dev.yml
+  - ./uploads-test:/app/App_Data/uploads   # docker-compose.test.yml
+```
+
+Include that folder in the backup strategy alongside the database — the DB backup job does not
+cover it. `src/AutoPartShop.Api/App_Data/` and `deployment/uploads*/` are gitignored — uploads
+must never be committed.
 
 ## Upload rules
 
@@ -45,10 +55,15 @@ Public files are served with `Cache-Control: public, max-age=31536000, immutable
 
 | Method | Route | Auth | Purpose |
 |---|---|---|---|
-| POST | `/` | Any logged-in user | Multipart upload: `file`, optional `ownerType` (e.g. `PRODUCT`, `EMPLOYEE`) + `ownerId`. Returns `{ id, url, fileName, contentType, sizeBytes, kind, isPublic }` |
+| POST | `/` | Any logged-in user | Multipart upload: `file`, optional `ownerType` (e.g. `PRODUCT`, `EMPLOYEE`) + `ownerId`. Returns `{ id, url, fileName, contentType, sizeBytes, kind, isPublic }`. Throttled by the `upload` rate-limit tier (default 30/min per IP) |
 | GET | `/{id}/content` | Public files: none; documents: JWT | Streams the bytes |
 | GET | `/?ownerType=&ownerId=` | Logged-in | List a record's attachments |
-| DELETE | `/{id}` | Admin, Manager | Deletes record + blob |
+| DELETE | `/{id}` | Admin/Manager: any file. Others: only files they uploaded (`CreatedBy`) | Deletes record + blob |
+
+Upload and attach are two calls, so a client that uploads successfully but then fails to attach
+must `DELETE /api/v1/files/{id}` to avoid orphaning the blob — that is why the uploader can
+delete their own file. The web media manager, the employee photo form, and the mobile product
+uploader all do this.
 
 ### Product media — `/api/v1/products/{partId}/media`
 
@@ -57,11 +72,14 @@ Gallery rows live in `ProductMedia` (URL-based: uploaded file URLs or external, 
 | Method | Route | Permission | Purpose |
 |---|---|---|---|
 | GET | `/` | `inventory.view` | Gallery ordered by `sortOrder` |
-| POST | `/` | `inventory.edit` | Add `{ url, mediaType, altText?, fileName?, isPrimary?, variantId? }`; first item auto-becomes primary |
-| PUT | `/{mediaId}` | `inventory.edit` | Update fields |
+| POST | `/` | `inventory.edit` | Add `{ url, mediaType, altText?, fileName?, isPrimary?, variantId? }`; first item auto-becomes primary. `variantId` must belong to this part |
+| PUT | `/{mediaId}` | `inventory.edit` | Update fields (same `variantId` rule) |
 | PATCH | `/{mediaId}/primary` | `inventory.edit` | Make primary (clears others) |
-| PUT | `/order` | `inventory.edit` | `{ orderedIds: [] }` — sortOrder by position |
-| DELETE | `/{mediaId}` | `inventory.edit` | Removes row **and** the uploaded blob when the URL is ours |
+| PUT | `/order` | `inventory.edit` | `{ orderedIds: [] }` — sortOrder by position; all ids validated before anything is written |
+| DELETE | `/{mediaId}` | `inventory.edit` | Removes row **and** the uploaded blob when the URL is ours; deleting the primary promotes the next item in display order |
+
+A part that has media always has exactly one primary: the first item added is promoted
+automatically, and deleting the primary promotes its successor.
 
 ### Employee photo
 

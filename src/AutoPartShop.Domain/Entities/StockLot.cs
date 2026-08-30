@@ -1,9 +1,13 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Domain.Entities;
 
 /// <summary>
 /// Represents a batch/lot of inventory received from a supplier.
 /// Tracks cost price AND selling price per lot — different lots of the same part
 /// can have different selling prices and warranty terms (FIFO-based pricing).
+/// Adjustment lots (stock found during a count/adjustment) have no supplier or
+/// goods-receipt provenance — see <see cref="CreateFromAdjustment"/>.
 /// </summary>
 public class StockLot : AuditableEntity
 {
@@ -14,7 +18,7 @@ public class StockLot : AuditableEntity
     public Guid PartId { get; private set; }
     public Guid? VariantId { get; private set; }  // null = part-level lot; set = variant-scoped (SKU-level) lot
     public Guid WarehouseId { get; private set; }
-    public Guid SupplierId { get; private set; }
+    public Guid? SupplierId { get; private set; }  // null = adjustment lot with no purchase provenance
     public Guid GoodsReceiptLineId { get; private set; }  // Reference to goods receipt that created this lot
     public Guid? UnitId { get; private set; }  // Unit in which lot quantities are measured
     public int QuantityReceived { get; private set; } = 0;  // Total quantity in this lot
@@ -23,14 +27,14 @@ public class StockLot : AuditableEntity
     public int QuantityAvailableInBaseUnit { get; private set; } = 0;  // Available in base unit
     public decimal CostPrice { get; private set; } = 0;  // Unit cost from supplier
     public decimal CostPriceInBaseUnit { get; private set; } = 0;  // Cost per base unit
-    public string Currency { get; private set; } = "USD";
+    public string Currency { get; private set; } = "BDT";
     public DateTime ReceivingDate { get; private set; }
     public DateTime? ExpiryDate { get; private set; }  // Optional expiry date for perishables
     public string ManufacturerLotNumber { get; private set; } = string.Empty;  // Manufacturer's lot/batch number
     public string Notes { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
     // Inventory status (GRN spec): AVAILABLE = sellable; DAMAGED / QUARANTINE = held, excluded from sale.
-    public string Status { get; private set; } = "AVAILABLE";
+    public StockLotStatus Status { get; private set; } = StockLotStatus.AVAILABLE;
 
     // Lot-level warranty (some lots may not have warranty even if the part normally does)
     public bool HasWarranty { get; private set; } = false;
@@ -55,7 +59,50 @@ public class StockLot : AuditableEntity
         decimal costPriceInBaseUnit = 0,
         bool hasWarranty = false, int? warrantyPeriodMonths = null,
         string? warrantyType = null, string? warrantyTerms = null, Guid? variantId = null,
-        string status = "AVAILABLE")
+        StockLotStatus status = StockLotStatus.AVAILABLE)
+    {
+        if (supplierId == Guid.Empty)
+            throw new ArgumentException("SupplierId cannot be empty", nameof(supplierId));
+
+        if (goodsReceiptLineId == Guid.Empty)
+            throw new ArgumentException("GoodsReceiptLineId cannot be empty", nameof(goodsReceiptLineId));
+
+        return CreateCore(
+            lotNumber, partId, warehouseId, supplierId, goodsReceiptLineId,
+            quantityReceived, costPrice, receivingDate, manufacturerLotNumber, expiryDate, currency,
+            notes, unitId, quantityReceivedInBaseUnit, costPriceInBaseUnit,
+            hasWarranty, warrantyPeriodMonths, warrantyType, warrantyTerms, variantId, status);
+    }
+
+    /// <summary>
+    /// Creates an adjustment/count-correction lot for stock found during a manual stock adjustment or a
+    /// stock-take reconciliation. Such stock has no supplier and no goods receipt — the lot is tagged
+    /// supplier-less so it can still be sold (FIFO) and costed. Transfers of these lots stay supplier-less.
+    /// </summary>
+    public static StockLot CreateFromAdjustment(
+        string lotNumber, Guid partId, Guid warehouseId,
+        int quantityReceived, decimal costPrice, DateTime receivingDate,
+        string manufacturerLotNumber = "", DateTime? expiryDate = null, string currency = "BDT",
+        string notes = "", Guid? unitId = null, int quantityReceivedInBaseUnit = 0,
+        decimal costPriceInBaseUnit = 0,
+        bool hasWarranty = false, int? warrantyPeriodMonths = null,
+        string? warrantyType = null, string? warrantyTerms = null, Guid? variantId = null,
+        StockLotStatus status = StockLotStatus.AVAILABLE)
+    {
+        return CreateCore(
+            lotNumber, partId, warehouseId, null, Guid.Empty,
+            quantityReceived, costPrice, receivingDate, manufacturerLotNumber, expiryDate, currency,
+            notes, unitId, quantityReceivedInBaseUnit, costPriceInBaseUnit,
+            hasWarranty, warrantyPeriodMonths, warrantyType, warrantyTerms, variantId, status);
+    }
+
+    private static StockLot CreateCore(
+        string lotNumber, Guid partId, Guid warehouseId, Guid? supplierId, Guid goodsReceiptLineId,
+        int quantityReceived, decimal costPrice, DateTime receivingDate,
+        string manufacturerLotNumber, DateTime? expiryDate, string currency,
+        string notes, Guid? unitId, int quantityReceivedInBaseUnit, decimal costPriceInBaseUnit,
+        bool hasWarranty, int? warrantyPeriodMonths, string? warrantyType, string? warrantyTerms,
+        Guid? variantId, StockLotStatus status)
     {
         if (string.IsNullOrWhiteSpace(lotNumber))
             throw new ArgumentException("LotNumber cannot be empty", nameof(lotNumber));
@@ -65,12 +112,6 @@ public class StockLot : AuditableEntity
 
         if (warehouseId == Guid.Empty)
             throw new ArgumentException("WarehouseId cannot be empty", nameof(warehouseId));
-
-        if (supplierId == Guid.Empty)
-            throw new ArgumentException("SupplierId cannot be empty", nameof(supplierId));
-
-        if (goodsReceiptLineId == Guid.Empty)
-            throw new ArgumentException("GoodsReceiptLineId cannot be empty", nameof(goodsReceiptLineId));
 
         if (quantityReceived <= 0)
             throw new ArgumentException("QuantityReceived must be greater than 0", nameof(quantityReceived));
@@ -106,7 +147,7 @@ public class StockLot : AuditableEntity
             Notes = notes?.Trim() ?? string.Empty,
             UnitId = unitId,
             IsActive = true,
-            Status = string.IsNullOrWhiteSpace(status) ? "AVAILABLE" : status.Trim().ToUpper()
+            Status = status
         };
     }
 

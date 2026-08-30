@@ -1,4 +1,5 @@
-﻿using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.CustomerCreditNoteDtos;
 using AutoPartShop.Domain.Entities;
@@ -13,8 +14,6 @@ using QuestPDF.Fluent;
 using System.Data;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/customer-credit-notes")]
 [Route("api/v1/customer-credit-notes")]
 [ApiController]
 [HasPermission(Permissions.SalesView)]
@@ -28,6 +27,7 @@ public class CustomerCreditNoteController : ControllerBase
     private readonly ICustomerPaymentRepository _customerPaymentRepository;
     private readonly AutoPartDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly ILogger<CustomerCreditNoteController> _logger;
 
     public CustomerCreditNoteController(
@@ -38,6 +38,7 @@ public class CustomerCreditNoteController : ControllerBase
         ICustomerPaymentRepository customerPaymentRepository,
         AutoPartDbContext dbContext,
         ICurrentUserService currentUserService,
+        ICurrencyConversionService currencyConversionService,
         ILogger<CustomerCreditNoteController> logger)
     {
         _creditNoteRepository = creditNoteRepository;
@@ -47,6 +48,7 @@ public class CustomerCreditNoteController : ControllerBase
         _customerPaymentRepository = customerPaymentRepository;
         _dbContext = dbContext;
         _currentUserService = currentUserService;
+        _currencyConversionService = currencyConversionService;
         _logger = logger;
     }
 
@@ -176,7 +178,7 @@ public class CustomerCreditNoteController : ControllerBase
         var currency = await _dbContext.Set<Currency>()
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Code == creditNote.Currency && !c.Isdeleted, cancellationToken);
-        var shop = await shopProfiles.GetAsync(currency?.Symbol, cancellationToken);
+        var shop = await shopProfiles.GetAsync(currency?.Symbol, cancellationToken: cancellationToken);
 
         var customer = creditNote.Customer;
         var customerName = customer is null
@@ -215,11 +217,11 @@ public class CustomerCreditNoteController : ControllerBase
         }
         else
         {
-            // Warranty refunds and standalone credits have no return lines — show one summary line
+            // Warranty refunds and standalone credits have no return lines � show one summary line
             // so the total is still itemised rather than appearing from nowhere.
             lines =
             [
-                new CreditNoteLine(1, "—", "Credit adjustment", null, 1, "", creditNote.TotalAmount, creditNote.TotalAmount)
+                new CreditNoteLine(1, "�", "Credit adjustment", null, 1, "", creditNote.TotalAmount, creditNote.TotalAmount)
             ];
         }
 
@@ -235,17 +237,17 @@ public class CustomerCreditNoteController : ControllerBase
             TotalCredit: creditNote.TotalAmount,
             Notes: creditNote.Notes);
 
-        var pdfBytes = new CreditNoteDocument(data, shop).GeneratePdf();
+        var pdfBytes = new CreditNoteDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"credit-note-{creditNote.CreditNoteNumber}.pdf");
     }
 
     private static string FormatReason(string? reason) => reason switch
     {
         null or "" => "",
-        "DAMAGED" => "Goods returned — damaged.",
-        "DEFECTIVE" => "Goods returned — manufacturing defect.",
-        "WRONG_ITEM" => "Goods returned — wrong item supplied.",
-        "EXCESS_STOCK" => "Goods returned — excess stock.",
+        "DAMAGED" => "Goods returned � damaged.",
+        "DEFECTIVE" => "Goods returned � manufacturing defect.",
+        "WRONG_ITEM" => "Goods returned � wrong item supplied.",
+        "EXCESS_STOCK" => "Goods returned � excess stock.",
         _ => reason.Replace('_', ' ')
     };
 
@@ -312,24 +314,49 @@ public class CustomerCreditNoteController : ControllerBase
                     remainingAvailableBeforeApply = creditNote.AvailableAmount;
                     creditNote.ApplyToInvoice(request.InvoiceId, request.SalesOrderId, request.AmountToApply);
 
+                    // CreateFromAdvance must NOT be used here: SourceAdvancePaymentId is a self-FK
+                    // to CustomerPayments.Id, so writing a CreditNote id into it violates
+                    // FK_CustomerPayments_CustomerPayments_SourceAdvancePaymentId and the whole
+                    // apply fails after the note has already been consumed. The settlement is a
+                    // payment in its own right, identified by the CREDIT_NOTE method.
                     var defaultProvider = await _dbContext.PaymentProviders.FirstOrDefaultAsync(cancellationToken);
-                    if (defaultProvider != null)
-                    {
-                        var customerPayment = CustomerPayment.CreateFromAdvance(
-                            customerId: creditNote.CustomerId,
-                            invoiceId: request.InvoiceId,
-                            sourceAdvancePaymentId: creditNote.Id,
-                            paymentProviderId: defaultProvider.Id,
-                            amount: request.AmountToApply,
-                            description: $"Applied credit note {creditNote.CreditNoteNumber} to invoice"
-                        );
-                        customerPayment.CreatedBy = _currentUserService.GetCurrentUsername();
-                        customerPayment.ModifiedBy = _currentUserService.GetCurrentUsername();
-                        _dbContext.CustomerPayments.Add(customerPayment);
-                    }
+                    var currentUser = _currentUserService.GetCurrentUsername();
+                    var customerPayment = CustomerPayment.Create(
+                        customerId: creditNote.CustomerId,
+                        paymentProviderId: defaultProvider?.Id,
+                        amount: request.AmountToApply,
+                        paymentMethod: "CREDIT_NOTE",
+                        transactionNumber: $"CN-{creditNote.CreditNoteNumber}-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+                        referenceNumber: creditNote.CreditNoteNumber,
+                        paymentDate: DateTime.UtcNow,
+                        currency: creditNote.Currency
+                    );
+                    customerPayment.LinkToInvoice(request.InvoiceId);
+                    customerPayment.MarkAsSettled(currentUser);
+                    var creditApplyFx = await _currencyConversionService.ConvertToBaseWithRateAsync(customerPayment.Amount, customerPayment.Currency, customerPayment.PaymentDate, cancellationToken);
+                    customerPayment.SetFxBaseAmount(creditApplyFx.BaseAmount, creditApplyFx.RateToBase);
+                    customerPayment.CreatedBy = currentUser;
+                    customerPayment.ModifiedBy = currentUser;
+                    _dbContext.CustomerPayments.Add(customerPayment);
+
+                    // Keep the invoice's computed AmountPaid in sync in-memory: the navigation was
+                    // eagerly loaded, and UpdatePaymentStatus() below sums it.
+                    invoice.CustomerPayments.Add(customerPayment);
 
                     salesOrder.RecordPayment(request.AmountToApply);
                     salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
+
+                    // Update customer balance to reflect the credit note payment
+                    var customerForBalance = await _dbContext.Customers
+                        .FirstOrDefaultAsync(c => c.Id == creditNote.CustomerId && !c.Isdeleted, cancellationToken);
+                    if (customerForBalance != null)
+                    {
+                        var creditApplyBalanceFx = await _currencyConversionService.ConvertToBaseWithRateAsync(
+                            request.AmountToApply, creditNote.Currency, DateTime.UtcNow, cancellationToken);
+                        customerForBalance.UpdateBalance(-creditApplyBalanceFx.BaseAmount);
+                        customerForBalance.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        _dbContext.Customers.Update(customerForBalance);
+                    }
 
                     invoice.UpdatePaymentStatus();
                     invoice.ModifiedBy = _currentUserService.GetCurrentUsername();

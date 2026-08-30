@@ -30,7 +30,14 @@ public class SalaryAdvanceConfiguration : IEntityTypeConfiguration<SalaryAdvance
 
         builder.Property(a => a.Status)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(20)
+            .HasConversion<string>();
+
+        builder.Property(a => a.ApprovedBy)
+            .HasMaxLength(256);
+
+        builder.Property(a => a.RejectionReason)
+            .HasMaxLength(500);
 
         builder.Property(a => a.Notes)
             .HasMaxLength(500);

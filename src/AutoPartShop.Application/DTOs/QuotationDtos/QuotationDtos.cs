@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.QuotationDtos;
 
 public class CreateQuotationRequest
@@ -39,7 +41,7 @@ public class QuotationResponse
     public string CustomerPhone { get; set; } = string.Empty;
     public DateTime QuoteDate { get; set; }
     public DateTime ValidUntil { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public QuotationStatus Status { get; set; }
     public bool IsExpired { get; set; }
     public decimal SubTotal { get; set; }
     public decimal DiscountPercentage { get; set; }
@@ -74,4 +76,10 @@ public class ConvertQuotationResponse
     public Guid QuotationId { get; set; }
     public Guid SalesOrderId { get; set; }
     public string SONumber { get; set; } = string.Empty;
+}
+
+/// <summary>Request body for converting an accepted quotation into a SalesOrder.</summary>
+public class ConvertQuotationRequest
+{
+    public Guid WarehouseId { get; set; }
 }

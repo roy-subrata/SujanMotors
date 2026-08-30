@@ -5,12 +5,15 @@ import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { WarehousesListComponent } from './warehouses-list.component';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-warehouses',
@@ -21,10 +24,12 @@ import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.co
     ButtonModule,
     ToastModule,
     ConfirmDialogModule,
+    TooltipModule,
     WarehousesListComponent,
     PageContainerComponent,
     PageHeaderComponent,
-    FilterBarComponent
+    FilterBarComponent,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './warehouses.component.html',
@@ -34,6 +39,7 @@ export class WarehousesComponent implements OnInit {
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   warehouses: WarehouseResponse[] = [];
   loading = false;
@@ -70,8 +76,8 @@ export class WarehousesComponent implements OnInit {
         error: (error: any) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to load warehouses'
+            summary: this.i18n.t('common.messages.error'),
+            detail: this.i18n.t('warehouses.messages.loadFailed')
           });
           console.error('Error loading warehouses:', error);
           this.loading = false;

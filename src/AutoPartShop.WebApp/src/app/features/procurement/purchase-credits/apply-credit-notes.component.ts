@@ -10,6 +10,10 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { CreditNoteService, CreditNoteResponse } from '../services/credit-note.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { AppCurrencyPipe } from '@/shared/pipes/app-currency.pipe';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-apply-credit-notes',
@@ -19,10 +23,13 @@ import { CreditNoteService, CreditNoteResponse } from '../services/credit-note.s
     FormsModule,
     ButtonModule,
     TableModule,
-    CardModule,
     InputNumberModule,
     ToastModule,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    TranslatePipe,
+    PageContainerComponent,
+    PageHeaderComponent,
+    AppCurrencyPipe
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './apply-credit-notes.component.html',

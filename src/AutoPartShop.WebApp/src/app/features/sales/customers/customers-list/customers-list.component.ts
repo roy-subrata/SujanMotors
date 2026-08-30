@@ -26,6 +26,8 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-customers-list',
@@ -46,7 +48,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         PageContainerComponent,
         PageHeaderComponent,
         FilterBarComponent,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customers-list.component.html',
@@ -61,6 +64,7 @@ export class CustomersListComponent implements OnInit {
     private readonly customerTypeService = inject(CustomerTypeService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -338,22 +342,32 @@ export class CustomersListComponent implements OnInit {
         return this.currencyService.formatCurrency(amount, currency);
     }
 
-    getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-        const severityMap: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
-            ACTIVE: 'success',
-            INACTIVE: 'secondary',
-            SUSPENDED: 'warn',
-            BLACKLISTED: 'danger'
-        };
-        return severityMap[status] || 'secondary';
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'customer');
     }
 
     formatStatus(status: string): string {
         if (!status) return '-';
+        const key = 'common.status.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        if (label !== key) return label;
+        // Unmapped server enum member: fall back to prettifying the raw value.
         return status
             .split('_')
             .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
             .join(' ');
+    }
+
+    /** Mobile card balance line: due / advance / clear, all translated. */
+    formatBalance(customer: CustomerResponse): string {
+        if (customer.dueAmount > 0) {
+            return `${this.formatCurrency(customer.dueAmount)} ${this.i18n.t('customers.duePrefix')}`;
+        }
+        if (customer.advanceAmount > 0) {
+            return `${this.formatCurrency(customer.advanceAmount)} ${this.i18n.t('customers.advancePrefix')}`;
+        }
+        return this.i18n.t('customers.clearBalance');
     }
 
     getBalanceStatus(customer: CustomerResponse): { severity: 'success' | 'warn' | 'danger'; text: string } {

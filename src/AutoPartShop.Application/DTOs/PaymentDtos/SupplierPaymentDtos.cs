@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 
 namespace AutoPartShop.Application.DTOs.PaymentDtos;
 
@@ -15,6 +16,7 @@ public class CreateSupplierPaymentRequest
     public string ReferenceNumber { get; set; } = string.Empty;
     public string InvoiceNumber { get; set; } = string.Empty;
     public DateTime? PaymentDate { get; set; }
+    public string Currency { get; set; } = "BDT";
     public string Notes { get; set; } = string.Empty;
     public PaymentType PaymentType { get; set; } = PaymentType.REGULAR;
     public string Description { get; set; } = string.Empty;  // For advance payments
@@ -41,7 +43,7 @@ public class ApplyAdvanceCreditRequest
 
 public class UpdateSupplierPaymentRequest
 {
-    public string Status { get; set; } = string.Empty;
+    public SupplierPaymentStatus Status { get; set; }
     public string ReferenceNumber { get; set; } = string.Empty;
     public string AuthorizationCode { get; set; } = string.Empty;
     public string InvoiceNumber { get; set; } = string.Empty;

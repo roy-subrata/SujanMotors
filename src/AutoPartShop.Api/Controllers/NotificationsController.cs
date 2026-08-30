@@ -1,6 +1,7 @@
-﻿using AutoPartShop.Application.DTOs.Notification;
+using AutoPartShop.Application.DTOs.Notification;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -8,8 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize]
@@ -64,7 +63,7 @@ public class NotificationsController : ControllerBase
 
     /// <summary>
     /// Manually run the reorder-level scan and broadcast the low-stock alert to staff.
-    /// Same scan the daily background job runs — useful for testing and ad-hoc checks.
+    /// Same scan the daily background job runs � useful for testing and ad-hoc checks.
     /// </summary>
     [HttpPost("reorder-alert/run")]
     [Authorize(Roles = "Admin,Manager")]
@@ -79,7 +78,7 @@ public class NotificationsController : ControllerBase
             broadcast = evt != null,
             message = evt != null
                 ? $"Reorder alert sent: {evt.ItemCount} item(s) at/below reorder level"
-                : "No items at/below reorder level — nothing broadcast"
+                : "No items at/below reorder level � nothing broadcast"
         });
     }
 
@@ -131,7 +130,7 @@ public class NotificationsController : ControllerBase
         if (customer is null)
             return NotFound(new { message = "Customer not found" });
 
-        var channel = (request?.Channel ?? "SMS").Trim().ToUpperInvariant();
+        var channel = request?.Channel ?? NotificationChannel.SMS;
         var due = customer.CurrentBalance;
         var name = customer.GetFullName();
 
@@ -145,7 +144,7 @@ public class NotificationsController : ControllerBase
         {
             switch (channel)
             {
-                case "SMS":
+                case NotificationChannel.SMS:
                     if (string.IsNullOrWhiteSpace(customer.Phone))
                         return BadRequest(new { message = "Customer has no phone number" });
                     if (!await IsEnabled(SmsKey, cancellationToken))
@@ -153,7 +152,7 @@ public class NotificationsController : ControllerBase
                     await _notificationService.SendSmsAsync(customer.Phone, message, cancellationToken);
                     return Ok(new { message = "Payment reminder sent by SMS", channel, recipient = customer.Phone, due });
 
-                case "WHATSAPP":
+                case NotificationChannel.WHATSAPP:
                     if (string.IsNullOrWhiteSpace(customer.Phone))
                         return BadRequest(new { message = "Customer has no phone number" });
                     if (!await IsEnabled(WhatsAppKey, cancellationToken))
@@ -161,14 +160,14 @@ public class NotificationsController : ControllerBase
                     await _notificationService.SendWhatsAppAsync(customer.Phone, message, cancellationToken);
                     return Ok(new { message = "Payment reminder sent by WhatsApp", channel, recipient = customer.Phone, due });
 
-                case "EMAIL":
+                case NotificationChannel.EMAIL:
                     if (string.IsNullOrWhiteSpace(customer.Email))
                         return BadRequest(new { message = "Customer has no email address" });
                     var html = $"<p>Dear <strong>{System.Net.WebUtility.HtmlEncode(name)}</strong>,</p>" +
                                $"<p>Your outstanding due at <strong>Sujan Motors</strong> is " +
                                $"<strong>BDT {due:N2}</strong>.</p>" +
                                "<p>Please clear it at your earliest convenience. Thank you.</p>";
-                    await _notificationService.SendEmailAsync(customer.Email, "Payment Reminder — Sujan Motors", html, cancellationToken);
+                    await _notificationService.SendEmailAsync(customer.Email, "Payment Reminder � Sujan Motors", html, cancellationToken);
                     return Ok(new { message = "Payment reminder sent by email", channel, recipient = customer.Email, due });
 
                 default:
@@ -224,8 +223,8 @@ public class NotificationsController : ControllerBase
     [HttpGet("logs")]
     [HasPermission(Permissions.AuditView)]
     public async Task<IActionResult> GetLogs(
-        [FromQuery] string? channel,
-        [FromQuery] string? status,
+        [FromQuery] NotificationChannel? channel,
+        [FromQuery] NotificationLogStatus? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -235,8 +234,8 @@ public class NotificationsController : ControllerBase
             var db = HttpContext.RequestServices.GetRequiredService<AutoPartDbContext>();
             var q = db.NotificationLogs.Where(n => !n.Isdeleted).AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(channel)) q = q.Where(n => n.Channel == channel.ToUpper());
-            if (!string.IsNullOrWhiteSpace(status)) q = q.Where(n => n.Status == status.ToUpper());
+            if (channel.HasValue) q = q.Where(n => n.Channel == channel.Value);
+            if (status.HasValue) q = q.Where(n => n.Status == status.Value);
 
             var total = await q.CountAsync(cancellationToken);
             var items = await q
@@ -267,7 +266,7 @@ public class NotificationsController : ControllerBase
         }
     }
 
-    // ── private ────────────────────────────────────────────────────────────
+    // -- private ------------------------------------------------------------
 
     private async Task<bool> IsEnabled(string key, CancellationToken ct)
     {
@@ -290,7 +289,7 @@ public class NotificationsController : ControllerBase
             <html lang="en">
             <head><meta charset="utf-8"><title>Invoice {order.SONumber}</title></head>
             <body style="font-family:Arial,sans-serif;max-width:640px;margin:auto;padding:24px;color:#333">
-                <h2 style="margin:0 0 4px">Invoice — {System.Net.WebUtility.HtmlEncode(order.SONumber)}</h2>
+                <h2 style="margin:0 0 4px">Invoice � {System.Net.WebUtility.HtmlEncode(order.SONumber)}</h2>
                 <p style="color:#666;margin:0 0 20px">Order Date: {order.SODate:dd MMM yyyy}</p>
                 <p>Dear <strong>{System.Net.WebUtility.HtmlEncode(order.CustomerName)}</strong>,</p>
                 <p>Thank you for your purchase. Here is your invoice summary.</p>

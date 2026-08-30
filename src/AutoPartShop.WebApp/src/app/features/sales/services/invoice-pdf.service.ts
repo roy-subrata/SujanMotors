@@ -6,6 +6,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { AppSettingsService, ShopProfile } from '../../../shared/services/app-settings.service';
 import { PdfDownloadService } from '../../../shared/services/pdf-download.service';
+import { I18nService } from '../../../shared/services/i18n.service';
 import { environment } from '../../../../environments/environment';
 
 const DEFAULT_PROFILE: ShopProfile = {
@@ -86,6 +87,7 @@ export class InvoicePdfService {
   private readonly appSettings = inject(AppSettingsService);
   private readonly http = inject(HttpClient);
   private readonly pdfDownload = inject(PdfDownloadService);
+  private readonly i18n = inject(I18nService);
 
   /** Loaded once from DB; all print components read this signal. */
   readonly shopProfile = toSignal(
@@ -151,14 +153,10 @@ export class InvoicePdfService {
    * Get payment method display name
    */
   getPaymentMethodLabel(method: string): string {
-    const labels: Record<string, string> = {
-      'CASH': 'Cash',
-      'MOBILE_BANKING': 'Mobile Banking',
-      'CARD': 'Card Payment',
-      'DUE': 'Credit/Due',
-      'PART_PAY': 'Partial Payment'
-    };
-    return labels[method] || method;
+    if (!method) return method;
+    const key = `paymentMethods.pos.${method}`;
+    const label = this.i18n.t(key);
+    return label === key ? method : label;
   }
 
   /**
@@ -227,49 +225,6 @@ export class InvoicePdfService {
       default:
         return { major: 'Units', minor: 'Subunits' };
     }
-  }
-
-  /**
-   * Print invoice using browser print
-   */
-  printInvoice(printContainerId: string): void {
-    const printContent = document.getElementById(printContainerId);
-    if (!printContent) return;
-
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) return;
-
-    // Carry the app's stylesheets across so Angular's emulated-scoped styles still apply in the
-    // print window (innerHTML keeps the _ngcontent-* attributes the scoped rules match on).
-    const headStyles = Array.from(
-      document.querySelectorAll('style, link[rel="stylesheet"]')
-    ).map(el => el.outerHTML).join('\n');
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Invoice Print</title>
-        ${headStyles}
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; background: #fff; }
-          @page { size: A4; margin: 10mm; }
-          @media print {
-            body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          }
-        </style>
-      </head>
-      <body>
-        ${printContent.innerHTML}
-        <script>
-          // Wait for stylesheets to load before printing so the layout isn't captured bare.
-          window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 300); }
-        </script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
   }
 
   getInvoiceByNumber(invoiceNumber: string): Observable<{ id: string; invoiceNumber: string }> {

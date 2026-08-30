@@ -1,12 +1,11 @@
-﻿using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/attribute-groups")]
 [Route("api/v1/attribute-groups")]
 [ApiController]
 [Produces("application/json")]
@@ -14,15 +13,20 @@ namespace AutoPartShop.Api.Controllers;
 public class ProductAttributeGroupController : ControllerBase
 {
     private readonly AutoPartDbContext _db;
+    private readonly ICategoryAttributeGroupRepository _categoryAttributeGroupRepository;
     private readonly ILogger<ProductAttributeGroupController> _logger;
 
-    public ProductAttributeGroupController(AutoPartDbContext db, ILogger<ProductAttributeGroupController> logger)
+    public ProductAttributeGroupController(
+        AutoPartDbContext db,
+        ICategoryAttributeGroupRepository categoryAttributeGroupRepository,
+        ILogger<ProductAttributeGroupController> logger)
     {
         _db = db;
+        _categoryAttributeGroupRepository = categoryAttributeGroupRepository;
         _logger = logger;
     }
 
-    // â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Groups ────────────────────────────────────────────────────────────────
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -133,12 +137,51 @@ public class ProductAttributeGroupController : ControllerBase
     {
         var group = await _db.ProductAttributeGroups.FindAsync(new object[] { id }, ct);
         if (group is null) return NotFound();
+
+        // AttributeGroupId -> Attribute is a NoAction FK: deleting a non-empty group would otherwise
+        // throw an unhandled DbUpdateException instead of a clean error.
+        if (await _db.ProductAttributes.AnyAsync(a => a.AttributeGroupId == id, ct))
+            return Conflict(new { message = "Cannot delete a group that still has attributes — remove or move its attributes first" });
+
         _db.ProductAttributeGroups.Remove(group);
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
 
-    // â”€â”€ Attributes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Category links ───────────────────────────────────────────────────────
+
+    /// <summary>Category ids currently linked to this attribute group.</summary>
+    [HttpGet("{id:guid}/categories")]
+    public async Task<IActionResult> GetCategories(Guid id, CancellationToken ct)
+    {
+        if (!await _db.ProductAttributeGroups.AnyAsync(g => g.Id == id, ct))
+            return NotFound(new { message = "Attribute group not found" });
+
+        var categoryIds = await _categoryAttributeGroupRepository.GetCategoryIdsForGroupAsync(id, ct);
+        return Ok(categoryIds);
+    }
+
+    /// <summary>Full-replace the set of categories this attribute group applies to.</summary>
+    [HttpPut("{id:guid}/categories")]
+    [HasPermission(Permissions.InventoryEdit)]
+    public async Task<IActionResult> SetCategories(Guid id, [FromBody] SetAttributeGroupCategoriesRequest req, CancellationToken ct)
+    {
+        if (!await _db.ProductAttributeGroups.AnyAsync(g => g.Id == id, ct))
+            return NotFound(new { message = "Attribute group not found" });
+
+        var categoryIds = req.CategoryIds ?? [];
+        if (categoryIds.Length > 0)
+        {
+            var validCount = await _db.Categories.CountAsync(c => categoryIds.Contains(c.Id) && !c.Isdeleted, ct);
+            if (validCount != categoryIds.Distinct().Count())
+                return BadRequest(new { message = "One or more category ids do not exist" });
+        }
+
+        await _categoryAttributeGroupRepository.ReplaceForGroupAsync(id, categoryIds, ct);
+        return Ok(categoryIds.Distinct());
+    }
+
+    // ── Attributes ────────────────────────────────────────────────────────────
 
     [HttpPost("{groupId:guid}/attributes")]
     [HasPermission(Permissions.InventoryEdit)]
@@ -152,7 +195,7 @@ public class ProductAttributeGroupController : ControllerBase
             if (await _db.ProductAttributes.AnyAsync(a => a.Code == req.Code.Trim().ToUpperInvariant(), ct))
                 return Conflict(new { message = $"Attribute code '{req.Code}' already exists" });
 
-            var attr = ProductAttribute.Create(groupId, req.Name, req.Code, req.DataType, req.Unit ?? "");
+            var attr = ProductAttribute.Create(groupId, req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive);
             _db.ProductAttributes.Add(attr);
             await _db.SaveChangesAsync(ct);
             return Ok(MapAttribute(attr));
@@ -195,12 +238,23 @@ public class ProductAttributeGroupController : ControllerBase
         var attr = await _db.ProductAttributes
             .FirstOrDefaultAsync(a => a.Id == attrId && a.AttributeGroupId == groupId, ct);
         if (attr is null) return NotFound();
+
+        // AttributeId -> Attribute is a NoAction FK on both value tables: deleting an attribute still
+        // referenced by product/variant values would otherwise throw an unhandled DbUpdateException.
+        if (await AttributeHasValuesAsync(attrId, ct))
+            return Conflict(new { message = "Cannot delete an attribute that still has values assigned to products or variants" });
+
         _db.ProductAttributes.Remove(attr);
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
 
-    // â”€â”€ Options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    /// <summary>Whether any product- or variant-scoped value currently references this attribute.</summary>
+    private async Task<bool> AttributeHasValuesAsync(Guid attributeId, CancellationToken ct) =>
+        await _db.ProductAttributeValues.AnyAsync(v => v.AttributeId == attributeId, ct) ||
+        await _db.VariantAttributeValues.AnyAsync(v => v.AttributeId == attributeId, ct);
+
+    // ── Options ───────────────────────────────────────────────────────────────
 
     [HttpPost("{groupId:guid}/attributes/{attrId:guid}/options")]
     [HasPermission(Permissions.InventoryEdit)]
@@ -253,14 +307,24 @@ public class ProductAttributeGroupController : ControllerBase
         var opt = await _db.ProductAttributeOptions
             .FirstOrDefaultAsync(o => o.Id == optId && o.AttributeId == attrId, ct);
         if (opt is null) return NotFound();
+
+        // OptionId -> Option is a NoAction FK on both value tables: deleting an option still selected
+        // by an existing product/variant value would otherwise throw an unhandled DbUpdateException.
+        var inUse = await _db.ProductAttributeValues.AnyAsync(v => v.OptionId == optId, ct) ||
+                    await _db.VariantAttributeValues.AnyAsync(v => v.OptionId == optId, ct);
+        if (inUse)
+            return Conflict(new { message = "Cannot delete an option that is still selected on a product or variant" });
+
         _db.ProductAttributeOptions.Remove(opt);
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
 
-    // â”€â”€ Mappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Mappers ───────────────────────────────────────────────────────────────
 
-    private static object MapGroup(ProductAttributeGroup g) => new
+    /// <summary>Internal (not private) so <see cref="CategoriesController"/> can reuse the same
+    /// response shape for its category-scoped attribute-groups lookup.</summary>
+    internal static object MapGroup(ProductAttributeGroup g) => new
     {
         g.Id,
         g.Name,
@@ -286,3 +350,4 @@ public record CreateAttributeGroupRequest(string Name, int SortOrder = 0, bool I
 public record CreateAttributeRequest(string Name, string Code, string DataType = "option", string? Unit = null, bool IsActive = true);
 public record CreateOptionRequest(string Value, int SortOrder = 0);
 public record AttributeGroupQuery(string Search = "", bool? IsActive = null, int PageNumber = 1, int PageSize = 10);
+public record SetAttributeGroupCategoriesRequest(Guid[]? CategoryIds);

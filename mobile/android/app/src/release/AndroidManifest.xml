@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Release only: pin TLS trust to the VPS's self-signed cert via
+         network_security_config.xml. Deliberately NOT in the main manifest so
+         debug/profile builds keep their cleartext dev flow (10.0.2.2) intact. -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+</manifest>

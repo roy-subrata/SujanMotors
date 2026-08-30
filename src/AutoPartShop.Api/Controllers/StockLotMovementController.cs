@@ -1,4 +1,4 @@
-ï»¿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [HasPermission(Permissions.InventoryView)]
@@ -17,15 +15,18 @@ public class StockLotMovementController : ControllerBase
     private readonly IStockLotMovementRepository _repository;
     private readonly IStockLotRepository _lotRepository;
     private readonly IProductRepository _productRepository;
+    private readonly IStockLevelRepository _stockLevelRepository;
     private readonly ILogger<StockLotMovementController> _logger;
     private readonly ICurrentUserService _currentUserService;
 
     public StockLotMovementController(IStockLotMovementRepository repository, IStockLotRepository lotRepository,
-        IProductRepository productRepository, ICurrentUserService currentUserService, ILogger<StockLotMovementController> logger)
+        IProductRepository productRepository, IStockLevelRepository stockLevelRepository,
+        ICurrentUserService currentUserService, ILogger<StockLotMovementController> logger)
     {
         _repository = repository;
         _lotRepository = lotRepository;
         _productRepository = productRepository;
+        _stockLevelRepository = stockLevelRepository;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -52,7 +53,7 @@ public class StockLotMovementController : ControllerBase
         try
         {
             var movements = await _repository.GetByStockLotAsync(stockLotId, cancellationToken);
-            var responses = await Task.WhenAll(movements.Select(MapResponse));
+            var responses = await MapResponses(movements);
             return Ok(responses);
         }
         catch (Exception ex)
@@ -112,7 +113,7 @@ public class StockLotMovementController : ControllerBase
         try
         {
             var movements = await _repository.GetByMovementTypeAsync(movementType, cancellationToken);
-            var responses = await Task.WhenAll(movements.Select(MapResponse));
+            var responses = await MapResponses(movements);
             return Ok(responses);
         }
         catch (Exception ex)
@@ -128,7 +129,7 @@ public class StockLotMovementController : ControllerBase
         try
         {
             var movements = await _repository.GetByDateRangeAsync(startDate, endDate, cancellationToken);
-            var responses = await Task.WhenAll(movements.Select(MapResponse));
+            var responses = await MapResponses(movements);
             return Ok(responses);
         }
         catch (Exception ex)
@@ -144,7 +145,7 @@ public class StockLotMovementController : ControllerBase
         try
         {
             var movements = await _repository.GetSalesMovementsAsync(stockLotId, cancellationToken);
-            var responses = await Task.WhenAll(movements.Select(MapResponse));
+            var responses = await MapResponses(movements);
             return Ok(responses);
         }
         catch (Exception ex)
@@ -221,12 +222,39 @@ public class StockLotMovementController : ControllerBase
             movement.CreatedBy = currentUser;
             movement.ModifiedBy = currentUser;
 
-            // Update lot quantity if it's a removal (SALE, DAMAGE, RETURN)
-            if (new[] { "SALE", "DAMAGE", "RETURN" }.Contains(request.MovementType.ToUpper()))
+            var movementTypeUpper = request.MovementType.ToUpper();
+
+            if (new[] { "SALE", "DAMAGE", "RETURN" }.Contains(movementTypeUpper))
             {
                 lot.RemoveStock(request.Quantity, request.Quantity, request.Reason);
                 lot.ModifiedBy = currentUser;
                 await _lotRepository.UpdateAsync(lot, cancellationToken);
+
+                var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                    lot.PartId, lot.VariantId, lot.WarehouseId, cancellationToken);
+                if (stockLevel != null)
+                {
+                    stockLevel.RemoveStock(request.Quantity, request.Quantity,
+                        $"Lot movement {request.MovementType}: {request.Reason}");
+                    stockLevel.ModifiedBy = currentUser;
+                    await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+                }
+            }
+            else if (new[] { "PURCHASE", "RECEIVE", "ADJUSTMENT" }.Contains(movementTypeUpper))
+            {
+                lot.AddStock(request.Quantity, request.Quantity, request.Reason);
+                lot.ModifiedBy = currentUser;
+                await _lotRepository.UpdateAsync(lot, cancellationToken);
+
+                var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                    lot.PartId, lot.VariantId, lot.WarehouseId, cancellationToken);
+                if (stockLevel != null)
+                {
+                    stockLevel.AddStock(request.Quantity, request.Quantity,
+                        $"Lot movement {request.MovementType}: {request.Reason}");
+                    stockLevel.ModifiedBy = currentUser;
+                    await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+                }
             }
 
             await _repository.AddAsync(movement, cancellationToken);
@@ -247,14 +275,42 @@ public class StockLotMovementController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Maps a list without re-entering the DbContext per row.
+    ///
+    /// The previous form was Task.WhenAll(movements.Select(MapResponse)), which fired one lot
+    /// lookup per movement *concurrently* on the scoped DbContext — EF rejects that with
+    /// "A second operation was started on this context instance", so both list endpoints 500'd on
+    /// any non-empty result. Resolving the distinct lots once also removes the N+1.
+    /// </summary>
+    private async Task<List<StockLotMovementResponse>> MapResponses(
+        IEnumerable<StockLotMovement> movements, CancellationToken cancellationToken = default)
+    {
+        var list = movements.ToList();
+        var lotNumbers = new Dictionary<Guid, string>();
+
+        foreach (var lotId in list.Select(m => m.StockLotId).Distinct())
+        {
+            var lot = await _lotRepository.GetByIdAsync(lotId, cancellationToken);
+            if (lot is not null) lotNumbers[lotId] = lot.LotNumber;
+        }
+
+        return list.Select(m => MapResponse(m, lotNumbers.GetValueOrDefault(m.StockLotId, ""))).ToList();
+    }
+
     private async Task<StockLotMovementResponse> MapResponse(StockLotMovement movement)
     {
         var lot = await _lotRepository.GetByIdAsync(movement.StockLotId);
+        return MapResponse(movement, lot?.LotNumber ?? "");
+    }
+
+    private static StockLotMovementResponse MapResponse(StockLotMovement movement, string lotNumber)
+    {
         return new StockLotMovementResponse
         {
             Id = movement.Id,
             StockLotId = movement.StockLotId,
-            LotNumber = lot?.LotNumber ?? "",
+            LotNumber = lotNumber,
             Quantity = movement.Quantity,
             QuantityInBaseUnit = movement.QuantityInBaseUnit,
             UnitId = movement.UnitId,

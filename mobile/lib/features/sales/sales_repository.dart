@@ -6,6 +6,7 @@ import '../../core/network/dio_provider.dart';
 import '../../shared/models/invoice.dart';
 import '../../shared/models/paged_response.dart';
 import '../../shared/models/sale.dart';
+import '../../shared/models/status_enums.dart';
 
 class SalesRepository {
   SalesRepository(this._dio);
@@ -16,7 +17,7 @@ class SalesRepository {
   /// [hasDue] keeps only invoices with an unpaid balance (the "Due" chip).
   Future<PagedChunk<Invoice>> invoices({
     String? search,
-    String? status,
+    InvoiceStatus? status,
     bool hasDue = false,
     DateTime? fromDate,
     DateTime? toDate,
@@ -28,7 +29,7 @@ class SalesRepository {
         'pageNumber': page,
         'pageSize': pageSize,
         if (search != null && search.isNotEmpty) 'searchTerm': search,
-        'status': ?status,
+        'status': ?status?.wire,
         if (hasDue) 'hasDue': true,
         if (fromDate != null)
           'fromDate': fromDate.toIso8601String().substring(0, 10),
@@ -52,6 +53,11 @@ class SalesRepository {
   /// [advanceApplied] draws down the customer's existing advance credit. The
   /// API requires payment lines + advance applied to equal the grand total, so
   /// paidAmount + dueAmount + advanceApplied must equal grandTotal.
+  /// [grandTotal] must be the SERVER-computed total — the API auto-applies
+  /// item-level and cart-level discount rules before charging, so callers
+  /// pre-resolve via DiscountsRepository (see ChargeScreen) and pass the
+  /// mirrored figure here. [promoCode] resolves to a cart-level rule
+  /// server-side; an invalid code simply applies nothing.
   Future<QuickSaleResult> submitQuickSale({
     required List<QuickSaleItem> items,
     required double subtotal,
@@ -66,8 +72,10 @@ class SalesRepository {
     String? customerId,
     String? customerPhone,
     String? vehicleId,
+    String? promoCode,
   }) async {
     try {
+      final promo = promoCode?.trim().toUpperCase() ?? '';
       final payments = <Map<String, dynamic>>[
         if (paidAmount > 0)
           {
@@ -87,7 +95,12 @@ class SalesRepository {
         'customerVehicleId': ?vehicleId,
         'subtotal': subtotal,
         'discountAmount': discountAmount > 0 ? discountAmount : 0,
-        'discountType': discountAmount > 0 ? 'FIXED' : 'NONE',
+        'discountType':
+            promo.isNotEmpty ? 'PROMO_CODE' : (discountAmount > 0 ? 'FIXED' : 'NONE'),
+        'discountReason': ?(promo.isNotEmpty
+            ? promo
+            : (discountAmount > 0 ? 'Manual discount' : null)),
+        'promoCode': promo.isNotEmpty ? promo : null,
         'grandTotal': grandTotal,
         'paidAmount': paidAmount,
         'dueAmount': dueAmount,

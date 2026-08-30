@@ -59,6 +59,15 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(e => e.CommissionRate)
             .HasPrecision(5, 2);
 
+        builder.Property(e => e.AnnualLeaveEntitlement)
+            .HasPrecision(10, 1);
+
+        builder.Property(e => e.CasualLeaveEntitlement)
+            .HasPrecision(10, 1);
+
+        builder.Property(e => e.SickLeaveEntitlement)
+            .HasPrecision(10, 1);
+
         builder.HasOne<Shift>()
             .WithMany()
             .HasForeignKey(e => e.ShiftId)
@@ -76,7 +85,8 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 
         builder.Property(e => e.Status)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(20)
+            .HasConversion<string>();
 
         builder.Property(e => e.Notes)
             .HasMaxLength(1000);

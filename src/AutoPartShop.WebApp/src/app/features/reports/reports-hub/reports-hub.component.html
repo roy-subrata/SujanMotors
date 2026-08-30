@@ -1,25 +1,97 @@
 <app-page-container>
 
   <app-page-header
-    title="Reports"
-    subtitle="Sales, inventory, purchase and financial reports"
-    [count]="totalReports" countLabel="reports">
+    [title]="'reports.title' | translate"
+    [subtitle]="'reports.subtitle' | translate"
+    [count]="totalReports" [countLabel]="'reports.countLabel' | translate">
   </app-page-header>
 
   <div class="reports-hub">
+
+    <!-- ══════════════════ KPI snapshot (this month) ══════════════════ -->
+    @if (!kpiLoading() && kpiSummary(); as s) {
+      <div class="kpi-strip">
+        <div class="kpi-card">
+          <span class="kpi-label">{{ 'reports.hub.grossSales' | translate }}</span>
+          <span class="kpi-value">{{ formatCurrency(s.totalSales) }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">{{ 'reports.hub.grossMargin' | translate }}</span>
+          <span class="kpi-value">{{ formatPercent(s.profitMargin) }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">{{ 'reports.hub.purchases' | translate }}</span>
+          <span class="kpi-value">{{ formatCurrency(s.totalPurchases) }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">{{ 'reports.hub.expenses' | translate }}</span>
+          <span class="kpi-value">{{ formatCurrency(s.totalExpenses) }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">{{ 'reports.hub.netPosition' | translate }}</span>
+          <span class="kpi-value" [class.kpi-value-danger]="s.netProfit < 0">{{ formatCurrency(s.netProfit) }}</span>
+        </div>
+      </div>
+    }
+
+    <!-- ══════════════════ Trend chart + Top movers ══════════════════ -->
+    <div class="snapshot-row">
+      <div class="snapshot-card chart-snapshot">
+        <div class="snapshot-header">
+          <span class="snapshot-title">{{ 'reports.hub.salesVsPurchases' | translate }}</span>
+          <span class="snapshot-sub">{{ 'reports.hub.last14Days' | translate }}</span>
+        </div>
+        @if (!trendLoading() && hasTrendData()) {
+          <div class="snapshot-chart">
+            <p-chart type="bar" [data]="trendChartData" [options]="trendChartOptions" height="220px"></p-chart>
+          </div>
+        } @else if (!trendLoading()) {
+          <div class="snapshot-empty">
+            <i class="pi pi-chart-bar"></i>
+            <span>{{ 'reports.hub.noTrendData' | translate }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="snapshot-card movers-snapshot">
+        <div class="snapshot-header">
+          <span class="snapshot-title">{{ 'reports.hub.topMovers' | translate }}</span>
+          <span class="snapshot-sub">{{ 'reports.hub.thisMonth' | translate }}</span>
+        </div>
+        @if (!kpiLoading()) {
+          <div class="movers-list">
+            @for (product of topMovers(); track product.partId) {
+              <div class="mover-row">
+                <div class="mover-name">
+                  <span class="mover-title">{{ product.partName }}</span>
+                  <span class="mover-sub">{{ product.sku }}</span>
+                </div>
+                <span class="mover-value">{{ formatCurrency(product.totalRevenue) }}</span>
+              </div>
+            } @empty {
+              <div class="snapshot-empty">
+                <i class="pi pi-inbox"></i>
+                <span>{{ 'reports.hub.noProductSales' | translate }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
     @for (group of groups; track group.group) {
       <section class="report-group">
         <div class="group-heading">
           <i [class]="group.icon"></i>
-          <h2>{{ group.title }}</h2>
+          <h2>{{ group.title | translate }}</h2>
         </div>
         <div class="report-cards">
           @for (report of group.reports; track report.key) {
             <a class="report-card" [routerLink]="['/reports', report.key]">
               <div class="report-card-icon"><i [class]="report.icon"></i></div>
               <div class="report-card-body">
-                <span class="report-card-title">{{ report.title }}</span>
-                <span class="report-card-subtitle">{{ report.subtitle }}</span>
+                <span class="report-card-title">{{ report.title | translate }}</span>
+                <span class="report-card-subtitle">{{ report.subtitle | translate }}</span>
               </div>
               <i class="pi pi-angle-right report-card-arrow"></i>
             </a>
@@ -31,14 +103,14 @@
     <section class="report-group">
       <div class="group-heading">
         <i class="pi pi-external-link"></i>
-        <h2>Related Reports</h2>
+        <h2>{{ 'reports.hub.relatedReports' | translate }}</h2>
       </div>
       <div class="report-cards">
         @for (item of relatedReports; track item.link) {
           <a class="report-card" [routerLink]="item.link">
             <div class="report-card-icon"><i [class]="item.icon"></i></div>
             <div class="report-card-body">
-              <span class="report-card-title">{{ item.title }}</span>
+              <span class="report-card-title">{{ item.title | translate }}</span>
             </div>
             <i class="pi pi-angle-right report-card-arrow"></i>
           </a>

@@ -4,19 +4,22 @@ import { FormsModule } from '@angular/forms';
 
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
-import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
+import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { ToastModule } from 'primeng/toast';
 
 import { MessageService } from 'primeng/api';
 
 import { TillSessionService, TillSessionResponse } from '../../services/till-session.service';
+import { TillSessionStatus } from '@/shared/models/status.types';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 /**
  * Admin history view of ALL till sessions (every cashier, not just the current user's) — the
@@ -26,20 +29,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 @Component({
     selector: 'app-till-sessions-list',
     standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        TableModule,
-        ButtonModule,
-        Select,
-        DatePicker,
-        TooltipModule,
-        ToastModule,
-        PageContainerComponent,
-        PageHeaderComponent,
-        FilterBarComponent,
-        DataPaginationComponent
-    ],
+    imports: [CommonModule, FormsModule, TableModule, ButtonModule, DatePicker, Select, TooltipModule, ToastModule, PageContainerComponent, PageHeaderComponent, FilterBarComponent, DataPaginationComponent, TranslatePipe],
     providers: [MessageService],
     templateUrl: './till-sessions-list.component.html',
     styleUrls: ['./till-sessions-list.component.scss']
@@ -48,6 +38,7 @@ export class TillSessionsListComponent implements OnInit {
     private readonly tillSessionService = inject(TillSessionService);
     private readonly currencyService = inject(CurrencyService);
     private readonly messageService = inject(MessageService);
+    private readonly i18n = inject(I18nService);
 
     sessions: TillSessionResponse[] = [];
     loading = false;
@@ -57,14 +48,18 @@ export class TillSessionsListComponent implements OnInit {
     pageSize = 10;
     first = 0;
 
-    filterStatus = '';
+    filterStatus: TillSessionStatus | '' = '';
     dateRange: Date[] | null = null;
 
-    statusOptions: { label: string; value: string }[] = [
-        { label: 'All Statuses', value: '' },
-        { label: 'Open', value: 'OPEN' },
-        { label: 'Closed', value: 'CLOSED' }
-    ];
+    /** Getter, not a field: t() resolved at construction would freeze these labels in
+     *  whichever language was active then, instead of following the language switcher. */
+    get statusOptions(): { label: string; value: string }[] {
+        return [
+            { label: this.i18n.t('tillSessions.statusOptions.allStatuses'), value: '' },
+            { label: this.i18n.t('tillSessions.statusOptions.open'), value: 'OPEN' },
+            { label: this.i18n.t('tillSessions.statusOptions.closed'), value: 'CLOSED' }
+        ];
+    }
 
     Math = Math;
 
@@ -107,8 +102,8 @@ export class TillSessionsListComponent implements OnInit {
                     console.error('Error loading till sessions:', err);
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load till sessions.'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('tillSessions.messages.loadFailed')
                     });
                     this.loading = false;
                 }
@@ -166,8 +161,8 @@ export class TillSessionsListComponent implements OnInit {
             error: () => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to download the shift report PDF.'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: this.i18n.t('tillSessions.messages.pdfFailed')
                 });
             }
         });
@@ -205,7 +200,13 @@ export class TillSessionsListComponent implements OnInit {
     }
 
     formatStatus(status: string): string {
-        return (status ?? '-').split('_')
-            .map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+        if (!status) return '-';
+        const key = 'tillSessions.statusOptions.' + status.toLowerCase().replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        if (label !== key) return label;
+        return status
+            .split('_')
+            .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+            .join(' ');
     }
 }

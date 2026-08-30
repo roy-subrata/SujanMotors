@@ -1,5 +1,6 @@
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 
@@ -38,25 +39,25 @@ public class NotificationService : INotificationService
     public async Task SendSmsAsync(string toPhone, string message, CancellationToken cancellationToken = default)
     {
         if (!await IsChannelEnabled("NOTIFICATION:SMS_ENABLED", cancellationToken)) return;
-        await DeliverAsync("SMS", toPhone, message, ct => _sms.SendAsync(toPhone, message, ct), cancellationToken);
+        await DeliverAsync(NotificationChannel.SMS, toPhone, message, ct => _sms.SendAsync(toPhone, message, ct), cancellationToken);
     }
 
     public async Task SendWhatsAppAsync(string toPhone, string message, CancellationToken cancellationToken = default)
     {
         if (!await IsChannelEnabled("NOTIFICATION:WHATSAPP_ENABLED", cancellationToken)) return;
-        await DeliverAsync("WHATSAPP", toPhone, message, ct => _whatsApp.SendAsync(toPhone, message, ct), cancellationToken);
+        await DeliverAsync(NotificationChannel.WHATSAPP, toPhone, message, ct => _whatsApp.SendAsync(toPhone, message, ct), cancellationToken);
     }
 
     public async Task SendEmailAsync(string toEmail, string subject, string htmlBody, CancellationToken cancellationToken = default)
 
     {
-        await DeliverAsync("EMAIL", toEmail, subject, ct => _email.SendAsync(toEmail, subject, htmlBody, ct), cancellationToken);
+        await DeliverAsync(NotificationChannel.EMAIL, toEmail, subject, ct => _email.SendAsync(toEmail, subject, htmlBody, ct), cancellationToken);
     }
 
     // ── private helpers ────────────────────────────────────────────────────
 
     private async Task DeliverAsync(
-        string channel,
+        NotificationChannel channel,
         string recipient,
         string logMessage,
         Func<CancellationToken, Task<bool>> sendFunc,

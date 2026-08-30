@@ -33,10 +33,6 @@ public class PartEntityConfiguration : IEntityTypeConfiguration<Product>
               .HasMaxLength(255)
               .IsRequired(false);
 
-        builder.Property(p => p.RichDescription)
-              .HasColumnType("nvarchar(max)")
-              .IsRequired(false);
-
         builder.Property(p => p.SKU)
             .HasMaxLength(100)
             .IsRequired();

@@ -8,69 +8,69 @@
         <div class="breadcrumb">
           <a (click)="cancel()" class="breadcrumb-link">
             <i class="pi pi-arrow-left"></i>
-            Quotations
+            {{ 'quotations.title' | translate }}
           </a>
           <span class="breadcrumb-separator">/</span>
-          <span class="breadcrumb-current">{{ mode() === 'create' ? 'New' : 'View' }}</span>
+          <span class="breadcrumb-current">{{ (mode() === 'create' ? 'quotationForm.breadcrumbNew' : 'quotationForm.breadcrumbView') | translate }}</span>
         </div>
         <h1 class="form-title">
-          {{ mode() === 'create' ? 'Create Quotation' : 'Quotation ' + (currentQuotation?.quotationNumber || '') }}
-          <span *ngIf="currentQuotation" class="status-badge">{{ currentQuotation.status }}</span>
+          {{ mode() === 'create' ? ('quotationForm.createTitle' | translate) : ('quotationForm.viewTitlePrefix' | translate) + ' ' + (currentQuotation?.quotationNumber || '') }}
+          <span *ngIf="currentQuotation" class="status-badge">{{ statusLabel(currentQuotation.status) }}</span>
         </h1>
         <p class="form-subtitle">
-          {{ mode() === 'create' ? 'Create a new price quote for a customer' : 'View quotation details and manage its lifecycle' }}
+          {{ (mode() === 'create' ? 'quotationForm.createSubtitle' : 'quotationForm.viewSubtitle') | translate }}
         </p>
       </div>
       <div class="header-actions">
         <button pButton type="button" icon="pi pi-arrow-left"
           class="p-button-text p-button-sm"
-          pTooltip="Back" tooltipPosition="bottom" (click)="cancel()">
+          [pTooltip]="'common.actions.back' | translate" tooltipPosition="bottom" (click)="cancel()">
         </button>
 
         <!-- View mode: lifecycle actions based on current status -->
         <ng-container *ngIf="mode() === 'view' && currentQuotation">
-          <button pButton type="button" label="Download PDF" icon="pi pi-file-pdf"
-            class="p-button-sm p-button-help"
-            pTooltip="Download quotation PDF" tooltipPosition="bottom"
+          <button pButton type="button" [label]="'quotationForm.downloadPdf' | translate" icon="pi pi-file-pdf"
+            class="p-button-sm p-button-help"
+            [pTooltip]="'quotationForm.downloadPdfTooltip' | translate" tooltipPosition="bottom"
             (click)="downloadPdf()">
           </button>
 
           <button *ngIf="currentQuotation.status === 'DRAFT'"
-            pButton type="button" label="Send to Customer" icon="pi pi-send"
-            class="p-button-sm p-button-info"
+            pButton type="button" [label]="'quotationForm.sendToCustomer' | translate" icon="pi pi-send"
+            class="p-button-sm p-button-info"
             [loading]="processing()" [disabled]="processing()"
-            pTooltip="Mark as Sent" tooltipPosition="bottom"
+            [pTooltip]="'quotationForm.sendTooltip' | translate" tooltipPosition="bottom"
             (click)="sendQuotation()">
           </button>
 
           <ng-container *ngIf="currentQuotation.status === 'SENT'">
-            <button pButton type="button" label="Accept" icon="pi pi-check-circle"
-              class="p-button-sm p-button-success"
+            <button pButton type="button" [label]="'quotationForm.accept' | translate" icon="pi pi-check-circle"
+              class="p-button-sm p-button-success"
               [loading]="processing()" [disabled]="processing()"
-              pTooltip="Mark as Accepted" tooltipPosition="bottom"
+              [pTooltip]="'quotationForm.acceptTooltip' | translate" tooltipPosition="bottom"
               (click)="acceptQuotation()">
             </button>
-            <button pButton type="button" label="Reject" icon="pi pi-times-circle"
-              class="p-button-sm p-button-danger"
+            <button pButton type="button" [label]="'quotationForm.reject' | translate" icon="pi pi-times-circle"
+              class="p-button-sm p-button-danger"
               [loading]="processing()" [disabled]="processing()"
-              pTooltip="Reject this quotation" tooltipPosition="bottom"
+              [pTooltip]="'quotationForm.rejectTooltip' | translate" tooltipPosition="bottom"
               (click)="rejectQuotation()">
             </button>
           </ng-container>
 
           <button *ngIf="currentQuotation.status === 'ACCEPTED'"
-            pButton type="button" label="Convert to Sales Order" icon="pi pi-arrow-right-arrow-left"
-            class="p-button-sm p-button-success"
+            pButton type="button" [label]="'quotationForm.convert' | translate" icon="pi pi-arrow-right-arrow-left"
+            class="p-button-sm p-button-success"
             [loading]="processing()" [disabled]="processing()"
-            pTooltip="Create a Sales Order from this quotation" tooltipPosition="bottom"
+            [pTooltip]="'quotationForm.convertTooltip' | translate" tooltipPosition="bottom"
             (click)="convertQuotation()">
           </button>
         </ng-container>
 
         <!-- Create mode: save -->
         <button *ngIf="mode() === 'create'" pButton type="button"
-          [label]="saving() ? 'Saving…' : 'Create'"
-          icon="pi pi-check" class="p-button-sm"
+          [label]="saving() ? ('quotationForm.savingShort' | translate) : ('quotationForm.create' | translate)"
+          icon="pi pi-check" class="p-button-sm"
           [loading]="saving()" [disabled]="saving() || quotationForm.invalid"
           (click)="onSubmit()">
         </button>
@@ -81,7 +81,7 @@
   <!-- Loading State -->
   <div *ngIf="loading()" class="loading-state">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-    <p>Loading quotation...</p>
+    <p>{{ 'quotationForm.loading' | translate }}</p>
   </div>
 
   <!-- Error Alert -->
@@ -98,15 +98,15 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-user section-icon"></i>
-          Customer Information
+          {{ 'quotationForm.customerSection' | translate }}
         </h3>
 
         <div class="form-row" *ngIf="mode() === 'create'">
           <div class="form-group full">
-            <label>Select Customer *</label>
+            <label>{{ 'quotationForm.selectCustomer' | translate }} *</label>
             <app-lazy-autocomplete [fetchFn]="searchCustomers" [(ngModel)]="selectedCustomer"
               [ngModelOptions]="{standalone: true}" optionLabel="fullName"
-              placeholder="Search by name, email, or customer code..." (onItemSelect)="onCustomerSelected($any($event))"
+              [placeholder]="'quotationForm.customerPlaceholder' | translate" (onItemSelect)="onCustomerSelected($any($event))"
               (onClearEvent)="onCustomerCleared()">
               <ng-template let-customer>
                 <div class="customer-item">
@@ -123,41 +123,41 @@
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              <span *ngIf="!selectedCustomerId">Type to search for a customer</span>
-              <span *ngIf="selectedCustomerId" class="success-text">Customer selected</span>
+              <span *ngIf="!selectedCustomerId">{{ 'quotationForm.typeToSearch' | translate }}</span>
+              <span *ngIf="selectedCustomerId" class="success-text">{{ 'quotationForm.customerSelected' | translate }}</span>
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Customer Name *</label>
-            <input pInputText formControlName="customerName" placeholder="Auto-filled" readonly
+            <label>{{ 'quotationForm.customerName' | translate }} *</label>
+            <input pInputText formControlName="customerName" [placeholder]="'quotationForm.autoFilled' | translate" readonly
               class="readonly-input" />
             <small *ngIf="quotationForm.get('customerName')?.invalid && quotationForm.get('customerName')?.touched"
               class="p-error">
-              Customer name is required
+              {{ 'quotationForm.customerNameRequired' | translate }}
             </small>
           </div>
           <div class="form-group">
-            <label>Email *</label>
-            <input pInputText type="email" formControlName="customerEmail" placeholder="Auto-filled" readonly
+            <label>{{ 'common.labels.email' | translate }} *</label>
+            <input pInputText type="email" formControlName="customerEmail" [placeholder]="'quotationForm.autoFilled' | translate" readonly
               class="readonly-input" />
             <small *ngIf="quotationForm.get('customerEmail')?.invalid && quotationForm.get('customerEmail')?.touched"
               class="p-error">
-              Valid email is required
+              {{ 'quotationForm.emailRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Phone *</label>
-            <input pInputText type="tel" formControlName="customerPhone" placeholder="Auto-filled" readonly
+            <label>{{ 'common.labels.phone' | translate }} *</label>
+            <input pInputText type="tel" formControlName="customerPhone" [placeholder]="'quotationForm.autoFilled' | translate" readonly
               class="readonly-input" />
             <small *ngIf="quotationForm.get('customerPhone')?.invalid && quotationForm.get('customerPhone')?.touched"
               class="p-error">
-              Phone is required
+              {{ 'quotationForm.phoneRequired' | translate }}
             </small>
           </div>
         </div>
@@ -167,33 +167,33 @@
       <div class="form-section">
         <h3 class="section-title">
           <i class="pi pi-calendar section-icon"></i>
-          Quotation Details
+          {{ 'quotationForm.detailsSection' | translate }}
         </h3>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Valid Until</label>
+            <label>{{ 'quotationForm.validUntil' | translate }}</label>
             <p-datepicker formControlName="validUntil" [showIcon]="true" [showButtonBar]="true" dateFormat="yy-mm-dd"
-              placeholder="Defaults to 15 days from today" [disabled]="mode() === 'view'"
+              [placeholder]="'quotationForm.validUntilPlaceholder' | translate" [disabled]="mode() === 'view'"
               appendTo="body" [style]="{ width: '100%' }">
             </p-datepicker>
           </div>
           <div class="form-group">
-            <label>Currency *</label>
+            <label>{{ 'quotationForm.currency' | translate }} *</label>
             <app-currency-selector formControlName="currency" [disabled]="mode() === 'view'" [showLabel]="false"
-              placeholder="Select currency">
+              [placeholder]="'quotationForm.currencyPlaceholder' | translate">
             </app-currency-selector>
             <small *ngIf="quotationForm.get('currency')?.invalid && quotationForm.get('currency')?.touched"
               class="p-error">
-              Currency is required
+              {{ 'quotationForm.currencyRequired' | translate }}
             </small>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group full">
-            <label>Notes</label>
-            <textarea pInputTextarea formControlName="notes" placeholder="Additional notes..." rows="2"></textarea>
+            <label>{{ 'common.labels.notes' | translate }}</label>
+            <textarea pInputTextarea formControlName="notes" [placeholder]="'quotationForm.notesPlaceholder' | translate" rows="2"></textarea>
           </div>
         </div>
       </div>
@@ -203,9 +203,9 @@
         <div class="section-header">
           <h3 class="section-title">
             <i class="pi pi-list section-icon"></i>
-            Line Items
+            {{ 'quotationForm.lineItemsSection' | translate }}
           </h3>
-          <button pButton type="button" label="Add Line" icon="pi pi-plus" class="p-button-success p-button-sm"
+          <button pButton type="button" [label]="'quotationForm.addLine' | translate" icon="pi pi-plus" class="p-button-success p-button-sm"
             (click)="addLine()" [disabled]="mode() === 'view'">
           </button>
         </div>
@@ -213,13 +213,13 @@
         <!-- Quick Add Part -->
         <div class="form-row" *ngIf="mode() !== 'view'">
           <div class="form-group full">
-            <label>Quick Add Part</label>
+            <label>{{ 'quotationForm.quickAddPart' | translate }}</label>
             <app-lazy-autocomplete
               [fetchFn]="searchParts"
               [(ngModel)]="selectedPartQuickAdd"
               [ngModelOptions]="{standalone: true}"
               optionLabel="displayName"
-              placeholder="Search part by name, code, or SKU..."
+              [placeholder]="'quotationForm.quickAddPlaceholder' | translate"
               [disabled]="mode() === 'view'"
               (onItemSelect)="onQuickAddPartSelected($any($event))"
               (onClearEvent)="onQuickAddPartCleared()">
@@ -244,7 +244,7 @@
             </app-lazy-autocomplete>
             <small class="field-hint">
               <i class="pi pi-info-circle"></i>
-              Select a part to add it to the list. Selecting an existing part will increase its quantity by 1.
+              {{ 'quotationForm.quickAddHint' | translate }}
             </small>
           </div>
         </div>
@@ -252,21 +252,21 @@
         <div formArrayName="lines" class="line-items-container">
           <div *ngFor="let line of lines.controls; let i = index" [formGroupName]="i" class="line-item-card">
             <div class="line-item-header">
-              <span class="line-number">Item #{{ i + 1 }}</span>
+              <span class="line-number">{{ 'quotationForm.itemNumber' | translate:{ number: i + 1 } }}</span>
               <button pButton type="button" icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm"
-                (click)="removeLine(i)" [disabled]="lines.length === 1 || mode() === 'view'" pTooltip="Remove line">
+                (click)="removeLine(i)" [disabled]="lines.length === 1 || mode() === 'view'" [pTooltip]="'quotationForm.removeLine' | translate">
               </button>
             </div>
 
             <div class="line-item-content">
               <!-- Part Selection -->
               <div class="form-group part-field">
-                <label>Part *</label>
+                <label>{{ 'quotationForm.part' | translate }} *</label>
                 <app-lazy-autocomplete
                   [fetchFn]="searchParts"
                   formControlName="part"
                   optionLabel="displayName"
-                  placeholder="Search part by name or code..."
+                  [placeholder]="'quotationForm.partPlaceholder' | translate"
                   [disabled]="mode() === 'view'"
                   (onItemSelect)="onPartSelected($any($event), i)"
                   (onClearEvent)="onPartCleared(i)">
@@ -291,15 +291,15 @@
                 </app-lazy-autocomplete>
                 <small *ngIf="line.get('part')?.value?.localName" class="part-row-local d-block">{{ line.get('part')?.value?.localName }}</small>
                 <small *ngIf="line.get('part')?.invalid && line.get('part')?.touched" class="p-error">
-                  Part is required
+                  {{ 'quotationForm.partRequired' | translate }}
                 </small>
               </div>
 
               <!-- Unit -->
               <div class="form-group unit-field">
-                <label>Unit</label>
+                <label>{{ 'quotationForm.unit' | translate }}</label>
                 <p-select formControlName="unitId" [options]="getCompatibleUnitsForPart(line.get('part')?.value?.id)"
-                  optionLabel="name" optionValue="id" placeholder="Unit" [showClear]="true"
+                  optionLabel="name" optionValue="id" [placeholder]="'quotationForm.unit' | translate" [showClear]="true"
                   [disabled]="mode() === 'view'" appendTo="body" [style]="{ width: '100%' }">
                   <ng-template let-unit pTemplate="item">
                     {{ unit.name }} ({{ unit.symbol }})
@@ -309,34 +309,34 @@
 
               <!-- Quantity -->
               <div class="form-group qty-field">
-                <label>Qty *</label>
+                <label>{{ 'quotationForm.qty' | translate }} *</label>
                 <input pInputText type="number" formControlName="quantity" min="1" placeholder="1"
                   [class.input-error]="line.get('quantity')?.invalid && line.get('quantity')?.touched" />
                 <small *ngIf="line.get('quantity')?.invalid && line.get('quantity')?.touched" class="p-error">
-                  Min 1
+                  {{ 'quotationForm.minOne' | translate }}
                 </small>
               </div>
 
               <!-- Unit Price -->
               <div class="form-group price-field">
-                <label>Price *</label>
+                <label>{{ 'quotationForm.price' | translate }} *</label>
                 <input pInputText type="number" formControlName="unitPrice" min="0" step="0.01" placeholder="0.00"
                   [class.input-error]="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched" />
                 <small *ngIf="line.get('unitPrice')?.invalid && line.get('unitPrice')?.touched" class="p-error">
-                  Required
+                  {{ 'quotationForm.required' | translate }}
                 </small>
               </div>
 
               <!-- Discount -->
               <div class="form-group discount-field">
-                <label>Disc %</label>
+                <label>{{ 'quotationForm.discPercent' | translate }}</label>
                 <input pInputText type="number" formControlName="discount" min="0" max="100" step="0.01"
                   placeholder="0" />
               </div>
 
               <!-- Line Total -->
               <div class="form-group total-field">
-                <label>Total</label>
+                <label>{{ 'common.labels.total' | translate }}</label>
                 <div class="line-total">{{ formatCurrency(getLineTotal(i)) }}</div>
               </div>
             </div>
@@ -344,7 +344,7 @@
 
           <div *ngIf="lines.length === 0" class="empty-lines">
             <i class="pi pi-inbox"></i>
-            <p>No line items added. Click "Add Line" to add items.</p>
+            <p>{{ 'quotationForm.noLines' | translate }}</p>
           </div>
         </div>
       </div>
@@ -353,15 +353,15 @@
       <div class="form-section last">
         <h3 class="section-title">
           <i class="pi pi-calculator section-icon"></i>
-          Summary
+          {{ 'quotationForm.summarySection' | translate }}
         </h3>
         <div class="order-summary">
           <div class="summary-row">
-            <span class="summary-label">Subtotal:</span>
+            <span class="summary-label">{{ 'quotationForm.subtotal' | translate }}</span>
             <span class="summary-value">{{ formatCurrency(subTotal()) }}</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Discount %:</span>
+            <span class="summary-label">{{ 'quotationForm.discountPercent' | translate }}</span>
             <span class="summary-value">
               <input pInputText type="number" formControlName="discountPercentage" min="0" max="100" step="0.01"
                 placeholder="0" [disabled]="mode() === 'view'"
@@ -369,18 +369,18 @@
             </span>
           </div>
           <div class="summary-row" *ngIf="discountPercentage() > 0">
-            <span class="summary-label">Discount ({{ discountPercentage() }}%):</span>
+            <span class="summary-label">{{ 'quotationForm.discountWithPercent' | translate:{ percent: discountPercentage() } }}</span>
             <span class="summary-value">-{{ formatCurrency(discountAmount()) }}</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Tax Amount:</span>
+            <span class="summary-label">{{ 'quotationForm.taxAmount' | translate }}</span>
             <span class="summary-value">
               <input pInputText type="number" formControlName="taxAmount" min="0" step="0.01"
                 placeholder="0" [disabled]="mode() === 'view'" />
             </span>
           </div>
           <div class="summary-row grand-total">
-            <span class="summary-label">Grand Total:</span>
+            <span class="summary-label">{{ 'quotationForm.grandTotal' | translate }}</span>
             <span class="summary-value">{{ formatCurrency(grandTotal()) }}</span>
           </div>
         </div>
@@ -388,10 +388,10 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button pButton type="button" [label]="mode() === 'view' ? 'Back' : 'Cancel'" icon="pi pi-times"
+        <button pButton type="button" [label]="(mode() === 'view' ? 'common.actions.back' : 'common.actions.cancel') | translate" icon="pi pi-times"
           class="p-button-outlined" (click)="cancel()"></button>
         <button *ngIf="mode() === 'create'" pButton type="submit"
-          [label]="saving() ? 'Saving...' : 'Create Quotation'" icon="pi pi-check"
+          [label]="saving() ? ('quotationForm.savingEllipsis' | translate) : ('quotationForm.createQuotation' | translate)" icon="pi pi-check"
           class="p-button-primary" [loading]="saving()" [disabled]="saving() || quotationForm.invalid">
         </button>
       </div>
@@ -401,3 +401,13 @@
 
 <!-- Confirm Dialog -->
 <p-confirmDialog></p-confirmDialog>
+
+@if (convertDialogVisible()) {
+    <app-convert-quotation-dialog
+        [visible]="convertDialogVisible()"
+        (visibleChange)="convertDialogVisible.set($event)"
+        [quotationNumber]="currentQuotation?.quotationNumber ?? ''"
+        [submitting]="processing()"
+        (confirmed)="onConvertConfirmed($event)">
+    </app-convert-quotation-dialog>
+}

@@ -1,16 +1,15 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.Customers;
 using AutoPartShop.Application.Customers.Dtos;
 using AutoPartShop.Application.DTOs.CustomerDtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/customers")]
 [Route("api/v1/customers")]
 [ApiController]
 [HasPermission(Permissions.SalesView)]
@@ -52,15 +51,15 @@ public class CustomerController : ControllerBase
         {
             if (query is null)
             {
-                return BadRequest("Request can not be empty");
+                return BadRequest(new { message = "Request can not be empty" });
             }
             if (query.PageNumber < 0)
             {
-                return BadRequest($"Page number can not be {query.PageNumber}");
+                return BadRequest(new { message = $"Page number can not be {query.PageNumber}" });
             }
             if (query.PageSize < 0)
             {
-                return BadRequest($"Page size can not be {query.PageSize}");
+                return BadRequest(new { message = $"Page size can not be {query.PageSize}" });
             }
 
 
@@ -144,7 +143,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpGet("status/{status}")]
-    public async Task<IActionResult> GetByStatus(string status, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByStatus(CustomerStatus status, CancellationToken cancellationToken)
     {
         try
         {
@@ -322,7 +321,20 @@ public class CustomerController : ControllerBase
                     return Conflict(new { message = $"A customer with phone {request.Phone.Trim()} already exists ({existingByPhone.CustomerCode})." });
             }
 
-            var customerCode = await _codeGenerateService.GenerateAsync("CUST", cancellationToken);
+            // CreateCustomerRequest.CustomerCode was accepted and then discarded. Honour an
+            // explicit code when it is free, and fall back to the generated sequence otherwise �
+            // same contract as suppliers.
+            string customerCode;
+            if (!string.IsNullOrWhiteSpace(request.CustomerCode))
+            {
+                customerCode = request.CustomerCode.Trim().ToUpper();
+                if (await _customerRepository.GetByCodeAsync(customerCode, cancellationToken) is not null)
+                    return Conflict(new { message = $"Customer code '{customerCode}' is already in use" });
+            }
+            else
+            {
+                customerCode = await _codeGenerateService.GenerateAsync("CUST", cancellationToken);
+            }
 
             var customer = Customer.Create(
                 customerCode,
@@ -338,7 +350,8 @@ public class CustomerController : ControllerBase
                 request.PostalCode,
                 request.Country,
                 request.CustomerType,
-                request.Notes
+                request.Notes,
+                request.PaymentTerms
             );
 
             customer.SetPrimaryContactPerson(request.PrimaryContactPerson);
@@ -372,7 +385,7 @@ public class CustomerController : ControllerBase
             var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
             if (customer is null) return NotFound(new { message = "Customer not found" });
 
-            // Phone must stay unique — reject if another customer already has it.
+            // Phone must stay unique � reject if another customer already has it.
             if (!string.IsNullOrWhiteSpace(request.Phone))
             {
                 var existingByPhone = await _customerRepository.GetByPhoneAsync(request.Phone.Trim(), cancellationToken);
@@ -389,6 +402,7 @@ public class CustomerController : ControllerBase
 
             customer.SetPrimaryContactPerson(request.PrimaryContactPerson);
             customer.UpdateNotes(request.Notes);
+            customer.SetPaymentTerms(string.IsNullOrEmpty(request.PaymentTerms) ? customer.PaymentTerms : request.PaymentTerms);
 
             customer.ModifiedBy = _currentUserService.GetCurrentUsername();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
@@ -520,7 +534,7 @@ public class CustomerController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Repository-level in-use guard (defense in depth) — surface a clean 409.
+            // Repository-level in-use guard (defense in depth) � surface a clean 409.
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
@@ -556,6 +570,7 @@ public class CustomerController : ControllerBase
             DueAmount = customer.CurrentBalance,      // Outstanding balance (due)
             CanPlaceOrder = customer.CanPlaceOrder(),
             PrimaryContactPerson = customer.PrimaryContactPerson,
+            PaymentTerms = customer.PaymentTerms,
             LastPurchaseDate = customer.LastPurchaseDate,
             TotalPurchaseAmount = customer.TotalPurchaseAmount,
             Notes = customer.Notes,

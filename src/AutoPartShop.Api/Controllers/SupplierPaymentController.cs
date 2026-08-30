@@ -1,5 +1,6 @@
-﻿using AutoPartShop.Api.Authorization;
+using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using QuestPDF.Fluent;
 using AutoPartShop.Application.Common;
@@ -7,17 +8,16 @@ using AutoPartShop.Application.DTOs.PaymentDtos;
 using AutoPartShop.Application.Supplier;
 using AutoPartShop.Application.SupplierPayment.Dtos;
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/supplier-payments")]
 [Route("api/v1/supplier-payments")]
 [ApiController]
 // procurement.create (not .view) on the whole controller keeps supplier payments
-// restricted to roles that can spend — preserving the previous Admin/Manager-only posture
+// restricted to roles that can spend � preserving the previous Admin/Manager-only posture
 [HasPermission(Permissions.ProcurementCreate)]
 public class SupplierPaymentController : ControllerBase
 {
@@ -29,6 +29,7 @@ public class SupplierPaymentController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<SupplierPaymentController> _logger;
+    private readonly ICurrencyConversionService _currencyService;
 
     public SupplierPaymentController(
         ISupplierPaymentRepository repository,
@@ -38,7 +39,8 @@ public class SupplierPaymentController : ControllerBase
         SupplierPaymentSummaryService summaryService,
         ICurrentUserService currentUserService,
         AutoPartDbContext dbContext,
-        ILogger<SupplierPaymentController> logger)
+        ILogger<SupplierPaymentController> logger,
+        ICurrencyConversionService currencyService)
     {
         _repository = repository;
         _purchaseOrderRepository = purchaseOrderRepository;
@@ -48,6 +50,7 @@ public class SupplierPaymentController : ControllerBase
         _supplierPaymentReadRespository = supplierPaymentReadRespository;
         _dbContext = dbContext;
         _logger = logger;
+        _currencyService = currencyService;
     }
 
     [HttpGet]
@@ -72,12 +75,12 @@ public class SupplierPaymentController : ControllerBase
         {
             if (query == null)
             {
-                return BadRequest("Query parameters are required.");
+                return BadRequest(new { message = "Query parameters are required." });
             }
 
             if (query.PageNumber <= 0 || query.PageSize <= 0)
             {
-                return BadRequest("Invalid pagination parameters.");
+                return BadRequest(new { message = "Invalid pagination parameters." });
             }
 
             var (payments, totalCount) = await _supplierPaymentReadRespository.FindAllAsynce(query, cancellationToken);
@@ -229,7 +232,7 @@ public class SupplierPaymentController : ControllerBase
             _logger.LogInformation("Summary retrieved for supplier: {SupplierName}", summary.SupplierName);
 
             var shop = await shopProfiles.GetAsync(cancellationToken: cancellationToken);
-            var pdfBytes = new SupplierAccountStatementDocument(summary, shop).GeneratePdf();
+            var pdfBytes = new SupplierAccountStatementDocument(summary, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
             _logger.LogInformation("PDF report generated, size: {Size}", pdfBytes.Length);
 
             return File(pdfBytes, "application/pdf", $"supplier-statement-{summary.SupplierCode}-{DateTime.UtcNow:yyyyMMdd}.pdf");
@@ -270,7 +273,10 @@ public class SupplierPaymentController : ControllerBase
                     return BadRequest(new { message = $"Payment amount ({request.Amount:N2}) exceeds the accepted value of goods receipt {grn.GRNNumber} ({acceptedValue:N2}). Rejected/damaged items are excluded from the supplier invoice." });
             }
 
-            var payment = SupplierPayment.Create(request.SupplierId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate);
+            var payment = SupplierPayment.Create(request.SupplierId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate, request.Currency);
+
+            var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
+            payment.SetFxBaseAmount(paymentFx.BaseAmount, paymentFx.RateToBase);
 
             if (request.PurchaseOrderId.HasValue)
                 payment.LinkToPurchaseOrder(request.PurchaseOrderId.Value);
@@ -304,6 +310,12 @@ public class SupplierPaymentController : ControllerBase
                 // For REGULAR payments: Update purchase order and supplier balance
                 if (request.PaymentType == PaymentType.REGULAR)
                 {
+                    // Validate overpay BEFORE entering the execution strategy so an
+                    // InvalidOperationException returns 400 instead of being wrapped as 500.
+                    var preLoadPo = await _purchaseOrderRepository.GetByIdAsync(request.PurchaseOrderId!.Value, cancellationToken);
+                    if (preLoadPo != null && payment.Amount > preLoadPo.TotalAmount - preLoadPo.PaidAmount)
+                        throw new InvalidOperationException($"Payment amount ({payment.Amount:N2}) exceeds the outstanding balance of {preLoadPo.TotalAmount - preLoadPo.PaidAmount:N2} on purchase order {preLoadPo.PONumber}.");
+
                     // Wrap PO update + payment insert in a single transaction so a partial failure
                     // cannot leave one written without the other. The transaction must run under the
                     // EF execution strategy (EnableRetryOnFailure is on) or BeginTransaction throws.
@@ -349,6 +361,11 @@ public class SupplierPaymentController : ControllerBase
         }
         catch (ArgumentException ex)
         {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation creating supplier payment");
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
@@ -487,7 +504,7 @@ public class SupplierPaymentController : ControllerBase
                 {
                     await _repository.UpdateAsync(payment, cancellationToken);
 
-                    // Only apply RecordPayment once — skip if mark-processed already did it
+                    // Only apply RecordPayment once � skip if mark-processed already did it
                     if (payment.PaymentType == PaymentType.REGULAR && !alreadyProcessed && payment.PurchaseOrderId.HasValue)
                     {
                         var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
@@ -556,7 +573,7 @@ public class SupplierPaymentController : ControllerBase
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
             // Only allow deletion if not completed or reconciled
-            if (payment.Status == "COMPLETED" || payment.IsReconciled)
+            if (payment.Status == SupplierPaymentStatus.COMPLETED || payment.IsReconciled)
                 return BadRequest(new { message = "Cannot delete completed or reconciled payments" });
 
             await _repository.DeleteAsync(id, cancellationToken);
@@ -577,7 +594,7 @@ public class SupplierPaymentController : ControllerBase
             var payment = await _repository.GetByIdAsync(id, cancellationToken);
             if (payment is null) return NotFound(new { message = "Supplier payment not found" });
 
-            if (payment.Status == "CANCELLED")
+            if (payment.Status == SupplierPaymentStatus.CANCELLED)
                 return BadRequest(new { message = "Cannot update a cancelled payment" });
 
             // Only non-financial reference info is editable after creation. These are set
@@ -612,7 +629,7 @@ public class SupplierPaymentController : ControllerBase
 
             // Block conversion for COMPLETED payments - once applied, cannot be converted
             // To "unapply" a payment, use proper reversal/refund process instead
-            if (payment.Status == "COMPLETED")
+            if (payment.Status == SupplierPaymentStatus.COMPLETED)
             {
                 return BadRequest(new { message = "Cannot convert a completed REGULAR payment to ADVANCE. The payment has already been applied to the purchase order and supplier balance. Use a reversal or refund instead." });
             }
@@ -656,7 +673,7 @@ public class SupplierPaymentController : ControllerBase
                 try
                 {
                     // If payment was ADVANCE and COMPLETED, apply the remaining amount to PO first
-                    if (payment.Status == "COMPLETED" && payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
+                    if (payment.Status == SupplierPaymentStatus.COMPLETED && payment.PurchaseOrderId.HasValue && payment.RemainingAmount > 0)
                     {
                         var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
                         if (purchaseOrder != null)
@@ -738,7 +755,7 @@ public class SupplierPaymentController : ControllerBase
             var payments = await _repository.GetBySupplierAsync(supplierId, cancellationToken);
             var availableAdvances = payments
                 .Where(p => p.PaymentType == PaymentType.ADVANCE &&
-                           p.Status == "COMPLETED" &&
+                           p.Status == SupplierPaymentStatus.COMPLETED &&
                            p.RemainingAmount > 0)
                 .OrderByDescending(p => p.PaymentDate)
                 .Select(p => new AvailableAdvancePayment
@@ -801,8 +818,12 @@ public class SupplierPaymentController : ControllerBase
                 request.SourceAdvancePaymentId,
                 advancePayment.PaymentProviderId,
                 request.Amount,
-                description
+                description,
+                advancePayment.Currency
             );
+
+            var advanceFx = await _currencyService.ConvertToBaseWithRateAsync(request.Amount, advancePayment.Currency, DateTime.UtcNow, cancellationToken);
+            newPayment.SetFxBaseAmount(advanceFx.BaseAmount, advanceFx.RateToBase);
 
             newPayment.CreatedBy = currentUser;
             newPayment.ModifiedBy = currentUser;

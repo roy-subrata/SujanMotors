@@ -8,25 +8,25 @@
     <div>
       <h3 class="section-title">
         <i class="pi pi-clone section-icon"></i>
-        Variants
+        {{ 'parts.variantManager.title' | translate }}
         <span class="variant-count" *ngIf="variants.length > 0">({{ variants.length }})</span>
       </h3>
       <p class="section-hint">
-        Create variants for products that come in multiple options — e.g. <b>Color</b>, <b>Size</b>, <b>Storage</b>.
-        Use <a (click)="goToAttributeManager()" class="link-action">Manage Attributes</a> to define your attribute groups first.
+        {{ 'parts.variantManager.hintPart1' | translate }} <b>{{ 'parts.variantManager.hintExamples' | translate }}</b>.
+        {{ 'parts.variantManager.hintPart2' | translate }} <a (click)="goToAttributeManager()" class="link-action">{{ 'parts.variantManager.hintManageAttributesLink' | translate }}</a> {{ 'parts.variantManager.hintPart3' | translate }}
       </p>
     </div>
     <button
       *ngIf="!isViewMode && partId"
       pButton
       type="button"
-      label="Add Variant"
+      [label]="'parts.variantManager.addVariant' | translate"
       icon="pi pi-plus"
       class="p-button-sm p-button-success"
       (click)="openAddDialog()">
     </button>
     <div *ngIf="!partId" class="save-first-hint">
-      <i class="pi pi-info-circle"></i> Save the product first to add variants
+      <i class="pi pi-info-circle"></i> {{ 'parts.variantManager.saveProductFirstHint' | translate }}
     </div>
   </div>
 
@@ -38,19 +38,19 @@
     styleClass="p-datatable-sm p-datatable-striped"
     [tableStyle]="{ 'min-width': '40rem' }">
 
-    <ng-template pTemplate="header">
+    <ng-template #header>
       <tr>
-        <th>Variant</th>
-        <th>Part / OEM</th>
-        <th>SKU / Barcode</th>
-        <th>Price</th>
-        <th>Attributes</th>
-        <th>Status</th>
+        <th>{{ 'parts.variantManager.columnVariant' | translate }}</th>
+        <th>{{ 'parts.variantManager.columnPartOem' | translate }}</th>
+        <th>{{ 'parts.variantManager.columnSkuBarcode' | translate }}</th>
+        <th>{{ 'parts.variantManager.columnPrice' | translate }}</th>
+        <th>{{ 'parts.variantManager.columnAttributes' | translate }}</th>
+        <th>{{ 'common.labels.status' | translate }}</th>
         <th *ngIf="!isViewMode" style="width: 6rem"></th>
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="body" let-v>
+    <ng-template #body let-v>
       <tr>
         <td>
           <div class="font-semibold">{{ v.name }}</div>
@@ -58,7 +58,7 @@
         </td>
         <td>
           <div *ngIf="v.partNumber" class="text-sm"><code>{{ v.partNumber }}</code></div>
-          <div *ngIf="v.oemNumber" class="text-xs text-secondary">OEM: {{ v.oemNumber }}</div>
+          <div *ngIf="v.oemNumber" class="text-xs text-secondary">{{ 'parts.variantManager.oemPrefix' | translate }} {{ v.oemNumber }}</div>
           <span *ngIf="!v.partNumber && !v.oemNumber" class="text-secondary">—</span>
         </td>
         <td>
@@ -68,36 +68,36 @@
         </td>
         <td>
           <span *ngIf="v.sellingPrice != null && v.sellingPrice > 0" class="text-sm font-medium">
-            {{ v.sellingPrice | number:'1.2-2' }} {{ v.currency }}
+            {{ v.sellingPrice | moneyFormat }}
           </span>
           <span *ngIf="!v.sellingPrice || v.sellingPrice === 0" class="text-secondary text-sm">
-            Inherits base
+            {{ 'parts.variantManager.inheritsBase' | translate }}
           </span>
         </td>
         <td>
           <div *ngIf="v.attributeValues?.length" class="attr-chips">
             <span class="attr-chip" *ngFor="let av of v.attributeValues">
               <b>{{ av.attributeName }}:</b>
-              {{ av.optionValue ?? av.valueText ?? av.valueNumber ?? (av.valueBool != null ? (av.valueBool ? 'Yes' : 'No') : '—') }}
+              {{ av.optionValue ?? av.valueText ?? av.valueNumber ?? (av.valueBool != null ? (av.valueBool ? ('parts.variantManager.yes' | translate) : ('parts.variantManager.no' | translate)) : '—') }}
             </span>
           </div>
-          <span *ngIf="!v.attributeValues?.length" class="text-secondary text-sm">None</span>
+          <span *ngIf="!v.attributeValues?.length" class="text-secondary text-sm">{{ 'parts.variantManager.none' | translate }}</span>
         </td>
         <td>
-          <p-tag [value]="v.isActive ? 'Active' : 'Inactive'" [severity]="v.isActive ? 'success' : 'secondary'"></p-tag>
+          <p-tag [value]="(v.isActive ? 'common.status.active' : 'common.status.inactive') | translate" [severity]="v.isActive ? 'success' : 'secondary'"></p-tag>
         </td>
         <td *ngIf="!isViewMode">
-          <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm p-button-info" pTooltip="Edit" (click)="openEditDialog(v)"></button>
-          <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" pTooltip="Delete" (click)="confirmDelete(v)"></button>
+          <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm p-button-info" [pTooltip]="'common.actions.edit' | translate" (click)="openEditDialog(v)"></button>
+          <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger" [pTooltip]="'common.actions.delete' | translate" (click)="confirmDelete(v)"></button>
         </td>
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="emptymessage">
+    <ng-template #emptymessage>
       <tr>
         <td [attr.colspan]="isViewMode ? 6 : 7" class="text-center py-4 text-secondary">
-          No variants yet.
-          <span *ngIf="!isViewMode && partId"> Click <b>Add Variant</b> to create one.</span>
+          {{ 'parts.variantManager.noVariantsYet' | translate }}
+          <span *ngIf="!isViewMode && partId"> {{ 'parts.variantManager.clickAddVariantHint' | translate }} <b>{{ 'parts.variantManager.addVariant' | translate }}</b> {{ 'parts.variantManager.toCreateOne' | translate }}</span>
         </td>
       </tr>
     </ng-template>
@@ -107,7 +107,7 @@
 <!-- Add / Edit Variant Dialog -->
 <p-dialog
   [(visible)]="dialogVisible"
-  [header]="isEditing ? 'Edit Variant' : 'Add Variant'"
+  [header]="(isEditing ? 'parts.variantManager.editVariantHeader' : 'parts.variantManager.addVariantHeader') | translate"
   [modal]="true"
   [style]="{ width: '680px', maxWidth: '96vw' }"
   [draggable]="false"
@@ -120,47 +120,48 @@
     <div class="vd-section">
       <div class="vd-row">
         <div class="vd-field">
-          <label>Variant Name * <span style="font-size:0.78rem;color:var(--text-color-secondary);font-weight:400">(short label only — e.g. LH, RH, Red / Large; the product name is added automatically)</span></label>
-          <input pInputText formControlName="name" placeholder="e.g. LH" class="w-full" />
-          <small class="p-error" *ngIf="variantForm.get('name')?.invalid && variantForm.get('name')?.touched">Required</small>
+          <label>{{ 'parts.variantManager.variantNameLabel' | translate }} * <span style="font-size:0.78rem;color:var(--text-color-secondary);font-weight:400">{{ 'parts.variantManager.variantNameHint' | translate }}</span></label>
+          <input pInputText formControlName="name" [placeholder]="'parts.variantManager.variantNamePlaceholder' | translate" class="w-full" />
+          <small class="p-error" *ngIf="variantForm.get('name')?.invalid && variantForm.get('name')?.touched">{{ 'parts.variantManager.required' | translate }}</small>
         </div>
         <div class="vd-field">
-          <label>Code *</label>
-          <input pInputText formControlName="code" placeholder="e.g. RED-L" class="w-full" />
-          <small class="p-error" *ngIf="variantForm.get('code')?.invalid && variantForm.get('code')?.touched">Required</small>
-        </div>
-      </div>
-      <div class="vd-row">
-        <div class="vd-field">
-          <label>SKU</label>
-          <input pInputText formControlName="sku" placeholder="Auto-generated from Product SKU + Code" class="w-full" />
-          <small class="text-gray-500">Leave blank to auto-generate a unique SKU (Product SKU + Code).</small>
-        </div>
-        <div class="vd-field">
-          <label>Barcode</label>
-          <input pInputText formControlName="barcode" placeholder="UPC / EAN" class="w-full" />
+          <label>{{ 'parts.variantManager.codeLabel' | translate }} *</label>
+          <input pInputText formControlName="code" [placeholder]="'parts.variantManager.codePlaceholder' | translate" class="w-full" />
+          <small class="p-error" *ngIf="variantForm.get('code')?.invalid && variantForm.get('code')?.touched">{{ 'parts.variantManager.required' | translate }}</small>
         </div>
       </div>
       <div class="vd-row">
         <div class="vd-field">
-          <label>Part Number</label>
-          <input pInputText formControlName="partNumber" placeholder="Unique part number" class="w-full" />
+          <label>{{ 'parts.variantManager.skuLabel' | translate }}</label>
+          <input pInputText formControlName="sku" [placeholder]="'parts.variantManager.skuPlaceholder' | translate" class="w-full" />
+          <small class="text-gray-500">{{ 'parts.variantManager.skuHint' | translate }}</small>
         </div>
         <div class="vd-field">
-          <label>OEM Number</label>
-          <input pInputText formControlName="oemNumber" placeholder="Original equipment number" class="w-full" />
+          <label>{{ 'parts.variantManager.barcodeLabel' | translate }}</label>
+          <input pInputText formControlName="barcode" [placeholder]="'parts.variantManager.barcodePlaceholder' | translate" class="w-full" />
+          <small class="text-gray-500">{{ 'parts.variantManager.barcodeHint' | translate }}</small>
         </div>
       </div>
       <div class="vd-row">
         <div class="vd-field">
-          <label>Selling Price <span style="font-size:0.78rem;color:var(--text-color-secondary);font-weight:400">(leave blank to inherit base product price)</span></label>
+          <label>{{ 'parts.variantManager.partNumberLabel' | translate }}</label>
+          <input pInputText formControlName="partNumber" [placeholder]="'parts.variantManager.partNumberPlaceholder' | translate" class="w-full" />
+        </div>
+        <div class="vd-field">
+          <label>{{ 'parts.variantManager.oemNumberLabel' | translate }}</label>
+          <input pInputText formControlName="oemNumber" [placeholder]="'parts.variantManager.oemNumberPlaceholder' | translate" class="w-full" />
+        </div>
+      </div>
+      <div class="vd-row">
+        <div class="vd-field">
+          <label>{{ 'parts.variantManager.sellingPriceLabel' | translate }} <span style="font-size:0.78rem;color:var(--text-color-secondary);font-weight:400">{{ 'parts.variantManager.sellingPriceHint' | translate }}</span></label>
           <p-inputNumber formControlName="sellingPrice" placeholder="0.00"
             [min]="0" [step]="0.01" [minFractionDigits]="2" [maxFractionDigits]="2"
             mode="decimal" [showClear]="true" class="w-full">
           </p-inputNumber>
         </div>
         <div class="vd-field">
-          <label>Currency</label>
+          <label>{{ 'parts.variantManager.currencyLabel' | translate }}</label>
           <input pInputText formControlName="currency" placeholder="BDT" class="w-full" />
         </div>
       </div>
@@ -169,8 +170,8 @@
     <!-- Attribute Values (user-driven) -->
     <div class="vd-section">
       <div class="vd-section-header">
-        <span class="vd-section-title"><i class="pi pi-tag"></i> Attribute Values</span>
-        <small class="vd-section-hint">Add only the attributes that distinguish this variant (e.g. Color, Size).</small>
+        <span class="vd-section-title"><i class="pi pi-tag"></i> {{ 'parts.variantManager.attributeValuesTitle' | translate }}</span>
+        <small class="vd-section-hint">{{ 'parts.variantManager.attributeValuesHint' | translate }}</small>
       </div>
 
       <!-- Existing added attribute rows -->
@@ -194,7 +195,7 @@
               [options]="selectedAttrRows[i]?.options"
               optionLabel="value"
               optionValue="id"
-              placeholder="Select..."
+              [placeholder]="'parts.variantManager.selectPlaceholder' | translate"
               [showClear]="true"
               appendTo="body"
               [style]="{ width: '100%' }">
@@ -216,13 +217,13 @@
             <input
               *ngIf="selectedAttrRows[i]?.dataType === 'text'"
               pInputText formControlName="valueText"
-              placeholder="Enter value" class="w-full" />
+              [placeholder]="'parts.variantManager.enterValuePlaceholder' | translate" class="w-full" />
           </div>
 
           <button
             pButton type="button" icon="pi pi-times"
             class="p-button-text p-button-danger p-button-sm attr-remove-btn"
-            pTooltip="Remove attribute"
+            [pTooltip]="'parts.variantManager.removeAttributeTooltip' | translate"
             (click)="removeAttrRow(i)">
           </button>
         </div>
@@ -236,22 +237,22 @@
           [options]="availableAttributes"
           optionLabel="label"
           optionValue="value"
-          placeholder="Pick an attribute to add..."
+          [placeholder]="'parts.variantManager.pickAttributePlaceholder' | translate"
           appendTo="body"
           [style]="{ flex: '1' }">
         </p-select>
-        <button pButton type="button" icon="pi pi-plus" label="Add" class="p-button-outlined p-button-sm p-button-info"
+        <button pButton type="button" icon="pi pi-plus" [label]="'parts.variantManager.addButton' | translate" class="p-button-outlined p-button-sm p-button-info"
           [disabled]="!attrToAdd" (click)="addSelectedAttribute()"></button>
       </div>
 
       <div *ngIf="allAttributes.length === 0" class="no-attrs-hint">
         <i class="pi pi-info-circle"></i>
-        No attributes defined yet.
-        <a (click)="goToAttributeManager()" class="link-action">Set up Attribute Groups</a>
-        to enable Color, Size, Storage, Weight, Dimensions, and any other specs.
+        {{ 'parts.variantManager.noAttributesDefinedHint' | translate }}
+        <a (click)="goToAttributeManager()" class="link-action">{{ 'parts.variantManager.setUpAttributeGroups' | translate }}</a>
+        {{ 'parts.variantManager.enableSpecsHint' | translate }}
       </div>
       <div *ngIf="allAttributes.length > 0 && availableAttributes.length === 0 && selectedAttrRows.length > 0" class="all-added-hint">
-        <i class="pi pi-check-circle"></i> All available attributes are added.
+        <i class="pi pi-check-circle"></i> {{ 'parts.variantManager.allAttributesAdded' | translate }}
       </div>
     </div>
 
@@ -259,15 +260,15 @@
     <div class="vd-section" style="padding-bottom:0">
       <div class="checkbox-row">
         <p-checkbox formControlName="isActive" [binary]="true" inputId="varIsActive"></p-checkbox>
-        <label for="varIsActive">Active</label>
+        <label for="varIsActive">{{ 'parts.variantManager.activeLabel' | translate }}</label>
       </div>
     </div>
 
   </form>
 
   <ng-template pTemplate="footer">
-    <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="closeDialog()"></button>
-    <button pButton type="button" [label]="isEditing ? 'Update Variant' : 'Add Variant'" icon="pi pi-check"
+    <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="closeDialog()"></button>
+    <button pButton type="button" [label]="(isEditing ? 'parts.variantManager.updateVariantButton' : 'parts.variantManager.addVariant') | translate" icon="pi pi-check"
       class="p-button-success" [loading]="isSubmitting" (click)="onSubmit()"></button>
   </ng-template>
 </p-dialog>

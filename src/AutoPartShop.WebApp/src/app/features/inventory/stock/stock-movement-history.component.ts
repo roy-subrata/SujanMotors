@@ -1,8 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
@@ -15,6 +15,9 @@ import { map } from 'rxjs/operators';
 import { StockService, StockMovementResponse } from '../services/stock.service';
 import { PartService } from '../services/part.service';
 import { WarehouseService, WarehouseResponse } from '../services/warehouse.service';
+import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-stock-movement-history',
@@ -30,467 +33,20 @@ import { WarehouseService, WarehouseResponse } from '../services/warehouse.servi
     ToastModule,
     InputTextModule,
     SelectModule,
-    DatePicker
+    DatePicker,
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [MessageService],
-  template: `
-    <p-toast></p-toast>
-
-    <p-card>
-      <div class="filters-row">
-        <div class="filter-group search-group">
-          <div class="search-input-wrapper">
-            <i class="pi pi-search"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchTerm"
-              placeholder="Search by part, warehouse, reference..."
-              (keyup.enter)="onSearch()"
-              class="search-input" />
-            <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
-              <i class="pi pi-times"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <p-select
-            [options]="movementTypeOptions"
-            [(ngModel)]="filterType"
-            placeholder="Type"
-            [showClear]="true"
-            (onChange)="onFilterChange()"
-            appendTo="body"
-            styleClass="filter-dropdown">
-          </p-select>
-        </div>
-
-        <div class="filter-group">
-          <p-select
-            [options]="statusOptions"
-            [(ngModel)]="filterStatus"
-            placeholder="Status"
-            [showClear]="true"
-            (onChange)="onFilterChange()"
-            appendTo="body"
-            styleClass="filter-dropdown">
-          </p-select>
-        </div>
-
-        <div class="filter-group date-range-group">
-          <p-datePicker
-            [(ngModel)]="dateRange"
-            selectionMode="range"
-            [showIcon]="true"
-            [showButtonBar]="true"
-            dateFormat="dd-M-yy"
-            placeholder="Date range"
-            [maxDate]="today"
-            (onSelect)="onDateChange()"
-            (onClearButtonClick)="onClearDateRange()"
-            styleClass="date-picker-range">
-          </p-datePicker>
-        </div>
-
-        <div class="filter-group filter-actions-group">
-          <div class="filter-actions">
-            <button class="btn-search" (click)="onSearch()">
-              <i class="pi pi-search"></i>
-            </button>
-            <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
-              <i class="pi pi-filter-slash"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div *ngIf="hasActiveFilters()" class="active-filters">
-        <span class="active-filters-label">Active filters:</span>
-        <span *ngIf="searchTerm" class="filter-chip">
-          Search: "{{ searchTerm }}"
-          <i class="pi pi-times" (click)="searchTerm = ''; onSearch()"></i>
-        </span>
-        <span *ngIf="filterType" class="filter-chip">
-          Type: {{ filterType }}
-          <i class="pi pi-times" (click)="filterType = ''; onFilterChange()"></i>
-        </span>
-        <span *ngIf="filterStatus" class="filter-chip">
-          Status: {{ filterStatus }}
-          <i class="pi pi-times" (click)="filterStatus = ''; onFilterChange()"></i>
-        </span>
-        <span *ngIf="dateRange && dateRange[0]" class="filter-chip">
-          From: {{ dateRange[0] | date:'dd-MMM-yyyy' }}
-          <i class="pi pi-times" (click)="onClearDateRange()"></i>
-        </span>
-        <span *ngIf="dateRange && dateRange[1]" class="filter-chip">
-          To: {{ dateRange[1] | date:'dd-MMM-yyyy' }}
-          <i class="pi pi-times" (click)="onClearDateRange()"></i>
-        </span>
-      </div>
-
-      <p-table
-        [value]="movements"
-        [rows]="pageSize"
-        [paginator]="true"
-        [lazy]="true"
-        [loading]="loading"
-        [totalRecords]="totalRecords"
-        [first]="first"
-        (onLazyLoad)="onLazyLoad($event)"
-        responsiveLayout="scroll"
-        styleClass="p-datatable-striped">
-
-        <!-- Header Template -->
-        <ng-template pTemplate="header">
-          <tr>
-            <th style="width: 15%">Date & Time</th>
-            <th style="width: 15%">Part</th>
-            <th style="width: 15%">Warehouse</th>
-            <th style="width: 10%" class="text-right">Quantity</th>
-            <th style="width: 12%">Type</th>
-            <th style="width: 12%">Status</th>
-            <th style="width: 20%">Notes / Reference</th>
-          </tr>
-        </ng-template>
-
-        <!-- Data Rows -->
-        <ng-template pTemplate="body" let-movement>
-          <tr>
-            <td>
-              <span class="text-sm">{{ movement.createdAt | date:'dd-MMM-yyyy HH:mm' }}</span>
-            </td>
-            <td>
-              <span class="font-semibold">{{ getPartDisplay(movement) }}</span>
-            </td>
-            <td>
-              <span class="text-gray-600">{{ getWarehouseDisplay(movement) }}</span>
-            </td>
-            <td class="text-right">
-              <div class="dual-unit-cell">
-                <span
-                  class="display-qty"
-                  [ngClass]="getQuantityClass(movement.type)">
-                  {{ getQuantityDisplay(movement.type, movement.quantity) }}
-                </span>
-                <span class="display-unit" *ngIf="movement.unitSymbol">{{ movement.unitSymbol }}</span>
-                <span class="base-qty" *ngIf="movement.quantityInBaseUnit && movement.unitSymbol">
-                  ({{ formatBaseQuantity(movement) }} {{ movement.baseUnitSymbol || movement.unitSymbol }})
-                </span>
-              </div>
-            </td>
-            <td>
-              <p-tag
-                [value]="getMovementTypeLabel(movement.type)"
-                [severity]="getMovementTypeSeverity(movement.type)">
-              </p-tag>
-            </td>
-            <td>
-              <p-tag
-                [value]="movement.status"
-                [severity]="getStatusSeverity(movement.status)">
-              </p-tag>
-            </td>
-            <td>
-              <div class="flex flex-col gap-1">
-                <span class="text-sm font-semibold">{{ movement.reference }}</span>
-                <span class="text-xs text-gray-500" *ngIf="movement.notes" [pTooltip]="movement.notes" tooltipPosition="left">
-                  {{ getMovementDescription(movement) }}
-                </span>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-
-        <!-- Empty Message -->
-        <ng-template pTemplate="emptymessage">
-          <tr>
-            <td colspan="7" class="text-center py-4">
-              <i class="pi pi-inbox mr-2"></i>
-              No stock movements found
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </p-card>
-  `,
-  styles: [`
-    .filters-row {
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 0.75rem;
-      align-items: flex-end;
-      margin-bottom: 1rem;
-      overflow-x: auto;
-      padding-bottom: 0.5rem;
-    }
-
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      min-width: 140px;
-      flex-shrink: 0;
-    }
-
-    .filter-group.search-group {
-      min-width: 220px;
-      flex: 1;
-    }
-
-    .filter-group.date-range-group {
-      min-width: 180px;
-    }
-
-    .filter-group.filter-actions-group {
-      min-width: auto;
-    }
-
-    .filter-actions {
-      flex-direction: row;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    :host ::ng-deep .date-picker-range {
-      .p-inputtext {
-        min-height: 34px;
-        border-radius: 8px;
-        border-color: var(--surface-border);
-        font-size: 0.8125rem;
-      }
-
-      .p-inputtext:focus {
-        box-shadow: 0 0 0 3px var(--color-primary-light);
-        border-color: var(--color-primary);
-      }
-
-      .p-datepicker-trigger {
-        background: var(--surface-ground);
-        border-color: var(--surface-border);
-      }
-
-      .p-datepicker-trigger:hover {
-        background: var(--surface-hover);
-      }
-    }
-
-    :host ::ng-deep .filter-dropdown .p-dropdown {
-      min-height: 34px;
-    }
-    .search-input-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      background: var(--surface-card);
-      border: 1px solid var(--surface-border);
-      border-radius: 8px;
-      padding: 0 0.75rem;
-      min-height: 34px;
-    }
-
-    .search-input-wrapper i {
-      color: var(--text-color-secondary);
-      margin-right: 0.5rem;
-      font-size: 0.875rem;
-    }
-
-    .search-input {
-      border: none;
-      outline: none;
-      font-size: 0.8125rem;
-      width: 100%;
-      background: transparent;
-      color: var(--text-color);
-    }
-
-    .search-clear {
-      background: none;
-      border: none;
-      color: var(--text-color-secondary);
-      cursor: pointer;
-      padding: 0;
-      margin-left: 0.5rem;
-      font-size: 0.875rem;
-    }
-
-    .search-clear:hover {
-      color: var(--text-color);
-    }
-
-    .btn-search,
-    .btn-clear {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
-      border: 1px solid var(--surface-border);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-size: 0.875rem;
-    }
-
-    .btn-search {
-      background: var(--color-info);
-      border-color: var(--color-info);
-      color: #fff;
-    }
-
-    .btn-search:hover {
-      opacity: 0.88;
-    }
-
-    .btn-clear {
-      background: var(--surface-card);
-      color: var(--text-color-secondary);
-    }
-
-    .btn-clear:hover {
-      background: var(--surface-hover);
-      border-color: var(--surface-border);
-    }
-
-    .search-clear {
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      color: var(--text-color-secondary);
-    }
-
-    .active-filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .active-filters-label {
-      font-size: 0.75rem;
-      color: var(--text-color-secondary);
-      font-weight: 600;
-    }
-
-    .filter-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 9999px;
-      background: var(--color-info-light);
-      color: var(--color-info);
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    .filter-chip i {
-      cursor: pointer;
-      color: var(--color-info);
-    }
-
-    @media (max-width: 768px) {
-      .filters-row {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .filter-group {
-        width: 100%;
-        min-width: 0;
-      }
-
-      .filter-actions {
-        width: 100%;
-        justify-content: stretch;
-      }
-
-      .btn-search,
-      .btn-clear {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-
-    .history-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      padding: 0;
-    }
-
-    .history-header h3 {
-      margin: 0;
-      font-size: 1.125rem;
-      font-weight: 600;
-    }
-
-    .text-sm {
-      font-size: 0.875rem;
-    }
-
-    .text-gray-600 {
-      color: var(--text-color-secondary);
-    }
-
-    .font-semibold {
-      font-weight: 600;
-    }
-
-    .text-right {
-      text-align: right;
-    }
-
-    .text-green {
-      color: var(--color-success);
-    }
-
-    .text-red {
-      color: var(--color-danger);
-    }
-
-    .text-orange {
-      color: var(--color-warning);
-    }
-
-    /* Dual Unit Display Styles */
-    .dual-unit-cell {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      align-items: flex-end;
-    }
-
-    .display-qty {
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .display-unit {
-      font-size: 11px;
-      color: var(--text-color-secondary);
-      font-weight: 500;
-    }
-
-    .base-qty {
-      font-size: 11px;
-      color: var(--text-color-secondary);
-      font-weight: 400;
-    }
-
-    @media (max-width: 768px) {
-      .dual-unit-cell {
-        align-items: flex-start;
-      }
-    }
-  `]
+  templateUrl: './stock-movement-history.component.html',
+  styleUrl: './stock-movement-history.component.scss',
 })
 export class StockMovementHistoryComponent implements OnInit {
   private readonly stockService = inject(StockService);
   private readonly partService = inject(PartService);
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
+  private readonly i18n = inject(I18nService);
 
   movements: StockMovementResponse[] = [];
   warehouses: WarehouseResponse[] = [];
@@ -511,20 +67,29 @@ export class StockMovementHistoryComponent implements OnInit {
   dateRange: Date[] = [];
   today = new Date();
 
-  movementTypeOptions = [
-    { label: 'All Types', value: '' },
-    { label: 'Stock In', value: 'IN' },
-    { label: 'Stock Out', value: 'OUT' },
-    { label: 'Return', value: 'RETURN' },
-    { label: 'Adjustment', value: 'ADJUST' },
-    { label: 'Transfer', value: 'TRANSFER' }
-  ];
+  /** Set by the parent stock page ("view history" on a stock row) to scope the list to one part. */
+  @Input() partFilter: { partId: string; label: string } | null = null;
 
-  statusOptions = [
-    { label: 'All Statuses', value: '' },
-    { label: 'Pending', value: 'PENDING' },
-    { label: 'Approved', value: 'APPROVED' }
-  ];
+  /** Getters, not fields: resolving t() once at construction would freeze the labels in whichever
+   *  language happened to be active then, instead of following the language switcher. */
+  get movementTypeOptions() {
+    return [
+      { label: this.i18n.t('stockMovements.typeOptions.all'), value: '' },
+      { label: this.i18n.t('stockMovements.types.IN'), value: 'IN' },
+      { label: this.i18n.t('stockMovements.types.OUT'), value: 'OUT' },
+      { label: this.i18n.t('stockMovements.types.RETURN'), value: 'RETURN' },
+      { label: this.i18n.t('stockMovements.types.ADJUST'), value: 'ADJUST' },
+      { label: this.i18n.t('stockMovements.types.TRANSFER'), value: 'TRANSFER' }
+    ];
+  }
+
+  get statusOptions() {
+    return [
+      { label: this.i18n.t('stockMovements.statusOptions.all'), value: '' },
+      { label: this.i18n.t('stockMovements.statuses.PENDING'), value: 'PENDING' },
+      { label: this.i18n.t('stockMovements.statuses.APPROVED'), value: 'APPROVED' }
+    ];
+  }
 
   ngOnInit(): void {
     this.loadAllData();
@@ -545,8 +110,8 @@ export class StockMovementHistoryComponent implements OnInit {
           this.loading = false;
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to load reference data'
+            summary: this.i18n.t('common.messages.error'),
+            detail: this.i18n.t('stockMovements.messages.loadReferenceFailed')
           });
         }
       });
@@ -585,6 +150,7 @@ export class StockMovementHistoryComponent implements OnInit {
       search: this.searchTerm,
       pageNumber: this.pageNumber,
       pageSize: this.pageSize,
+      partId: this.partFilter?.partId,
       type: this.filterType || undefined,
       status: this.filterStatus || undefined,
       fromDate: fromDate ? fromDate.toISOString() : undefined,
@@ -598,23 +164,28 @@ export class StockMovementHistoryComponent implements OnInit {
       error: (_error) => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load stock movements'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('stockMovements.messages.loadFailed')
         });
         this.loading = false;
       }
     });
   }
 
-  onLazyLoad(event: TableLazyLoadEvent): void {
-    this.first = event.first ?? 0;
-    this.pageSize = event.rows ?? 10;
-    this.pageNumber = Math.floor(this.first / this.pageSize) + 1;
+  goToPage(page: number): void {
+    this.pageNumber = page;
+    this.first = (page - 1) * this.pageSize;
+    this.loadMovements();
+  }
+
+  onPageSizeChange(size: number): void {
+    this.pageSize = size;
+    this.resetPagination();
     this.loadMovements();
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.filterType || this.filterStatus || (this.dateRange && this.dateRange.length > 0));
+    return !!(this.searchTerm || this.filterType || this.filterStatus || this.partFilter || (this.dateRange && this.dateRange.length > 0));
   }
 
   onSearch(): void {
@@ -643,6 +214,7 @@ export class StockMovementHistoryComponent implements OnInit {
     this.filterType = '';
     this.filterStatus = '';
     this.dateRange = [];
+    this.partFilter = null;
     this.resetPagination();
     this.loadMovements();
   }
@@ -661,7 +233,7 @@ export class StockMovementHistoryComponent implements OnInit {
       return code ? `${name} (${code})` : name;
     }
     // Fallback: resolve on demand (movement rows normally already carry partName/displayName).
-    return movement.partId ? this.resolvePartLabel(movement.partId) : 'Unknown Part';
+    return movement.partId ? this.resolvePartLabel(movement.partId) : this.i18n.t('stockMovements.unknownPart');
   }
 
   getWarehouseDisplay(movement: StockMovementResponse): string {
@@ -674,7 +246,7 @@ export class StockMovementHistoryComponent implements OnInit {
     if (warehouse) {
       return warehouse.code ? `${warehouse.name} (${warehouse.code})` : warehouse.name;
     }
-    return movement.warehouseId || 'Unknown Warehouse';
+    return movement.warehouseId || this.i18n.t('stockMovements.unknownWarehouse');
   }
 
   // Keep old methods for backward compatibility
@@ -692,18 +264,17 @@ export class StockMovementHistoryComponent implements OnInit {
   }
 
   getMovementTypeLabel(type: string): string {
-    const types: { [key: string]: string } = {
-      'IN': 'Stock In',
-      'OUT': 'Stock Out',
-      'RETURN': 'Return',
-      'ADJUST': 'Adjustment',
-      'ADJUSTMENT': 'Adjustment',
-      'TRANSFER': 'Transfer',
-      'DAMAGE': 'Damage',
-      'SHRINKAGE': 'Shrinkage',
-      'COUNT_CORRECTION': 'Count Correction'
-    };
-    return types[type] || type;
+    if (!type) return '';
+    const key = 'stockMovements.types.' + type;
+    const label = this.i18n.t(key);
+    return label === key ? type : label;
+  }
+
+  getStatusLabel(status: string): string {
+    if (!status) return '';
+    const key = 'stockMovements.statuses.' + status;
+    const label = this.i18n.t(key);
+    return label === key ? status : label;
   }
 
   getMovementTypeSeverity(type: string): 'success' | 'info' | 'danger' | 'warn' {
@@ -781,19 +352,19 @@ export class StockMovementHistoryComponent implements OnInit {
     const reason = movement.reason || '';
 
     if (ref.startsWith('PR-')) {
-      return 'Returned to supplier';
+      return this.i18n.t('stockMovements.descriptions.returnedToSupplier');
     } else if (ref.startsWith('INV-') || reason.includes('Quick Sale')) {
-      return 'Quick sale to customer';
+      return this.i18n.t('stockMovements.descriptions.quickSale');
     } else if (ref.startsWith('SO-') || ref.startsWith('Sales Order')) {
-      return 'Sold to customer';
+      return this.i18n.t('stockMovements.descriptions.soldToCustomer');
     } else if (ref.startsWith('SR-') || ref.includes('Sales Return')) {
-      return 'Returned by customer';
+      return this.i18n.t('stockMovements.descriptions.returnedByCustomer');
     } else if (ref.startsWith('GRN-') || ref.includes('GRN')) {
-      return 'Received from supplier';
+      return this.i18n.t('stockMovements.descriptions.receivedFromSupplier');
     } else if (ref.startsWith('ADJ-')) {
-      return 'Stock adjustment';
+      return this.i18n.t('stockMovements.descriptions.stockAdjustment');
     } else if (ref.startsWith('TRF-')) {
-      return 'Warehouse transfer';
+      return this.i18n.t('stockMovements.descriptions.warehouseTransfer');
     }
 
     return movement.notes || '';

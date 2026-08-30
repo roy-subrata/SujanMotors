@@ -1,0 +1,126 @@
+<p-toast></p-toast>
+
+<div class="avm-container">
+
+  <!-- Header -->
+  <div class="avm-header">
+    <div>
+      <h3 class="avm-title">
+        <i class="pi pi-sliders-h avm-icon"></i>
+        {{ 'parts.productAttributeValuesManager.title' | translate }}
+        <span class="avm-count" *ngIf="selectedAttrRows.length > 0">({{ selectedAttrRows.length }})</span>
+      </h3>
+      <p class="avm-hint">
+        {{ 'parts.productAttributeValuesManager.hintPart1' | translate }} <strong>{{ 'parts.productAttributeValuesManager.hintExamples' | translate }}</strong>.
+        {{ 'parts.productAttributeValuesManager.hintPart2' | translate }} <a (click)="goToAttributeManager()" class="avm-link">{{ 'parts.productAttributeValuesManager.hintManageAttributesLink' | translate }}</a> {{ 'parts.productAttributeValuesManager.hintPart3' | translate }}
+      </p>
+    </div>
+  </div>
+
+  <div *ngIf="!partId && !isViewMode" class="avm-save-first-hint">
+    <i class="pi pi-info-circle"></i> {{ 'parts.productAttributeValuesManager.willSaveWithProductHint' | translate }}
+  </div>
+
+  <form [formGroup]="form" class="avm-form">
+
+    <!-- Existing attribute rows -->
+    <div formArrayName="attributeValues" class="avm-rows" *ngIf="valuesArray.controls.length > 0">
+      <div
+        *ngFor="let ctrl of valuesArray.controls; let i = index"
+        [formGroupName]="i"
+        class="avm-row">
+
+        <div class="avm-row-label">
+          <span class="avm-attr-name">{{ selectedAttrRows[i]?.label }}</span>
+          <span *ngIf="selectedAttrRows[i]?.unit" class="avm-attr-unit">({{ selectedAttrRows[i].unit }})</span>
+          <span class="avm-group-badge">{{ selectedAttrRows[i]?.groupName }}</span>
+        </div>
+
+        <div class="avm-row-input">
+          <!-- option type -->
+          <p-select
+            *ngIf="selectedAttrRows[i]?.dataType === 'option'"
+            formControlName="optionId"
+            [options]="selectedAttrRows[i]?.options"
+            optionLabel="value"
+            optionValue="id"
+            [placeholder]="'parts.productAttributeValuesManager.selectPlaceholder' | translate"
+            [showClear]="true"
+            [disabled]="isViewMode"
+            appendTo="body"
+            [style]="{ width: '100%' }">
+          </p-select>
+          <!-- number type -->
+          <p-inputNumber
+            *ngIf="selectedAttrRows[i]?.dataType === 'number'"
+            formControlName="valueNumber"
+            [minFractionDigits]="0" [maxFractionDigits]="4"
+            mode="decimal" [disabled]="isViewMode" class="avm-w-full">
+          </p-inputNumber>
+          <!-- boolean type -->
+          <p-checkbox
+            *ngIf="selectedAttrRows[i]?.dataType === 'boolean'"
+            formControlName="valueBool"
+            [binary]="true"
+            [disabled]="isViewMode">
+          </p-checkbox>
+          <!-- text type -->
+          <input
+            *ngIf="selectedAttrRows[i]?.dataType === 'text'"
+            pInputText formControlName="valueText"
+            [placeholder]="'parts.productAttributeValuesManager.enterValuePlaceholder' | translate"
+            [disabled]="isViewMode" class="avm-w-full" />
+        </div>
+
+        <button
+          *ngIf="!isViewMode"
+          pButton type="button" icon="pi pi-times"
+          class="p-button-text p-button-danger p-button-sm avm-remove-btn"
+          [pTooltip]="'parts.productAttributeValuesManager.removeAttributeTooltip' | translate"
+          (click)="removeAttrRow(i)">
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="valuesArray.controls.length === 0" class="avm-empty">
+      <i class="pi pi-info-circle"></i>
+      {{ 'parts.productAttributeValuesManager.noValuesYet' | translate }}
+    </div>
+
+    <!-- Add attribute picker -->
+    <div class="avm-add-row" *ngIf="!isViewMode && availableAttributes.length > 0">
+      <p-select
+        [(ngModel)]="attrToAdd"
+        [ngModelOptions]="{standalone: true}"
+        [options]="availableAttributes"
+        optionLabel="label"
+        optionValue="value"
+        [placeholder]="'parts.productAttributeValuesManager.pickAttributePlaceholder' | translate"
+        appendTo="body"
+        [style]="{ flex: '1' }">
+      </p-select>
+      <button pButton type="button" icon="pi pi-plus" [label]="'parts.productAttributeValuesManager.addButton' | translate"
+        class="p-button-outlined p-button-sm p-button-info"
+        [disabled]="!attrToAdd" (click)="addSelectedAttribute()"></button>
+    </div>
+
+    <div *ngIf="!isLoadingAttrs && allAttributes.length === 0" class="avm-hint-row">
+      <i class="pi pi-info-circle"></i>
+      {{ 'parts.productAttributeValuesManager.noAttributesDefinedHint' | translate }}
+      <a (click)="goToAttributeManager()" class="avm-link">{{ 'parts.productAttributeValuesManager.setUpAttributeGroups' | translate }}</a>
+    </div>
+    <div *ngIf="allAttributes.length > 0 && availableAttributes.length === 0 && selectedAttrRows.length > 0 && !isViewMode" class="avm-hint-row avm-hint-success">
+      <i class="pi pi-check-circle"></i> {{ 'parts.productAttributeValuesManager.allAttributesAdded' | translate }}
+    </div>
+  </form>
+
+  <!-- Footer actions — independent save, mirrors specs-manager's own dirty-check/save -->
+  <div *ngIf="!isViewMode && partId" class="avm-footer">
+    <span class="avm-dirty" *ngIf="isDirty"><i class="pi pi-circle-fill"></i> {{ 'parts.productAttributeValuesManager.unsavedChanges' | translate }}</span>
+    <button pButton type="button" [label]="'parts.reset' | translate" icon="pi pi-undo" class="p-button-sm p-button-text"
+      [disabled]="isSaving || !isDirty" (click)="reset()"></button>
+    <button pButton type="button" [label]="'parts.productAttributeValuesManager.saveButton' | translate" icon="pi pi-check" class="p-button-sm"
+      [disabled]="isSaving || !isDirty" [loading]="isSaving" (click)="save()"></button>
+  </div>
+
+</div>

@@ -5,6 +5,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/format.dart';
 import '../../shared/models/invoice.dart';
+import '../../shared/models/status_enums.dart';
 import '../../shared/widgets/paged_list_view.dart';
 import '../../shared/widgets/state_views.dart';
 import 'customers_repository.dart';
@@ -26,13 +27,18 @@ class CustomerInvoicesScreen extends ConsumerStatefulWidget {
 class _CustomerInvoicesScreenState
     extends ConsumerState<CustomerInvoicesScreen> {
   final _searchCtrl = TextEditingController();
-  String? _status; // null = All
+  InvoiceStatus? _status; // null = All
   String _search = '';
   int? _total;
 
-  // Invoice statuses (matches the backend's values).
+  // Selectable invoice statuses (excludes the defensive `unknown` fallback).
   static const _statuses = [
-    'DRAFT', 'ISSUED', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED',
+    InvoiceStatus.draft,
+    InvoiceStatus.issued,
+    InvoiceStatus.partiallyPaid,
+    InvoiceStatus.paid,
+    InvoiceStatus.overdue,
+    InvoiceStatus.cancelled,
   ];
 
   @override
@@ -100,7 +106,7 @@ class _CustomerInvoicesScreenState
           Divider(height: 1),
           Expanded(
             child: PagedListView<Invoice>(
-              resetKey: '${_status ?? 'all'}|$_search',
+              resetKey: '${_status?.wire ?? 'all'}|$_search',
               padding: const EdgeInsets.all(12),
               onLoaded: (total) {
                 if (_total != total) {
@@ -131,15 +137,15 @@ class _StatusMenu extends StatelessWidget {
   const _StatusMenu(
       {required this.value, required this.options, required this.onChanged});
 
-  final String? value;
-  final List<String> options;
-  final ValueChanged<String?> onChanged;
+  final InvoiceStatus? value;
+  final List<InvoiceStatus> options;
+  final ValueChanged<InvoiceStatus?> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final active = value != null;
-    return PopupMenuButton<String?>(
+    return PopupMenuButton<InvoiceStatus?>(
       tooltip: S.of(context).filterByStatus,
       onSelected: onChanged,
       itemBuilder: (_) => [
@@ -262,13 +268,13 @@ class _InvoiceTileState extends ConsumerState<_InvoiceTile> {
         ),
         children: [
           _LineItems(future: _linesFuture, currency: invoice.currency),
-          if (invoice.status != null) ...[
+          if (invoice.status != InvoiceStatus.unknown) ...[
             Divider(height: 16),
             Row(
               children: [
                 Text('${S.of(context).status}: ',
                     style: theme.textTheme.bodySmall),
-                Text(S.of(context).statusName(invoice.status!),
+                Text(S.of(context).statusName(invoice.status),
                     style: theme.textTheme.bodySmall
                         ?.copyWith(fontWeight: FontWeight.w600)),
               ],

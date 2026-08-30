@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -98,7 +99,7 @@ public class SalesOrderRepository : ISalesOrderRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<SalesOrder>> GetByStatusAsync(string status, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<SalesOrder>> GetByStatusAsync(SalesOrderStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.SalesOrders
             .Include(x => x.LineItems)
@@ -113,7 +114,7 @@ public class SalesOrderRepository : ISalesOrderRepository
         return await _dbContext.SalesOrders
             .Include(x => x.LineItems)
                 .ThenInclude(li => li.Part)
-            .Where(x => x.DeliveryDate.HasValue && x.DeliveryDate < DateTime.UtcNow && x.Status != "DELIVERED" && x.Status != "CANCELLED" && !x.Isdeleted)
+            .Where(x => x.DeliveryDate.HasValue && x.DeliveryDate < DateTime.UtcNow && x.Status != SalesOrderStatus.DELIVERED && x.Status != SalesOrderStatus.CANCELLED && !x.Isdeleted)
             .OrderByDescending(x => x.SODate)
             .ToListAsync(cancellationToken);
     }

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PdfDownloadService } from '@/shared/services/pdf-download.service';
+import { QuotationStatus } from '@/shared/models/status.types';
 
 export interface CreateQuotationLineRequest {
     partId: string;
@@ -48,7 +49,7 @@ export interface QuotationResponse {
     customerPhone: string;
     quoteDate: string;
     validUntil: string;
-    status: string; // DRAFT | SENT | ACCEPTED | REJECTED | CONVERTED | EXPIRED
+    status: QuotationStatus;
     isExpired: boolean;
     subTotal: number;
     discountPercentage: number;
@@ -65,7 +66,7 @@ export interface QuotationResponse {
 
 export interface QuotationQuery {
     customerId?: string;
-    status?: string;
+    status?: QuotationStatus;
     search?: string;
     pageNumber: number;
     pageSize: number;
@@ -125,9 +126,13 @@ export class QuotationService {
         return this.http.patch<QuotationResponse>(`${this.apiUrl}/${id}/reject`, { reason });
     }
 
-    /** ACCEPTED → CONVERTED, creates a new SalesOrder */
-    convertToSalesOrder(id: string): Observable<ConvertQuotationResponse> {
-        return this.http.post<ConvertQuotationResponse>(`${this.apiUrl}/${id}/convert`, {});
+    /**
+     * ACCEPTED → CONVERTED, creates a new SalesOrder.
+     * The warehouse is required: a quotation carries none, and the resulting order cannot be
+     * confirmed without one (it is what stock is deducted from).
+     */
+    convertToSalesOrder(id: string, warehouseId: string): Observable<ConvertQuotationResponse> {
+        return this.http.post<ConvertQuotationResponse>(`${this.apiUrl}/${id}/convert`, { warehouseId });
     }
 
     /** Download the server-rendered Quotation PDF and trigger the browser save dialog. */

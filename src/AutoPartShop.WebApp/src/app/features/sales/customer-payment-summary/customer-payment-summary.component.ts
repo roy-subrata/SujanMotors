@@ -5,9 +5,14 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 import { CustomerPaymentService, CustomerPaymentHistorySummary } from '../services/customer-payment.service';
 import { CurrencyService } from '../../../shared/services/currency.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
+import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-customer-payment-summary',
@@ -16,7 +21,11 @@ import { CurrencyService } from '../../../shared/services/currency.service';
     CommonModule,
     ButtonModule,
     SkeletonModule,
-    ToastModule
+    ToastModule,
+    TooltipModule,
+    TranslatePipe,
+    PageContainerComponent,
+    PageHeaderComponent
   ],
   providers: [MessageService],
   templateUrl: './customer-payment-summary.component.html',
@@ -28,6 +37,7 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly currencyService = inject(CurrencyService);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   customerId: string = '';
@@ -42,7 +52,7 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
       if (this.customerId) {
         this.loadSummary();
       } else {
-        this.error = 'Customer ID not provided';
+        this.error = this.i18n.t('customerPaymentSummary.messages.noCustomerId');
         this.loading = false;
       }
     });
@@ -63,12 +73,12 @@ export class CustomerPaymentSummaryComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Error loading payment summary:', err);
-          this.error = 'Failed to load payment summary. Please try again.';
+          this.error = this.i18n.t('customerPaymentSummary.messages.loadFailedInline');
           this.loading = false;
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to load customer payment summary',
+            summary: this.i18n.t('common.messages.error'),
+            detail: this.i18n.t('customerPaymentSummary.messages.loadFailed'),
             life: 5000
           });
         }

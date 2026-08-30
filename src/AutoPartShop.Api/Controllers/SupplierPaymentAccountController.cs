@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.SupplierDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Repositories;
@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/supplier-payment-accounts")]
 [Route("api/v1/supplier-payment-accounts")]
 [ApiController]
 [HasPermission(Permissions.ProcurementView)]
@@ -266,7 +264,7 @@ public class SupplierPaymentAccountController : ControllerBase
 
             var currentUser = _currentUserService.GetCurrentUsername();
 
-            // Set the target as default first â€” if subsequent unsets fail the intended default is at least in place
+            // Set the target as default first — if subsequent unsets fail the intended default is at least in place
             account.SetAsDefault(true);
             account.ModifiedBy = currentUser;
             await _repository.UpdateAsync(account, cancellationToken);

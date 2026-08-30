@@ -8,16 +8,16 @@
 <app-page-container>
   <!-- ==================== PAGE HEADER ==================== -->
   <app-page-header
-    title="Vehicles"
-    subtitle="Manage vehicle makes, models, and compatibility"
-    [count]="totalRecords" countLabel="vehicles">
+    [title]="'vehicles.title' | translate"
+    [subtitle]="'vehicles.subtitle' | translate"
+    [count]="totalRecords" [countLabel]="'vehicles.countLabel' | translate">
     <ng-container actions>
-      <button class="btn-icon" pTooltip="Refresh" tooltipPosition="bottom" (click)="refreshData()">
+      <button class="btn-icon" [pTooltip]="'common.actions.refresh' | translate" tooltipPosition="bottom" (click)="refreshData()">
         <i class="pi pi-refresh" [class.pi-spin]="loading"></i>
       </button>
       <button class="btn-primary" (click)="createVehicle()">
         <i class="pi pi-plus"></i>
-        <span>New Vehicle</span>
+        <span>{{ 'vehicles.addVehicle' | translate }}</span>
       </button>
     </ng-container>
   </app-page-header>
@@ -30,7 +30,7 @@
         <input
           type="text"
           [(ngModel)]="searchTerm"
-          placeholder="Search by make, model, year, engine..."
+          [placeholder]="'vehicles.searchVehicles' | translate"
           (keyup.enter)="onSearch()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="onSearchClear()">
@@ -42,18 +42,18 @@
     <div filterActions class="filter-group filter-actions">
       <button class="btn-search" (click)="onSearch()">
         <i class="pi pi-search"></i>
-        Search
+        {{ 'common.actions.search' | translate }}
       </button>
       <button *ngIf="hasActiveFilters()" class="btn-clear" (click)="clearFilters()">
         <i class="pi pi-filter-slash"></i>
-        Clear
+        {{ 'common.actions.clear' | translate }}
       </button>
     </div>
 
     <div activeFilters *ngIf="hasActiveFilters()" class="active-filters">
-      <span class="active-filters-label">Active filters:</span>
+      <span class="active-filters-label">{{ 'common.labels.activeFilters' | translate }}</span>
       <span *ngIf="searchTerm" class="filter-chip">
-        Search: "{{ searchTerm }}"
+        {{ 'common.labels.search' | translate }}: "{{ searchTerm }}"
         <i class="pi pi-times" (click)="onSearchClear()"></i>
       </span>
     </div>

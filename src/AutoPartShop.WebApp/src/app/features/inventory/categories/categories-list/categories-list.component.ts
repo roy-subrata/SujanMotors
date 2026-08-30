@@ -12,6 +12,7 @@ import { CategoryResponse } from '../../services/category.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-categories-list',
@@ -25,7 +26,8 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
         TagModule,
         ContextMenuModule,
         RippleModule,
-        DataPaginationComponent
+        DataPaginationComponent,
+        TranslatePipe
     ],
     templateUrl: './categories-list.component.html',
     styleUrls: ['./categories-list.component.css']

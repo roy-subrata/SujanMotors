@@ -75,7 +75,7 @@ public class StockMovementReadRepository : IStockMovementReadRepository
                 (x.StockLevel != null && x.StockLevel.Part != null &&
                  (EF.Functions.Like(x.StockLevel.Part.Name.ToLower(), $"%{term}%") ||
                   EF.Functions.Like(x.StockLevel.Part.SKU.ToLower(), $"%{term}%") ||
-                  (x.StockLevel.Part.PartNumber != null && EF.Functions.Like(x.StockLevel.Part.PartNumber.Value.ToLower(), $"%{term}%")))) ||
+                  (x.StockLevel.Part.PartNumber != null && EF.Functions.Like(x.StockLevel.Part.PartNumber.Value, $"%{term}%")))) ||
                 (x.StockLevel != null && x.StockLevel.Variant != null &&
                  (EF.Functions.Like(x.StockLevel.Variant.Name.ToLower(), $"%{term}%") ||
                   (x.StockLevel.Variant.SKU != null && EF.Functions.Like(x.StockLevel.Variant.SKU.ToLower(), $"%{term}%")))) ||

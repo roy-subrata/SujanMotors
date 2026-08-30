@@ -1,6 +1,6 @@
  <div class="apply-credit-dialog">
             <div class="dialog-content">
-                <h3 class="section-title">Available Advance Payments</h3>
+                <h3 class="section-title">{{ 'applyAdvanceCredit.title' | translate }}</h3>
 
                 <div class="advance-table-wrapper">
                 <p-table
@@ -12,17 +12,17 @@
                     dataKey="id"
                     responsiveLayout="scroll"
                     styleClass="p-datatable-sm">
-                    <ng-template pTemplate="header">
+                    <ng-template #header>
                         <tr>
                             <th style="width: 3rem"></th>
-                            <th>Transaction #</th>
-                            <th class="col-hide-md">Date</th>
-                            <th class="col-hide-sm">Original Amount</th>
-                            <th class="col-hide-sm">Used</th>
-                            <th>Available</th>
+                            <th>{{ 'applyAdvanceCredit.columns.transaction' | translate }}</th>
+                            <th class="col-hide-md">{{ 'applyAdvanceCredit.columns.date' | translate }}</th>
+                            <th class="col-hide-sm">{{ 'applyAdvanceCredit.columns.originalAmount' | translate }}</th>
+                            <th class="col-hide-sm">{{ 'applyAdvanceCredit.columns.used' | translate }}</th>
+                            <th>{{ 'applyAdvanceCredit.columns.available' | translate }}</th>
                         </tr>
                     </ng-template>
-                    <ng-template pTemplate="body" let-advance>
+                    <ng-template #body let-advance>
                         <tr [pSelectableRow]="advance">
                             <td>
                                 <p-tableRadioButton [value]="advance"></p-tableRadioButton>
@@ -42,12 +42,12 @@
                             </td>
                         </tr>
                     </ng-template>
-                    <ng-template pTemplate="emptymessage">
+                    <ng-template #emptymessage>
                         <tr>
                             <td colspan="6" class="text-center">
                                 <div class="empty-state">
                                     <i class="pi pi-info-circle" style="font-size: 3rem; color: var(--text-color-secondary);"></i>
-                                    <p>No advance payments available for this supplier</p>
+                                    <p>{{ 'applyAdvanceCredit.emptySupplier' | translate }}</p>
                                 </div>
                             </td>
                         </tr>
@@ -57,7 +57,7 @@
 
                 <div *ngIf="selectedAdvance" class="payment-form" style="margin-top: 1.5rem;">
                     <div class="form-group">
-                        <label for="amount">Amount to Apply <span class="required">*</span></label>
+                        <label for="amount">{{ 'applyAdvanceCredit.amountLabel' | translate }} <span class="required">*</span></label>
                         <p-inputNumber
                             id="amount"
                             [(ngModel)]="amountToApply"
@@ -67,7 +67,7 @@
                             [min]="0"
                             [max]="getMaxAmount()"
                             [maxFractionDigits]="2"
-                            placeholder="Enter amount"
+                            [placeholder]="'applyAdvanceCredit.amountPlaceholder' | translate"
                             styleClass="w-full">
                         </p-inputNumber>
                         <small class="text-muted">
@@ -79,28 +79,28 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="description">Description (Optional)</label>
+                        <label for="description">{{ 'applyAdvanceCredit.descriptionLabel' | translate }}</label>
                         <textarea
                             id="description"
                             [(ngModel)]="description"
                             pInputTextarea
                             rows="3"
-                            placeholder="Add notes about this credit application"
+                            [placeholder]="'applyAdvanceCredit.descriptionPlaceholder' | translate"
                             class="w-full">
                         </textarea>
                     </div>
 
                     <div class="summary-box" style="margin-top: 1rem; padding: 1rem; background: var(--surface-100); border-radius: 6px;">
                         <div class="summary-row">
-                            <span>Purchase Order Amount:</span>
+                            <span>{{ 'applyAdvanceCredit.poAmount' | translate }}</span>
                             <strong>{{ formatCurrency(purchaseOrderAmount) }}</strong>
                         </div>
                         <div class="summary-row">
-                            <span>Amount to Apply:</span>
+                            <span>{{ 'applyAdvanceCredit.amountToApply' | translate }}</span>
                             <strong class="text-primary">{{ formatCurrency(amountToApply || 0) }}</strong>
                         </div>
                         <div class="summary-row" style="border-top: 1px solid var(--surface-300); padding-top: 0.5rem; margin-top: 0.5rem;">
-                            <span>Remaining Balance After:</span>
+                            <span>{{ 'applyAdvanceCredit.remainingAfter' | translate }}</span>
                             <strong class="text-success">{{ formatCurrency(selectedAdvance.remainingAmount - (amountToApply || 0)) }}</strong>
                         </div>
                     </div>
@@ -108,11 +108,11 @@
             </div>
 
             <div class="dialog-footer" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
-                <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
+                <button pButton type="button" [label]="'common.actions.cancel' | translate" icon="pi pi-times" class="p-button-outlined" (click)="onCancel()"></button>
                 <button
                     pButton
                     type="button"
-                    label="Apply Credit"
+                    [label]="'applyAdvanceCredit.applyCredit' | translate"
                     icon="pi pi-check"
                     class="p-button-success"
                     (click)="onApply()"

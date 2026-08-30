@@ -6,12 +6,15 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule, Menu } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
+import { ToastModule } from 'primeng/toast';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { GoodsReceiptService, GoodsReceiptResponse } from '../services/goods-receipt.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-goods-receipts-list',
@@ -23,8 +26,11 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     ButtonModule,
     MenuModule,
     TooltipModule,
-    DataPaginationComponent
-  ],
+    ToastModule,
+    ConfirmDialogModule,
+    DataPaginationComponent,
+    TranslatePipe
+],
   providers: [ConfirmationService, MessageService],
   templateUrl: './goods-receipts-list.component.html',
   styleUrls: ['./goods-receipts-list.component.css']

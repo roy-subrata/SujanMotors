@@ -21,6 +21,19 @@ public sealed class ProductImportService(
     private const string PriceUpdateReason = "IMPORT_PRICE_UPDATE";
     private const string InitialPriceReason = "INITIAL_PRICE";
 
+    // Set once per CommitAsync run (see there) from the configurable SKU_PREFIX company-profile
+    // setting; BuildPart/BuildVariant read it instead of re-querying settings per row.
+    private string _skuPrefix = "SKU";
+
+    private async Task<string> GetSkuPrefixAsync(CancellationToken cancellationToken)
+    {
+        var value = await _db.Set<ApplicationSettings>()
+            .Where(s => s.Key == "SKU_PREFIX" && !s.Isdeleted)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+        return string.IsNullOrWhiteSpace(value) ? "SKU" : value;
+    }
+
     // Canonical column headers, in template order. A trailing "*" marks a column that is
     // required when creating a part (on an update, blank means "leave unchanged").
     // SKU is the import key: blank creates, filled updates.
@@ -245,7 +258,8 @@ public sealed class ProductImportService(
     // ── Validate (dry-run) ───────────────────────────────────────────────────────
 
     public async Task<ProductImportValidationResult> ValidateAsync(
-        Stream xlsxStream, ProductImportMode mode, CancellationToken cancellationToken = default)
+        Stream xlsxStream, ProductImportMode mode, bool allowNewReferenceData = false,
+        CancellationToken cancellationToken = default)
     {
         var rows = ParseRows(xlsxStream);
         var ctx = await LoadContextAsync(cancellationToken);
@@ -256,7 +270,7 @@ public sealed class ProductImportService(
         foreach (var (row, parseErrors) in rows)
         {
             var errors = new List<string>(parseErrors);
-            var action = ValidateRow(row, mode, ctx, state, errors);
+            var action = ValidateRow(row, mode, ctx, state, errors, allowNewReferenceData);
 
             var ok = errors.Count == 0;
             result.Rows.Add(new ProductImportRowResult
@@ -296,12 +310,17 @@ public sealed class ProductImportService(
     // ── Commit ─────────────────────────────────────────────────────────────────
 
     public async Task<ProductImportCommitResult> CommitAsync(
-        IEnumerable<ProductImportRow> rows, ProductImportMode mode, CancellationToken cancellationToken = default)
+        IEnumerable<ProductImportRow> rows, ProductImportMode mode, bool allowNewReferenceData = false,
+        CancellationToken cancellationToken = default)
     {
         var orderedRows = rows.OrderBy(r => r.RowNumber).ToList();
         var ctx = await LoadContextAsync(cancellationToken);
         var state = new RowValidationState();
         var user = _currentUserService.GetCurrentUsername();
+
+        // Resolved once per import run rather than per row — BuildPart/BuildVariant run
+        // synchronously in a tight loop over potentially thousands of rows.
+        _skuPrefix = await GetSkuPrefixAsync(cancellationToken);
 
         var result = new ProductImportCommitResult();
 
@@ -310,7 +329,7 @@ public sealed class ProductImportService(
         foreach (var row in orderedRows)
         {
             var errors = new List<string>();
-            var action = ValidateRow(row, mode, ctx, state, errors);
+            var action = ValidateRow(row, mode, ctx, state, errors, allowNewReferenceData);
 
             if (errors.Count > 0)
             {
@@ -586,6 +605,36 @@ public sealed class ProductImportService(
 
         /// <summary>Variant part numbers mapped to their owning part — a variant PN is globally unique.</summary>
         public Dictionary<string, Guid> ProductIdByVariantPartNumber { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+        // Existing master data, used to reject unknown names when the caller has not opted in to
+        // creating them. Matching mirrors the Resolve*Async methods exactly, so validation and
+        // commit agree on what counts as "known".
+        public HashSet<string> BrandNames { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> UnitNames { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+        public List<(Guid Id, string Name, Guid? ParentId)> Categories { get; init; } = [];
+
+        /// <summary>
+        /// True when every segment of a "Parent &gt; Child" path already exists at its own level,
+        /// matching ResolveCategoryPathsAsync's parent-scoped name lookup.
+        /// </summary>
+        public bool IsKnownCategoryPath(string path)
+        {
+            var segments = path.Split(CategorySeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (segments.Length == 0) return true;
+
+            Guid? parentId = null;
+            foreach (var segment in segments)
+            {
+                var match = Categories.FirstOrDefault(c =>
+                    string.Equals(c.Name.Trim(), segment, StringComparison.OrdinalIgnoreCase)
+                    && c.ParentId == parentId);
+
+                if (match.Id == Guid.Empty) return false;
+                parentId = match.Id;
+            }
+
+            return true;
+        }
     }
 
     private async Task<ImportContext> LoadContextAsync(CancellationToken ct)
@@ -606,7 +655,18 @@ public sealed class ProductImportService(
             .Select(v => new { v.PartId, v.PartNumber })
             .ToListAsync(ct);
 
-        var ctx = new ImportContext();
+        var brandNames = await _db.Brands.AsNoTracking().Select(b => b.Name).ToListAsync(ct);
+        var unitNames = await _db.Units.AsNoTracking().Select(u => u.Name).ToListAsync(ct);
+        var categories = await _db.Categories.AsNoTracking()
+            .Select(c => new { c.Id, c.Name, c.ParentCategoryId })
+            .ToListAsync(ct);
+
+        var ctx = new ImportContext
+        {
+            BrandNames = new HashSet<string>(brandNames.Select(n => n.Trim()), StringComparer.OrdinalIgnoreCase),
+            UnitNames = new HashSet<string>(unitNames.Select(n => n.Trim()), StringComparer.OrdinalIgnoreCase),
+            Categories = categories.Select(c => (c.Id, c.Name, c.ParentCategoryId)).ToList()
+        };
 
         foreach (var p in skus)
             if (!string.IsNullOrWhiteSpace(p.SKU))
@@ -876,21 +936,25 @@ public sealed class ProductImportService(
         Guid? unitId = !string.IsNullOrWhiteSpace(row.Unit) && unitMap.TryGetValue(Key(row.Unit), out var unitRef)
             ? unitRef.Entity.Id : null;
 
-        var sku = _codeGenerateService.GenerateAsync("SKU").GetAwaiter().GetResult();
+        var sku = _codeGenerateService.GenerateAsync(_skuPrefix).GetAwaiter().GetResult();
         var partNumber = string.IsNullOrWhiteSpace(row.PartNumber)
             ? null
             : PartNumber.Create(row.PartNumber.Trim());
 
         var hasWarranty = row.HasWarranty ?? false;
 
+        // Same fallback as the manual create form: a part without a real scanned barcode still
+        // needs something scannable for POS/label printing, so it defaults to the SKU.
+        var barcode = string.IsNullOrWhiteSpace(row.Barcode) ? sku : row.Barcode.Trim();
+
         var part = Product.Create(
             row.Name!.Trim(), partNumber, sku, catRef.Entity.Id,
             brandId, unitId, unitId,
-            row.Description?.Trim() ?? string.Empty, richDescription: null,
+            row.Description?.Trim() ?? string.Empty,
             row.CostPrice ?? 0, row.SellingPrice ?? 0, row.MinimumStock ?? 0,
             hasWarranty, row.WarrantyPeriodMonths, row.WarrantyType,
             warrantyTerms: null, warrantyCertificateTemplate: null,
-            row.Barcode?.Trim(), row.Tags?.Trim(),
+            barcode, row.Tags?.Trim(),
             string.IsNullOrWhiteSpace(row.ProductType) ? "PHYSICAL" : row.ProductType.Trim().ToUpperInvariant(),
             isPerishable: false,
             row.WeightKg,
@@ -948,7 +1012,6 @@ public sealed class ProductImportService(
             isPerishable: part.IsPerishable,
             weightKg: row.WeightKg ?? part.WeightKg,
             taxCode: row.TaxCode?.Trim() ?? part.TaxCode,
-            richDescription: part.RichDescription,
             oemNumber: row.OemNumber?.Trim() ?? part.OemNumber,
             localName: row.LocalName?.Trim() ?? part.LocalName);
 
@@ -968,17 +1031,21 @@ public sealed class ProductImportService(
         var costPrice = row.VariantCostPrice ?? row.CostPrice ?? parent.CostPrice;
         var sellingPrice = row.VariantSellingPrice ?? row.SellingPrice ?? parent.SellingPrice;
 
-        var sku = _codeGenerateService.GenerateAsync("SKU").GetAwaiter().GetResult();
+        var sku = _codeGenerateService.GenerateAsync(_skuPrefix).GetAwaiter().GetResult();
 
         PartNumber? variantPartNumber = null;
         if (!string.IsNullOrWhiteSpace(row.VariantPartNumber))
             variantPartNumber = PartNumber.Create(row.VariantPartNumber!.Trim());
 
+        // Same fallback as the manual variant dialog: default to the SKU when the sheet doesn't
+        // carry a real scanned barcode.
+        var variantBarcode = string.IsNullOrWhiteSpace(row.VariantBarcode) ? sku : row.VariantBarcode.Trim();
+
         var variant = ProductVariant.Create(
             parent.Id, variantName, variantCode,
             costPrice, sellingPrice,
             sku,
-            row.VariantBarcode?.Trim(),
+            variantBarcode,
             currency: "BDT",
             isActive: true,
             weightKg: row.WeightKg,
@@ -1032,10 +1099,26 @@ public sealed class ProductImportService(
         ProductImportMode mode,
         ImportContext ctx,
         RowValidationState state,
-        List<string> errors)
+        List<string> errors,
+        bool allowNewReferenceData)
     {
         var action = ProductImportAction.Create;
         Guid? targetPartId = null;
+
+        // Brands, categories and units are looked up by name. Creating them on the fly turns a
+        // spreadsheet typo ("Bosh") into a permanent master-data row, so unless the caller has
+        // explicitly opted in, an unrecognised name is a row error rather than a silent insert.
+        if (!allowNewReferenceData)
+        {
+            if (!string.IsNullOrWhiteSpace(row.Brand) && !ctx.BrandNames.Contains(row.Brand.Trim()))
+                errors.Add($"Brand '{row.Brand.Trim()}' does not exist. Create it first, or re-run the import allowing new reference data.");
+
+            if (!string.IsNullOrWhiteSpace(row.Unit) && !ctx.UnitNames.Contains(row.Unit.Trim()))
+                errors.Add($"Unit '{row.Unit.Trim()}' does not exist. Create it first, or re-run the import allowing new reference data.");
+
+            if (!string.IsNullOrWhiteSpace(row.Category) && !ctx.IsKnownCategoryPath(row.Category.Trim()))
+                errors.Add($"Category '{row.Category.Trim()}' does not exist. Create it first, or re-run the import allowing new reference data.");
+        }
 
         // ── Import key ────────────────────────────────────────────────────────
         var sku = row.Sku?.Trim();

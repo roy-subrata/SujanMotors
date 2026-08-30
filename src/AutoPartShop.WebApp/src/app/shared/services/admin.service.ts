@@ -1,11 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface UserResponse {
   id: string;
-  username: string;
+  // Matches the API's camelCase JSON (C# UserName -> userName), not "username".
+  userName: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -83,8 +85,18 @@ export class AdminService {
   private readonly apiUrl =`${environment.apiUrl}/v1/admin`; 
 
   // User Management
+  /**
+   * GET /admin/users now paginates (default pageSize 50) and wraps the page in
+   * `{ data, totalCount, pageNumber, pageSize }` — it used to return a bare array.
+   * This still returns just the array (the UI has no pager for this list yet), so
+   * unwrap `.data` here rather than propagate the shape change to every caller.
+   */
   getAllUsers(): Observable<UserResponse[]> {
-    return this.http.get<UserResponse[]>(`${this.apiUrl}/users`);
+    return this.http
+      .get<{ data: UserResponse[]; totalCount: number; pageNumber: number; pageSize: number }>(`${this.apiUrl}/users`, {
+        params: { pageSize: 200 }
+      })
+      .pipe(map((res) => res.data));
   }
 
   getUserById(id: string): Observable<UserResponse> {

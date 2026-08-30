@@ -1,3 +1,4 @@
+using AutoPartShop.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,18 +12,23 @@ namespace AutoPartsShop.Api.Controllers;
 /// returned in the create response.  Use these only for UI display hints
 /// (e.g., showing "next SO number" in a form header before the user submits).
 /// </summary>
-[Route("api/code-generate")]
 [Route("api/v1/code-generate")]
 [ApiController]
 [Authorize]
 [Produces("application/json")]
-public class CodeGenerateController(ICodeGenerateService _codeGenerator) : ControllerBase
+public class CodeGenerateController(
+    ICodeGenerateService _codeGenerator,
+    IApplicationSettingsRepository _settingsRepository) : ControllerBase
 {
     // ── Inventory ─────────────────────────────────────────────────────────────
 
     [HttpGet("part")]
-    public async Task<IActionResult> PreviewPartCode(CancellationToken ct) =>
-        Ok(new { code = await _codeGenerator.PeekAsync("SKU", ct) });
+    public async Task<IActionResult> PreviewPartCode(CancellationToken ct)
+    {
+        var prefixSetting = await _settingsRepository.GetValueAsync("SKU_PREFIX", ct);
+        var prefix = string.IsNullOrWhiteSpace(prefixSetting) ? "SKU" : prefixSetting;
+        return Ok(new { code = await _codeGenerator.PeekAsync(prefix, ct) });
+    }
 
     [HttpGet("warehouse")]
     public async Task<IActionResult> PreviewWarehouseCode(CancellationToken ct) =>

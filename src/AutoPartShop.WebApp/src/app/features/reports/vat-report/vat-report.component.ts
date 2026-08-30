@@ -11,9 +11,14 @@ import { environment } from 'src/environments/environment';
 
 import { PageContainerComponent } from '../../../shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { FilterBarComponent } from '../../../shared/components/filter-bar/filter-bar.component';
 import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { PdfDownloadService } from '../../../shared/services/pdf-download.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
+import { AmountSignPipe } from '@/shared/pipes/amount-sign.pipe';
 import { ReportQuery } from '../services/reports.service';
 
 /** Backend VatReportDto (see Application/DTOs/ReportDtos/FinancialReportDtos.cs). */
@@ -39,7 +44,8 @@ interface VatReportResponse {
     standalone: true,
     imports: [
         CommonModule, FormsModule, DatePickerModule, InputNumberModule, ToastModule, TooltipModule,
-        PageContainerComponent, PageHeaderComponent, HasPermissionDirective
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, HasPermissionDirective, TranslatePipe,
+        MoneyFormatPipe, AmountSignPipe
     ],
     providers: [MessageService],
     templateUrl: './vat-report.component.html',
@@ -49,6 +55,7 @@ export class VatReportComponent implements OnInit {
     private readonly http = inject(HttpClient);
     private readonly messageService = inject(MessageService);
     private readonly pdfDownloadService = inject(PdfDownloadService);
+    readonly i18n = inject(I18nService);
 
     dateRange: Date[] | null = null;
     vatRatePercent = 15;
@@ -85,8 +92,8 @@ export class VatReportComponent implements OnInit {
                 this.report = null;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Report failed',
-                    detail: extractApiError(err, 'Could not load the VAT report.')
+                    summary: this.i18n.t('reports.messages.reportFailed'),
+                    detail: extractApiError(err, this.i18n.t('reports.vat.loadFailed'))
                 });
             }
         });
@@ -109,8 +116,8 @@ export class VatReportComponent implements OnInit {
                 this.downloading = false;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Download failed',
-                    detail: 'Could not generate the VAT report PDF. Please try again.'
+                    summary: this.i18n.t('reports.messages.downloadFailed'),
+                    detail: this.i18n.t('reports.vat.downloadFailed')
                 });
             }
         });

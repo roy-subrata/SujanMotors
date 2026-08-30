@@ -17,6 +17,8 @@ import {
 } from '../../services/supplier-payment-account.service';
 import { SupplierService } from '../../services/supplier.service';
 import { ACCOUNT_TYPES, MOBILE_PROVIDERS, PaymentMethodOption } from '../../../../shared/constants/payment-methods.constants';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
   selector: 'app-supplier-payment-account-form',
@@ -30,7 +32,8 @@ import { ACCOUNT_TYPES, MOBILE_PROVIDERS, PaymentMethodOption } from '../../../.
     ToastModule,
     SelectModule,
     CheckboxModule,
-    TextareaModule
+    TextareaModule,
+    TranslatePipe
   ],
   providers: [MessageService],
   templateUrl: './supplier-payment-account-form.component.html',
@@ -43,6 +46,7 @@ export class SupplierPaymentAccountFormComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly service = inject(SupplierPaymentAccountService);
   private readonly supplierService = inject(SupplierService);
+  private readonly i18n = inject(I18nService);
 
   form: FormGroup;
   loading = false;
@@ -121,9 +125,16 @@ export class SupplierPaymentAccountFormComponent implements OnInit {
         this.supplierName = supplier.name;
       },
       error: () => {
-        this.supplierName = 'Unknown Supplier';
+        this.supplierName = this.i18n.t('suppliers.unknownSupplier');
       }
     });
+  }
+
+  /** Subtitle composed with the supplier name — re-evaluated on every CD cycle (incl. language switch). */
+  get subtitle(): string {
+    return this.isEditing
+      ? this.i18n.t('supplierPaymentAccounts.editSubtitle', { name: this.supplierName })
+      : this.i18n.t('supplierPaymentAccounts.addSubtitle', { name: this.supplierName });
   }
 
   private loadAccount(): void {
@@ -160,8 +171,8 @@ export class SupplierPaymentAccountFormComponent implements OnInit {
       error: () => {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load payment account'
+          summary: this.i18n.t('common.messages.error'),
+          detail: this.i18n.t('supplierPaymentAccounts.messages.loadOneFailed')
         });
         this.loading = false;
       }
@@ -199,8 +210,8 @@ export class SupplierPaymentAccountFormComponent implements OnInit {
       this.markFormGroupTouched(this.form);
       this.messageService.add({
         severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required fields'
+        summary: this.i18n.t('common.messages.validationError'),
+        detail: this.i18n.t('supplierPaymentAccounts.messages.validationRequired')
       });
       return;
     }
@@ -208,8 +219,8 @@ export class SupplierPaymentAccountFormComponent implements OnInit {
     if (!this.supplierId) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Supplier ID is required'
+        summary: this.i18n.t('common.messages.error'),
+        detail: this.i18n.t('supplierPaymentAccounts.messages.supplierIdRequired')
       });
       return;
     }
@@ -238,16 +249,16 @@ export class SupplierPaymentAccountFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Payment account updated successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('supplierPaymentAccounts.messages.updateSuccess')
           });
           this.navigateBack();
         },
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error?.error?.message || 'Failed to update payment account'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error?.error?.message || this.i18n.t('supplierPaymentAccounts.messages.updateFailed')
           });
           this.loading = false;
         }
@@ -275,16 +286,16 @@ export class SupplierPaymentAccountFormComponent implements OnInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Payment account created successfully'
+            summary: this.i18n.t('common.messages.success'),
+            detail: this.i18n.t('supplierPaymentAccounts.messages.createSuccess')
           });
           this.navigateBack();
         },
         error: (error) => {
           this.messageService.add({
             severity: 'error',
-            summary: 'Error',
-            detail: error?.error?.message || 'Failed to create payment account'
+            summary: this.i18n.t('common.messages.error'),
+            detail: error?.error?.message || this.i18n.t('supplierPaymentAccounts.messages.createFailed')
           });
           this.loading = false;
         }

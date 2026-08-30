@@ -5,6 +5,11 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 
 /// <summary>
+/// Result of a base-currency conversion, carrying both the converted amount and the rate applied.
+/// </summary>
+public readonly record struct FxConversionResult(decimal BaseAmount, decimal RateToBase);
+
+/// <summary>
 /// Service implementation for currency conversion
 /// </summary>
 public class CurrencyConversionService : ICurrencyConversionService
@@ -58,6 +63,12 @@ public class CurrencyConversionService : ICurrencyConversionService
 
         // Use today if no date specified
         var date = effectiveDate ?? DateTime.UtcNow.Date;
+
+        // Check both codes exist before looking for a rate. Otherwise a typo came back as
+        // "No exchange rate found for XXX to BDT", which reads as a missing rate an admin should
+        // go and enter rather than a currency that does not exist.
+        await EnsureCurrencyExistsAsync(fromCurrency, cancellationToken);
+        await EnsureCurrencyExistsAsync(toCurrency, cancellationToken);
 
         // Get base currency
         var baseCurrency = await GetBaseCurrencyAsync(cancellationToken);
@@ -119,6 +130,36 @@ public class CurrencyConversionService : ICurrencyConversionService
     }
 
     /// <inheritdoc/>
+    public async Task<FxConversionResult> ConvertToBaseWithRateAsync(
+        decimal amount,
+        string fromCurrency,
+        DateTime? effectiveDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var baseCurrency = await GetBaseCurrencyAsync(cancellationToken);
+
+        var normalizedFrom = fromCurrency?.Trim().ToUpper() ?? throw new ArgumentNullException(nameof(fromCurrency));
+
+        // Same currency — no conversion needed.
+        if (normalizedFrom == baseCurrency)
+            return new FxConversionResult(amount, 1m);
+
+        var date = effectiveDate ?? DateTime.UtcNow.Date;
+
+        var rate = await GetExchangeRateInternalAsync(normalizedFrom, baseCurrency, date, cancellationToken);
+        if (rate == null)
+            throw new InvalidOperationException($"No exchange rate found for {normalizedFrom} to {baseCurrency} on {date:yyyy-MM-dd}");
+
+        // Round to the target (base) currency's configured decimal places using banker's rounding,
+        // mirroring ConvertAsync so stored base amounts match what the report used to compute on the fly.
+        var targetCurrency = await _currencyRepository.GetByCodeAsync(baseCurrency, cancellationToken);
+        var decimalPlaces = targetCurrency?.DecimalPlaces ?? DefaultDecimalPlaces;
+        var baseAmount = Math.Round(amount * rate.Value, decimalPlaces, MidpointRounding.ToEven);
+
+        return new FxConversionResult(baseAmount, rate.Value);
+    }
+
+    /// <inheritdoc/>
     public async Task<string> GetBaseCurrencyAsync(CancellationToken cancellationToken = default)
     {
         // Try to get from cache first
@@ -170,6 +211,17 @@ public class CurrencyConversionService : ICurrencyConversionService
     /// <summary>
     /// Internal method to get exchange rate with caching
     /// </summary>
+    /// <summary>
+    /// Throws when a currency code is not in the catalogue, so an unknown code is reported as such
+    /// rather than as a missing exchange rate.
+    /// </summary>
+    private async Task EnsureCurrencyExistsAsync(string code, CancellationToken cancellationToken)
+    {
+        var currency = await _currencyRepository.GetByCodeAsync(code, cancellationToken);
+        if (currency is null)
+            throw new InvalidOperationException($"Unknown currency '{code}'.");
+    }
+
     private async Task<decimal?> GetExchangeRateInternalAsync(
         string fromCurrency,
         string toCurrency,
@@ -192,6 +244,29 @@ public class CurrencyConversionService : ICurrencyConversionService
             cancellationToken);
 
         decimal? rate = exchangeRate?.Rate;
+
+        // Fall back to the reciprocal of the opposite pair. Seed data only holds X -> base rows,
+        // so without this the base currency cannot be converted *out of* at all: 100 BDT -> INR
+        // failed even with an INR -> BDT rate on file, and every cross-rate failed on its
+        // base -> target leg. A rate and its inverse describe the same market fact.
+        if (!rate.HasValue)
+        {
+            var inverse = await _exchangeRateRepository.GetRateByCurrencyCodesAsync(
+                toCurrency,
+                fromCurrency,
+                effectiveDate,
+                cancellationToken);
+
+            if (inverse is not null && inverse.Rate > 0)
+            {
+                // Full precision here; the caller rounds once to the target currency's scale.
+                rate = 1m / inverse.Rate;
+
+                _logger.LogDebug(
+                    "Derived {From}->{To} rate {Rate} from the inverse {To}->{From} rate {Inverse}",
+                    fromCurrency, toCurrency, rate, toCurrency, fromCurrency, inverse.Rate);
+            }
+        }
 
         // Only cache found rates. A missing rate isn't cached (negative caching) so it
         // doesn't poison lookups for the full expiration window once a rate is added.

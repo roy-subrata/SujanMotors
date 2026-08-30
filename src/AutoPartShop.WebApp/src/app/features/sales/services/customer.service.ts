@@ -2,9 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { CustomerStatus } from '@/shared/models/status.types';
 
 export interface CreateCustomerRequest {
-    customerCode: string;
+    /** Omit on create — the backend generates it atomically. Required (and unchanged) on update. */
+    customerCode?: string;
     firstName: string;
     lastName: string;
     companyName: string;
@@ -20,6 +22,8 @@ export interface CreateCustomerRequest {
     customerType: string;
     primaryContactPerson?: string;
     notes?: string;
+    /** NET15/NET30/NET45/NET60/COD/PREPAID — informational default only, no enforcement. */
+    paymentTerms?: string;
 }
 
 export interface UpdateCustomerRequest extends CreateCustomerRequest {}
@@ -41,7 +45,7 @@ export interface CustomerResponse {
     postalCode: string;
     country: string;
     customerType: string;
-    status: string;
+    status: CustomerStatus;
     currentBalance: number;
     advanceAmount: number;
     dueAmount: number;
@@ -51,6 +55,7 @@ export interface CustomerResponse {
     totalPurchaseAmount: number;
     notes: string;
     createdAt: string;
+    paymentTerms?: string;
 }
 
 export interface CustomerQuery {
@@ -95,7 +100,7 @@ export class CustomerService {
         return this.http.get<CustomerResponse>(`${this.apiUrl}/email/${email}`);
     }
 
-    getCustomersByStatus(status: string): Observable<CustomerResponse[]> {
+    getCustomersByStatus(status: CustomerStatus): Observable<CustomerResponse[]> {
         return this.http.get<CustomerResponse[]>(`${this.apiUrl}/status/${status}`);
     }
 

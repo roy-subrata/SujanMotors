@@ -1,3 +1,4 @@
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Events;
 
 namespace AutoPartShop.Domain.Entities;
@@ -22,7 +23,7 @@ public class SalesOrder : AggregateRoot
     public Guid? CustomerVehicleId { get; private set; }  // Optional: customer's vehicle this purchase is for
     public string VehicleLabel { get; private set; } = string.Empty;  // Denormalized vehicle label for display
     public Guid? WarehouseId { get; private set; }  // Dispatch warehouse
-    public string Status { get; private set; } = "PENDING";
+    public SalesOrderStatus Status { get; private set; } = SalesOrderStatus.PENDING;
     // Lifecycle: PENDING → CONFIRMED → DELIVERED  (direct handover, invoice only)
     //        or: PENDING → CONFIRMED → READY_FOR_DELIVERY → DELIVERED  (later delivery, invoice + challan)
     // Legacy statuses retained for backward compat: DRAFT, PAID, PACKED, SHIPPED, PARTIALLY_SHIPPED, COMPLETED, RETURNED
@@ -38,12 +39,16 @@ public class SalesOrder : AggregateRoot
     public decimal TotalAmount { get; private set; } = 0;
     public decimal TaxAmount { get; private set; } = 0;
     public decimal GrandTotal => TotalAmount + TaxAmount;
-    public string PaymentStatus { get; private set; } = "PENDING";  // PENDING, PARTIAL, PAID
+    public SalesOrderPaymentStatus PaymentStatus { get; private set; } = SalesOrderPaymentStatus.PENDING;
     public decimal PaidAmount { get; private set; } = 0;
     public string DeliveryAddress { get; private set; } = string.Empty;
     public string Notes { get; private set; } = string.Empty;
     public string Currency { get; private set; } = "BDT";  // ISO 4217 currency code
-    public string Channel { get; private set; } = "POS";  // POS | ECOMMERCE | MOBILE | API
+    public decimal? BaseGrandTotal { get; private set; }  // GrandTotal converted to base currency at sale time
+    public decimal? FxRateToBase { get; private set; }  // Exchange rate applied when BaseGrandTotal was captured (1 = same as base)
+    public string Channel { get; private set; } = "POS";  // POS | MOBILE | API
+    public Guid? CartDiscountRuleId { get; set; }  // FK to Discount entity applied at cart level (null = manual or none)
+    public string? AppliedPromoCode { get; set; }  // Promo code used for cart-level discount (for audit)
 
     // Navigation properties
     public Customer? Customer { get; set; }
@@ -51,12 +56,13 @@ public class SalesOrder : AggregateRoot
     public ApplicationUser? Cashier { get; set; }
     public CustomerVehicle? CustomerVehicle { get; set; }
     public Warehouse? Warehouse { get; set; }
+    public Discount? CartDiscountRule { get; set; }
     public ICollection<SalesOrderLine> LineItems { get; set; } = new List<SalesOrderLine>();
     public Invoice? Invoice { get; set; }
 
     private SalesOrder() { }
 
-    public static readonly string[] ValidChannels = ["POS", "ECOMMERCE", "MOBILE", "API"];
+    public static readonly string[] ValidChannels = ["POS", "MOBILE", "API"];
 
     public static SalesOrder Create(string soNumber, Guid customerId, string customerName,
         string customerEmail, string customerPhone, Guid? warehouseId = null,
@@ -94,14 +100,14 @@ public class SalesOrder : AggregateRoot
             Notes = notes?.Trim() ?? string.Empty,
             Currency = string.IsNullOrWhiteSpace(currency) ? "BDT" : currency.Trim().ToUpper(),
             Channel = normalizedChannel,
-            Status = "PENDING"
+            Status = SalesOrderStatus.PENDING
         };
     }
 
     public void Confirm()
     {
         // Accept PENDING (new) and DRAFT (legacy) as the pre-confirm state
-        if (Status is not ("PENDING" or "DRAFT"))
+        if (Status is not (SalesOrderStatus.PENDING or SalesOrderStatus.DRAFT))
             throw new InvalidOperationException($"Only Pending orders can be confirmed. Current: {Status}");
 
         if (!LineItems.Any())
@@ -110,7 +116,7 @@ public class SalesOrder : AggregateRoot
         if (LineItems.Any(l => l.Quantity <= 0))
             throw new InvalidOperationException("All line items must have a quantity greater than 0");
 
-        Status = "CONFIRMED";
+        Status = SalesOrderStatus.CONFIRMED;
         ConfirmedDate = DateTime.UtcNow;
 
         RaiseEvent(new SaleOrderConfirmedEvent(
@@ -124,44 +130,44 @@ public class SalesOrder : AggregateRoot
     /// </summary>
     public void MarkAsReadyForDelivery()
     {
-        if (Status != "CONFIRMED")
+        if (Status != SalesOrderStatus.CONFIRMED)
             throw new InvalidOperationException($"Order must be Confirmed before marking Ready For Delivery. Current: {Status}");
 
-        Status = "READY_FOR_DELIVERY";
+        Status = SalesOrderStatus.READY_FOR_DELIVERY;
     }
 
     public void MarkAsPaid()
     {
-        if (Status != "CONFIRMED")
+        if (Status != SalesOrderStatus.CONFIRMED)
             throw new InvalidOperationException($"Order must be CONFIRMED before marking as PAID. Current: {Status}");
 
-        Status = "PAID";
+        Status = SalesOrderStatus.PAID;
         PaidDate = DateTime.UtcNow;
     }
 
     public void MarkAsPacked()
     {
-        if (Status != "PAID")
+        if (Status != SalesOrderStatus.PAID)
             throw new InvalidOperationException($"Order must be PAID before marking as PACKED. Current: {Status}");
 
-        Status = "PACKED";
+        Status = SalesOrderStatus.PACKED;
         PackedDate = DateTime.UtcNow;
     }
 
     public void MarkAsPartiallyShipped()
     {
-        if (Status is not ("PAID" or "PACKED" or "PARTIALLY_SHIPPED"))
+        if (Status is not (SalesOrderStatus.PAID or SalesOrderStatus.PACKED or SalesOrderStatus.PARTIALLY_SHIPPED))
             throw new InvalidOperationException($"Order must be PAID or PACKED before shipping. Current: {Status}");
 
-        Status = "PARTIALLY_SHIPPED";
+        Status = SalesOrderStatus.PARTIALLY_SHIPPED;
     }
 
     public void MarkAsShipped()
     {
-        if (Status is not ("PAID" or "PACKED" or "PARTIALLY_SHIPPED"))
+        if (Status is not (SalesOrderStatus.PAID or SalesOrderStatus.PACKED or SalesOrderStatus.PARTIALLY_SHIPPED))
             throw new InvalidOperationException($"Order must be PAID or PACKED before marking as SHIPPED. Current: {Status}");
 
-        Status = "SHIPPED";
+        Status = SalesOrderStatus.SHIPPED;
     }
 
     public void MarkAsDelivered(DateTime? deliveryDate = null)
@@ -169,37 +175,61 @@ public class SalesOrder : AggregateRoot
         // Direct handover: CONFIRMED → DELIVERED (no challan needed)
         // Later delivery:  READY_FOR_DELIVERY → DELIVERED (challan already issued)
         // Legacy paths:    SHIPPED / PARTIALLY_SHIPPED → DELIVERED
-        var allowed = new[] { "CONFIRMED", "READY_FOR_DELIVERY", "SHIPPED", "PARTIALLY_SHIPPED" };
+        var allowed = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.SHIPPED, SalesOrderStatus.PARTIALLY_SHIPPED };
         if (!allowed.Contains(Status))
             throw new InvalidOperationException($"Cannot mark as Delivered from status: {Status}");
 
-        Status = "DELIVERED";
+        Status = SalesOrderStatus.DELIVERED;
         DeliveryDate = deliveryDate ?? DateTime.UtcNow;
     }
 
     public void MarkAsCompleted()
     {
-        if (Status != "DELIVERED")
+        if (Status != SalesOrderStatus.DELIVERED)
             throw new InvalidOperationException($"Order must be DELIVERED before marking as COMPLETED. Current: {Status}");
 
-        Status = "COMPLETED";
+        Status = SalesOrderStatus.COMPLETED;
         CompletedDate = DateTime.UtcNow;
     }
 
     public void Cancel()
     {
-        if (Status is "DELIVERED" or "CANCELLED" or "RETURNED")
+        if (Status is SalesOrderStatus.DELIVERED or SalesOrderStatus.CANCELLED or SalesOrderStatus.RETURNED)
             throw new InvalidOperationException($"Cannot cancel a {Status} order");
 
-        Status = "CANCELLED";
+        Status = SalesOrderStatus.CANCELLED;
+    }
+
+    /// <summary>
+    /// Cancels an order because its only invoice was cancelled. Unlike <see cref="Cancel"/> this
+    /// permits DELIVERED and COMPLETED orders: the invoice-cancellation path returns the stock and
+    /// reverses the payments, so leaving the order DELIVERED would keep counting its balance as a
+    /// live receivable against goods that are back on the shelf.
+    /// </summary>
+    public void CancelFromInvoiceCancellation()
+    {
+        if (Status is SalesOrderStatus.CANCELLED or SalesOrderStatus.RETURNED)
+            throw new InvalidOperationException($"Cannot cancel a {Status} order");
+
+        Status = SalesOrderStatus.CANCELLED;
+        PaidAmount = 0;
+        PaymentStatus = SalesOrderPaymentStatus.PENDING;
     }
 
     public void MarkAsReturned()
     {
-        if (Status is not ("DELIVERED" or "COMPLETED"))
-            throw new InvalidOperationException($"Only DELIVERED or COMPLETED orders can be returned. Current: {Status}");
+        if (Status is not (SalesOrderStatus.DELIVERED or SalesOrderStatus.COMPLETED or SalesOrderStatus.SHIPPED or SalesOrderStatus.PARTIALLY_SHIPPED))
+            throw new InvalidOperationException($"Only DELIVERED, COMPLETED, SHIPPED or PARTIALLY_SHIPPED orders can be returned. Current: {Status}");
 
-        Status = "RETURNED";
+        Status = SalesOrderStatus.RETURNED;
+    }
+
+    public void RevertFromReturned()
+    {
+        if (Status != SalesOrderStatus.RETURNED)
+            throw new InvalidOperationException($"Only RETURNED orders can be reverted to DELIVERED. Current: {Status}");
+
+        Status = SalesOrderStatus.DELIVERED;
     }
 
     public void CalculateTotal()
@@ -247,7 +277,7 @@ public class SalesOrder : AggregateRoot
             throw new InvalidOperationException("Payment exceeds outstanding amount");
 
         PaidAmount += amount;
-        PaymentStatus = PaidAmount >= GrandTotal ? "PAID" : "PARTIAL";
+        PaymentStatus = PaidAmount >= GrandTotal ? SalesOrderPaymentStatus.PAID : SalesOrderPaymentStatus.PARTIAL;
     }
 
     /// <summary>
@@ -262,7 +292,7 @@ public class SalesOrder : AggregateRoot
             throw new InvalidOperationException("Refund amount cannot exceed paid amount");
 
         PaidAmount -= refundAmount;
-        PaymentStatus = PaidAmount >= GrandTotal ? "PAID" : (PaidAmount > 0 ? "PARTIAL" : "PENDING");
+        PaymentStatus = PaidAmount >= GrandTotal ? SalesOrderPaymentStatus.PAID : (PaidAmount > 0 ? SalesOrderPaymentStatus.PARTIAL : SalesOrderPaymentStatus.PENDING);
     }
 
     public void UpdateNotes(string notes)
@@ -285,6 +315,8 @@ public class SalesOrder : AggregateRoot
         DeliveryAddress = customerCity?.Trim() ?? string.Empty;
     }
 
+    public void UpdateWarehouse(Guid? warehouseId) => WarehouseId = warehouseId;
+
     public void UpdateDeliveryDate(DateTime? deliveryDate)
     {
         DeliveryDate = deliveryDate;
@@ -296,6 +328,22 @@ public class SalesOrder : AggregateRoot
         {
             Currency = currency.Trim().ToUpper();
         }
+    }
+
+    /// <summary>
+    /// Captures the base-currency equivalent of <see cref="GrandTotal"/> at transaction time so
+    /// reports and balances stay stable even if exchange rates change later. Call after totals are final.
+    /// </summary>
+    public void SetFxBaseAmount(decimal baseAmount, decimal rateToBase)
+    {
+        if (baseAmount < 0)
+            throw new ArgumentException("Base amount cannot be negative", nameof(baseAmount));
+
+        if (rateToBase <= 0)
+            throw new ArgumentException("Rate to base must be greater than 0", nameof(rateToBase));
+
+        BaseGrandTotal = baseAmount;
+        FxRateToBase = rateToBase;
     }
 
     public void SetTechnician(Guid? technicianId, string? technicianName)
@@ -337,5 +385,16 @@ public class SalesOrder : AggregateRoot
     public void ClearLineItems()
     {
         LineItems.Clear();
+    }
+
+    /// <summary>Updates the financial totals and discounts on an existing SO (used by the Update endpoint).</summary>
+    public void UpdateFinancials(decimal subTotal, decimal discountPercentage, decimal discountAmount,
+        decimal totalAmount, decimal taxAmount)
+    {
+        SubTotal = subTotal;
+        DiscountPercentage = discountPercentage;
+        DiscountAmount = discountAmount;
+        TotalAmount = totalAmount;
+        TaxAmount = taxAmount;
     }
 }

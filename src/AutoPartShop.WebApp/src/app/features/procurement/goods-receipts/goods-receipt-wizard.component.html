@@ -1,16 +1,16 @@
 <div class="wizard-container">
   <div class="wizard-steps">
-    <div [class.active]="step === 1">1. PO & Warehouse</div>
-    <div [class.active]="step === 2">2. Items</div>
-    <div [class.active]="step === 3">3. Review</div>
+    <div [class.active]="step === 1">{{ 'goodsReceipts.wizard.step1' | translate }}</div>
+    <div [class.active]="step === 2">{{ 'goodsReceipts.wizard.step2' | translate }}</div>
+    <div [class.active]="step === 3">{{ 'goodsReceipts.wizard.step3' | translate }}</div>
   </div>
   <div class="workflow-stepper">
     <div class="stepper-track">
-      <div class="stepper-step" [class.completed]="step > 1" [class.active]="step === 1">PENDING</div>
+      <div class="stepper-step" [class.completed]="step > 1" [class.active]="step === 1">{{ 'goodsReceipts.statusOptions.pending' | translate }}</div>
       <div class="stepper-arrow">→</div>
-      <div class="stepper-step" [class.completed]="step > 2" [class.active]="step === 2">VERIFIED</div>
+      <div class="stepper-step" [class.completed]="step > 2" [class.active]="step === 2">{{ 'goodsReceipts.statusOptions.verified' | translate }}</div>
       <div class="stepper-arrow">→</div>
-      <div class="stepper-step" [class.active]="step === 3">ACCEPTED</div>
+      <div class="stepper-step" [class.active]="step === 3">{{ 'goodsReceipts.statusOptions.accepted' | translate }}</div>
     </div>
   </div>
   <div class="wizard-content">
@@ -19,72 +19,72 @@
         <!-- Step 1: PO & Warehouse -->
         <form [formGroup]="formStep1" class="wizard-form">
           <div class="form-row">
-            <label><span class="required">*</span> Purchase Order</label>
+            <label><span class="required">*</span> {{ 'goodsReceipts.wizard.purchaseOrder' | translate }}</label>
             <select formControlName="purchaseOrderId" (change)="onPOChange($event.target.value)">
-              <option value="">Select a PO...</option>
+              <option value="">{{ 'goodsReceipts.wizard.selectPO' | translate }}</option>
               <option *ngFor="let po of purchaseOrders" [value]="po.id">{{ po.poNumber }} - {{ po.supplierName }}</option>
             </select>
             <small class="p-error" *ngIf="formStep1.get('purchaseOrderId')?.touched && formStep1.get('purchaseOrderId')?.invalid">
-              Purchase order is required.
+              {{ 'goodsReceipts.wizard.poRequired' | translate }}
             </small>
           </div>
           <div *ngIf="selectedPO" class="po-summary">
-            <div><b>Supplier:</b> {{ selectedPO.supplierName }}</div>
-            <div><b>Total:</b> {{ selectedPO.grandTotal | number:'1.2-2' }}</div>
-            <div><b>Status:</b> {{ selectedPO.status }}</div>
+            <div><b>{{ 'goodsReceipts.wizard.supplierLabel' | translate }}</b> {{ selectedPO.supplierName }}</div>
+            <div><b>{{ 'goodsReceipts.wizard.totalLabel' | translate }}</b> {{ selectedPO.grandTotal | moneyFormat }}</div>
+            <div><b>{{ 'goodsReceipts.wizard.statusLabel' | translate }}</b> {{ selectedPO.status }}</div>
           </div>
           <div class="form-row">
-            <label><span class="required">*</span> Warehouse</label>
+            <label><span class="required">*</span> {{ 'goodsReceipts.wizard.warehouse' | translate }}</label>
             <select formControlName="warehouseId" (change)="onWarehouseChange($event.target.value)">
-              <option value="">Select a warehouse...</option>
+              <option value="">{{ 'goodsReceipts.wizard.selectWarehouse' | translate }}</option>
               <option *ngFor="let w of warehouses" [value]="w.id">{{ w.name }} ({{ w.location }})</option>
             </select>
             <small class="p-error" *ngIf="formStep1.get('warehouseId')?.touched && formStep1.get('warehouseId')?.invalid">
-              Warehouse is required.
+              {{ 'goodsReceipts.wizard.warehouseRequired' | translate }}
             </small>
           </div>
           <div class="form-row">
-            <label><span class="required">*</span> Received Date</label>
+            <label><span class="required">*</span> {{ 'goodsReceipts.wizard.receivedDate' | translate }}</label>
             <input type="date" formControlName="receivedDate">
             <small class="p-error" *ngIf="formStep1.get('receivedDate')?.touched && formStep1.get('receivedDate')?.invalid">
-              Received date is required.
+              {{ 'goodsReceipts.wizard.receivedDateRequired' | translate }}
             </small>
           </div>
           <div class="form-row">
             <label>
-              <input type="checkbox" formControlName="showDelivery"> Add Delivery Info
+              <input type="checkbox" formControlName="showDelivery"> {{ 'goodsReceipts.delivery.addInfo' | translate }}
             </label>
           </div>
           <div *ngIf="formStep1.value.showDelivery" class="delivery-section">
-            <div class="form-row"><label>Delivery Date</label><input type="date" formControlName="deliveryDate"></div>
-            <div class="form-row"><label>Delivery Reference</label><input type="text" formControlName="deliveryReference"></div>
-            <div class="form-row"><label>Carrier Name</label><input type="text" formControlName="carrierName"></div>
-            <div class="form-row"><label>Driver Name</label><input type="text" formControlName="driverName"></div>
-            <div class="form-row"><label>Delivery Notes</label><input type="text" formControlName="deliveryNotes"></div>
+            <div class="form-row"><label>{{ 'goodsReceipts.delivery.date' | translate }}</label><input type="date" formControlName="deliveryDate"></div>
+            <div class="form-row"><label>{{ 'goodsReceipts.delivery.reference' | translate }}</label><input type="text" formControlName="deliveryReference"></div>
+            <div class="form-row"><label>{{ 'goodsReceipts.delivery.carrier' | translate }}</label><input type="text" formControlName="carrierName"></div>
+            <div class="form-row"><label>{{ 'goodsReceipts.delivery.driver' | translate }}</label><input type="text" formControlName="driverName"></div>
+            <div class="form-row"><label>{{ 'goodsReceipts.delivery.notes' | translate }}</label><input type="text" formControlName="deliveryNotes"></div>
           </div>
           <div class="form-actions">
-            <button type="button" [disabled]="!formStep1.valid" (click)="goToStep(2)">Next</button>
+            <button type="button" [disabled]="!formStep1.valid" (click)="goToStep(2)">{{ 'goodsReceipts.wizard.next' | translate }}</button>
           </div>
         </form>
       </div>
       <div *ngSwitchCase="2">
         <!-- Step 2: Items -->
         <div *ngIf="lineItems.length === 0">
-          <p>No items found for this PO.</p>
+          <p>{{ 'goodsReceipts.wizard.noItems' | translate }}</p>
         </div>
         <form *ngIf="lineItems.length > 0" class="wizard-form">
           <!-- Removed bulk setup button and dialog. Only per-item setup remains. -->
           <table class="items-table">
             <thead>
               <tr>
-                <th>Part</th>
-                <th>Ordered</th>
-                <th>Received</th>
-                <th>Remaining</th>
-                <th>Receiving Now</th>
-                <th>Condition</th>
-                <th>Discrepancy</th>
-                <th>Setup</th>
+                <th>{{ 'goodsReceipts.itemColumns.part' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.ordered' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.received' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.remaining' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.receivingNow' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.condition' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.discrepancy' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.setup' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -105,11 +105,11 @@
                   </select>
                 </td>
                 <td>
-                  <span *ngIf="item.hasDiscrepancy" class="discrepancy-badge">Yes</span>
-                  <span *ngIf="!item.hasDiscrepancy">No</span>
+                  <span *ngIf="item.hasDiscrepancy" class="discrepancy-badge">{{ 'common.labels.yes' | translate }}</span>
+                  <span *ngIf="!item.hasDiscrepancy">{{ 'common.labels.no' | translate }}</span>
                 </td>
                 <td>
-                  <button type="button" (click)="openItemSetupDialog(item)">Setup</button>
+                  <button type="button" (click)="openItemSetupDialog(item)">{{ 'goodsReceipts.itemColumns.setup' | translate }}</button>
                 </td>
               </tr>
             </tbody>
@@ -119,61 +119,61 @@
           <div class="modal" *ngIf="showItemSetupDialog">
             <div class="modal-content">
               <h3>
-                Setup for {{ selectedItem?.displayName || selectedItem?.partName }}
+                {{ 'goodsReceipts.wizard.setupFor' | translate }} {{ selectedItem?.displayName || selectedItem?.partName }}
                 <small *ngIf="selectedItem?.partLocalName" class="part-row-local d-block">{{ selectedItem?.partLocalName }}</small>
               </h3>
               <label>
-                <input type="checkbox" [(ngModel)]="selectedItem.hasWarranty"> Has Warranty
+                <input type="checkbox" [(ngModel)]="selectedItem.hasWarranty" name="hasWarranty"> {{ 'goodsReceipts.warranty.hasWarranty' | translate }}
               </label>
               <div *ngIf="selectedItem.hasWarranty">
-                <label>Period (months)</label>
-                <input type="number" [(ngModel)]="selectedItem.warrantyPeriod">
-                <label>Type</label>
-                <input type="text" [(ngModel)]="selectedItem.warrantyType">
-                <label>Terms</label>
-                <input type="text" [(ngModel)]="selectedItem.warrantyTerms">
+                <label>{{ 'goodsReceipts.warranty.periodMonths' | translate }}</label>
+                <input type="number" [(ngModel)]="selectedItem.warrantyPeriod" name="warrantyPeriod">
+                <label>{{ 'goodsReceipts.warranty.type' | translate }}</label>
+                <input type="text" [(ngModel)]="selectedItem.warrantyType" name="warrantyType">
+                <label>{{ 'goodsReceipts.warranty.terms' | translate }}</label>
+                <input type="text" [(ngModel)]="selectedItem.warrantyTerms" name="warrantyTerms">
               </div>
               <div class="form-actions">
-                <button type="button" (click)="closeItemSetupDialog()">Cancel</button>
-                <button type="button" (click)="saveItemSetupDialog()">Save</button>
+                <button type="button" (click)="closeItemSetupDialog()">{{ 'common.actions.cancel' | translate }}</button>
+                <button type="button" (click)="saveItemSetupDialog()">{{ 'common.actions.save' | translate }}</button>
               </div>
             </div>
           </div>
           <div class="form-actions">
-            <button type="button" (click)="goToStep(1)">Back</button>
-            <button type="button" (click)="goToStep(3)" [disabled]="lineItems.length === 0">Next</button>
+            <button type="button" (click)="goToStep(1)">{{ 'common.actions.back' | translate }}</button>
+            <button type="button" (click)="goToStep(3)" [disabled]="lineItems.length === 0">{{ 'goodsReceipts.wizard.next' | translate }}</button>
           </div>
         </form>
       </div>
       <div *ngSwitchCase="3">
         <!-- Step 3: Review -->
         <div class="review-summary">
-          <h3>Review & Submit</h3>
+          <h3>{{ 'goodsReceipts.wizard.reviewTitle' | translate }}</h3>
           <div class="summary-card">
-            <div><b>PO:</b> {{ reviewSummary.po?.poNumber }} ({{ reviewSummary.po?.supplierName }})</div>
-            <div><b>Warehouse:</b> {{ reviewSummary.warehouse?.name }}</div>
-            <div><b>Received Date:</b> {{ reviewSummary.receivedDate }}</div>
+            <div><b>{{ 'goodsReceipts.wizard.purchaseOrder' | translate }}:</b> {{ reviewSummary.po?.poNumber }} ({{ reviewSummary.po?.supplierName }})</div>
+            <div><b>{{ 'goodsReceipts.wizard.warehouseColon' | translate }}</b> {{ reviewSummary.warehouse?.name }}</div>
+            <div><b>{{ 'goodsReceipts.wizard.receivedDateColon' | translate }}</b> {{ reviewSummary.receivedDate }}</div>
             <div *ngIf="reviewSummary.delivery">
-              <b>Delivery Info:</b>
-              <div>Date: {{ reviewSummary.delivery.deliveryDate }}</div>
-              <div>Reference: {{ reviewSummary.delivery.deliveryReference }}</div>
-              <div>Carrier: {{ reviewSummary.delivery.carrierName }}</div>
-              <div>Driver: {{ reviewSummary.delivery.driverName }}</div>
-              <div>Notes: {{ reviewSummary.delivery.deliveryNotes }}</div>
+              <b>{{ 'goodsReceipts.wizard.deliveryInfoColon' | translate }}</b>
+              <div>{{ 'goodsReceipts.wizard.dateColon' | translate }} {{ reviewSummary.delivery.deliveryDate }}</div>
+              <div>{{ 'goodsReceipts.wizard.referenceColon' | translate }} {{ reviewSummary.delivery.deliveryReference }}</div>
+              <div>{{ 'goodsReceipts.wizard.carrierColon' | translate }} {{ reviewSummary.delivery.carrierName }}</div>
+              <div>{{ 'goodsReceipts.wizard.driverColon' | translate }} {{ reviewSummary.delivery.driverName }}</div>
+              <div>{{ 'goodsReceipts.wizard.notesColon' | translate }} {{ reviewSummary.delivery.deliveryNotes }}</div>
             </div>
-            <div class="summary-row"><b>Total Cost (All Items):</b> {{ totalCostAllItems | number:'1.2-2' }}</div>
-            <div class="summary-row"><b>Total Ordered:</b> {{ totalOrdered }}</div>
-            <div class="summary-row"><b>Already Received:</b> {{ totalReceived }}</div>
-            <div class="summary-row"><b>Receiving Now (This GRN):</b> {{ totalReceivingNow }}</div>
-            <div class="summary-row" *ngIf="discrepancyCount > 0"><b>Items with Discrepancies:</b> <span class="text-danger">{{ discrepancyCount }}</span></div>
+            <div class="summary-row"><b>{{ 'goodsReceipts.wizard.totalCostAll' | translate }}</b> {{ totalCostAllItems | moneyFormat }}</div>
+            <div class="summary-row"><b>{{ 'goodsReceipts.wizard.totalOrdered' | translate }}</b> {{ totalOrdered }}</div>
+            <div class="summary-row"><b>{{ 'goodsReceipts.wizard.alreadyReceived' | translate }}</b> {{ totalReceived }}</div>
+            <div class="summary-row"><b>{{ 'goodsReceipts.wizard.receivingNowThisGrn' | translate }}</b> {{ totalReceivingNow }}</div>
+            <div class="summary-row" *ngIf="discrepancyCount > 0"><b>{{ 'goodsReceipts.wizard.itemsWithDiscrepancies' | translate }}</b> <span class="text-danger">{{ discrepancyCount }}</span></div>
           </div>
           <table class="items-table">
             <thead>
               <tr>
-                <th>Part</th>
-                <th>Receiving</th>
-                <th>Condition</th>
-                <th>Discrepancy</th>
+                <th>{{ 'goodsReceipts.itemColumns.part' | translate }}</th>
+                <th>{{ 'goodsReceipts.wizard.receiving' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.condition' | translate }}</th>
+                <th>{{ 'goodsReceipts.itemColumns.discrepancy' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -184,15 +184,15 @@
                 </td>
                 <td>{{ item.receivingQuantity }}</td>
                 <td>{{ item.condition }}</td>
-                <td>{{ item.hasDiscrepancy ? 'Yes' : 'No' }}</td>
+                <td>{{ item.hasDiscrepancy ? ('common.labels.yes' | translate) : ('common.labels.no' | translate) }}</td>
               </tr>
             </tbody>
           </table>
           <div *ngIf="submitError" class="error-message">{{ submitError }}</div>
           <div *ngIf="submitSuccess" class="success-message">{{ submitSuccess }}</div>
           <div class="form-actions">
-            <button type="button" (click)="goToStep(2)">Back</button>
-            <button type="button" (click)="submitGRN()" [disabled]="isSubmitting">Submit</button>
+            <button type="button" (click)="goToStep(2)">{{ 'common.actions.back' | translate }}</button>
+            <button type="button" (click)="submitGRN()" [disabled]="isSubmitting">{{ 'common.actions.submit' | translate }}</button>
           </div>
         </div>
       </div>

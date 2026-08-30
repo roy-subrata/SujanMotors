@@ -5,7 +5,6 @@ using AutoPartShop.Application.DTOs.PartDtos;
 using AutoPartShop.Application.Interfaces;
 using AutoPartShop.Application.Parts;
 using AppProductResponse = AutoPartShop.Application.Parts.Dtos.ProductResponse;
-using AppProductPublicResponse = AutoPartShop.Application.Parts.Dtos.ProductPublicResponse;
 using AppProductQuery = AutoPartShop.Application.Parts.Dtos.ProductQuery;
 using SemanticSearchRequest = AutoPartShop.Application.Parts.Dtos.SemanticSearchRequest;
 using AutoPartShop.Domain.Entities;
@@ -22,13 +21,13 @@ namespace AutoPartShop.Api.Controllers;
 /// <summary>
 /// Products API â€” v1.
 /// All list/search is handled by GET / with query parameters.
-/// Authenticated callers receive CostPrice in pricing objects; anonymous callers do not.
 /// Variants always contains at least one entry; products with no explicit variants receive a
 /// synthesized "Default" variant built from the base product.
 /// </summary>
 [Route("api/v1/products")]
 [ApiController]
 [Produces("application/json")]
+[Authorize]
 public class ProductsController : ControllerBase
 {
     private readonly IProductRepository _productRepository;
@@ -91,6 +90,8 @@ public class ProductsController : ControllerBase
         [FromQuery] string? sortDirection,
         [FromQuery] bool flattenVariants = false,
         [FromQuery] bool lowStockOnly = false,
+        [FromQuery] Guid[]? vehicleIds = null,
+        [FromQuery] Guid[]? attributeOptionIds = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -107,7 +108,9 @@ public class ProductsController : ControllerBase
             IsActive = isActive,
             FlattenVariants = flattenVariants,
             CategoryId = categoryId,
-            LowStockOnly = lowStockOnly
+            LowStockOnly = lowStockOnly,
+            VehicleIds = vehicleIds?.Length > 0 ? vehicleIds : null,
+            AttributeOptionIds = attributeOptionIds?.Length > 0 ? attributeOptionIds : null
         };
 
         if (!string.IsNullOrWhiteSpace(sortBy))
@@ -115,18 +118,8 @@ public class ProductsController : ControllerBase
             query.Sorts = [new SortOption { Field = sortBy, Direction = sortDirection ?? "asc" }];
         }
 
-        var isAdmin = User.Identity?.IsAuthenticated == true;
-
-        if (isAdmin)
-        {
-            var (items, total) = await _productReadRepository.FindAllAsync(query, cancellationToken);
-            return Ok(PagedApiResponse<AppProductResponse>.Create(items, total, page, pageSize));
-        }
-        else
-        {
-            var (items, total) = await _productReadRepository.FindAllPublicAsync(query, cancellationToken);
-            return Ok(PagedApiResponse<AppProductPublicResponse>.Create(items, total, page, pageSize));
-        }
+        var (items, total) = await _productReadRepository.FindAllAsync(query, cancellationToken);
+        return Ok(PagedApiResponse<AppProductResponse>.Create(items, total, page, pageSize));
     }
 
     // â”€â”€ Single â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -144,8 +137,10 @@ public class ProductsController : ControllerBase
         if (part is null)
             return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
 
-        var isAdmin = User.Identity?.IsAuthenticated == true;
-        return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin)));
+        // Cost now lives in purchase lots; reuse the read repository's weighted-average so the
+        // details view shows the same inventory cost as the parts table.
+        var (lotCost, variantLotCosts) = await _productReadRepository.GetWeightedLotCostsAsync(part.Id, cancellationToken);
+        return Ok(ApiResponse<ProductResponse>.Ok(MapToProductResponse(part, isAdmin: true, lotCost, variantLotCosts)));
     }
 
     // â”€â”€ Code lookup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -273,101 +268,114 @@ public class ProductsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(response));
     }
 
-    // â”€â”€ Specifications (simple product-level key/value specs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â”€â”€ Attribute values (product-scoped EAV) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
-    /// Descriptive specs for a product (Label/Value pairs), ordered for display.
-    /// These are the simple product-scoped specs, not the variant attribute EAV.
+    /// Replaces a product's attribute values with the supplied list (full replace, mirroring
+    /// <see cref="ProductVariantController.SaveAttributeValues"/>). An attribute already assigned to
+    /// one of this product's variants is rejected here — the same attribute can't be set directly
+    /// on the product AND per-variant at once, to avoid a value conflict.
     /// </summary>
-    [HttpGet("{id:guid}/specifications")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSpecifications(Guid id, CancellationToken cancellationToken)
-    {
-        var specs = await _dbContext.ProductSpecifications
-            .Where(s => s.PartId == id && !s.Isdeleted)
-            .OrderBy(s => s.DisplayOrder)
-            .AsNoTracking()
-            .Select(s => new { s.Id, s.Label, s.Key, s.Value, s.DisplayOrder })
-            .ToListAsync(cancellationToken);
-
-        return Ok(ApiResponse<object>.Ok(specs));
-    }
-
-    /// <summary>
-    /// Replaces a product's specs with the supplied list (full replace keeps the
-    /// mobile editor simple). Order follows array position.
-    /// </summary>
-    [HttpPut("{id:guid}/specifications")]
+    [HttpPut("{id:guid}/attribute-values")]
     [HasPermission(Permissions.InventoryEdit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateSpecifications(Guid id, [FromBody] UpdateSpecificationsRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateAttributeValues(Guid id, [FromBody] UpdateProductAttributeValuesRequest request, CancellationToken cancellationToken)
     {
         if (!await _productRepository.ExistsAsync(id, cancellationToken))
             return NotFound(ApiError.NotFound($"Product '{id}' not found", Request.Path));
 
-        var existing = await _dbContext.ProductSpecifications
-            .Where(s => s.PartId == id)
+        var validationError = await ValidateAttributeAssignmentAsync(id, request.AttributeValues, cancellationToken);
+        if (validationError is not null)
+            return BadRequest(validationError);
+
+        var existing = await _dbContext.ProductAttributeValues
+            .Where(v => v.ProductId == id)
             .ToListAsync(cancellationToken);
-        _dbContext.ProductSpecifications.RemoveRange(existing);
+        _dbContext.ProductAttributeValues.RemoveRange(existing);
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         var user = _currentUserService.GetCurrentUsername();
-        var order = 0;
-        foreach (var item in request.Specifications ?? [])
+        foreach (var item in request.AttributeValues ?? [])
         {
-            if (string.IsNullOrWhiteSpace(item.Label)) continue;
-            var spec = ProductSpecification.Create(id, item.Label, item.Value ?? string.Empty, order++);
-            spec.CreatedBy = user;
-            spec.ModifiedBy = user;
-            _dbContext.ProductSpecifications.Add(spec);
+            var av = ProductAttributeValue.Create(id, item.AttributeId, item.OptionId,
+                item.ValueText ?? "", item.ValueNumber, item.ValueBool);
+            av.CreatedBy = user;
+            av.ModifiedBy = user;
+            _dbContext.ProductAttributeValues.Add(av);
         }
-
         await _dbContext.SaveChangesAsync(cancellationToken);
-        return await GetSpecifications(id, cancellationToken);
+
+        var values = await _dbContext.ProductAttributeValues
+            .Where(v => v.ProductId == id)
+            .Include(v => v.Attribute)
+            .Include(v => v.Option)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return Ok(ApiResponse<object>.Ok(values.Select(av => new
+        {
+            av.Id,
+            attributeId = av.AttributeId,
+            attributeName = av.Attribute?.Name,
+            dataType = av.Attribute?.DataType,
+            optionId = av.OptionId,
+            optionValue = av.Option?.Value,
+            av.ValueText,
+            av.ValueNumber,
+            av.ValueBool
+        })));
     }
 
     /// <summary>
-    /// Typeahead suggestions for the spec editor. field=label returns distinct
-    /// labels used across the catalog; field=value returns distinct values
-    /// (optionally scoped to a label key) so staff converge on consistent terms
-    /// — the thing that keeps ecommerce facets clean later.
+    /// Configurable SKU prefix (Company Profile &gt; Document Numbering) — falls back to the
+    /// historical hardcoded "SKU" if no setting has been configured yet.
     /// </summary>
-    [HttpGet("specifications/suggestions")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSpecificationSuggestions(
-        [FromQuery] string field,
-        [FromQuery] string? query,
-        [FromQuery] string? labelKey,
-        CancellationToken cancellationToken = default)
+    private async Task<string> GetSkuPrefixAsync(CancellationToken cancellationToken)
     {
-        var q = _dbContext.ProductSpecifications.Where(s => !s.Isdeleted);
-        var term = (query ?? string.Empty).Trim().ToLower();
+        var value = await _dbContext.Set<ApplicationSettings>()
+            .Where(s => s.Key == "SKU_PREFIX" && !s.Isdeleted)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+        return string.IsNullOrWhiteSpace(value) ? "SKU" : value;
+    }
 
-        List<string> results;
-        if (string.Equals(field, "value", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!string.IsNullOrWhiteSpace(labelKey))
-            {
-                var key = ProductSpecification.Normalize(labelKey);
-                q = q.Where(s => s.Key == key);
-            }
-            if (term.Length > 0)
-                q = q.Where(s => s.Value.ToLower().Contains(term));
-            results = await q.Select(s => s.Value)
-                .Where(v => v != "")
-                .Distinct().OrderBy(v => v).Take(10)
-                .ToListAsync(cancellationToken);
-        }
-        else
-        {
-            if (term.Length > 0)
-                q = q.Where(s => s.Label.ToLower().Contains(term));
-            results = await q.Select(s => s.Label)
-                .Distinct().OrderBy(l => l).Take(10)
-                .ToListAsync(cancellationToken);
-        }
+    /// <summary>
+    /// Rejects duplicate/unknown attribute ids, and any attribute already assigned to one of this
+    /// product's own variants (a product can't have a value both directly and per-variant at once).
+    /// Returns an ApiError to surface, or null when every submitted attribute checks out.
+    /// </summary>
+    private async Task<ApiError?> ValidateAttributeAssignmentAsync(Guid productId, List<ProductAttributeValueRequest>? values, CancellationToken ct)
+    {
+        if (values is null || values.Count == 0) return null;
 
-        return Ok(ApiResponse<object>.Ok(results));
+        var duplicates = values.GroupBy(v => v.AttributeId).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        if (duplicates.Count > 0)
+            return ApiError.Validation($"Attribute id(s) listed more than once: {string.Join(", ", duplicates)}", instance: Request.Path);
+
+        var ids = values.Select(v => v.AttributeId).Distinct().ToList();
+        var knownIds = await _dbContext.ProductAttributes
+            .Where(a => ids.Contains(a.Id))
+            .Select(a => a.Id)
+            .ToListAsync(ct);
+
+        var missing = ids.Except(knownIds).ToList();
+        if (missing.Count > 0)
+            return ApiError.Validation($"Unknown attribute id(s): {string.Join(", ", missing)}", instance: Request.Path);
+
+        var claimedByVariants = await _dbContext.VariantAttributeValues
+            .Where(v => !v.Isdeleted && v.Variant != null && !v.Variant.Isdeleted
+                && v.Variant.PartId == productId && ids.Contains(v.AttributeId))
+            .Select(v => v.AttributeId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (claimedByVariants.Count > 0)
+            return ApiError.Validation(
+                $"Attribute(s) {string.Join(", ", claimedByVariants)} are already set on this product's variants — remove them there first",
+                instance: Request.Path);
+
+        return null;
     }
 
     // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -385,19 +393,34 @@ public class ProductsController : ControllerBase
         if (!await _categoryRepository.ExistsAsync(request.CategoryId, cancellationToken))
             return BadRequest(ApiError.Validation("Category does not exist", instance: Request.Path));
 
-        var sku = await _codeGenerateService.GenerateAsync("SKU", cancellationToken);
+        // Duplicate part-number check (excluding soft-deleted)
+        if (!string.IsNullOrWhiteSpace(request.PartNumber))
+        {
+            var existingByPn = await _dbContext.Parts
+                .FirstOrDefaultAsync(p => p.PartNumber != null
+                                       && p.PartNumber.Value == request.PartNumber.Trim()
+                                       && !p.Isdeleted, cancellationToken);
+            if (existingByPn is not null)
+                return Conflict(ApiError.Conflict($"A product with part number '{request.PartNumber}' already exists", instance: Request.Path));
+        }
+
+        var sku = await _codeGenerateService.GenerateAsync(await GetSkuPrefixAsync(cancellationToken), cancellationToken);
         // PartNumber is optional — some brands don't publish a catalog code. SKU identifies the part.
         var partNumber = string.IsNullOrWhiteSpace(request.PartNumber)
             ? null
             : PartNumber.Create(request.PartNumber);
+        // Barcode is optional on the request — a brand-printed UPC/EAN can be entered manually,
+        // but a part without one still needs something scannable for POS/label printing, so it
+        // defaults to the (already-unique) SKU rather than being left blank.
+        var barcode = string.IsNullOrWhiteSpace(request.Barcode) ? sku : request.Barcode.Trim();
         var part = Product.Create(
             request.Name, partNumber, sku, request.CategoryId,
             request.BrandId, request.BaseUnitId, request.UnitId,
-            request.Description, request.RichDescription,
+            request.Description,
             request.CostPrice, request.SellingPrice, request.MinimumStock,
             request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
             request.WarrantyTerms, request.WarrantyCertificateTemplate,
-            request.Barcode, request.Tags, request.ProductType, request.IsPerishable,
+            barcode, request.Tags, request.ProductType, request.IsPerishable,
             request.WeightKg, request.TaxCode,
             request.OemNumber, request.LocalName);
 
@@ -449,17 +472,35 @@ public class ProductsController : ControllerBase
         var oldWarranty = (part.HasWarranty, part.WarrantyPeriodMonths, part.WarrantyType,
                            part.WarrantyTerms, part.WarrantyCertificateTemplate);
 
-        part.Update(request.Name, request.Description, part.SKU, request.CategoryId, request.BrandId,
-            request.BaseUnitId, request.UnitId,
+        // Omitted optional fields keep their stored value; sending an explicit "" still clears one.
+        // A PUT is a full replacement, but the optional fields are nullable precisely so a client
+        // can leave them out, and treating "absent" as "blank this" quietly wiped part numbers,
+        // OEM references and warranty text on any partial update.
+        part.Update(request.Name, request.Description, part.SKU, request.CategoryId,
+            request.BrandId ?? part.BrandId,
+            request.BaseUnitId ?? part.BaseUnitId,
+            request.UnitId ?? part.UnitId,
             request.CostPrice, request.SellingPrice, request.MinimumStock, request.IsActive,
-            request.HasWarranty, request.WarrantyPeriodMonths, request.WarrantyType,
-            request.WarrantyTerms, request.WarrantyCertificateTemplate,
-            request.Barcode, request.Tags, request.ProductType,
-            request.IsPerishable, request.WeightKg,
-            request.TaxCode, request.RichDescription, request.OemNumber, request.LocalName);
-        part.SetPartNumber(string.IsNullOrWhiteSpace(request.PartNumber)
-            ? null
-            : PartNumber.Create(request.PartNumber));
+            request.HasWarranty,
+            request.WarrantyPeriodMonths ?? part.WarrantyPeriodMonths,
+            request.WarrantyType ?? part.WarrantyType,
+            request.WarrantyTerms ?? part.WarrantyTerms,
+            request.WarrantyCertificateTemplate ?? part.WarrantyCertificateTemplate,
+            request.Barcode ?? part.Barcode,
+            request.Tags ?? part.Tags,
+            request.ProductType,
+            request.IsPerishable,
+            request.WeightKg ?? part.WeightKg,
+            request.TaxCode ?? part.TaxCode,
+            request.OemNumber ?? part.OemNumber,
+            request.LocalName ?? part.LocalName);
+
+        if (request.PartNumber is not null)
+        {
+            part.SetPartNumber(string.IsNullOrWhiteSpace(request.PartNumber)
+                ? null
+                : PartNumber.Create(request.PartNumber));
+        }
         part.ModifiedBy = _currentUserService.GetCurrentUsername();
 
         await _productRepository.UpdateAsync(part, cancellationToken);
@@ -606,7 +647,7 @@ public class ProductsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(ApiError.BusinessRule(ex.Message, Request.Path));
+            return Conflict(ApiError.BusinessRuleConflict(ex.Message, Request.Path));
         }
 
         return NoContent();
@@ -614,7 +655,21 @@ public class ProductsController : ControllerBase
 
     // â”€â”€ Mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    private static ProductResponse MapToProductResponse(Product part, bool isAdmin)
+    /// <summary>
+    /// Picks the variant's lot-based weighted-average cost when available, falling back to the
+    /// variant's stored catalog cost (e.g. variant with no on-hand lots yet).
+    /// </summary>
+    private static decimal ResolveVariantLotCost(
+        Guid variantId,
+        IReadOnlyDictionary<Guid, decimal> variantLotCosts,
+        decimal fallback) =>
+        variantLotCosts.TryGetValue(variantId, out var cost) ? cost : fallback;
+
+    private static ProductResponse MapToProductResponse(
+        Product part,
+        bool isAdmin,
+        decimal? lotCost = null,
+        IReadOnlyDictionary<Guid, decimal>? variantLotCosts = null)
     {
         var hasDimensions = part.WeightKg.HasValue;
         var hasWarrantyData = part.HasWarranty || part.WarrantyPeriodMonths.HasValue;
@@ -622,20 +677,19 @@ public class ProductsController : ControllerBase
         var explicitVariants = part.Variants?
             .Where(v => !v.Isdeleted)
             .OrderBy(v => v.Name)
-            .Select(v => MapVariantSummary(v, isAdmin))
+            .Select(v => MapVariantSummary(v, isAdmin, variantLotCosts))
             .ToList() ?? [];
 
         // Synthesize a default variant when the product has none
         var variants = explicitVariants.Count > 0
             ? explicitVariants
-            : [SynthesizeDefaultVariant(part, isAdmin)];
+            : [SynthesizeDefaultVariant(part, isAdmin, lotCost)];
 
         return new ProductResponse
         {
             Id = part.Id,
             Name = part.Name,
             Description = part.Description,
-            RichDescription = part.RichDescription,
             PartNumber = part.PartNumber?.Value ?? string.Empty,
             SKU = part.SKU,
             OemNumber = part.OemNumber,
@@ -672,7 +726,7 @@ public class ProductsController : ControllerBase
             } : null,
             Pricing = new ProductPricingSummary
             {
-                CostPrice = isAdmin ? part.CostPrice : null,
+                CostPrice = isAdmin ? (lotCost ?? part.CostPrice) : null,
                 SellingPrice = part.SellingPrice,
                 Currency = part.SellingPriceCurrency ?? "BDT"
             },
@@ -689,6 +743,18 @@ public class ProductsController : ControllerBase
                 CertificateTemplate = part.WarrantyCertificateTemplate
             } : null,
             Variants = variants,
+            AttributeValues = part.AttributeValues?
+                .Select(av => new ProductAttributeValueSummary
+                {
+                    AttributeId = av.AttributeId,
+                    AttributeName = av.Attribute?.Name ?? string.Empty,
+                    DataType = av.Attribute?.DataType,
+                    OptionId = av.OptionId,
+                    OptionValue = av.Option?.Value,
+                    ValueText = av.ValueText,
+                    ValueNumber = av.ValueNumber,
+                    ValueBool = av.ValueBool
+                }).ToList() ?? [],
             CreatedBy = isAdmin ? part.CreatedBy : null,
             ModifiedBy = isAdmin ? part.ModifiedBy : null,
             CreatedAt = part.CreatedDate,
@@ -696,7 +762,7 @@ public class ProductsController : ControllerBase
         };
     }
 
-    private static ProductVariantSummary SynthesizeDefaultVariant(Product part, bool isAdmin) => new()
+    private static ProductVariantSummary SynthesizeDefaultVariant(Product part, bool isAdmin, decimal? lotCost = null) => new()
     {
         Id = null,
         Name = "Default",
@@ -709,14 +775,17 @@ public class ProductsController : ControllerBase
         IsActive = part.IsActive,
         Pricing = new ProductPricingSummary
         {
-            CostPrice = isAdmin ? part.CostPrice : null,
+            CostPrice = isAdmin ? (lotCost ?? part.CostPrice) : null,
             SellingPrice = part.SellingPrice,
             Currency = part.SellingPriceCurrency ?? "BDT"
         },
         Attributes = []
     };
 
-    private static ProductVariantSummary MapVariantSummary(ProductVariant v, bool isAdmin) => new()
+    private static ProductVariantSummary MapVariantSummary(
+        ProductVariant v,
+        bool isAdmin,
+        IReadOnlyDictionary<Guid, decimal>? variantLotCosts = null) => new()
     {
         Id = v.Id,
         Name = v.Name,
@@ -729,7 +798,9 @@ public class ProductsController : ControllerBase
         IsActive = v.IsActive,
         Pricing = new ProductPricingSummary
         {
-            CostPrice = isAdmin ? v.CostPrice : null,
+            CostPrice = isAdmin && variantLotCosts != null
+                ? ResolveVariantLotCost(v.Id, variantLotCosts, v.CostPrice)
+                : v.CostPrice,
             SellingPrice = v.SellingPrice,
             Currency = v.Currency ?? "BDT"
         },
@@ -765,7 +836,7 @@ public class ProductsController : ControllerBase
     // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
-    /// Sellable stock for a part = on-hand minus reservations (e.g. open ecommerce carts),
+    /// Sellable stock for a part = on-hand minus reservations,
     /// read from StockLevel which is the source of truth for availability. When
     /// <paramref name="variantId"/> is supplied only that variant is counted, so two variants of
     /// the same part never report each other's stock; otherwise all variants are summed.
@@ -805,13 +876,16 @@ public class SetProductStatusRequest
     public bool IsActive { get; set; }
 }
 
-public class UpdateSpecificationsRequest
+public class UpdateProductAttributeValuesRequest
 {
-    public List<SpecificationItem>? Specifications { get; set; }
+    public List<ProductAttributeValueRequest> AttributeValues { get; set; } = new();
 }
 
-public class SpecificationItem
+public class ProductAttributeValueRequest
 {
-    public string Label { get; set; } = string.Empty;
-    public string? Value { get; set; }
+    public Guid AttributeId { get; set; }
+    public Guid? OptionId { get; set; }
+    public string? ValueText { get; set; }
+    public decimal? ValueNumber { get; set; }
+    public bool? ValueBool { get; set; }
 }

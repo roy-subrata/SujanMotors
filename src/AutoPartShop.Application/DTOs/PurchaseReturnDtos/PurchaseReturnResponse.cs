@@ -1,3 +1,5 @@
+using AutoPartShop.Domain.Enums;
+
 namespace AutoPartShop.Application.DTOs.PurchaseReturnDtos;
 
 public class PurchaseReturnResponse
@@ -11,7 +13,7 @@ public class PurchaseReturnResponse
     public string? SupplierCode { get; set; }
     public DateTime ReturnDate { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public PurchaseReturnStatus Status { get; set; }
     public decimal RefundAmount { get; set; }
     public decimal CreditNoteAmount { get; set; }
     public string Notes { get; set; } = string.Empty;
@@ -21,7 +23,7 @@ public class PurchaseReturnResponse
     public string ReceivedBy { get; set; } = string.Empty;
 
     // Settlement tracking fields
-    public string SettlementStatus { get; set; } = string.Empty;
+    public PurchaseReturnSettlementStatus SettlementStatus { get; set; }
     public decimal SettledAmount { get; set; }
     public DateTime? SettledDate { get; set; }
     public string SettlementMethod { get; set; } = string.Empty;
@@ -65,12 +67,18 @@ public class AvailableLotForReturnDto
     public Guid PartId { get; set; }
     public string PartName { get; set; } = string.Empty;
     public string PartSku { get; set; } = string.Empty;
-    public Guid SupplierId { get; set; }
+    public Guid? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public int QuantityAvailable { get; set; }
     public decimal CostPrice { get; set; }
     public DateTime ReceivingDate { get; set; }
     public DateTime? ExpiryDate { get; set; }
-    public bool IsFromSameSupplier { get; set; }  // True if lot is from the return's supplier
+    /// <summary>
+    /// True when the lot came from the supplier being returned to, false when it came from a
+    /// different one, and null when the caller supplied no supplier to compare against.
+    /// It used to be a plain bool, so "you did not tell me" was indistinguishable from
+    /// "different supplier" and the returns UI flagged every lot as foreign.
+    /// </summary>
+    public bool? IsFromSameSupplier { get; set; }
     public string Status { get; set; } = string.Empty;  // AVAILABLE, DAMAGED, QUARANTINE - which inventory bucket the lot belongs to
 }

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -23,11 +23,14 @@ import { CategoryService, CategoryResponse } from '../../services/category.servi
 import { UnitService, UnitResponse } from '../../services/unit.service';
 import { BrandService, BrandResponse } from '../../services/brand.service';
 import { VehicleService, VehicleResponse, CreatePartCompatibilityRequest } from '../../services/vehicle.service';
-import { CatalogEntryService, CatalogEntryResponse, UpsertCatalogEntryRequest } from '../../services/catalog-entry.service';
 import { ProductVariantManagerComponent } from '../product-variant-manager/product-variant-manager.component';
+import { ProductAttributeValuesManagerComponent } from '../product-attribute-values-manager/product-attribute-values-manager.component';
 
 import { forkJoin, of, tap } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'app-part-form',
@@ -46,32 +49,38 @@ import { catchError, map } from 'rxjs/operators';
         Select,
         TooltipModule,
         ProductVariantManagerComponent,
+        ProductAttributeValuesManagerComponent,
         RouterModule,
         CardModule,
         ToastModule,
         TableModule,
         TagModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './part-form.component.html',
     styleUrls: ['./part-form.component.css']
 })
 export class PartFormComponent implements OnInit {
+    /** Read right after createPart() succeeds, to save any attribute values entered before the
+     *  product existed — mirrors pendingCompatibilities, but the values live in the child form. */
+    @ViewChild(ProductAttributeValuesManagerComponent) attributeValuesManager?: ProductAttributeValuesManagerComponent;
+
     private readonly partService = inject(PartService);
     private readonly categoryService = inject(CategoryService);
     private readonly unitService = inject(UnitService);
     private readonly brandService = inject(BrandService);
     private readonly vehicleService = inject(VehicleService);
-    private readonly catalogEntryService = inject(CatalogEntryService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly formBuilder = inject(FormBuilder);
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
+    private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
 
     partForm!: FormGroup;
-    catalogEntryForm!: FormGroup;
     compatibilityForm!: FormGroup;
 
     isEditMode = false;
@@ -79,6 +88,8 @@ export class PartFormComponent implements OnInit {
     partId: string | null = null;
     /** Backend still has a CostPrice column (see Cost Model design), but this form has no UI for it — preserve the existing value on update instead of clobbering it. */
     private existingCostPrice = 0;
+    /** Full product loaded for edit/view mode — passed down to child managers (e.g. attribute values) instead of re-fetching. */
+    loadedPart: PartResponse | null = null;
     isSubmitting = false;
     isLoading = false;
     isCompatibilitySubmitting = false;
@@ -105,32 +116,41 @@ export class PartFormComponent implements OnInit {
     compatibleVehicles: VehicleCompatibilityResponse[] = [];
     pendingCompatibilities: Array<{ vehicle: VehicleResponse; isCompatible: boolean; notes: string }> = [];
 
-    warrantyTypes = [
-        { label: 'Manufacturer', value: 'MANUFACTURER' },
-        { label: 'Seller', value: 'SELLER' },
-        { label: 'Extended', value: 'EXTENDED' }
-    ];
+    warrantyTypes: { label: string; value: string }[] = [];
+    productTypes: { label: string; value: string }[] = [];
+    taxCodes: { label: string; value: string }[] = [];
 
-    productTypes = [
-        { label: 'Physical', value: 'PHYSICAL' },
-        { label: 'Digital', value: 'DIGITAL' },
-        { label: 'Service', value: 'SERVICE' }
-    ];
+    private buildOptionLists(): void {
+        this.warrantyTypes = [
+            { label: this.i18n.t('parts.formDialog.warrantyManufacturer'), value: 'MANUFACTURER' },
+            { label: this.i18n.t('parts.formDialog.warrantySeller'), value: 'SELLER' },
+            { label: this.i18n.t('parts.formDialog.warrantyExtended'), value: 'EXTENDED' }
+        ];
 
-    taxCodes = [
-        { label: 'Standard', value: 'STANDARD' },
-        { label: 'Food', value: 'FOOD' },
-        { label: 'Medicine', value: 'MEDICINE' },
-        { label: 'Exempt', value: 'EXEMPT' }
-    ];
+        this.productTypes = [
+            { label: this.i18n.t('parts.partForm.productTypePhysical'), value: 'PHYSICAL' },
+            { label: this.i18n.t('parts.partForm.productTypeDigital'), value: 'DIGITAL' },
+            { label: this.i18n.t('parts.partForm.productTypeService'), value: 'SERVICE' }
+        ];
+
+        this.taxCodes = [
+            { label: this.i18n.t('parts.partForm.taxCodeStandard'), value: 'STANDARD' },
+            { label: this.i18n.t('parts.partForm.taxCodeFood'), value: 'FOOD' },
+            { label: this.i18n.t('parts.partForm.taxCodeMedicine'), value: 'MEDICINE' },
+            { label: this.i18n.t('parts.partForm.taxCodeExempt'), value: 'EXEMPT' }
+        ];
+    }
 
     constructor() {
         this.initializeForm();
-        this.initializeCatalogEntryForm();
         this.initializeCompatibilityForm();
     }
 
     ngOnInit(): void {
+        this.buildOptionLists();
+        this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.buildOptionLists();
+        });
         this.loadCategories();
         this.loadUnits();
         this.loadBrands();
@@ -147,12 +167,10 @@ export class PartFormComponent implements OnInit {
             if (this.partId) {
                 this.loadPart(this.partId);
                 this.loadCompatibleVehicles();
-                this.loadCatalogEntry(this.partId);
             }
 
             if (this.isViewMode) {
                 this.partForm.disable();
-                this.catalogEntryForm.disable();
                 this.compatibilityForm.disable();
             }
         });
@@ -163,32 +181,14 @@ export class PartFormComponent implements OnInit {
         this.partService.getPartById(id).subscribe({
             next: (part) => { this.populateForm(part); this.isLoading = false; },
             error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load part' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.partForm.messages.loadPartFailed') });
                 this.isLoading = false;
             }
         });
     }
 
-    private loadCatalogEntry(partId: string): void {
-        this.catalogEntryService.get(partId).subscribe({
-            next: (entry) => {
-                if (entry) {
-                    this.catalogEntryForm.patchValue({
-                        slug: entry.slug,
-                        shortDescription: entry.shortDescription,
-                        isPublished: entry.isPublished,
-                        isFeatured: entry.isFeatured,
-                        featuredRank: entry.featuredRank,
-                        metaTitle: entry.metaTitle ?? '',
-                        metaDescription: entry.metaDescription ?? ''
-                    });
-                }
-            },
-            error: () => { /* catalog entry is optional, silently ignore */ }
-        });
-    }
-
     private populateForm(part: PartResponse): void {
+        this.loadedPart = part;
         this.existingCostPrice = part.costPrice ?? 0;
         this.selectedCategory = this.categories.find(c => c.id === part.categoryId) || null;
         this.selectedBaseUnit = this.units.find(u => u.id === part.baseUnitId) || null;
@@ -198,7 +198,6 @@ export class PartFormComponent implements OnInit {
         this.partForm.patchValue({
             name: part.name,
             description: part.description,
-            richDescription: part.richDescription || '',
             partNumber: part.partNumber,
             oemNumber: part.oemNumber || null,
             localName: part.localName || null,
@@ -230,7 +229,6 @@ export class PartFormComponent implements OnInit {
         this.partForm = this.formBuilder.group({
             name: ['', [Validators.required, Validators.maxLength(200)]],
             description: [''],
-            richDescription: [''],
             // Optional — some brands don't publish a catalog part number; SKU identifies the part
             partNumber: ['', [Validators.maxLength(30)]],
             oemNumber: [null, [Validators.maxLength(100)]],
@@ -269,44 +267,6 @@ export class PartFormComponent implements OnInit {
             periodCtrl?.updateValueAndValidity();
             typeCtrl?.updateValueAndValidity();
         });
-
-        // Auto-generate slug from part name
-        this.partForm.get('name')?.valueChanges.subscribe(name => {
-            if (!this.isEditMode) {
-                this.autoUpdateSlug(name);
-            }
-        });
-
-        // Auto-update slug when category changes (for context)
-        this.partForm.get('categoryId')?.valueChanges.subscribe(() => {
-            if (!this.isEditMode) {
-                const name = this.partForm.get('name')?.value;
-                if (name) this.autoUpdateSlug(name);
-            }
-        });
-    }
-
-    private initializeCatalogEntryForm(): void {
-        this.catalogEntryForm = this.formBuilder.group({
-            slug: ['', [Validators.maxLength(200), Validators.pattern(/^[a-z0-9-]*$/)]],
-            shortDescription: ['', [Validators.maxLength(300)]],
-            isPublished: [true],
-            isFeatured: [false],
-            featuredRank: [0, [Validators.min(0)]],
-            metaTitle: ['', [Validators.maxLength(70)]],
-            metaDescription: ['', [Validators.maxLength(160)]]
-        });
-    }
-
-    private autoUpdateSlug(name: string): void {
-        if (!name) return;
-        const slug = name.trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
-        this.catalogEntryForm.patchValue({ slug }, { emitEvent: false });
     }
 
     private initializeCompatibilityForm(): void {
@@ -324,7 +284,7 @@ export class PartFormComponent implements OnInit {
                 this.filteredCategories = response;
                 this.syncSelectedLookups();
             },
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load categories' })
+            error: () => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.formDialog.messages.loadCategoriesFailed') })
         });
     }
 
@@ -337,7 +297,7 @@ export class PartFormComponent implements OnInit {
                 this.filteredBaseUnits = response;
                 this.syncSelectedLookups();
             },
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load units' })
+            error: () => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.formDialog.messages.loadUnitsFailed') })
         });
     }
 
@@ -348,14 +308,14 @@ export class PartFormComponent implements OnInit {
                 this.filteredBrands = response;
                 this.syncSelectedLookups();
             },
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load brands' })
+            error: () => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.formDialog.messages.loadBrandsFailed') })
         });
     }
 
     private loadVehicles(): void {
         this.vehicleService.getActiveVehicles().subscribe({
             next: (response) => { this.vehicles = response; this.filteredVehicles = response; },
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load vehicles' })
+            error: () => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: this.i18n.t('parts.partForm.messages.loadVehiclesFailed') })
         });
     }
 
@@ -449,7 +409,7 @@ export class PartFormComponent implements OnInit {
         if (this.compatibilityForm.invalid) {
             Object.keys(this.compatibilityForm.controls).forEach(k =>
                 this.compatibilityForm.get(k)?.markAsTouched());
-            this.messageService.add({ severity: 'warn', summary: 'Validation', detail: 'Please select a vehicle' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('parts.partForm.validationSummary'), detail: this.i18n.t('parts.partForm.selectVehicleValidation') });
             return;
         }
 
@@ -463,13 +423,13 @@ export class PartFormComponent implements OnInit {
             this.isCompatibilitySubmitting = true;
             this.vehicleService.addPartCompatibility(vehicle.id, this.partId, request).subscribe({
                 next: () => {
-                    this.messageService.add({ severity: 'success', summary: 'Added', detail: `${vehicle.make} ${vehicle.model} added` });
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.partDetails.messages.addedSummary'), detail: this.i18n.t('parts.partForm.messages.vehicleAdded', { make: vehicle.make, model: vehicle.model }) });
                     this.resetCompatibilityForm();
                     this.loadCompatibleVehicles();
                     this.isCompatibilitySubmitting = false;
                 },
                 error: (error) => {
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to add compatibility' });
+                    this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: error?.error?.message || this.i18n.t('parts.partDetails.messages.addCompatibilityFailed') });
                     this.isCompatibilitySubmitting = false;
                 }
             });
@@ -477,7 +437,7 @@ export class PartFormComponent implements OnInit {
         }
 
         if (this.pendingCompatibilities.some(p => p.vehicle.id === vehicle.id)) {
-            this.messageService.add({ severity: 'warn', summary: 'Duplicate', detail: 'Vehicle already added' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('parts.partForm.duplicateSummary'), detail: this.i18n.t('parts.partForm.vehicleAlreadyAdded') });
             return;
         }
 
@@ -489,8 +449,8 @@ export class PartFormComponent implements OnInit {
         if (this.isViewMode) return;
 
         this.confirmationService.confirm({
-            message: 'Remove this vehicle compatibility?',
-            header: 'Confirm',
+            message: this.i18n.t('parts.partForm.removeCompatibilityConfirm'),
+            header: this.i18n.t('parts.partDetails.confirmHeader'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
@@ -501,10 +461,10 @@ export class PartFormComponent implements OnInit {
                 if (!item.id) return;
                 this.vehicleService.removeCompatibility(item.id).subscribe({
                     next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Removed', detail: 'Compatibility removed' });
+                        this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.partDetails.messages.removedSummary'), detail: this.i18n.t('parts.partDetails.messages.compatibilityRemovedDetail') });
                         this.loadCompatibleVehicles();
                     },
-                    error: (err) => this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to remove' })
+                    error: (err) => this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: err?.error?.message || this.i18n.t('parts.partForm.messages.removeFailed') })
                 });
             }
         });
@@ -543,7 +503,7 @@ export class PartFormComponent implements OnInit {
     onSubmit(): void {
         if (this.partForm.invalid) {
             this.partForm.markAllAsTouched();
-            this.messageService.add({ severity: 'warn', summary: 'Validation Error', detail: 'Please fill in all required fields' });
+            this.messageService.add({ severity: 'warn', summary: this.i18n.t('common.messages.validationError'), detail: this.i18n.t('parts.partForm.fillRequiredFields') });
             return;
         }
 
@@ -560,7 +520,6 @@ export class PartFormComponent implements OnInit {
         const request: CreatePartRequest = {
             name: v.name.trim(),
             description: v.description || '',
-            richDescription: v.richDescription?.trim() || null,
             partNumber: v.partNumber?.trim() || null,
             oemNumber: v.oemNumber?.trim() || null,
             localName: v.localName?.trim() || null,
@@ -586,24 +545,39 @@ export class PartFormComponent implements OnInit {
 
         this.partService.createPart(request).subscribe({
             next: (response) => {
-                const finalize = () => {
-                    this.messageService.add({ severity: 'success', summary: 'Created', detail: `'${response.name}' created successfully` });
+                const finalize = (attributeValuesFailed: boolean) => {
+                    this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.partForm.createdSummary'), detail: this.i18n.t('parts.partForm.messages.createSuccess', { name: response.name }) });
+                    if (attributeValuesFailed) {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: this.i18n.t('common.messages.warning'),
+                            detail: this.i18n.t('parts.partForm.messages.attributeValuesSaveFailedAfterCreate'),
+                            sticky: true
+                        });
+                    }
                     this.isSubmitting = false;
                     this.router.navigate(['/inventory/parts']);
                 };
 
-                const saveCatalogEntry$ = this.buildCatalogEntrySave(response.id);
                 const saveCompatibilities$ = this.pendingCompatibilities.length > 0
                     ? this.savePendingCompatibilities(response.id)
                     : of(void 0);
 
-                forkJoin([saveCatalogEntry$, saveCompatibilities$]).subscribe({
-                    next: () => finalize(),
-                    error: () => finalize()
+                const pendingAttributeValues = this.attributeValuesManager?.getPendingRequest() ?? [];
+                let attributeValuesFailed = false;
+                const saveAttributeValues$ = pendingAttributeValues.length > 0
+                    ? this.partService.saveAttributeValues(response.id, pendingAttributeValues).pipe(
+                        map(() => void 0),
+                        catchError(() => { attributeValuesFailed = true; return of(void 0); }))
+                    : of(void 0);
+
+                forkJoin([saveCompatibilities$, saveAttributeValues$]).subscribe({
+                    next: () => finalize(attributeValuesFailed),
+                    error: () => finalize(attributeValuesFailed)
                 });
             },
             error: (error) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to create part' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: error?.error?.message || this.i18n.t('parts.formDialog.messages.createFailed') });
                 this.isSubmitting = false;
             }
         });
@@ -615,7 +589,6 @@ export class PartFormComponent implements OnInit {
             id: this.partId!,
             name: v.name.trim(),
             description: v.description || '',
-            richDescription: v.richDescription?.trim() || null,
             partNumber: v.partNumber?.trim() || null,
             oemNumber: v.oemNumber?.trim() || null,
             localName: v.localName?.trim() || null,
@@ -642,42 +615,15 @@ export class PartFormComponent implements OnInit {
 
         this.partService.updatePart(this.partId!, request).subscribe({
             next: (response) => {
-                this.buildCatalogEntrySave(response.id).subscribe({
-                    next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `'${response.name}' updated successfully` });
-                        this.isSubmitting = false;
-                        this.router.navigate(['/inventory/parts']);
-                    },
-                    error: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Updated', detail: `'${response.name}' updated (online listing save failed)` });
-                        this.isSubmitting = false;
-                        this.router.navigate(['/inventory/parts']);
-                    }
-                });
+                this.messageService.add({ severity: 'success', summary: this.i18n.t('parts.partForm.updatedSummary'), detail: this.i18n.t('parts.partForm.messages.updateSuccess', { name: response.name }) });
+                this.isSubmitting = false;
+                this.router.navigate(['/inventory/parts']);
             },
             error: (error) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Failed to update part' });
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('common.messages.error'), detail: error?.error?.message || this.i18n.t('parts.formDialog.messages.updateFailed') });
                 this.isSubmitting = false;
             }
         });
-    }
-
-    private buildCatalogEntrySave(partId: string) {
-        const cv = this.catalogEntryForm.value;
-        const slugValue = (cv.slug || '').trim();
-        if (!slugValue) return of(null);
-
-        const req: UpsertCatalogEntryRequest = {
-            slug: slugValue,
-            shortDescription: cv.shortDescription?.trim() || '',
-            isPublished: cv.isPublished ?? true,
-            isFeatured: cv.isFeatured ?? false,
-            featuredRank: cv.featuredRank ?? 0,
-            metaTitle: cv.metaTitle?.trim() || null,
-            metaDescription: cv.metaDescription?.trim() || null
-        };
-
-        return this.catalogEntryService.upsert(partId, req).pipe(catchError(() => of(null)));
     }
 
     private savePendingCompatibilities(partId: string) {
@@ -699,35 +645,31 @@ export class PartFormComponent implements OnInit {
         return ctrl ? ctrl.invalid && ctrl.touched : false;
     }
 
-    hasCatalogError(fieldName: string): boolean {
-        const ctrl = this.catalogEntryForm.get(fieldName);
-        return ctrl ? ctrl.invalid && ctrl.touched : false;
-    }
-
     getErrorMessage(fieldName: string): string {
         const ctrl = this.partForm.get(fieldName);
-        if (ctrl?.hasError('required')) return `${this.getFieldLabel(fieldName)} is required`;
-        if (ctrl?.hasError('minlength')) return `${this.getFieldLabel(fieldName)} must be at least ${ctrl.getError('minlength')?.requiredLength} chars`;
-        if (ctrl?.hasError('maxlength')) return `${this.getFieldLabel(fieldName)} must not exceed ${ctrl.getError('maxlength')?.requiredLength} chars`;
-        if (ctrl?.hasError('min')) return `${this.getFieldLabel(fieldName)} must be at least ${ctrl.getError('min')?.min}`;
-        if (ctrl?.hasError('pattern') && fieldName === 'partNumber') return 'Part Number must start with a letter';
-        return 'Invalid value';
+        const field = this.getFieldLabel(fieldName);
+        if (ctrl?.hasError('required')) return this.i18n.t('common.messages.fieldRequired', { field });
+        if (ctrl?.hasError('minlength')) return this.i18n.t('parts.partForm.fieldMinLengthChars', { field, min: String(ctrl.getError('minlength')?.requiredLength) });
+        if (ctrl?.hasError('maxlength')) return this.i18n.t('parts.partForm.fieldMaxLengthChars', { field, max: String(ctrl.getError('maxlength')?.requiredLength) });
+        if (ctrl?.hasError('min')) return this.i18n.t('common.messages.fieldMinValue', { field, min: String(ctrl.getError('min')?.min) });
+        if (ctrl?.hasError('pattern') && fieldName === 'partNumber') return this.i18n.t('parts.partForm.partNumberMustStartWithLetter');
+        return this.i18n.t('parts.formDialog.invalidValue');
     }
 
     private getFieldLabel(fieldName: string): string {
         const labels: Record<string, string> = {
-            name: 'Part Name', partNumber: 'Part Number', oemNumber: 'OEM Number',
-            categoryId: 'Category',
-            minimumStock: 'Minimum Stock', warrantyPeriodMonths: 'Warranty Period',
-            warrantyType: 'Warranty Type'
+            name: this.i18n.t('parts.formDialog.fieldLabelPartName'), partNumber: this.i18n.t('parts.partNumber'), oemNumber: this.i18n.t('parts.formDialog.fieldLabelOemNumber'),
+            categoryId: this.i18n.t('common.labels.category'),
+            minimumStock: this.i18n.t('parts.formDialog.fieldLabelMinimumStock'), warrantyPeriodMonths: this.i18n.t('parts.partForm.fieldLabelWarrantyPeriod'),
+            warrantyType: this.i18n.t('parts.formDialog.fieldLabelWarrantyType')
         };
         return labels[fieldName] || fieldName;
     }
 
     get pageTitle(): string {
-        if (this.isViewMode) return 'View Part';
-        if (this.isEditMode) return 'Edit Part';
-        return 'Create New Part';
+        if (this.isViewMode) return this.i18n.t('parts.partForm.viewPartTitle');
+        if (this.isEditMode) return this.i18n.t('parts.editPart');
+        return this.i18n.t('parts.partForm.createNewPartTitle');
     }
 
     getCompatibilitySeverity(isCompatible: boolean): 'success' | 'warn' {
@@ -735,19 +677,7 @@ export class PartFormComponent implements OnInit {
     }
 
     getCompatibilityLabel(isCompatible: boolean): string {
-        return isCompatible ? 'Compatible' : 'Not Compatible';
-    }
-
-    get slugCharCount(): number {
-        return (this.catalogEntryForm.get('slug')?.value || '').length;
-    }
-
-    get metaTitleCharCount(): number {
-        return (this.catalogEntryForm.get('metaTitle')?.value || '').length;
-    }
-
-    get metaDescCharCount(): number {
-        return (this.catalogEntryForm.get('metaDescription')?.value || '').length;
+        return isCompatible ? this.i18n.t('parts.partDetails.compatible') : this.i18n.t('parts.partDetails.notCompatible');
     }
 
     private syncSelectedLookups(): void {

@@ -2,17 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../models/status_enums.dart';
 
 // ── StatusPill ────────────────────────────────────────────────────────────────
 
 class StatusPill extends StatelessWidget {
-  const StatusPill({super.key, required this.label});
+  const StatusPill({super.key, required this.label, this.kind});
 
   final String label;
 
+  /// The status's semantic color bucket, from a typed status enum's `.kind`
+  /// getter (see `shared/models/status_enums.dart`) — e.g.
+  /// `StatusPill(label: s.statusName(invoice.status), kind: invoice.status.kind)`.
+  /// When omitted, falls back to guessing the color from [label]'s text —
+  /// used for pills with no backing status enum, like stock-count chips
+  /// ("24 in stock" / "4 left").
+  final StatusKind? kind;
+
   @override
   Widget build(BuildContext context) {
-    final cfg = _cfg(label, context.colors);
+    final cfg = kind != null
+        ? _cfgForKind(kind!, context.colors)
+        : _cfgForLabel(label, context.colors);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -31,7 +42,19 @@ class StatusPill extends StatelessWidget {
     );
   }
 
-  static _PillConfig _cfg(String l, AppPalette c) {
+  static _PillConfig _cfgForKind(StatusKind kind, AppPalette c) =>
+      switch (kind) {
+        StatusKind.success => _PillConfig(c.green, c.greenBg, c.greenBorder),
+        StatusKind.warning => _PillConfig(c.amber, c.amberBg, c.amberBorder),
+        StatusKind.danger => _PillConfig(c.red, c.redBg, c.redBorder),
+        StatusKind.neutral =>
+          _PillConfig(c.secondary, c.surfaceSubtle, c.border),
+      };
+
+  /// Legacy heuristic: guesses a color bucket from the rendered label text.
+  /// Kept only for pills with no backing status enum (stock-count chips);
+  /// prefer passing [kind] wherever the label comes from a typed status.
+  static _PillConfig _cfgForLabel(String l, AppPalette c) {
     final upper = l.toUpperCase();
     // Stock labels with counts, e.g. "24 in stock" / "4 left".
     if (upper.endsWith('IN STOCK')) {

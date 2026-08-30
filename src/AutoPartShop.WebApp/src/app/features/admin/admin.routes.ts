@@ -21,12 +21,6 @@ export const adminRoutes: Routes = [
     data: { roles: ['Admin'] }
   },
   {
-    path: 'shop-policies',
-    loadComponent: () => import('./shop-policies/shop-policies.component').then(m => m.ShopPoliciesComponent),
-    canActivate: [roleGuard],
-    data: { roles: ['Admin'] }
-  },
-  {
     path: 'backups',
     loadComponent: () => import('./backups/backups.component').then(m => m.BackupsComponent),
     canActivate: [roleGuard],

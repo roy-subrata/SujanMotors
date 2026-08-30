@@ -20,13 +20,17 @@ import {
     CreateCustomerVehicleRequest
 } from '../../services/customer-vehicle.service';
 import { AppCurrencyPipe } from '../../../../shared/pipes/app-currency.pipe';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
+import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-customer-detail',
     standalone: true,
     imports: [
         CommonModule, ReactiveFormsModule, ButtonModule, TagModule, ToastModule, TooltipModule,
-        AvatarModule, DialogModule, InputTextModule, InputNumberModule, ConfirmDialogModule, AppCurrencyPipe
+        AvatarModule, DialogModule, InputTextModule, InputNumberModule, ConfirmDialogModule, AppCurrencyPipe,
+        TranslatePipe
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './customer-detail.component.html',
@@ -41,6 +45,8 @@ export class CustomerDetailComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly fb = inject(FormBuilder);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly i18n = inject(I18nService);
 
     customerId = signal<string>('');
     customer = signal<CustomerResponse | null>(null);
@@ -90,8 +96,8 @@ export class CustomerDetailComponent implements OnInit {
                 error: (error) => {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: 'Failed to load customer details'
+                        summary: this.i18n.t('common.messages.error'),
+                        detail: this.i18n.t('customers.detail.messages.loadFailed')
                     });
                     console.error('Error loading customer:', error);
                     this.loading.set(false);
@@ -167,8 +173,8 @@ export class CustomerDetailComponent implements OnInit {
             next: () => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Saved',
-                    detail: editingId ? 'Vehicle updated' : 'Vehicle added'
+                    summary: this.i18n.t('customers.form.messages.savedTitle'),
+                    detail: this.i18n.t(editingId ? 'customers.form.messages.vehicleUpdated' : 'customers.form.messages.vehicleAdded')
                 });
                 this.savingVehicle.set(false);
                 this.vehicleDialogVisible.set(false);
@@ -177,18 +183,27 @@ export class CustomerDetailComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error?.error?.message || 'Failed to save vehicle'
+                    summary: this.i18n.t('common.messages.error'),
+                    detail: error?.error?.message || this.i18n.t('customers.form.messages.vehicleSaveFailed')
                 });
                 this.savingVehicle.set(false);
             }
         });
     }
 
+    /** Customer status is a server enum rendered directly in a tag. */
+    formatStatus(status: string): string {
+        if (!status) return '';
+        const key = 'common.status.' + status.toLowerCase()
+            .replace(/_(.)/g, (_m, c: string) => c.toUpperCase());
+        const label = this.i18n.t(key);
+        return label === key ? status : label;
+    }
+
     confirmDeleteVehicle(vehicle: CustomerVehicleResponse): void {
         this.confirmationService.confirm({
-            message: `Delete vehicle "${vehicle.label}"?`,
-            header: 'Confirm Delete',
+            message: this.i18n.t('customers.form.messages.vehicleDeleteConfirm', { label: vehicle.label }),
+            header: this.i18n.t('customers.form.messages.vehicleDeleteHeader'),
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
@@ -196,14 +211,14 @@ export class CustomerDetailComponent implements OnInit {
                     .pipe(takeUntilDestroyed(this.destroyRef))
                     .subscribe({
                         next: () => {
-                            this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Vehicle removed' });
+                            this.messageService.add({ severity: 'success', summary: this.i18n.t('customers.form.messages.deletedTitle'), detail: this.i18n.t('customers.form.messages.vehicleRemoved') });
                             this.loadVehicles();
                         },
                         error: (error) => {
                             this.messageService.add({
                                 severity: 'error',
-                                summary: 'Error',
-                                detail: error?.error?.message || 'Failed to delete vehicle'
+                                summary: this.i18n.t('common.messages.error'),
+                                detail: error?.error?.message || this.i18n.t('customers.form.messages.vehicleDeleteFailed')
                             });
                         }
                     });
@@ -217,13 +232,8 @@ export class CustomerDetailComponent implements OnInit {
         return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     }
 
-    getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
-        switch (status?.toUpperCase()) {
-            case 'ACTIVE':   return 'success';
-            case 'INACTIVE': return 'secondary';
-            case 'SUSPENDED': return 'danger';
-            default:         return 'info';
-        }
+    getStatusSeverity(status: string): StatusSeverity {
+        return this.statusDisplay.getSeverity(status, 'customer');
     }
 
     editCustomer(): void {

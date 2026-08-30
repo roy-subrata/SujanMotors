@@ -1,291 +1,294 @@
 import { ReportPageConfig } from './report-config.model';
 
-/** Sales report group — backed by api/v1/reports/sales/*. */
+/**
+ * Sales report group — backed by api/v1/reports/sales/*.
+ * All user-facing strings below are i18n keys (see ReportPageConfig docs).
+ */
 export const SALES_REPORT_CONFIGS: ReportPageConfig[] = [
     {
         key: 'sales-summary',
         group: 'sales',
-        title: 'Sales Summary',
-        subtitle: 'Orders, revenue, discount and tax bucketed by day, week or month',
+        title: 'reports.pages.salesSummary.title',
+        subtitle: 'reports.pages.salesSummary.subtitle',
         icon: 'pi pi-chart-line',
         endpoint: 'v1/reports/sales/summary',
         paged: false,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'periods',
+        itemLabel: 'reports.items.periods',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
             {
-                kind: 'select', key: 'groupBy', label: 'Group By', default: 'day',
+                kind: 'select', key: 'groupBy', label: 'reports.filters.groupBy', default: 'day',
                 options: [
-                    { label: 'Daily', value: 'day' },
-                    { label: 'Weekly', value: 'week' },
-                    { label: 'Monthly', value: 'month' }
+                    { label: 'reports.options.daily', value: 'day' },
+                    { label: 'reports.options.weekly', value: 'week' },
+                    { label: 'reports.options.monthly', value: 'month' }
                 ]
             },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' },
             {
-                kind: 'select', key: 'channel', label: 'Channel',
+                kind: 'select', key: 'channel', label: 'reports.filters.channel',
                 options: [
-                    { label: 'POS', value: 'POS' },
-                    { label: 'E-commerce', value: 'ECOMMERCE' }
+                    { label: 'reports.options.pos', value: 'POS' },
+                    { label: 'reports.options.mobile', value: 'MOBILE' }
                 ]
             }
         ],
         columns: [
-            { field: 'periodStart', header: 'Period', type: 'date', mobilePrimary: true },
-            { field: 'orderCount', header: 'Orders', type: 'number' },
-            { field: 'grossAmount', header: 'Gross', type: 'money' },
-            { field: 'discountAmount', header: 'Discount', type: 'money' },
-            { field: 'taxAmount', header: 'Tax', type: 'money' },
-            { field: 'netAmount', header: 'Net', type: 'money' },
-            { field: 'grandTotal', header: 'Grand Total', type: 'money' },
-            { field: 'averageOrderValue', header: 'Avg Order', type: 'money' }
+            { field: 'periodStart', header: 'reports.columns.period', type: 'date', mobilePrimary: true },
+            { field: 'orderCount', header: 'reports.columns.orders', type: 'number' },
+            { field: 'grossAmount', header: 'reports.columns.gross', type: 'money' },
+            { field: 'discountAmount', header: 'common.labels.discount', type: 'money' },
+            { field: 'taxAmount', header: 'common.labels.tax', type: 'money' },
+            { field: 'netAmount', header: 'reports.columns.net', type: 'money' },
+            { field: 'grandTotal', header: 'reports.columns.grandTotal', type: 'money' },
+            { field: 'averageOrderValue', header: 'reports.columns.avgOrder', type: 'money' }
         ],
         chart: {
             type: 'line',
             labelField: 'periodStart',
             labelType: 'date',
             series: [
-                { field: 'netAmount', label: 'Net Sales' },
-                { field: 'grandTotal', label: 'Grand Total' }
+                { field: 'netAmount', label: 'reports.series.netSales' },
+                { field: 'grandTotal', label: 'reports.columns.grandTotal' }
             ]
         }
     },
     {
         key: 'sales-by-product',
         group: 'sales',
-        title: 'Sales by Product',
-        subtitle: 'Quantity sold and revenue per product, best sellers first',
+        title: 'reports.pages.salesByProduct.title',
+        subtitle: 'reports.pages.salesByProduct.subtitle',
         icon: 'pi pi-box',
         endpoint: 'v1/reports/sales/by-product',
         paged: true,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'products',
+        itemLabel: 'reports.items.products',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
-            { kind: 'search', key: 'search', label: 'Search', placeholder: 'Search by product name, part no, SKU...' },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' },
-            { kind: 'lookup', key: 'categoryId', label: 'Category', lookup: 'category' },
-            { kind: 'lookup', key: 'brandId', label: 'Brand', lookup: 'brand' }
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
+            { kind: 'search', key: 'search', label: 'common.actions.search', placeholder: 'reports.filters.searchProduct' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' },
+            { kind: 'lookup', key: 'categoryId', label: 'common.labels.category', lookup: 'category' },
+            { kind: 'lookup', key: 'brandId', label: 'reports.filters.brand', lookup: 'brand' }
         ],
         columns: [
-            { field: 'partNumber', header: 'Part No.' },
-            { field: 'partName', header: 'Product', mobilePrimary: true },
-            { field: 'sku', header: 'SKU' },
-            { field: 'categoryName', header: 'Category' },
-            { field: 'brandName', header: 'Brand' },
-            { field: 'quantitySold', header: 'Qty Sold', type: 'number' },
-            { field: 'grossRevenue', header: 'Gross Revenue', type: 'money' },
-            { field: 'discountAmount', header: 'Discount', type: 'money' },
-            { field: 'netRevenue', header: 'Net Revenue', type: 'money' }
+            { field: 'partNumber', header: 'reports.columns.partNo' },
+            { field: 'partName', header: 'reports.columns.product', mobilePrimary: true },
+            { field: 'sku', header: 'reports.columns.sku' },
+            { field: 'categoryName', header: 'common.labels.category' },
+            { field: 'brandName', header: 'reports.columns.brand' },
+            { field: 'quantitySold', header: 'reports.columns.qtySold', type: 'number' },
+            { field: 'grossRevenue', header: 'reports.columns.grossRevenue', type: 'money' },
+            { field: 'discountAmount', header: 'common.labels.discount', type: 'money' },
+            { field: 'netRevenue', header: 'reports.columns.netRevenue', type: 'money' }
         ]
     },
     {
         key: 'sales-by-category',
         group: 'sales',
-        title: 'Sales by Category',
-        subtitle: 'Revenue split across product categories, with share of total',
+        title: 'reports.pages.salesByCategory.title',
+        subtitle: 'reports.pages.salesByCategory.subtitle',
         icon: 'pi pi-tags',
         endpoint: 'v1/reports/sales/by-category',
         paged: false,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'categories',
+        itemLabel: 'reports.items.categories',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' }
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' }
         ],
         columns: [
-            { field: 'categoryName', header: 'Category', mobilePrimary: true },
-            { field: 'orderCount', header: 'Orders', type: 'number' },
-            { field: 'quantitySold', header: 'Qty Sold', type: 'number' },
-            { field: 'netRevenue', header: 'Net Revenue', type: 'money' },
-            { field: 'percentOfTotal', header: '% of Total', type: 'percent' }
+            { field: 'categoryName', header: 'common.labels.category', mobilePrimary: true },
+            { field: 'orderCount', header: 'reports.columns.orders', type: 'number' },
+            { field: 'quantitySold', header: 'reports.columns.qtySold', type: 'number' },
+            { field: 'netRevenue', header: 'reports.columns.netRevenue', type: 'money' },
+            { field: 'percentOfTotal', header: 'reports.columns.percentOfTotal', type: 'percent' }
         ],
         chart: {
             type: 'pie',
             labelField: 'categoryName',
             labelType: 'text',
-            series: [{ field: 'netRevenue', label: 'Net Revenue' }]
+            series: [{ field: 'netRevenue', label: 'reports.columns.netRevenue' }]
         }
     },
     {
         key: 'sales-by-customer',
         group: 'sales',
-        title: 'Sales by Customer',
-        subtitle: 'Revenue, payments and outstanding balance per customer',
+        title: 'reports.pages.salesByCustomer.title',
+        subtitle: 'reports.pages.salesByCustomer.subtitle',
         icon: 'pi pi-users',
         endpoint: 'v1/reports/sales/by-customer',
         paged: true,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'customers',
+        itemLabel: 'reports.items.customers',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
-            { kind: 'search', key: 'search', label: 'Search', placeholder: 'Search by customer name or code...' },
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
+            { kind: 'search', key: 'search', label: 'common.actions.search', placeholder: 'reports.filters.searchCustomer' },
             {
-                kind: 'select', key: 'customerType', label: 'Customer Type',
+                kind: 'select', key: 'customerType', label: 'reports.filters.customerType',
                 options: [
-                    { label: 'Retail', value: 'RETAIL' },
-                    { label: 'Wholesale', value: 'WHOLESALE' },
-                    { label: 'Corporate', value: 'CORPORATE' },
-                    { label: 'Distributor', value: 'DISTRIBUTOR' }
+                    { label: 'reports.options.retail', value: 'RETAIL' },
+                    { label: 'reports.options.wholesale', value: 'WHOLESALE' },
+                    { label: 'reports.options.corporate', value: 'CORPORATE' },
+                    { label: 'reports.options.distributor', value: 'DISTRIBUTOR' }
                 ]
             }
         ],
         columns: [
-            { field: 'customerCode', header: 'Code' },
-            { field: 'customerName', header: 'Customer', mobilePrimary: true },
-            { field: 'customerType', header: 'Type' },
-            { field: 'orderCount', header: 'Orders', type: 'number' },
-            { field: 'revenue', header: 'Revenue', type: 'money' },
-            { field: 'paidAmount', header: 'Paid', type: 'money' },
-            { field: 'outstanding', header: 'Outstanding', type: 'money' },
-            { field: 'lastPurchaseDate', header: 'Last Purchase', type: 'date' }
+            { field: 'customerCode', header: 'common.labels.code' },
+            { field: 'customerName', header: 'reports.columns.customer', mobilePrimary: true },
+            { field: 'customerType', header: 'common.labels.type' },
+            { field: 'orderCount', header: 'reports.columns.orders', type: 'number' },
+            { field: 'revenue', header: 'reports.columns.revenue', type: 'money' },
+            { field: 'paidAmount', header: 'common.status.paid', type: 'money' },
+            { field: 'outstanding', header: 'reports.columns.outstanding', type: 'money' },
+            { field: 'lastPurchaseDate', header: 'reports.columns.lastPurchase', type: 'date' }
         ]
     },
     {
         key: 'sales-by-salesperson',
         group: 'sales',
-        title: 'Sales by Salesperson',
-        subtitle: 'Orders and revenue per technician; unassigned orders group separately',
+        title: 'reports.pages.salesBySalesperson.title',
+        subtitle: 'reports.pages.salesBySalesperson.subtitle',
         icon: 'pi pi-user',
         endpoint: 'v1/reports/sales/by-salesperson',
         paged: false,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'salespeople',
+        itemLabel: 'reports.items.salespeople',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' }
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' }
         ],
         columns: [
-            { field: 'technicianName', header: 'Salesperson', mobilePrimary: true },
-            { field: 'orderCount', header: 'Orders', type: 'number' },
-            { field: 'quantitySold', header: 'Qty Sold', type: 'number' },
-            { field: 'revenue', header: 'Revenue', type: 'money' },
-            { field: 'averageOrderValue', header: 'Avg Order', type: 'money' }
+            { field: 'technicianName', header: 'reports.columns.salesperson', mobilePrimary: true },
+            { field: 'orderCount', header: 'reports.columns.orders', type: 'number' },
+            { field: 'quantitySold', header: 'reports.columns.qtySold', type: 'number' },
+            { field: 'revenue', header: 'reports.columns.revenue', type: 'money' },
+            { field: 'averageOrderValue', header: 'reports.columns.avgOrder', type: 'money' }
         ]
     },
     {
         key: 'sales-by-cashier',
         group: 'sales',
-        title: 'Sales by Cashier',
-        subtitle: 'Orders and revenue per staff user who processed the sale',
+        title: 'reports.pages.salesByCashier.title',
+        subtitle: 'reports.pages.salesByCashier.subtitle',
         icon: 'pi pi-id-card',
         endpoint: 'v1/reports/sales/by-cashier',
         paged: false,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'cashiers',
+        itemLabel: 'reports.items.cashiers',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' }
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' }
         ],
         columns: [
-            { field: 'cashierName', header: 'Cashier', mobilePrimary: true },
-            { field: 'orderCount', header: 'Orders', type: 'number' },
-            { field: 'quantitySold', header: 'Qty Sold', type: 'number' },
-            { field: 'revenue', header: 'Revenue', type: 'money' },
-            { field: 'averageOrderValue', header: 'Avg Order', type: 'money' }
+            { field: 'cashierName', header: 'reports.columns.cashier', mobilePrimary: true },
+            { field: 'orderCount', header: 'reports.columns.orders', type: 'number' },
+            { field: 'quantitySold', header: 'reports.columns.qtySold', type: 'number' },
+            { field: 'revenue', header: 'reports.columns.revenue', type: 'money' },
+            { field: 'averageOrderValue', header: 'reports.columns.avgOrder', type: 'money' }
         ]
     },
     {
         key: 'sales-returns',
         group: 'sales',
-        title: 'Sales Returns',
-        subtitle: 'Customer returns and refunds in the period',
+        title: 'reports.pages.salesReturns.title',
+        subtitle: 'reports.pages.salesReturns.subtitle',
         icon: 'pi pi-replay',
         endpoint: 'v1/reports/sales/returns',
         paged: true,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'returns',
+        itemLabel: 'reports.items.returns',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
-            { kind: 'search', key: 'search', label: 'Search', placeholder: 'Search by return no, SO no, customer...' },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' }
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
+            { kind: 'search', key: 'search', label: 'common.actions.search', placeholder: 'reports.filters.searchSalesReturn' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' }
         ],
         columns: [
-            { field: 'returnDate', header: 'Return Date', type: 'date', mobilePrimary: true },
-            { field: 'returnNumber', header: 'Return No.' },
-            { field: 'soNumber', header: 'SO Number' },
-            { field: 'customerName', header: 'Customer' },
-            { field: 'status', header: 'Status' },
-            { field: 'refundType', header: 'Refund Type' },
-            { field: 'refundAmount', header: 'Refund Amount', type: 'money' },
-            { field: 'reason', header: 'Reason' }
+            { field: 'returnDate', header: 'reports.columns.returnDate', type: 'date', mobilePrimary: true },
+            { field: 'returnNumber', header: 'reports.columns.returnNo' },
+            { field: 'soNumber', header: 'reports.columns.soNumber' },
+            { field: 'customerName', header: 'reports.columns.customer' },
+            { field: 'status', header: 'common.labels.status' },
+            { field: 'refundType', header: 'reports.columns.refundType' },
+            { field: 'refundAmount', header: 'reports.columns.refundAmount', type: 'money' },
+            { field: 'reason', header: 'common.labels.reason' }
         ]
     },
     {
         key: 'payment-collections',
         group: 'sales',
-        title: 'Payment Collections',
-        subtitle: 'Completed customer payments grouped by day or method',
+        title: 'reports.pages.paymentCollections.title',
+        subtitle: 'reports.pages.paymentCollections.subtitle',
         icon: 'pi pi-wallet',
         endpoint: 'v1/reports/sales/payment-collections',
         paged: false,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'groups',
+        itemLabel: 'reports.items.groups',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
             {
-                kind: 'select', key: 'groupBy', label: 'Group By', default: 'day',
+                kind: 'select', key: 'groupBy', label: 'reports.filters.groupBy', default: 'day',
                 options: [
-                    { label: 'By Day', value: 'day' },
-                    { label: 'By Method', value: 'method' }
+                    { label: 'reports.options.byDay', value: 'day' },
+                    { label: 'reports.options.byMethod', value: 'method' }
                 ]
             },
             {
-                kind: 'select', key: 'paymentMethod', label: 'Payment Method',
+                kind: 'select', key: 'paymentMethod', label: 'reports.filters.paymentMethod',
                 options: [
-                    { label: 'Cash', value: 'CASH' },
-                    { label: 'Credit Card', value: 'CREDIT_CARD' },
-                    { label: 'Bank Transfer', value: 'BANK_TRANSFER' },
-                    { label: 'Check', value: 'CHECK' }
+                    { label: 'reports.options.cash', value: 'CASH' },
+                    { label: 'reports.options.creditCard', value: 'CREDIT_CARD' },
+                    { label: 'reports.options.bankTransfer', value: 'BANK_TRANSFER' },
+                    { label: 'reports.options.check', value: 'CHECK' }
                 ]
             }
         ],
         columns: [
-            { field: 'groupKey', header: 'Group', mobilePrimary: true },
-            { field: 'paymentCount', header: 'Payments', type: 'number' },
-            { field: 'totalAmount', header: 'Total Amount', type: 'money' }
+            { field: 'groupKey', header: 'reports.columns.group', mobilePrimary: true },
+            { field: 'paymentCount', header: 'reports.columns.payments', type: 'number' },
+            { field: 'totalAmount', header: 'common.labels.totalAmount', type: 'money' }
         ],
         chart: {
             type: 'bar',
             labelField: 'groupKey',
             labelType: 'text',
-            series: [{ field: 'totalAmount', label: 'Collected' }]
+            series: [{ field: 'totalAmount', label: 'reports.series.collected' }]
         }
     },
     {
         key: 'profit-by-product',
         group: 'sales',
-        title: 'Profit by Product',
-        subtitle: 'Net revenue vs. actual cost (COGS) and margin per product',
+        title: 'reports.pages.profitByProduct.title',
+        subtitle: 'reports.pages.profitByProduct.subtitle',
         icon: 'pi pi-percentage',
         endpoint: 'v1/reports/sales/profit-by-product',
         paged: true,
         defaultRange: 'thisMonth',
         requiresDateRange: true,
-        itemLabel: 'products',
+        itemLabel: 'reports.items.products',
         filters: [
-            { kind: 'dateRange', key: 'dateRange', label: 'Period' },
-            { kind: 'search', key: 'search', label: 'Search', placeholder: 'Search by product name, part no, SKU...' },
-            { kind: 'lookup', key: 'warehouseId', label: 'Warehouse', lookup: 'warehouse' },
-            { kind: 'lookup', key: 'categoryId', label: 'Category', lookup: 'category' }
+            { kind: 'dateRange', key: 'dateRange', label: 'reports.filters.period' },
+            { kind: 'search', key: 'search', label: 'common.actions.search', placeholder: 'reports.filters.searchProduct' },
+            { kind: 'lookup', key: 'warehouseId', label: 'reports.filters.warehouse', lookup: 'warehouse' },
+            { kind: 'lookup', key: 'categoryId', label: 'common.labels.category', lookup: 'category' }
         ],
         columns: [
-            { field: 'partNumber', header: 'Part No.' },
-            { field: 'partName', header: 'Product', mobilePrimary: true },
-            { field: 'quantitySold', header: 'Qty Sold', type: 'number' },
-            { field: 'netRevenue', header: 'Net Revenue', type: 'money' },
-            { field: 'cogs', header: 'COGS', type: 'money' },
-            { field: 'grossProfit', header: 'Gross Profit', type: 'money' },
-            { field: 'marginPercent', header: 'Margin %', type: 'percent' }
+            { field: 'partNumber', header: 'reports.columns.partNo' },
+            { field: 'partName', header: 'reports.columns.product', mobilePrimary: true },
+            { field: 'quantitySold', header: 'reports.columns.qtySold', type: 'number' },
+            { field: 'netRevenue', header: 'reports.columns.netRevenue', type: 'money' },
+            { field: 'cogs', header: 'reports.columns.cogs', type: 'money' },
+            { field: 'grossProfit', header: 'reports.columns.grossProfit', type: 'money' },
+            { field: 'marginPercent', header: 'reports.columns.marginPercent', type: 'percent' }
         ]
     },
     {
@@ -295,14 +298,14 @@ export const SALES_REPORT_CONFIGS: ReportPageConfig[] = [
         // it's PDF-generation-only, so this config's endpoint/columns are unused.
         key: 'daily-z-report',
         group: 'sales',
-        title: 'Daily Sales (Z) Report',
-        subtitle: 'End-of-day sales summary and cash-up report for a single business day',
+        title: 'reports.dailyZ.title',
+        subtitle: 'reports.dailyZ.subtitle',
         icon: 'pi pi-calculator',
         endpoint: 'v1/reports/sales/daily-z-report',
         paged: false,
         defaultRange: 'today',
         requiresDateRange: true,
-        itemLabel: 'lines',
+        itemLabel: 'reports.items.lines',
         filters: [],
         columns: []
     }

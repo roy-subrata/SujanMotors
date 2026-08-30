@@ -310,7 +310,7 @@ Never log
 
 ```text
 src/AutoPartShop.WebApp/src/app/
-├── features/        # admin, audit, dashboard, ecommerce, hr, inventory,
+├── features/        # admin, audit, dashboard, hr, inventory,
 │                    # procurement, sales, warranty, …
 ├── layout/          # app shell (sidebar, topbar)
 ├── pages/           # top-level routed pages

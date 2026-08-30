@@ -15,7 +15,10 @@ public class UpdateCustomerRequest
     public string PostalCode { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
     public string CustomerType { get; set; } = string.Empty;
-    public decimal CreditLimit { get; set; }
+    // CreditLimit intentionally absent: the customer credit-limit feature was removed (see
+    // CustomerRepository.GetWithCreditLimitExceededAsync), so Customer has nowhere to store it.
+    // The field used to be accepted here and silently dropped, which read as a bug in the update.
     public string PrimaryContactPerson { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
+    public string PaymentTerms { get; set; } = string.Empty;
 }

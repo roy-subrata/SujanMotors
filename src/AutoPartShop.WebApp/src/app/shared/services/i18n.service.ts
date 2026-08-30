@@ -94,7 +94,7 @@ export class I18nService {
         return this.currentLang();
     }
 
-    translate(key: string, params?: { [key: string]: string }): string {
+    translate(key: string, params?: { [key: string]: string | number }): string {
         const keys = key.split('.');
         let value: any = this.translations();
 
@@ -114,10 +114,13 @@ export class I18nService {
             return key;
         }
 
-        // Replace parameters if provided
+        // Replace parameters if provided. split/join rather than String.replace():
+        // the latter only swaps the first occurrence and treats `$&`/`$1`/`$$` in the
+        // substituted value as replacement patterns, corrupting e.g. "$500.00" → "500.00".
         if (params) {
             Object.keys(params).forEach(paramKey => {
-                value = value.replace(`{{${paramKey}}}`, params[paramKey]);
+                const placeholder = `{{${paramKey}}}`;
+                value = value.split(placeholder).join(String(params[paramKey]));
             });
         }
 
@@ -140,7 +143,7 @@ export class I18nService {
     }
 
     // Shorthand method
-    t(key: string, params?: { [key: string]: string }): string {
+    t(key: string, params?: { [key: string]: string | number }): string {
         return this.translate(key, params);
     }
 

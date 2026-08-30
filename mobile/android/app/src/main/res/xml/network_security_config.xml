@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Release-build network security policy.
+
+  The VPS API (https://76.13.218.241) terminates TLS with a SELF-SIGNED
+  certificate (CN=76.13.218.241, generated ~2026-08-26, valid to 2027-08-26),
+  so the stock trust store rejects it and every request dies with a generic
+  "unexpected network error". This config lets the release builds trust ONLY
+  that exact certificate for that exact host — everything else stays locked to
+  the system CAs and cleartext (plain http) stays forbidden.
+
+  The cert bytes live in res/raw/sujanmotors_selfsigned.txt (DER). When you
+  regenerate it on the VPS you must replace that file and update the pin below:
+      openssl x509 -in cert.pem -pubkey -noout | openssl pkey -pubin -outform der \
+        | openssl dgst -sha256 -binary | openssl base64
+
+  TODO when a real domain + Let's Encrypt/Cloudflare cert exist: delete this
+  whole file, the release/AndroidManifest.xml reference, and the raw cert, then
+  point API_BASE_URL at https://<domain> — no custom trust needed anymore.
+-->
+<network-security-config>
+    <!-- Everything not explicitly listed below: no cleartext, system CAs only. -->
+    <base-config cleartextTrafficPermitted="false" />
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">76.13.218.241</domain>
+        <trust-anchors>
+            <certificates src="@raw/sujanmotors_selfsigned" />
+        </trust-anchors>
+        <pin-set expiration="2027-08-26">
+            <pin digest="SHA-256">1ts3j/mbShhB4Dm9xLa5ACLzffeeJLSlJ7Y9DnHctq8=</pin>
+        </pin-set>
+    </domain-config>
+</network-security-config>

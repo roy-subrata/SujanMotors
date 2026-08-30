@@ -12,11 +12,12 @@ import { UnitConversionService, UnitConversionResponse } from '../../services/un
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 @Component({
     selector: 'app-conversions-list',
     standalone: true,
-    imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, TagModule, FormsModule, DataPaginationComponent],
+    imports: [CommonModule, TableModule, ButtonModule, InputTextModule, TooltipModule, BadgeModule, TagModule, FormsModule, DataPaginationComponent, TranslatePipe],
     templateUrl: './conversions-list.component.html',
     styleUrls: ['./conversions-list.component.css']
 })
@@ -114,6 +115,10 @@ export class ConversionsListComponent implements OnInit {
 
     getConversionDisplay(conversion: UnitConversionResponse): string {
         return `1 ${conversion.fromUnitCode} = ${conversion.conversionFactor} ${conversion.toUnitCode}`;
+    }
+
+    getStatusLabel(isActive: boolean): string {
+        return isActive ? this.i18n.t('common.status.active') : this.i18n.t('common.status.inactive');
     }
 
     get first(): number {

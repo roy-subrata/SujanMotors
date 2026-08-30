@@ -1,6 +1,7 @@
 namespace AutoPartShop.Infrastructure.Repositories;
 
 using AutoPartShop.Domain.Entities;
+using AutoPartShop.Domain.Enums;
 using AutoPartShop.Domain.Repositories;
 using AutoPartShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -91,8 +92,8 @@ public class BackupRecordRepository(AutoPartDbContext context) : IBackupRecordRe
     {
         return await _context.BackupRecords
             .Where(b => !b.Isdeleted &&
-                        (b.Status == BackupRecord.Statuses.Succeeded ||
-                         b.Status == BackupRecord.Statuses.UploadFailed))
+                        (b.Status == BackupRecordStatus.Succeeded ||
+                         b.Status == BackupRecordStatus.UploadFailed))
             .OrderByDescending(b => b.StartedAt)
             .Skip(keepCount)
             .ToListAsync(cancellationToken);
@@ -103,8 +104,8 @@ public class BackupRecordRepository(AutoPartDbContext context) : IBackupRecordRe
     {
         return await _context.BackupRecords
             .Where(b => !b.Isdeleted &&
-                        (b.Status == BackupRecord.Statuses.Pending ||
-                         b.Status == BackupRecord.Statuses.Running))
+                        (b.Status == BackupRecordStatus.Pending ||
+                         b.Status == BackupRecordStatus.Running))
             .ToListAsync(cancellationToken);
     }
 

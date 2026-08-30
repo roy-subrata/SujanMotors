@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PdfDownloadService } from '@/shared/services/pdf-download.service';
+import { CustomerCreditNoteStatus } from '@/shared/models/status.types';
 
 export interface CustomerCreditNoteResponse {
   id: string;
@@ -21,7 +22,7 @@ export interface CustomerCreditNoteResponse {
   currency: string;
   issueDate: string;
   expiryDate?: string;
-  status: string;
+  status: CustomerCreditNoteStatus;
   notes: string;
   issuedBy: string;
   createdBy: string;
@@ -37,7 +38,7 @@ export interface ApplyCustomerCreditNoteRequest {
 
 export interface CustomerCreditNoteListQuery {
   customerId?: string;
-  status?: string;
+  status?: CustomerCreditNoteStatus;
   pageNumber: number;
   pageSize: number;
 }

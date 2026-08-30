@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { AppSettingsService } from '../../../shared/services/app-settings.service';
 
 // Payment method types
 export type PaymentMethod = 'CASH' | 'MOBILE_BANKING' | 'CARD' | 'DUE' | 'PART_PAY';
@@ -52,6 +53,7 @@ export interface QuickSaleRequest {
   discountAmount: number;
   discountType?: string;    // 'NONE' | 'PERCENTAGE' | 'FIXED'
   discountReason?: string;  // required for audit trail when discount > 0
+  promoCode?: string;       // promo code entered by cashier — resolved to a cart-level discount rule
   vatAmount: number;
   vatPercentage: number;
   grandTotal: number;
@@ -83,6 +85,12 @@ export interface QuickSaleResponse {
   grandTotal: number;
   paidAmount: number;
   dueAmount: number;
+  /**
+   * Mixed-domain field: the backend DTO (`QuickSaleResponse.Status`) is itself a plain `string`,
+   * not a typed enum — different code paths populate it from `invoice.Status.ToString()`
+   * (InvoiceStatus) or hardcoded "DRAFT"/"COMPLETED" literals (SalesOrderStatus-shaped), so it
+   * can't be narrowed to a single union here without misrepresenting the wire format.
+   */
   status: string;
   isQuotation?: boolean;
   createdAt: string;
@@ -116,6 +124,7 @@ export interface QuickSaleDraft {
   technicianName?: string;
   customerVehicleId?: string | null;
   manualDiscountAmount?: number;
+  promoCode?: string;
   /** Grand total at the moment the sale was held/drafted — display only. */
   total?: number;
   notes?: string;
@@ -125,6 +134,7 @@ export interface QuickSaleDraft {
 @Injectable({ providedIn: 'root' })
 export class QuickSaleService {
   private readonly http = inject(HttpClient);
+  private readonly settingsService = inject(AppSettingsService);
   private readonly apiUrl = `${environment.apiUrl}`;
 
   // Draft management
@@ -178,7 +188,17 @@ export class QuickSaleService {
   }
 
   getVATConfig(): Observable<{ enabled: boolean; percentage: number }> {
-    return of({ enabled: false, percentage: 15 });
+    return this.settingsService.getByCategory('TAX').pipe(
+      map(settings => {
+        const enabledSetting = settings.find(s => s.key === 'VAT_ENABLED');
+        const rateSetting = settings.find(s => s.key === 'VAT_RATE');
+        const percentage = rateSetting ? parseFloat(rateSetting.value) : 15;
+        return {
+          enabled: enabledSetting ? enabledSetting.value === 'true' : false,
+          percentage: isNaN(percentage) ? 15 : percentage,
+        };
+      })
+    );
   }
 
   resendInvoiceNotification(salesOrderId: string): Observable<void> {

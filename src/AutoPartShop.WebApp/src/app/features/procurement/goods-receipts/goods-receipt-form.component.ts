@@ -31,6 +31,10 @@ import {
 import { PurchaseOrderResponse, PurchaseOrderService } from '../services/purchase-order.service';
 import { BarcodeDialogComponent } from '../../inventory/parts/barcode-dialog/barcode-dialog.component';
 import { labelFromGrnLine } from '../../inventory/parts/barcode-dialog/label-data';
+import { StatusDisplayService } from '@/shared/services/status-display.service';
+import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { I18nService } from '@/shared/services/i18n.service';
 
 type WorkflowStatus = 'PENDING' | 'VERIFIED' | 'ACCEPTED';
 
@@ -57,7 +61,9 @@ interface SubmitValidationResult {
     ConfirmDialogModule,
     LazyAutocompleteComponent,
     TextareaModule,
-    CheckboxModule
+    CheckboxModule,
+    MoneyFormatPipe,
+    TranslatePipe
   ],
   providers: [MessageService, ConfirmationService, DialogService],
   templateUrl: './goods-receipt-form.component.html',
@@ -76,6 +82,8 @@ export class GoodsReceiptFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
+  private readonly statusDisplay = inject(StatusDisplayService);
+  private readonly i18n = inject(I18nService);
 
   /** GRN create/verify/accept/reject are restricted to back-office roles; cashiers can only view. */
   get canManage(): boolean {
@@ -88,20 +96,24 @@ export class GoodsReceiptFormComponent implements OnInit {
   warehouses: WarehouseResponse[] = [];
   activeCurrencies$ = this.currencyService.activeCurrencies$;
 
-  readonly createSteps = [
-    { index: 1, label: 'PO & Warehouse' },
-    { index: 2, label: 'Items' },
-    { index: 3, label: 'Review' }
-  ];
+  get createSteps() {
+    return [
+      { index: 1, label: this.i18n.t('goodsReceipt.stepPOWarehouse') },
+      { index: 2, label: this.i18n.t('goodsReceipt.stepItems') },
+      { index: 3, label: this.i18n.t('goodsReceipt.stepReview') }
+    ];
+  }
 
   readonly workflowSteps: WorkflowStatus[] = ['PENDING', 'VERIFIED', 'ACCEPTED'];
 
-  readonly conditions = [
-    { label: 'Good', value: 'GOOD' },
-    { label: 'Acceptable', value: 'ACCEPTABLE' },
-    { label: 'Damaged', value: 'DAMAGED' },
-    { label: 'Defective', value: 'DEFECTIVE' }
-  ];
+  get conditions() {
+    return [
+      { label: this.i18n.t('goodsReceipt.good'), value: 'GOOD' },
+      { label: this.i18n.t('goodsReceipt.acceptable'), value: 'ACCEPTABLE' },
+      { label: this.i18n.t('goodsReceipt.damaged'), value: 'DAMAGED' },
+      { label: this.i18n.t('goodsReceipt.defective'), value: 'DEFECTIVE' }
+    ];
+  }
 
   createStep = 1;
   showDeliverySection = false;
@@ -117,11 +129,13 @@ export class GoodsReceiptFormComponent implements OnInit {
   // Which line item has its details panel open (-1 = none)
   openDetailIndex = -1;
 
-  readonly warrantyTypeOptions = [
-    { label: 'Manufacturer', value: 'MANUFACTURER' },
-    { label: 'Seller',       value: 'SELLER' },
-    { label: 'Extended',     value: 'EXTENDED' }
-  ];
+  get warrantyTypeOptions() {
+    return [
+      { label: this.i18n.t('goodsReceipt.warrantyManufacturer'), value: 'MANUFACTURER' },
+      { label: this.i18n.t('goodsReceipt.warrantySeller'), value: 'SELLER' },
+      { label: this.i18n.t('goodsReceipt.warrantyExtended'), value: 'EXTENDED' }
+    ];
+  }
 
   fetchPurchaseOrdersLazy = (req: LazyRequest) =>
     this.poService
@@ -258,24 +272,13 @@ export class GoodsReceiptFormComponent implements OnInit {
   }
 
   getPageTitle(): string {
-    if (this.mode === 'view') return 'View Goods Receipt';
-    if (this.mode === 'edit') return 'Edit Goods Receipt';
-    return 'Create Goods Receipt';
+    if (this.mode === 'view') return this.i18n.t('goodsReceipt.viewTitle');
+    if (this.mode === 'edit') return this.i18n.t('goodsReceipt.editTitle');
+    return this.i18n.t('goodsReceipt.createTitle');
   }
 
   getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {
-    switch (status?.toUpperCase()) {
-      case 'PENDING':
-        return 'warn';
-      case 'VERIFIED':
-        return 'info';
-      case 'ACCEPTED':
-        return 'success';
-      case 'REJECTED':
-        return 'danger';
-      default:
-        return 'secondary';
-    }
+    return this.statusDisplay.getSeverity(status, 'goods-receipt');
   }
 
   getWorkflowStatusIndex(status: string): number {
@@ -284,9 +287,9 @@ export class GoodsReceiptFormComponent implements OnInit {
   }
 
   formatWorkflowStatus(status: WorkflowStatus): string {
-    if (status === 'PENDING') return 'Pending';
-    if (status === 'VERIFIED') return 'Verified';
-    return 'Accepted';
+    if (status === 'PENDING') return this.i18n.t('goodsReceipt.statusPending');
+    if (status === 'VERIFIED') return this.i18n.t('goodsReceipt.statusVerified');
+    return this.i18n.t('goodsReceipt.statusAccepted');
   }
 
   formatCurrency(value: number): string {
@@ -327,7 +330,7 @@ export class GoodsReceiptFormComponent implements OnInit {
 
     if (stepIndex > this.createStep) {
       if (this.createStep === 1 && !this.canProceedFromStepOne()) {
-        this.showValidationError('Select a purchase order, warehouse, and received date to continue.');
+        this.showValidationError(this.i18n.t('goodsReceipt.selectPOWarehouseDate'));
         return;
       }
 
@@ -425,7 +428,7 @@ export class GoodsReceiptFormComponent implements OnInit {
     const processedLines = this.buildSubmissionLines();
 
     if (processedLines.length === 0) {
-      this.showValidationError('At least one line must have receiving quantity greater than 0.');
+      this.showValidationError(this.i18n.t('goodsReceipt.atLeastOneLine'));
       return;
     }
 
@@ -463,14 +466,14 @@ export class GoodsReceiptFormComponent implements OnInit {
           this.isSubmitting = false;
           this.messageService.add({
             severity: 'success',
-            summary: 'Updated',
-            detail: `Goods Receipt '${grn.grnNumber}' updated successfully.`
+            summary: this.i18n.t('goodsReceipt.updated'),
+            detail: this.i18n.t('goodsReceipt.updatedDetail', { number: grn.grnNumber })
           });
           this.router.navigate(['/procurement/goods-receipts']);
         },
         error: (error) => {
           this.isSubmitting = false;
-          this.showApiError('Update Failed', error, 'Failed to update goods receipt.');
+          this.showApiError(this.i18n.t('goodsReceipt.updateFailed'), error, this.i18n.t('goodsReceipt.updateFailed'));
         }
       });
 
@@ -482,14 +485,14 @@ export class GoodsReceiptFormComponent implements OnInit {
         this.isSubmitting = false;
         this.messageService.add({
           severity: 'success',
-          summary: 'Created',
-          detail: `Goods Receipt '${grn.grnNumber}' created successfully.`
+          summary: this.i18n.t('goodsReceipt.created'),
+          detail: this.i18n.t('goodsReceipt.createdDetail', { number: grn.grnNumber })
         });
         this.router.navigate(['/procurement/goods-receipts']);
       },
       error: (error) => {
         this.isSubmitting = false;
-        this.showApiError('Creation Failed', error, 'Failed to create goods receipt.');
+        this.showApiError(this.i18n.t('goodsReceipt.createFailed'), error, this.i18n.t('goodsReceipt.createFailed'));
       }
     });
   }
@@ -510,12 +513,12 @@ export class GoodsReceiptFormComponent implements OnInit {
             this.currentGRN = grn;
             this.messageService.add({
               severity: 'success',
-              summary: 'Verified',
-              detail: `Goods Receipt ${grn.grnNumber} verified successfully.`
+              summary: this.i18n.t('goodsReceipt.verified'),
+              detail: this.i18n.t('goodsReceipt.verifiedDetail', { number: grn.grnNumber })
             });
             this.loadGoodsReceipt(this.grnId!);
           },
-          error: (error) => this.showApiError('Verification Failed', error, 'Failed to verify goods receipt.')
+          error: (error) => this.showApiError(this.i18n.t('goodsReceipt.verificationFailed'), error, this.i18n.t('goodsReceipt.verificationFailed'))
         });
       }
     });
@@ -569,14 +572,14 @@ export class GoodsReceiptFormComponent implements OnInit {
             this.currentGRN = grn;
             this.messageService.add({
               severity: 'success',
-              summary: 'Accepted',
+              summary: this.i18n.t('goodsReceipt.accepted'),
               detail: createReturn
-                ? `Goods Receipt ${grn.grnNumber} accepted and a draft Purchase Return was created.`
-                : `Goods Receipt ${grn.grnNumber} accepted successfully.`
+                ? this.i18n.t('goodsReceipt.acceptedWithReturnDetail', { number: grn.grnNumber })
+                : this.i18n.t('goodsReceipt.acceptedDetail', { number: grn.grnNumber })
             });
             this.loadGoodsReceipt(this.grnId!);
           },
-          error: (error) => this.showApiError('Acceptance Failed', error, 'Failed to accept goods receipt.')
+          error: (error) => this.showApiError(this.i18n.t('goodsReceipt.acceptanceFailed'), error, this.i18n.t('goodsReceipt.acceptanceFailed'))
         });
       }
     });
@@ -609,12 +612,12 @@ export class GoodsReceiptFormComponent implements OnInit {
             this.currentGRN = grn;
             this.messageService.add({
               severity: 'success',
-              summary: 'Rejected',
-              detail: `Goods Receipt ${grn.grnNumber} rejected.`
+              summary: this.i18n.t('goodsReceipt.rejected'),
+              detail: this.i18n.t('goodsReceipt.rejectedDetail', { number: grn.grnNumber })
             });
             this.loadGoodsReceipt(this.grnId!);
           },
-          error: (error) => this.showApiError('Rejection Failed', error, 'Failed to reject goods receipt.')
+          error: (error) => this.showApiError(this.i18n.t('goodsReceipt.rejectionFailed'), error, this.i18n.t('goodsReceipt.rejectionFailed'))
         });
       }
     });
@@ -658,7 +661,7 @@ export class GoodsReceiptFormComponent implements OnInit {
           this.warehouses = Array.isArray(warehouseList) ? warehouseList : [];
         },
         error: (error) => {
-          this.showApiError('Warehouse Load Failed', error, 'Could not load warehouses.');
+          this.showApiError(this.i18n.t('goodsReceipt.warehouseLoadFailed'), error, this.i18n.t('goodsReceipt.warehouseLoadFailed'));
         }
       });
   }
@@ -707,7 +710,7 @@ export class GoodsReceiptFormComponent implements OnInit {
         });
       },
       error: (error) => {
-        this.showApiError('Load Failed', error, 'Failed to load goods receipt.');
+        this.showApiError(this.i18n.t('goodsReceipt.loadFailed'), error, this.i18n.t('goodsReceipt.loadFailed'));
       }
     });
   }
@@ -981,7 +984,7 @@ export class GoodsReceiptFormComponent implements OnInit {
   private showValidationError(message: string): void {
     this.messageService.add({
       severity: 'error',
-      summary: 'Validation Error',
+      summary: this.i18n.t('goodsReceipt.validationError'),
       detail: message
     });
   }

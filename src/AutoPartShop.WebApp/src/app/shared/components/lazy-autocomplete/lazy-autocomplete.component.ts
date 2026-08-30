@@ -1,9 +1,10 @@
-import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, forwardRef, ViewChild, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ContentChild, TemplateRef, forwardRef, ViewChild, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { AutoCompleteModule, AutoComplete } from 'primeng/autocomplete';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
+import { I18nService } from '@/shared/services/i18n.service';
 
 export interface LazyRequest {
     search: string;
@@ -32,6 +33,8 @@ export interface LazyResponse<T> {
 export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor, OnInit, OnDestroy {
     @ViewChild('autoComplete') autoComplete!: AutoComplete;
 
+    private readonly i18n = inject(I18nService);
+
     value: T | null = null;
     disabled = false;
     private onChange: (value: T | null) => void = () => {};
@@ -41,17 +44,27 @@ export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor,
     private destroy$ = new Subject<void>();
     private currentRequest$: Subscription | null = null;
 
-    /* ================= INPUTS ================= */
+    /* ================= INPUTS =================
+       placeholder/emptyMessage/loadingMessage default to translated fallbacks (set in the
+       constructor, below) so callers that don't override them still get localized text instead
+       of hardcoded English — they're plain fields rather than getters because @Input requires an
+       assignable property; any explicit binding from a parent still overrides them normally. */
     @Input() fetchFn!: (req: LazyRequest) => Observable<LazyResponse<T>>;
     @Input() optionLabel = 'name';
-    @Input() placeholder = 'Search';
+    @Input() placeholder: string;
     @Input() pageSize = 20;
     @Input() itemSize = 48;
     @Input() showClear = true;
     @Input() minLength = 0;
     @Input() scrollHeight = '320px';
-    @Input() emptyMessage = 'No results found';
-    @Input() loadingMessage = 'Loading...';
+    @Input() emptyMessage: string;
+    @Input() loadingMessage: string;
+
+    constructor() {
+        this.placeholder = this.i18n.t('common.actions.search');
+        this.emptyMessage = this.i18n.t('common.messages.noRecordsFound');
+        this.loadingMessage = this.i18n.t('common.messages.loading');
+    }
 
     get useVirtualScroll(): boolean {
         const maxVisible = Math.floor(parseInt(this.scrollHeight, 10) / this.itemSize);
@@ -98,7 +111,26 @@ export class LazyAutocompleteComponent<T = any> implements ControlValueAccessor,
 
     /* ================= ControlValueAccessor ================= */
     writeValue(value: T | null): void {
-        this.value = value;
+        this.value = this.ensureOptionLabel(value);
+    }
+
+    /**
+     * PrimeNG renders "[object Object]" in the input when the model value is an
+     * object that lacks the configured optionLabel key (e.g. a minimal object
+     * patched in during form prefill). Synthesize the label from common
+     * fallbacks so any such value still displays sensibly.
+     */
+    private ensureOptionLabel(value: T | null): T | null {
+        if (!value || typeof value !== 'object' || !this.optionLabel) return value;
+        if ((value as any)[this.optionLabel] != null) return value;
+        const fallback =
+            (value as any).displayName ??
+            (value as any).name ??
+            (value as any).fullName ??
+            (value as any).poNumber ??
+            (value as any).code;
+        if (fallback == null || fallback === '') return value;
+        return { ...(value as any), [this.optionLabel]: fallback };
     }
 
     registerOnChange(fn: (value: T | null) => void): void {

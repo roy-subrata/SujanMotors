@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace AutoPartShop.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [Authorize]
 public class ApplicationSettingsController : ControllerBase
@@ -125,7 +124,7 @@ public class ApplicationSettingsController : ControllerBase
     {
         var value = await _settingsRepository.GetValueAsync(key);
         if (value == null)
-            return NotFound($"Setting with key '{key}' not found");
+            return NotFound(new { message = $"Setting with key '{key}' not found" });
 
         return Ok(new { key, value });
     }
@@ -182,7 +181,7 @@ public class ApplicationSettingsController : ControllerBase
             return BadRequest(ModelState);
 
         if (await _settingsRepository.ExistsByKeyAsync(request.Key))
-            return Conflict($"Setting with key '{request.Key}' already exists");
+            return Conflict(new { message = $"Setting with key '{request.Key}' already exists" });
 
         var setting = ApplicationSettings.Create(
             request.Key,
@@ -211,7 +210,7 @@ public class ApplicationSettingsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { message = ex.Message });
         }
     }
 

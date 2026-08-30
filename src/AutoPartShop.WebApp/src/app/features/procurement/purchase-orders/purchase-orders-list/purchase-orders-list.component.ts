@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ContextMenuModule, ContextMenu } from 'primeng/contextmenu';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
@@ -11,8 +12,10 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { ApplyAdvanceCreditDialogComponent } from '../apply-advance-credit/apply-advance-credit-dialog.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { DataPaginationComponent } from '@/shared/components/data-pagination/data-pagination.component';
+import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 
 @Component({
   selector: 'app-purchase-orders-list',
@@ -21,9 +24,11 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
     CommonModule,
     ContextMenuModule,
     ConfirmDialogModule,
+    TableModule,
     TooltipModule,
     RouterModule,
-    DataPaginationComponent
+    DataPaginationComponent,
+    TranslatePipe
   ],
   providers: [ConfirmationService, MessageService, DialogService],
   templateUrl: './purchase-orders-list.component.html',
@@ -58,6 +63,7 @@ export class PurchaseOrdersListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
+  private readonly statusDisplay = inject(StatusDisplayService);
 
   /** Procurement mutations (create/edit/delete/payment) are restricted to back-office roles. */
   get canManage(): boolean {
@@ -96,7 +102,7 @@ export class PurchaseOrdersListComponent implements OnInit {
         visible: po ? po.status === 'DRAFT' && this.canManage : false
       },
       {
-        label: 'Download PDF',
+        label: this.i18n.t('purchaseOrders.downloadPdf'),
         icon: 'pi pi-file-pdf',
         command: () => {
           if (po) this.downloadPdf(po);
@@ -163,16 +169,13 @@ export class PurchaseOrdersListComponent implements OnInit {
     }
   }
 
-  getStatusSeverity(status: string): string {
-    switch (status?.toUpperCase()) {
-      case 'DRAFT':     return 'warning';
-      case 'SUBMITTED': return 'info';
-      case 'CONFIRMED': return 'success';
-      case 'PARTIAL':   return 'warning';
-      case 'DELIVERED': return 'success';
-      case 'CANCELLED': return 'danger';
-      default:          return 'secondary';
-    }
+  getStatusSeverity(status: string): StatusSeverity {
+    return this.statusDisplay.getSeverity(status, 'purchase-order');
+  }
+
+  /** Localized status label; falls back to a humanized form when untranslated. */
+  statusLabel(status: string): string {
+    return this.statusDisplay.getLabel(status, 'purchaseOrders.statusOptions');
   }
 
   goToPage(page: number): void {
@@ -223,7 +226,7 @@ export class PurchaseOrdersListComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: this.i18n.t('common.messages.error'),
-          detail: 'Failed to download the purchase order PDF'
+          detail: this.i18n.t('purchaseOrders.listMessages.pdfFailed')
         });
       }
     });

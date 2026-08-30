@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/api_config.dart';
 import '../../core/network/app_exception.dart';
+import '../../core/network/dio_provider.dart';
 import '../../shared/models/json.dart';
 import 'session.dart';
 
@@ -115,12 +116,14 @@ class AuthRepository {
 /// Bare client for the anonymous auth endpoints — no bearer header, no
 /// interceptors, so it cannot recurse through the authenticated client.
 final authDioProvider = Provider<Dio>((ref) {
-  return Dio(BaseOptions(
+  final dio = Dio(BaseOptions(
     baseUrl: ApiConfig.apiBaseUrl,
     connectTimeout: const Duration(seconds: 15),
     receiveTimeout: const Duration(seconds: 20),
     contentType: Headers.jsonContentType,
   ));
+  dio.httpClientAdapter = ref.watch(secureHttpAdapterProvider).adapter;
+  return dio;
 });
 
 final authRepositoryProvider = Provider<AuthRepository>(

@@ -1,5 +1,6 @@
 using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Pdf;
+using AutoPartShop.Api.Pdf.Design;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.ProformaInvoiceDtos;
 using AutoPartShop.Domain.Entities;
@@ -9,8 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/proforma-invoices")]
 [Route("api/v1/proforma-invoices")]
 [ApiController]
 [Produces("application/json")]
@@ -143,7 +142,7 @@ public class ProformaInvoiceController(
             GrandTotal: order.GrandTotal,
             Notes: proforma.Notes);
 
-        var pdfBytes = new ProformaInvoiceDocument(data, shop).GeneratePdf();
+        var pdfBytes = new ProformaInvoiceDocument(data, shop, DocTheme.Default with { Lang = this.GetLanguage() }).GeneratePdf();
         return File(pdfBytes, "application/pdf", $"proforma-invoice-{proforma.ProformaNumber}.pdf");
     }
 

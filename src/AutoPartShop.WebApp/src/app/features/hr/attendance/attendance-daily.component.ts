@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AttendanceService, DailyAttendanceRow, MarkAttendanceEntry } from '../services/attendance.service';
+import { AttendanceStatus } from '@/shared/models/status.types';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -13,6 +14,7 @@ import { MessageService } from 'primeng/api';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
+import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 
 interface AttendanceRowVm extends DailyAttendanceRow {
     checkIn: string;   // "HH:mm" for <input type="time">
@@ -24,7 +26,7 @@ interface AttendanceRowVm extends DailyAttendanceRow {
     selector: 'app-attendance-daily',
     standalone: true,
     imports: [CommonModule, FormsModule, TableModule, ButtonModule, InputTextModule, Select, DatePickerModule, TooltipModule, ToastModule,
-        PageContainerComponent, PageHeaderComponent, FilterBarComponent],
+        PageContainerComponent, PageHeaderComponent, FilterBarComponent, TranslatePipe],
     providers: [MessageService],
     templateUrl: './attendance-daily.component.html',
     styleUrls: ['./attendance-daily.component.css']
@@ -104,7 +106,7 @@ export class AttendanceDailyComponent implements OnInit {
         row.dirty = true;
     }
 
-    markAll(status: string): void {
+    markAll(status: AttendanceStatus): void {
         this.rows.forEach(row => {
             row.status = status;
             row.dirty = true;

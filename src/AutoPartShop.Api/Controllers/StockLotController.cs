@@ -1,4 +1,4 @@
-﻿using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Application.Stock;
@@ -11,8 +11,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
-
-[Route("api/[controller]")]
 [Route("api/v1/[controller]")]
 [ApiController]
 [HasPermission(Permissions.InventoryView)]
@@ -80,13 +78,13 @@ public class StockLotController(
     public async Task<IActionResult> GetList(StockLotQuery query, CancellationToken cancellationToken = default)
     {
         if (query is null)
-            return BadRequest("Request body is required.");
+            return BadRequest(new { message = "Request body is required." });
 
         if (query.PageNumber < 1)
-            return BadRequest("PageNumber must be greater than 0.");
+            return BadRequest(new { message = "PageNumber must be greater than 0." });
 
         if (query.PageSize < 1)
-            return BadRequest("PageSize must be greater than 0.");
+            return BadRequest(new { message = "PageSize must be greater than 0." });
 
         try
         {
@@ -122,7 +120,7 @@ public class StockLotController(
         try
         {
             var part = await _productRepository.GetByIdAsync(partId, cancellationToken);
-            if (part is null) return NotFound("Part not found");
+            if (part is null) return NotFound(new { message = "Part not found" });
 
             var lots = await _repository.GetByPartAsync(partId, cancellationToken);
             // Scope to a single variant when requested (SKU-level price history).
@@ -143,12 +141,13 @@ public class StockLotController(
                          .Skip((pageNumber - 1) * pageSize)
                          .Take(pageSize))
             {
-                // Try cache first, then load from DB
-                if (!supplierCache.TryGetValue(l.SupplierId, out var supplierName))
+                // Try cache first, then load from DB (adjustment lots have no supplier)
+                string? supplierName = null;
+                if (l.SupplierId.HasValue && !supplierCache.TryGetValue(l.SupplierId.Value, out supplierName))
                 {
-                    var supplier = await _supplierRepository.GetByIdAsync(l.SupplierId, cancellationToken);
+                    var supplier = await _supplierRepository.GetByIdAsync(l.SupplierId.Value, cancellationToken);
                     supplierName = supplier?.Name ?? string.Empty;
-                    supplierCache[l.SupplierId] = supplierName;
+                    supplierCache[l.SupplierId.Value] = supplierName;
                 }
 
                 lotItems.Add(new StockLotHistoryItem
@@ -156,7 +155,7 @@ public class StockLotController(
                     LotId = l.Id,
                     LotNumber = l.LotNumber,
                     SupplierId = l.SupplierId,
-                    SupplierName = supplierName,
+                    SupplierName = supplierName ?? string.Empty,
                     QuantityReceived = l.QuantityReceived,
                     QuantityAvailable = l.QuantityAvailable,
                     CostPrice = l.CostPrice,
@@ -433,10 +432,11 @@ public class StockLotController(
             warehouseCache[lot.WarehouseId] = warehouse;
         }
 
-        if (!supplierCache.TryGetValue(lot.SupplierId, out var supplier))
+        Supplier? supplier = null;
+        if (lot.SupplierId.HasValue && !supplierCache.TryGetValue(lot.SupplierId.Value, out supplier))
         {
-            supplier = await _supplierRepository.GetByIdAsync(lot.SupplierId, cancellationToken);
-            supplierCache[lot.SupplierId] = supplier;
+            supplier = await _supplierRepository.GetByIdAsync(lot.SupplierId.Value, cancellationToken);
+            supplierCache[lot.SupplierId.Value] = supplier;
         }
 
         // Load unit info
