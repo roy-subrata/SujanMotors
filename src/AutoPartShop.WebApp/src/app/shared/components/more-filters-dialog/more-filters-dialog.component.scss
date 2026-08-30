@@ -1,0 +1,14 @@
+.more-filters-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .more-filters-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--color-text-primary);
+            cursor: pointer;
+        }

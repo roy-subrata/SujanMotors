@@ -7,71 +7,8 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 @Component({
   selector: 'app-credit-info',
   standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div *ngIf="summary">
-      <h3 class="text-lg font-bold mb-4">{{ i18n.t('supplierPaymentSummary.creditInfo.title') }}</h3>
-
-      <div class="space-y-4">
-        <!-- Credit Limit -->
-        <div class="info-row">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.creditInfo.creditLimit') }}</span>
-            <span class="text-sm font-bold text-gray-900">{{ summary.creditLimit | currency }}</span>
-          </div>
-        </div>
-
-        <!-- Credit Utilized -->
-        <div class="info-row">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.creditInfo.creditUtilized') }}</span>
-            <span class="text-sm font-bold text-gray-900">{{ getUtilizedCredit() | currency }}</span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
-            <div
-              class="h-3 rounded-full transition-all duration-300"
-              [ngClass]="getUtilizationBarColor()"
-              [style.width.%]="summary.creditUtilization">
-            </div>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">{{ i18n.t('supplierPaymentSummary.creditInfo.utilizedPercent', { percent: summary.creditUtilization.toFixed(1) }) }}</p>
-        </div>
-
-        <!-- Credit Available -->
-        <div class="info-row">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium text-gray-700">{{ i18n.t('supplierPaymentSummary.creditInfo.creditAvailable') }}</span>
-            <span class="text-sm font-bold" [ngClass]="getAvailableTextColor()">
-              {{ getAvailableCredit() | currency }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Status Indicator -->
-        <div class="mt-4 p-3 rounded-lg" [ngClass]="getCreditStatusClass()">
-          <div class="flex items-center">
-            <i [ngClass]="getCreditStatusIcon()" class="mr-2"></i>
-            <span class="text-sm font-medium">{{ getCreditStatus() }}</span>
-          </div>
-        </div>
-
-        <!-- Additional Info -->
-        <div class="mt-4 pt-4 border-t border-gray-200">
-          <div>
-            <p class="text-xs text-gray-600">{{ 'common.labels.supplierCode' | translate }}</p>
-            <p class="text-sm font-semibold text-gray-900">{{ summary.supplierCode }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .info-row {
-      padding: 0.75rem;
-      background: var(--surface-ground);
-      border-radius: 0.375rem;
-    }
-  `  ],
+  templateUrl: './credit-info.component.html',
+  styleUrl: './credit-info.component.scss',
   imports: [CommonModule, TranslatePipe]
 })
 export class CreditInfoComponent {

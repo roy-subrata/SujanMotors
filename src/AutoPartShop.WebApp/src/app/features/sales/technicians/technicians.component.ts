@@ -6,6 +6,6 @@ import { RouterModule } from '@angular/router';
   selector: 'app-technicians',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  template: '<router-outlet></router-outlet>'
+  templateUrl: './technicians.component.html',
 })
 export class TechniciansComponent {}

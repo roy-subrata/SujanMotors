@@ -1,0 +1,25 @@
+<p-dialog
+            [header]="'common.labels.moreFilters' | translate"
+            [modal]="true"
+            [(visible)]="visible"
+            (visibleChange)="visibleChange.emit($event)"
+            (onShow)="pending = selected"
+            [style]="{ width: '360px' }"
+            [dismissableMask]="true">
+            <div class="more-filters-options">
+                @for (option of options; track option.value) {
+                    <label class="more-filters-option">
+                        <p-radioButton
+                            name="moreFiltersStatus"
+                            [value]="option.value"
+                            [(ngModel)]="pending">
+                        </p-radioButton>
+                        <span>{{ option.label }}</span>
+                    </label>
+                }
+            </div>
+            <ng-template pTemplate="footer">
+                <button type="button" class="btn-secondary" (click)="cancel()">{{ 'common.actions.cancel' | translate }}</button>
+                <button type="button" class="btn-primary" (click)="show()">{{ 'common.actions.show' | translate }} {{ previewCount }}</button>
+            </ng-template>
+        </p-dialog>

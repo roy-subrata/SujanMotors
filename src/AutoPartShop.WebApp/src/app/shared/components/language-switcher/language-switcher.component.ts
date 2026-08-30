@@ -7,72 +7,8 @@ import { TooltipModule } from 'primeng/tooltip';
     selector: 'app-language-switcher',
     standalone: true,
     imports: [CommonModule, TooltipModule],
-    template: `
-        <div class="lang-pill" pTooltip="Change language" tooltipPosition="bottom">
-            <button
-                type="button"
-                class="lang-tab"
-                [class.active]="currentLanguageCode === 'en'"
-                (click)="setLanguage('en')">
-                EN
-            </button>
-            <button
-                type="button"
-                class="lang-tab"
-                [class.active]="currentLanguageCode === 'bn'"
-                (click)="setLanguage('bn')">
-                বাংলা
-            </button>
-        </div>
-    `,
-    styles: [`
-        .lang-pill {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px;
-            height: 36px;
-            border-radius: 8px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            gap: 2px;
-        }
-
-        .lang-tab {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            padding: 0 10px;
-            border: none;
-            background: transparent;
-            color: var(--text-color-secondary);
-            font-size: 0.75rem;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.15s, color 0.15s;
-        }
-
-        .lang-tab.active {
-            background: var(--text);
-            color: var(--surface);
-        }
-
-        /* Narrow phones: this pill is the widest item in the topbar action row, and
-           nothing else shrinks it — at full width it pushed the trailing icons
-           (theme, notifications, avatar) past the right edge. Match the 32px
-           control height the topbar drops to at this breakpoint. */
-        @media (max-width: 575px) {
-            .lang-pill {
-                height: 32px;
-            }
-
-            .lang-tab {
-                padding: 0 7px;
-                font-size: 0.6875rem;
-            }
-        }
-    `]
+    templateUrl: './language-switcher.component.html',
+    styleUrl: './language-switcher.component.scss',
 })
 export class LanguageSwitcherComponent {
     private i18n = inject(I18nService);

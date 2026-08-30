@@ -34,44 +34,8 @@ import { RouterLink } from '@angular/router';
   selector: 'app-page-header',
   standalone: true,
   imports: [CommonModule, RouterLink],
-  template: `
-    <header class="page-header">
-      <div class="header-content">
-        <div class="header-left-group">
-          @if (backLink) {
-            <a class="btn-icon back-button" [routerLink]="backLink" title="Back">
-              <i class="pi pi-arrow-left"></i>
-            </a>
-          }
-          <div class="header-left">
-            <h1 class="page-title">{{ title }}</h1>
-            @if (subtitleLine) {
-              <p class="page-subtitle">{{ subtitleLine }}</p>
-            }
-          </div>
-        </div>
-
-        <div class="header-actions">
-          <div class="action-buttons">
-            <ng-content select="[actions]"></ng-content>
-          </div>
-        </div>
-      </div>
-    </header>
-  `,
-  styles: [`
-    .header-left-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex: 1;
-      min-width: 0;
-    }
-    .back-button {
-      flex-shrink: 0;
-      text-decoration: none;
-    }
-  `]
+  templateUrl: './page-header.component.html',
+  styleUrl: './page-header.component.scss',
 })
 export class PageHeaderComponent {
   @Input() title = '';

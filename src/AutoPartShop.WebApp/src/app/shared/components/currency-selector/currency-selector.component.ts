@@ -28,66 +28,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
       multi: true
     }
   ],
-  template: `
-    <div class="currency-selector">
-      <label *ngIf="showLabel()" for="currency-select" class="currency-label">
-        Currency
-      </label>
-      <p-select
-        id="currency-select"
-        [options]="currencies()"
-        [(ngModel)]="value"
-        (ngModelChange)="onValueChange($event)"
-        optionLabel="code"
-        optionValue="code"
-        [placeholder]="placeholder()"
-        [disabled]="isDisabled || disabled()"
-        [filter]="filter()"
-        [filterBy]="'code,name'"
-        [showClear]="showClear()"
-        styleClass="w-full">
-        <ng-template let-currency pTemplate="item">
-          <div class="flex align-items-center gap-2">
-            <span class="currency-symbol">{{ currency.symbol }}</span>
-            <span class="currency-code font-semibold">{{ currency.code }}</span>
-            <span class="currency-name text-sm text-color-secondary">- {{ currency.name }}</span>
-          </div>
-        </ng-template>
-        <ng-template let-currency pTemplate="selectedItem">
-          <div *ngIf="currency" class="flex align-items-center gap-2">
-            <span class="currency-symbol">{{ currency.symbol }}</span>
-            <span class="currency-code font-semibold">{{ currency.code }}</span>
-          </div>
-        </ng-template>
-      </p-select>
-    </div>
-  `,
-  styles: [`
-    .currency-selector {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .currency-label {
-      font-weight: 500;
-      font-size: 0.875rem;
-      color: var(--text-color);
-    }
-
-    .currency-symbol {
-      font-size: 1.125rem;
-      font-weight: 600;
-    }
-
-    .currency-code {
-      font-family: monospace;
-    }
-
-    .currency-name {
-      flex: 1;
-    }
-  `]
+  templateUrl: './currency-selector.component.html',
+  styleUrl: './currency-selector.component.scss',
 })
 export class CurrencySelectorComponent implements OnInit, ControlValueAccessor {
   private currencyService = inject(CurrencyService);

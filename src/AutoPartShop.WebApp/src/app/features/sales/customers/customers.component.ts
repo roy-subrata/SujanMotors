@@ -4,7 +4,7 @@ import { RouterOutlet } from '@angular/router';
 @Component({
   selector: 'app-customers',
   imports: [RouterOutlet],
-  template: '<router-outlet />',
+  templateUrl: './customers.component.html',
   standalone: true
 })
 export class CustomersComponent {}

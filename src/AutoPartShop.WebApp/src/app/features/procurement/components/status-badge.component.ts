@@ -9,21 +9,8 @@ export type StatusType = 'purchase-order' | 'goods-receipt' | 'payment';
   selector: 'app-status-badge',
   standalone: true,
   imports: [CommonModule, TagModule],
-  template: `
-    <p-tag
-      [value]="label"
-      [severity]="getSeverity()"
-      [styleClass]="'text-sm'">
-    </p-tag>
-  `,
-  styles: [`
-    :host ::ng-deep {
-      .p-tag {
-        font-weight: 500;
-        letter-spacing: 0.5px;
-      }
-    }
-  `]
+  templateUrl: './status-badge.component.html',
+  styleUrl: './status-badge.component.scss'
 })
 export class StatusBadgeComponent {
   private readonly statusDisplay = inject(StatusDisplayService);

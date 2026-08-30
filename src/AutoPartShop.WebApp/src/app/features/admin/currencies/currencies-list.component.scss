@@ -1,0 +1,48 @@
+    :host ::ng-deep {
+      .p-datatable .p-datatable-thead > tr > th {
+        background-color: var(--surface-ground);
+        font-weight: 600;
+      }
+
+      /* Tailwind gray utility is static and doesn't flip under .app-dark. */
+      .text-gray-500 { color: var(--color-text-muted) !important; }
+
+      .currency-dialog {
+        .p-dialog-content {
+          padding: 1.5rem;
+        }
+
+        .field {
+          margin-bottom: 1rem;
+        }
+
+        label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 600;
+          color: var(--text-color);
+        }
+
+        .p-inputtext,
+        .p-inputnumber {
+          width: 100%;
+        }
+
+        .p-inputnumber-input {
+          width: 100%;
+        }
+
+        .p-checkbox {
+          margin-right: 0.5rem;
+        }
+
+        .p-error {
+          color: var(--red);
+          font-size: 0.875rem;
+        }
+
+        .p-invalid {
+          border-color: var(--red);
+        }
+      }
+    }

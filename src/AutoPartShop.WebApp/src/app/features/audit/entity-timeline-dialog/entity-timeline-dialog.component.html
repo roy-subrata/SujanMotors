@@ -1,0 +1,111 @@
+    <div class="timeline-dialog">
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-state">
+        <div *ngFor="let i of [1,2,3]" class="mb-4">
+          <p-skeleton height="100px" styleClass="mb-2"></p-skeleton>
+        </div>
+      </div>
+
+      <!-- Timeline Content -->
+      <div *ngIf="!loading && timeline" class="timeline-content">
+        <!-- Summary -->
+        <div class="timeline-summary mb-4">
+          <div class="summary-item">
+            <span class="summary-label">{{ i18n.t('audit.timelineDialog.entityLabel') }}</span>
+            <span class="summary-value">{{ timeline.entityName }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">{{ i18n.t('audit.timelineDialog.idLabel') }}</span>
+            <span class="summary-value id-value">{{ timeline.entityId }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">{{ i18n.t('audit.timelineDialog.totalEventsLabel') }}</span>
+            <span class="summary-value">{{ timeline.events.length }}</span>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <p-timeline [value]="timeline.events" align="left" styleClass="custom-timeline">
+          <ng-template pTemplate="marker" let-event>
+            <span class="timeline-marker" [ngClass]="getMarkerClass(event.action)">
+              <i [class]="getActionIcon(event.action)"></i>
+            </span>
+          </ng-template>
+          
+          <ng-template pTemplate="content" let-event>
+            <div class="timeline-event-card">
+              <div class="event-header">
+                <p-tag [value]="event.action" [severity]="getActionSeverity(event.action)"></p-tag>
+                <span class="event-time">{{ event.timestamp | date:'medium' }}</span>
+              </div>
+              
+              <div class="event-meta">
+                <span class="event-user">
+                  <i class="pi pi-user"></i>
+                  {{ event.performedBy }}
+                </span>
+                <span class="event-ip" *ngIf="event.ipAddress">
+                  <i class="pi pi-globe"></i>
+                  {{ event.ipAddress }}
+                </span>
+              </div>
+
+              <!-- Changes Table -->
+              <div class="changes-section" *ngIf="event.changes && event.changes.length > 0">
+                <p-table [value]="event.changes" styleClass="p-datatable-sm changes-table">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th style="width: 30%">{{ i18n.t('audit.timelineDialog.columns.property') }}</th>
+                      <th style="width: 35%">{{ i18n.t('audit.timelineDialog.columns.oldValue') }}</th>
+                      <th style="width: 35%">{{ i18n.t('audit.timelineDialog.columns.newValue') }}</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-change>
+                    <tr>
+                      <td class="property-cell">{{ change.propertyName }}</td>
+                      <td>
+                        <span class="old-value" *ngIf="change.oldValue" [pTooltip]="change.oldValue">
+                          {{ truncate(change.oldValue) }}
+                        </span>
+                        <span class="no-value" *ngIf="!change.oldValue">-</span>
+                      </td>
+                      <td>
+                        <span class="new-value" *ngIf="change.newValue" [pTooltip]="change.newValue">
+                          {{ truncate(change.newValue) }}
+                        </span>
+                        <span class="no-value" *ngIf="!change.newValue">-</span>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </div>
+
+              <div class="no-changes" *ngIf="!event.changes || event.changes.length === 0">
+                <i class="pi pi-info-circle"></i>
+                {{ i18n.t('audit.timelineDialog.noPropertyChanges') }}
+              </div>
+            </div>
+          </ng-template>
+        </p-timeline>
+
+        <!-- Empty State -->
+        <div *ngIf="timeline.events.length === 0" class="empty-state">
+          <i class="pi pi-inbox"></i>
+          <h3>{{ i18n.t('audit.timelineDialog.emptyTitle') }}</h3>
+          <p>{{ i18n.t('audit.timelineDialog.emptySubtitle') }}</p>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="!loading && error" class="error-state">
+        <i class="pi pi-exclamation-triangle"></i>
+        <h3>{{ i18n.t('audit.timelineDialog.errorTitle') }}</h3>
+        <p>{{ error }}</p>
+        <button pButton type="button" [label]="i18n.t('audit.timelineDialog.retry')" icon="pi pi-refresh" (click)="loadTimeline()"></button>
+      </div>
+
+      <!-- Footer -->
+      <div class="dialog-footer">
+        <button pButton type="button" [label]="i18n.t('audit.timelineDialog.close')" class="p-button-text" (click)="close()"></button>
+      </div>
+    </div>

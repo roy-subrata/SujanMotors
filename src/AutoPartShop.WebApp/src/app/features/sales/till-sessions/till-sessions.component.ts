@@ -4,7 +4,7 @@ import { RouterOutlet } from '@angular/router';
 @Component({
   selector: 'app-till-sessions',
   imports: [RouterOutlet],
-  template: '<router-outlet />',
+  templateUrl: './till-sessions.component.html',
   standalone: true
 })
 export class TillSessionsComponent {}

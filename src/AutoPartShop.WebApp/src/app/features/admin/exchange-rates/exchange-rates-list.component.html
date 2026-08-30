@@ -1,0 +1,256 @@
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <app-page-container>
+      <app-page-header
+        [title]="i18n.t('exchangeRates.title')"
+        [subtitle]="i18n.t('exchangeRates.subtitle')"
+        [count]="exchangeRates().length" [countLabel]="i18n.t('exchangeRates.countLabel')" countIcon="pi pi-sync">
+        <ng-container actions>
+          <button class="btn-primary" (click)="openDialog()">
+            <i class="pi pi-plus"></i><span>{{ i18n.t('exchangeRates.addRate') }}</span>
+          </button>
+        </ng-container>
+      </app-page-header>
+
+      <section class="table-section desktop-only">
+        <div class="table-container">
+      <p-table
+        [value]="pagedExchangeRates()"
+        [loading]="loading()"
+        [paginator]="false"
+        [scrollable]="true"
+        styleClass="app-table">
+
+        <ng-template pTemplate="header">
+          <tr>
+            <th>{{ i18n.t('exchangeRates.table.fromCurrency') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.toCurrency') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.rate') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.effectiveDate') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.expiryDate') }}</th>
+            <th>{{ i18n.t('exchangeRates.table.source') }}</th>
+            <th>{{ i18n.t('common.labels.status') }}</th>
+            <th>{{ i18n.t('common.labels.actions') }}</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-rate>
+          <tr>
+            <td>
+              <span class="font-mono font-semibold">{{ rate.fromCurrencyCode }}</span>
+            </td>
+            <td>
+              <span class="font-mono font-semibold">{{ rate.toCurrencyCode }}</span>
+            </td>
+            <td>
+              <span class="font-semibold">{{ rate.rate | number: '1.2-6' }}</span>
+            </td>
+            <td>{{ rate.effectiveDate | date: 'mediumDate' }}</td>
+            <td>
+              <span *ngIf="rate.expiryDate">{{ rate.expiryDate | date: 'mediumDate' }}</span>
+              <span *ngIf="!rate.expiryDate" class="text-gray-400">{{ i18n.t('exchangeRates.table.noExpiry') }}</span>
+            </td>
+            <td>
+              <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">
+                {{ rate.source }}
+              </span>
+            </td>
+            <td>
+              <span class="status-pill" [attr.data-status]="rate.isActive ? 'active' : 'inactive'">
+                {{ (rate.isActive ? 'common.status.active' : 'common.status.inactive') | translate }}
+              </span>
+            </td>
+            <td>
+              <div class="flex gap-2">
+                <button
+                  pButton
+                  type="button"
+                  icon="pi pi-pencil"
+                  class="p-button-rounded p-button-text p-button-sm"
+                  [pTooltip]="i18n.t('common.actions.edit')"
+                  (click)="openDialog(rate)">
+                </button>
+                <button
+                  pButton
+                  type="button"
+                  icon="pi pi-trash"
+                  class="p-button-rounded p-button-text p-button-sm p-button-danger"
+                  [pTooltip]="i18n.t('common.actions.delete')"
+                  (click)="confirmDelete(rate)">
+                </button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="8" class="text-center py-8 text-gray-500">
+              {{ i18n.t('exchangeRates.empty') }}
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+        </div>
+      </section>
+
+      <app-data-pagination
+        [first]="first()"
+        [pageSize]="pageSize()"
+        [totalRecords]="exchangeRates().length"
+        [itemLabel]="i18n.t('exchangeRates.countLabel')"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+      </app-data-pagination>
+
+      <!-- Exchange Rate Dialog -->
+      <p-dialog
+        [(visible)]="dialogVisible"
+        [header]="isEditing ? i18n.t('exchangeRates.dialog.editTitle') : i18n.t('exchangeRates.dialog.addTitle')"
+        [modal]="true"
+        [style]="{width: '600px'}"
+        [closable]="true">
+
+        <form [formGroup]="exchangeRateForm" (ngSubmit)="saveExchangeRate()">
+          <div class="flex flex-col gap-4">
+            <!-- From Currency -->
+            <div class="flex flex-col gap-2">
+              <label htmlFor="fromCurrencyId">{{ i18n.t('exchangeRates.form.fromCurrency') }} <span class="text-red-500">*</span></label>
+              <p-select
+                id="fromCurrencyId"
+                formControlName="fromCurrencyId"
+                [options]="currencies()"
+                optionLabel="code"
+                optionValue="id"
+                [placeholder]="i18n.t('exchangeRates.form.selectCurrency')"
+                [filter]="true"
+                class="w-full">
+                <ng-template let-currency pTemplate="item">
+                  <div class="flex items-center gap-2">
+                    <span>{{ currency.symbol }}</span>
+                    <span class="font-semibold">{{ currency.code }}</span>
+                    <span class="text-sm text-gray-600">- {{ currency.name }}</span>
+                  </div>
+                </ng-template>
+              </p-select>
+              <small class="text-red-500" *ngIf="exchangeRateForm.get('fromCurrencyId')?.invalid && exchangeRateForm.get('fromCurrencyId')?.touched">
+                {{ i18n.t('exchangeRates.form.fromRequired') }}
+              </small>
+            </div>
+
+            <!-- To Currency -->
+            <div class="flex flex-col gap-2">
+              <label htmlFor="toCurrencyId">{{ i18n.t('exchangeRates.form.toCurrency') }} <span class="text-red-500">*</span></label>
+              <p-select
+                id="toCurrencyId"
+                formControlName="toCurrencyId"
+                [options]="currencies()"
+                optionLabel="code"
+                optionValue="id"
+                [placeholder]="i18n.t('exchangeRates.form.selectCurrency')"
+                [filter]="true"
+                class="w-full">
+                <ng-template let-currency pTemplate="item">
+                  <div class="flex items-center gap-2">
+                    <span>{{ currency.symbol }}</span>
+                    <span class="font-semibold">{{ currency.code }}</span>
+                    <span class="text-sm text-gray-600">- {{ currency.name }}</span>
+                  </div>
+                </ng-template>
+              </p-select>
+              <small class="text-red-500" *ngIf="exchangeRateForm.get('toCurrencyId')?.invalid && exchangeRateForm.get('toCurrencyId')?.touched">
+                {{ i18n.t('exchangeRates.form.toRequired') }}
+              </small>
+            </div>
+
+            <!-- Exchange Rate -->
+            <div class="flex flex-col gap-2">
+              <label htmlFor="rate">{{ i18n.t('exchangeRates.form.rate') }} <span class="text-red-500">*</span></label>
+              <p-inputNumber
+                id="rate"
+                formControlName="rate"
+                [min]="0"
+                [minFractionDigits]="2"
+                [maxFractionDigits]="6"
+                placeholder="0.00"
+                class="w-full">
+              </p-inputNumber>
+              <small class="text-red-500" *ngIf="exchangeRateForm.get('rate')?.invalid && exchangeRateForm.get('rate')?.touched">
+                {{ i18n.t('exchangeRates.form.rateRequired') }}
+              </small>
+            </div>
+
+            <!-- Effective Date -->
+            <div class="flex flex-col gap-2">
+              <label htmlFor="effectiveDate">{{ i18n.t('exchangeRates.form.effectiveDate') }} <span class="text-red-500">*</span></label>
+              <p-datepicker
+                id="effectiveDate"
+                formControlName="effectiveDate"
+                [showIcon]="true"
+                dateFormat="yy-mm-dd"
+                [placeholder]="i18n.t('exchangeRates.form.selectDate')"
+                styleClass="w-full">
+              </p-datepicker>
+              <small class="text-red-500" *ngIf="exchangeRateForm.get('effectiveDate')?.invalid && exchangeRateForm.get('effectiveDate')?.touched">
+                {{ i18n.t('exchangeRates.form.effectiveDateRequired') }}
+              </small>
+            </div>
+
+            <!-- Expiry Date -->
+            <div class="flex flex-col gap-2">
+              <label htmlFor="expiryDate">{{ i18n.t('exchangeRates.form.expiryDateOptional') }}</label>
+              <p-datepicker
+                id="expiryDate"
+                formControlName="expiryDate"
+                [showIcon]="true"
+                dateFormat="yy-mm-dd"
+                [placeholder]="i18n.t('exchangeRates.form.selectDate')"
+                [showClear]="true"
+                styleClass="w-full">
+              </p-datepicker>
+            </div>
+
+            <!-- Is Active -->
+            <div class="flex items-center gap-2">
+              <p-checkbox
+                id="isActive"
+                formControlName="isActive"
+                [binary]="true">
+              </p-checkbox>
+              <label htmlFor="isActive">{{ i18n.t('exchangeRates.form.active') }}</label>
+            </div>
+
+            <!-- Notes -->
+            <div class="flex flex-col gap-2">
+              <label htmlFor="notes">{{ i18n.t('common.labels.notes') }}</label>
+              <textarea
+                pInputTextarea
+                id="notes"
+                formControlName="notes"
+                rows="3"
+                [placeholder]="i18n.t('exchangeRates.form.notesPlaceholder')"
+                class="w-full">
+              </textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 mt-4">
+            <button
+              pButton
+              type="button"
+              [label]="i18n.t('common.actions.cancel')"
+              class="p-button-text"
+              (click)="dialogVisible = false">
+            </button>
+            <button
+              pButton
+              type="submit"
+              [label]="isEditing ? i18n.t('common.actions.update') : i18n.t('common.actions.create')"
+              [loading]="saving()"
+              [disabled]="exchangeRateForm.invalid">
+            </button>
+          </div>
+        </form>
+      </p-dialog>
+    </app-page-container>

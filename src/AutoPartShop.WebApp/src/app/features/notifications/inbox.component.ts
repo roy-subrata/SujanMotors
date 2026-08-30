@@ -42,39 +42,7 @@ import {
   ],
   providers: [MessageService],
   templateUrl: './inbox.component.html',
-  styles: [`
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-      background-color: var(--surface-ground);
-      font-weight: 600;
-    }
-
-    .inbox-row-unread {
-      font-weight: 600;
-      background-color: color-mix(in srgb, var(--primary-color) 4%, transparent);
-    }
-
-    .inbox-row-unread .inbox-title {
-      color: var(--text-color);
-    }
-
-    .inbox-title {
-      color: var(--text-color-secondary);
-    }
-
-    .unread-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: var(--primary-color);
-    }
-
-    .unread-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-  `]
+  styleUrl: './inbox.component.scss',
 })
 export class InboxComponent implements OnInit {
   private readonly service = inject(InboxNotificationService);

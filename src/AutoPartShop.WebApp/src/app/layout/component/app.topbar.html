@@ -1,0 +1,139 @@
+<p-toast position="top-right" key="sale-notification"></p-toast>
+    <div class="layout-topbar">
+        <!-- Mobile Menu Toggle -->
+        <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
+            <i class="pi pi-bars"></i>
+        </button>
+
+        <!-- Page Title -->
+        <div class="topbar-title">
+            <h1>{{ pageTitle() }}</h1>
+        </div>
+
+        <!-- Presentational global search (no search backend wired up yet — visual only,
+             matches the design reference which is likewise a static, non-functional box) -->
+        <div class="topbar-search" pTooltip="Search coming soon" tooltipPosition="bottom">
+            <i class="pi pi-search"></i>
+            <span class="topbar-search-placeholder">Search parts, invoices, customers…</span>
+            <span class="topbar-search-kbd">⌘K</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="topbar-actions">
+            <!-- Quick Sale -->
+            <button
+                type="button"
+                class="quick-sale-btn"
+                (click)="navigateToQuickSaleShortcut()"
+                pTooltip="Quick Sale (POS)"
+                tooltipPosition="bottom">
+                <i class="pi pi-bolt"></i>
+                <span>New Sale</span>
+            </button>
+
+            <!-- Language Switcher -->
+            <app-language-switcher></app-language-switcher>
+
+            <!-- Theme Toggle -->
+            <button
+                type="button"
+                class="topbar-action-btn"
+                (click)="toggleDarkMode()"
+                [pTooltip]="layoutService.isDarkTheme() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                tooltipPosition="bottom">
+                <i [ngClass]="{ 'pi': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
+            </button>
+
+            <!-- Notifications -->
+            <div class="notif-btn-wrap">
+                <button
+                    type="button"
+                    class="topbar-action-btn"
+                    pTooltip="Notifications"
+                    tooltipPosition="bottom"
+                    (click)="notifPanel.toggle($event)">
+                    <i class="pi pi-bell"></i>
+                </button>
+                @if (unreadCount() > 0) {
+                    <span class="notif-badge">{{ unreadCount() }}</span>
+                }
+            </div>
+
+            <p-popover #notifPanel [style]="{ 'width': '380px', 'max-width': 'calc(100vw - 0.5rem)' }">
+                <div class="notif-panel">
+                    <div class="notif-panel-header">
+                        <span class="notif-panel-title">Notifications</span>
+                        @if (unreadCount() > 0) {
+                            <button type="button" class="text-btn" (click)="markAllAsRead()">Mark all read</button>
+                        }
+                    </div>
+
+                    @if (notifications().length === 0) {
+                        <div class="notif-empty">
+                            <i class="pi pi-bell-slash"></i>
+                            <p>No notifications yet</p>
+                        </div>
+                    } @else {
+                        <div class="notif-list">
+                            @for (n of notifications(); track n.id) {
+                                <div class="notif-item" [class.unread]="!n.isRead" (click)="onNotifClick(n)">
+                                    <div class="notif-icon-wrap">
+                                        <i [class]="'pi ' + n.icon"></i>
+                                    </div>
+                                    <div class="notif-body">
+                                        <p class="notif-title">{{ n.title }}</p>
+                                        <p class="notif-desc">{{ n.description }}</p>
+                                        <p class="notif-time">{{ timeAgo(n.occurredAt) }}</p>
+                                    </div>
+                                    @if (!n.isRead) {
+                                        <span class="notif-dot"></span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="notif-panel-footer">
+                            <button type="button" class="text-btn small" (click)="openInbox()">View all</button>
+                        </div>
+                    }
+                </div>
+            </p-popover>
+
+            <!-- User Menu -->
+            @if (currentUser(); as user) {
+                <div class="user-menu-container">
+                    <button
+                        type="button"
+                        class="user-menu-btn"
+                        (click)="userMenu.toggle($event)">
+                        <p-avatar
+                            [label]="getUserInitials()"
+                            shape="circle"
+                            size="normal"
+                            [style]="{'background-color':'var(--surface2)', 'color': 'var(--text2)', 'border': '1px solid var(--border)'}">
+                        </p-avatar>
+                    </button>
+                    <p-menu
+                        #userMenu
+                        [model]="userMenuItems"
+                        [popup]="true"
+                        [appendTo]="'body'"
+                        [style]="{'min-width': '200px'}">
+                        <ng-template pTemplate="start">
+                            <div class="user-menu-header">
+                                <p-avatar
+                                    [label]="getUserInitials()"
+                                    shape="circle"
+                                    size="large"
+                                    [style]="{'background-color':'var(--surface2)', 'color': 'var(--text2)', 'border': '1px solid var(--border)'}">
+                                </p-avatar>
+                                <div class="user-menu-info">
+                                    <span class="user-menu-name">{{ user.fullName }}</span>
+                                    <span class="user-menu-email">{{ user.email }}</span>
+                                </div>
+                            </div>
+                        </ng-template>
+                    </p-menu>
+                </div>
+            }
+        </div>
+    </div>

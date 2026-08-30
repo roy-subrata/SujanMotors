@@ -1,0 +1,145 @@
+    .transfer-dialog {
+      padding: 1.5rem;
+      min-width: 550px;
+    }
+
+    @media (max-width: 767px) {
+      .transfer-dialog {
+        width: 100%;
+        min-width: 0;
+        padding: 1rem;
+      }
+    }
+
+    .dialog-title {
+      margin-bottom: 1.5rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .info-card, .preview-card {
+      margin-bottom: 1.5rem;
+    }
+
+    .info-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .info-item label {
+      font-size: 0.875rem;
+      color: var(--text-color-secondary);
+      font-weight: 500;
+    }
+
+    .info-item .value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .stock-value {
+      color: var(--color-success);
+      font-size: 1.1rem;
+    }
+
+    .form-row {
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+
+    .text-muted {
+      font-size: 0.75rem;
+      color: var(--text-color-secondary);
+    }
+
+    .textarea-input {
+      border: 1px solid var(--surface-border);
+      border-radius: 4px;
+      padding: 0.5rem;
+      font-family: inherit;
+      resize: vertical;
+      background: var(--surface-card);
+      color: var(--text-color);
+    }
+
+    .preview-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .preview-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex: 1;
+    }
+
+    .preview-item label {
+      font-size: 0.75rem;
+      color: var(--text-color-secondary);
+      font-weight: 500;
+    }
+
+    .warehouse-name {
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .stock-change {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .stock-change.increase {
+      color: var(--color-success);
+    }
+
+    .stock-change.decrease {
+      color: var(--color-danger);
+    }
+
+    .arrow {
+      font-size: 1.5rem;
+      color: var(--color-info);
+    }
+
+    .text-danger {
+      color: var(--color-danger);
+      font-size: 0.75rem;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      justify-content: flex-end;
+    }
+
+    .w-full {
+      width: 100%;
+    }

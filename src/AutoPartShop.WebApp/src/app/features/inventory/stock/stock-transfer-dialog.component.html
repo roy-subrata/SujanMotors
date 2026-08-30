@@ -1,0 +1,128 @@
+    <p-toast></p-toast>
+    <div class="transfer-dialog">
+      <h2 class="dialog-title">{{ 'stockTransfer.title' | translate }}</h2>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="transfer-form">
+        <!-- Current Stock Info -->
+        <p-card class="info-card">
+          <div class="info-row">
+            <div class="info-item">
+              <label>{{ 'stockTransfer.part' | translate }}</label>
+              <span class="value">{{ currentStock?.displayName || part?.name }} ({{ currentStock?.variantSku || part?.sku }})</span>
+            </div>
+            <div class="info-item">
+              <label>{{ 'stockTransfer.fromWarehouse' | translate }}</label>
+              <span class="value">{{ fromWarehouse?.name }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <label>{{ 'stockTransfer.currentStock' | translate }}</label>
+              <span class="value stock-value">{{ currentStock?.quantity }} {{ 'stockTransfer.units' | translate }}</span>
+            </div>
+            <div class="info-item">
+              <label>{{ 'stockTransfer.available' | translate }}</label>
+              <span class="value">{{ currentStock?.availableQuantity }} {{ 'stockTransfer.units' | translate }}</span>
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Transfer Form -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="toWarehouseId">{{ 'stockTransfer.toWarehouseLabel' | translate }}</label>
+            <p-select
+              id="toWarehouseId"
+              [options]="warehouses"
+              optionLabel="name"
+              optionValue="id"
+              formControlName="toWarehouseId"
+              [placeholder]="'stockTransfer.toWarehousePlaceholder' | translate"
+              [filter]="true"
+              filterBy="name,code"
+              [showClear]="true">
+              <ng-template let-warehouse pTemplate="item">
+                <div class="flex align-items-center gap-2">
+                  <div>{{ warehouse.name }} ({{ warehouse.code }})</div>
+                </div>
+              </ng-template>
+            </p-select>
+            <small class="text-danger" *ngIf="form.get('toWarehouseId')?.invalid && form.get('toWarehouseId')?.touched">
+              {{ 'stockTransfer.toWarehouseRequired' | translate }}
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="quantity">{{ 'stockTransfer.quantityLabel' | translate }}</label>
+            <p-inputNumber
+              id="quantity"
+              formControlName="quantity"
+              [min]="1"
+              [max]="currentStock?.availableQuantity || 999999"
+              [placeholder]="'stockTransfer.quantityPlaceholder' | translate"
+              class="w-full">
+            </p-inputNumber>
+            <small class="text-muted">{{ 'stockTransfer.maxAvailable' | translate:{ qty: currentStock?.availableQuantity || 0 } }}</small>
+            <small class="text-danger" *ngIf="form.get('quantity')?.invalid && form.get('quantity')?.touched">
+              {{ 'stockTransfer.quantityInvalid' | translate:{ max: currentStock?.availableQuantity || 0 } }}
+            </small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label for="notes">{{ 'stockTransfer.notesLabel' | translate }}</label>
+            <textarea
+              id="notes"
+              formControlName="notes"
+              [placeholder]="'stockTransfer.notesPlaceholder' | translate"
+              rows="3"
+              class="w-full textarea-input">
+            </textarea>
+          </div>
+        </div>
+
+        <!-- Transfer Preview -->
+        <p-card class="preview-card" *ngIf="form.get('toWarehouseId')?.value && form.get('quantity')?.value > 0">
+          <div class="preview-row">
+            <div class="preview-item">
+              <label>{{ 'stockTransfer.previewFrom' | translate }}</label>
+              <span class="warehouse-name">{{ fromWarehouse?.name }}</span>
+              <span class="stock-change decrease">-{{ form.get('quantity')?.value }} {{ 'stockTransfer.units' | translate }}</span>
+            </div>
+            <div class="arrow">
+              <i class="pi pi-arrow-right"></i>
+            </div>
+            <div class="preview-item">
+              <label>{{ 'stockTransfer.previewTo' | translate }}</label>
+              <span class="warehouse-name">{{ getToWarehouseName() }}</span>
+              <span class="stock-change increase">+{{ form.get('quantity')?.value }} {{ 'stockTransfer.units' | translate }}</span>
+            </div>
+          </div>
+        </p-card>
+
+        <!-- Action Buttons -->
+        <div class="button-group">
+          <button
+            pButton
+            type="button"
+            [label]="'stockTransfer.cancel' | translate"
+            icon="pi pi-times"
+            class="p-button-outlined"
+            (click)="onCancel()"
+            [disabled]="isSubmitting">
+          </button>
+          <button
+            pButton
+            type="submit"
+            [label]="'stockTransfer.submit' | translate"
+            icon="pi pi-arrow-right"
+            class="p-button-success"
+            [loading]="isSubmitting"
+            [disabled]="!form.valid || isSubmitting">
+          </button>
+        </div>
+      </form>
+    </div>

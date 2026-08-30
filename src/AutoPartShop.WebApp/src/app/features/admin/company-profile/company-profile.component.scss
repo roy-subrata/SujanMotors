@@ -1,0 +1,16 @@
+    /* This page is built with Tailwind gray-scale utility classes, which are
+       static (they don't flip under the app's .app-dark class the way the
+       --color-* tokens from assets/_data-page.scss do). Re-point the neutral
+       text/background/border utilities actually used above at those tokens so
+       the page stays readable in dark mode; the section-icon accent colors
+       (indigo/blue/purple/green-500) are decorative and stay fixed.  */
+    :host ::ng-deep {
+      .text-gray-400 { color: var(--color-text-muted) !important; }
+      .text-gray-500 { color: var(--color-text-muted) !important; }
+      .text-gray-600 { color: var(--color-text-secondary) !important; }
+      .text-gray-700 { color: var(--color-text-primary) !important; }
+      .text-gray-800 { color: var(--color-text-primary) !important; }
+      .bg-white { background-color: var(--color-bg-primary) !important; }
+      .bg-gray-50 { background-color: var(--color-bg-secondary) !important; }
+      .border-gray-200 { border-color: var(--color-border) !important; }
+    }

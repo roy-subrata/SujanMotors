@@ -4,7 +4,7 @@ import { RouterOutlet } from '@angular/router';
 @Component({
   selector: 'app-quotations',
   imports: [RouterOutlet],
-  template: '<router-outlet />',
+  templateUrl: './quotations.component.html',
   standalone: true
 })
 export class QuotationsComponent {}

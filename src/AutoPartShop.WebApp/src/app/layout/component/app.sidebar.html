@@ -1,0 +1,93 @@
+<div class="layout-sidebar" [class.collapsed]="isCollapsed()">
+            <!-- Logo and Toggle -->
+            <div class="sidebar-header">
+                <div class="logo-container" [class.collapsed]="isCollapsed()">
+                    @if (branding.appLogoUrl(); as logo) {
+                        @if (!logo.startsWith('assets')) {
+                            <img [src]="logo" alt="" class="logo-icon" style="object-fit: contain;" (error)="onLogoError($event)" />
+                        } @else {
+                            <i class="pi pi-box logo-icon"></i>
+                        }
+                    } @else {
+                        <i class="pi pi-box logo-icon"></i>
+                    }
+                    <div class="logo-text-group">
+                        <span class="logo-text">{{ branding.appName() }}</span>
+                        <span class="logo-subtitle">{{ branding.tagline() || ('common.labels.defaultTagline' | translate) }}</span>
+                    </div>
+                </div>
+                <button
+                    class="sidebar-toggle"
+                    (click)="toggleSidebar()"
+                    [pTooltip]="isCollapsed() ? 'Expand' : 'Collapse'"
+                    tooltipPosition="right">
+                    <i [class]="isCollapsed() ? 'pi pi-angle-right' : 'pi pi-angle-left'"></i>
+                </button>
+            </div>
+
+            <!-- Jump to a screen -->
+            @if (!isCollapsed()) {
+                <div class="sidebar-search">
+                    <i class="pi pi-search"></i>
+                    <input
+                        type="text"
+                        [ngModel]="navQuery()"
+                        (ngModelChange)="navQuery.set($event)"
+                        (focus)="onNavSearchFocus()"
+                        (keydown.escape)="closeNavSearch()"
+                        (keydown.enter)="onNavSearchEnter()"
+                        (blur)="onNavSearchBlur()"
+                        placeholder="Jump to a screen" />
+                    @if (navSearchOpen() && navResults().length > 0) {
+                        <div class="sidebar-search-results">
+                            @for (r of navResults(); track r.routerLink.join('/')) {
+                                <button type="button" class="sidebar-search-result" (mousedown)="goToResult(r)">
+                                    <i [class]="'pi ' + r.icon"></i>
+                                    <span>{{ r.label }}</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Menu -->
+            <div class="sidebar-content">
+                <app-menu></app-menu>
+            </div>
+
+            <!-- Bottom Section -->
+            <div class="sidebar-footer">
+                <!-- Till total -->
+                @if (!isCollapsed() && tillSession(); as till) {
+                    <div class="till-total-row">
+                        <span class="till-dot"></span>
+                        <span class="till-label">Till open</span>
+                        <span class="till-amount">{{ formatCurrency(till.cashSalesTotal) }}</span>
+                    </div>
+                }
+
+                <!-- User Profile -->
+                @if (currentUser(); as user) {
+                    <div
+                        class="user-profile"
+                        [pTooltip]="isCollapsed() ? user.fullName : ''"
+                        tooltipPosition="right"
+                        (click)="userMenu.toggle($event)">
+                        <p-avatar
+                            [label]="getUserInitials()"
+                            styleClass="user-avatar"
+                            shape="circle"
+                            [style]="{'background-color':'var(--surface2)', 'color': 'var(--text2)', 'border': '1px solid var(--border)'}">
+                        </p-avatar>
+                        @if (!isCollapsed()) {
+                            <div class="user-info">
+                                <span class="user-name">{{ user.fullName }}</span>
+                                <span class="user-role">{{ user.roles[0] || '' }}</span>
+                            </div>
+                        }
+                    </div>
+                    <p-menu #userMenu [model]="userMenuItems" [popup]="true" [appendTo]="'body'" [style]="{'min-width': '200px'}"></p-menu>
+                }
+            </div>
+        </div>

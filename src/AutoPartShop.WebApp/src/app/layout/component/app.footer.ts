@@ -4,11 +4,7 @@ import { AppBrandingService } from '../../shared/services/app-branding.service';
 @Component({
         standalone: true,
         selector: 'app-footer',
-        template: `
-            <div class="layout-footer">
-                <div class="footer-content">© {{ year }} {{ branding.appName() }}. All rights reserved.</div>
-            </div>
-        `
+        templateUrl: './app.footer.html',
 })
 export class AppFooter {
     protected branding = inject(AppBrandingService);

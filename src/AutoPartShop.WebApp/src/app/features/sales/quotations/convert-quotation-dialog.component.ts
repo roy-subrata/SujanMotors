@@ -23,61 +23,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
     selector: 'app-convert-quotation-dialog',
     standalone: true,
     imports: [CommonModule, FormsModule, DialogModule, ButtonModule, SelectModule, MessageModule, TranslatePipe],
-    template: `
-        <p-dialog
-            [visible]="visible"
-            (visibleChange)="onVisibleChange($event)"
-            [modal]="true"
-            [style]="{ width: '30rem' }"
-            [draggable]="false"
-            [resizable]="false"
-            [header]="'quotations.convert.title' | translate">
-            <div class="flex flex-col gap-4">
-                <p class="text-sm text-surface-600 dark:text-surface-300 m-0">
-                    {{ 'quotations.convert.prompt' | translate }}
-                    <span class="font-semibold">{{ quotationNumber }}</span>
-                </p>
-
-                <div class="flex flex-col gap-2">
-                    <label for="convertWarehouse" class="text-sm font-medium">
-                        {{ 'quotations.convert.warehouse' | translate }}
-                    </label>
-                    <p-select
-                        inputId="convertWarehouse"
-                        [options]="warehouses()"
-                        [(ngModel)]="warehouseId"
-                        optionLabel="name"
-                        optionValue="id"
-                        [filter]="true"
-                        filterBy="name,code"
-                        [loading]="loading()"
-                        [placeholder]="'quotations.convert.warehousePlaceholder' | translate"
-                        styleClass="w-full">
-                    </p-select>
-                    <small class="text-surface-500">{{ 'quotations.convert.warehouseHint' | translate }}</small>
-                </div>
-
-                @if (!loading() && warehouses().length === 0) {
-                    <p-message severity="warn" [text]="'quotations.convert.noWarehouses' | translate"></p-message>
-                }
-            </div>
-
-            <ng-template pTemplate="footer">
-                <p-button
-                    [label]="'common.actions.cancel' | translate"
-                    severity="secondary"
-                    [text]="true"
-                    (onClick)="close()">
-                </p-button>
-                <p-button
-                    [label]="'quotations.convert.confirm' | translate"
-                    icon="pi pi-arrow-right-arrow-left"
-                    [disabled]="!warehouseId || submitting"
-                    (onClick)="submit()">
-                </p-button>
-            </ng-template>
-        </p-dialog>
-    `
+    templateUrl: './convert-quotation-dialog.component.html',
 })
 export class ConvertQuotationDialogComponent implements OnInit {
     private readonly warehouseService = inject(WarehouseService);

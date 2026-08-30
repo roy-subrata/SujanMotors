@@ -1,0 +1,12 @@
+    /* This page is built with Tailwind gray-scale utility classes, which are
+       static (they don't flip under the app's .app-dark class the way the
+       --color-* tokens from assets/_data-page.scss do). Re-point the neutral
+       text/background utilities actually used above at those tokens so the
+       page stays readable in dark mode. */
+    :host ::ng-deep {
+      .text-gray-400 { color: var(--color-text-muted) !important; }
+      .text-gray-500 { color: var(--color-text-muted) !important; }
+      .text-gray-600 { color: var(--color-text-secondary) !important; }
+      .text-gray-700 { color: var(--color-text-primary) !important; }
+      .bg-gray-100 { background-color: var(--color-bg-secondary) !important; }
+    }

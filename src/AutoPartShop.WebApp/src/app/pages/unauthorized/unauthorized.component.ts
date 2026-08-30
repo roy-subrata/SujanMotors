@@ -12,16 +12,6 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
   selector: 'app-unauthorized',
   standalone: true,
   imports: [CommonModule, RouterModule, TranslatePipe],
-  template: `
-    <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-      <i class="pi pi-lock text-6xl text-primary mb-4" aria-hidden="true"></i>
-      <h1 class="text-2xl font-semibold mb-2">{{ 'unauthorized.title' | translate }}</h1>
-      <p class="text-muted-color max-w-md mb-6">{{ 'unauthorized.message' | translate }}</p>
-      <a
-        routerLink="/"
-        class="px-4 py-2 rounded-md border border-surface-border hover:bg-surface-hover no-underline"
-      >{{ 'unauthorized.goHome' | translate }}</a>
-    </div>
-  `,
+  templateUrl: './unauthorized.component.html',
 })
 export class UnauthorizedComponent {}

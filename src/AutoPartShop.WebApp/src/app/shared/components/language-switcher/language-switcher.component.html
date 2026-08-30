@@ -1,0 +1,16 @@
+<div class="lang-pill" pTooltip="Change language" tooltipPosition="bottom">
+            <button
+                type="button"
+                class="lang-tab"
+                [class.active]="currentLanguageCode === 'en'"
+                (click)="setLanguage('en')">
+                EN
+            </button>
+            <button
+                type="button"
+                class="lang-tab"
+                [class.active]="currentLanguageCode === 'bn'"
+                (click)="setLanguage('bn')">
+                বাংলা
+            </button>
+        </div>

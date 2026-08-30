@@ -20,70 +20,8 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
   selector: 'app-data-pagination',
   standalone: true,
   imports: [CommonModule, TooltipModule, TranslatePipe],
-  template: `
-    @if (totalRecords > 0) {
-      <!-- Desktop -->
-      <div class="pagination-section desktop-only">
-        <div class="pagination-info">
-          {{ 'common.labels.showing' | translate }} <strong>{{ rangeFrom() }}</strong> – <strong>{{ rangeTo() }}</strong>
-          {{ 'common.labels.of' | translate }} <strong>{{ totalRecords }}</strong> {{ itemLabel | translate }}
-        </div>
-        <div class="pagination-controls">
-          <span class="page-size-label">{{ 'common.labels.rowsPerPage' | translate }}:</span>
-          <select class="page-size-native" [value]="pageSize" (change)="onSizeChange($event)">
-            @for (opt of pageSizeOptions; track opt) {
-              <option [value]="opt">{{ opt }}</option>
-            }
-          </select>
-          <div class="page-nav">
-            <button class="page-btn" [disabled]="currentPage() <= 1" (click)="emit(1)" [pTooltip]="'common.actions.first' | translate" tooltipPosition="top">
-              <i class="pi pi-angle-double-left"></i>
-            </button>
-            <button class="page-btn" [disabled]="currentPage() <= 1" (click)="emit(currentPage() - 1)" [pTooltip]="'common.actions.previous' | translate" tooltipPosition="top">
-              <i class="pi pi-angle-left"></i>
-            </button>
-            <span class="page-indicator">{{ currentPage() }} / {{ totalPages() }}</span>
-            <button class="page-btn" [disabled]="currentPage() >= totalPages()" (click)="emit(currentPage() + 1)" [pTooltip]="'common.actions.next' | translate" tooltipPosition="top">
-              <i class="pi pi-angle-right"></i>
-            </button>
-            <button class="page-btn" [disabled]="currentPage() >= totalPages()" (click)="emit(totalPages())" [pTooltip]="'common.actions.last' | translate" tooltipPosition="top">
-              <i class="pi pi-angle-double-right"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mobile -->
-      <div class="mobile-pagination mobile-only">
-        <div class="pagination-info-mobile">{{ rangeFrom() }}–{{ rangeTo() }} {{ 'common.labels.of' | translate }} {{ totalRecords }}</div>
-        <div class="pagination-nav-mobile">
-          <button class="page-btn" [disabled]="currentPage() <= 1" (click)="emit(currentPage() - 1)">
-            <i class="pi pi-chevron-left"></i>
-          </button>
-          <button class="page-btn" [disabled]="currentPage() >= totalPages()" (click)="emit(currentPage() + 1)">
-            <i class="pi pi-chevron-right"></i>
-          </button>
-        </div>
-      </div>
-    }
-  `,
-  styles: [`
-    .page-size-native {
-      width: 64px;
-      padding: 6px 8px;
-      font-size: 14px;
-      color: var(--color-text-primary);
-      background-color: var(--color-bg-primary);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      outline: none;
-    }
-    .page-size-native:focus {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px var(--color-primary-light);
-    }
-  `]
+  templateUrl: './data-pagination.component.html',
+  styleUrl: './data-pagination.component.scss',
 })
 export class DataPaginationComponent {
   private firstSig = signal(0);
