@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -42,6 +43,7 @@ export class StockTakesComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     stockTakes: StockTakeResponse[] = [];
     loading = false;
@@ -75,9 +77,20 @@ export class StockTakesComponent implements OnInit {
         this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.buildStatusOptions();
         });
+        this.setupSearchDebounce();
         this.loadStockTakes();
         this.warehouseService.getAllWarehouses().subscribe((w) => (this.warehouses = w));
         this.categoryService.getActiveCategories().subscribe((c) => (this.categories = c));
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     private buildStatusOptions(): void {

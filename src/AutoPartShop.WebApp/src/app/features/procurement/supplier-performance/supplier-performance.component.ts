@@ -1,6 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
@@ -35,6 +37,8 @@ import { SupplierService, SupplierPerformanceResponse } from '../../inventory/se
 export class SupplierPerformanceComponent implements OnInit {
   private readonly supplierService = inject(SupplierService);
   private readonly messageService = inject(MessageService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly searchSubject$ = new Subject<string>();
 
   rows: SupplierPerformanceResponse[] = [];
   loading = false;
@@ -48,7 +52,18 @@ export class SupplierPerformanceComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.setupSearchDebounce();
     this.loadData();
+  }
+
+  private setupSearchDebounce(): void {
+    this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.onSearch();
+    });
+  }
+
+  onSearchInput(): void {
+    this.searchSubject$.next(this.searchTerm);
   }
 
   loadData(): void {

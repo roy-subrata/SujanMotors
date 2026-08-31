@@ -22,7 +22,8 @@
           class="search-input"
           [placeholder]="'paymentProviders.searchPlaceholder' | translate"
           [(ngModel)]="searchTerm"
-          (keyup.enter)="onSearch()" />
+          (keyup.enter)="onSearch()"
+          (input)="onSearchInput()" />
         <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm = ''; onSearch()">
           <i class="pi pi-times"></i>
         </button>

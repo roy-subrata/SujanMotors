@@ -32,6 +32,7 @@
           [(ngModel)]="searchTerm"
           [placeholder]="'vehicles.searchVehicles' | translate"
           (keyup.enter)="onSearch()"
+          (input)="onSearchInput()"
           class="search-input" />
         <button *ngIf="searchTerm" class="search-clear" (click)="onSearchClear()">
           <i class="pi pi-times"></i>

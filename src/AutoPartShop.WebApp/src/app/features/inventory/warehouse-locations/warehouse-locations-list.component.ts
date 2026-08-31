@@ -1,7 +1,9 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -66,6 +68,8 @@ export class WarehouseLocationsListComponent implements OnInit {
     private readonly confirmationService = inject(ConfirmationService);
     private readonly dialogService = inject(DialogService);
     private readonly i18n = inject(I18nService);
+    private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -90,7 +94,18 @@ export class WarehouseLocationsListComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadFilterOptions();
+        this.setupSearchDebounce();
         this.loadData();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     private loadFilterOptions(): void {

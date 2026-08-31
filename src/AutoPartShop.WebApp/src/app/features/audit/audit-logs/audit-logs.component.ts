@@ -27,6 +27,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 @Component({
   selector: 'app-audit-logs',
@@ -61,6 +62,7 @@ export class AuditLogsComponent implements OnInit {
   private readonly dialogService = inject(DialogService);
   readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly searchSubject$ = new Subject<string>();
 
   logs: AuditLogResponse[] = [];
   loading = false;
@@ -92,12 +94,23 @@ export class AuditLogsComponent implements OnInit {
   ngOnInit(): void {
     this.buildActionOptions();
     this.loadFilterOptions();
+    this.setupSearchDebounce();
     this.loadLogs();
     this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.buildActionOptions();
       this.buildEntityOptions();
       this.buildUserOptions();
     });
+  }
+
+  private setupSearchDebounce(): void {
+    this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.onSearch();
+    });
+  }
+
+  onSearchInput(): void {
+    this.searchSubject$.next(this.searchTerm);
   }
 
   private buildActionOptions(): void {

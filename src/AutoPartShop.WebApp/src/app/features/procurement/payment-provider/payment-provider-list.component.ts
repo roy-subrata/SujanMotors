@@ -17,6 +17,7 @@ import { TagModule } from 'primeng/tag';
 import { AppCurrencyPipe } from '../../../shared/pipes/app-currency.pipe';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
@@ -61,6 +62,7 @@ export class PaymentProviderListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly statusDisplay = inject(StatusDisplayService);
+  private readonly searchSubject$ = new Subject<string>();
 
   paymentProviders: PaymentProviderResponse[] = [];
   searchTerm: string = '';
@@ -76,7 +78,18 @@ export class PaymentProviderListComponent implements OnInit {
     this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       if (this.selectedProvider) this.rebuildContextMenu();
     });
+    this.setupSearchDebounce();
     this.loadPaymentProviders();
+  }
+
+  private setupSearchDebounce(): void {
+    this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.onSearch();
+    });
+  }
+
+  onSearchInput(): void {
+    this.searchSubject$.next(this.searchTerm);
   }
 
   private rebuildContextMenu(): void {

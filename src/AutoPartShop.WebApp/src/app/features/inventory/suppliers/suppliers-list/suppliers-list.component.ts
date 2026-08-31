@@ -16,6 +16,7 @@ import { CurrencyService } from '../../../../shared/services/currency.service';
 import { Router } from '@angular/router';
 import { I18nService } from '@/shared/services/i18n.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
@@ -54,12 +55,24 @@ export class SuppliersListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly searchSubject$ = new Subject<string>();
 
   ngOnInit(): void {
+    this.setupSearchDebounce();
     this.loadData();
     this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       if (this.selectedSupplier) this.buildActionMenuItems(this.selectedSupplier);
     });
+  }
+
+  private setupSearchDebounce(): void {
+    this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.onSearch();
+    });
+  }
+
+  onSearchInput(): void {
+    this.searchSubject$.next(this.searchTerm);
   }
 
   loadData(): void {

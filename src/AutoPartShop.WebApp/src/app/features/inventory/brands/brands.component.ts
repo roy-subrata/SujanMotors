@@ -13,7 +13,7 @@ import { PageContainerComponent } from '@/shared/components/page-container/page-
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
 import { TooltipModule } from 'primeng/tooltip';
-import { tap } from 'rxjs';
+import { tap, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -32,6 +32,7 @@ export class BrandsComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     // Data
     brands: BrandResponse[] = [];
@@ -68,7 +69,18 @@ export class BrandsComponent implements OnInit {
         this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.buildStatusOptions();
         });
+        this.setupSearchDebounce();
         this.loadBrands();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     loadBrands(page = 1, pageSize = this.rows): void {

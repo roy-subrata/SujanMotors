@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -81,6 +81,7 @@ export class PartsComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -162,6 +163,7 @@ export class PartsComponent implements OnInit {
             this.buildStats();
         });
 
+        this.setupSearchDebounce();
         this.loadData();
         this.loadStats();
         this.categoryService.getActiveCategories().subscribe({
@@ -294,6 +296,16 @@ export class PartsComponent implements OnInit {
     /**
      * Handle search
      */
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
+    }
+
     onSearch(): void {
         this.loadData(1, this.pageSize);
     }
