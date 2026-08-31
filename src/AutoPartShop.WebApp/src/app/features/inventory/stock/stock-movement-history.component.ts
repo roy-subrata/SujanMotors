@@ -1,6 +1,8 @@
-import { Component, OnInit, Input, inject } from '@angular/core';
+import { Component, OnInit, Input, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -47,6 +49,8 @@ export class StockMovementHistoryComponent implements OnInit {
   private readonly warehouseService = inject(WarehouseService);
   private readonly messageService = inject(MessageService);
   private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly searchSubject$ = new Subject<string>();
 
   movements: StockMovementResponse[] = [];
   warehouses: WarehouseResponse[] = [];
@@ -92,7 +96,18 @@ export class StockMovementHistoryComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.setupSearchDebounce();
     this.loadAllData();
+  }
+
+  private setupSearchDebounce(): void {
+    this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.onSearch();
+    });
+  }
+
+  onSearchInput(): void {
+    this.searchSubject$.next(this.searchTerm);
   }
 
   private loadAllData(): void {

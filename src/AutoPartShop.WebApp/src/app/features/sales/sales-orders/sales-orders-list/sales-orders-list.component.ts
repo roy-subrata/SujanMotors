@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -82,6 +82,7 @@ export class SalesOrdersListComponent implements OnInit {
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly searchSubject$ = new Subject<string>();
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -123,8 +124,19 @@ export class SalesOrdersListComponent implements OnInit {
             }
         });
 
+        this.setupSearchDebounce();
         this.loadData();
         this.loadStats();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     /**

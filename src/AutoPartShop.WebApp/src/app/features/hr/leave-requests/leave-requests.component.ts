@@ -1,6 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LeaveRequestService, LeaveRequestResponse } from '../services/leave-request.service';
 import { EmployeeService, EmployeeResponse } from '../services/employee.service';
 import { TableModule } from 'primeng/table';
@@ -55,6 +57,8 @@ export class LeaveRequestsComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
     private readonly statusDisplayService = inject(StatusDisplayService);
+    private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     requests: LeaveRequestResponse[] = [];
     loading = false;
@@ -90,7 +94,18 @@ export class LeaveRequestsComponent implements OnInit {
     form = this.emptyForm();
 
     ngOnInit(): void {
+        this.setupSearchDebounce();
         this.loadRequests();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     private emptyForm() {

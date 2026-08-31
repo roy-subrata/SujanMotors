@@ -1,8 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EmployeeService, EmployeeResponse } from '../../services/employee.service';
 import { EmployeeStatus } from '@/shared/models/status.types';
 import { TableModule } from 'primeng/table';
@@ -50,6 +51,8 @@ export class EmployeesListComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     employees: EmployeeResponse[] = [];
     loading = false;
@@ -77,7 +80,18 @@ export class EmployeesListComponent implements OnInit {
     ];
 
     ngOnInit(): void {
+        this.setupSearchDebounce();
         this.loadEmployees();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     loadEmployees(): void {

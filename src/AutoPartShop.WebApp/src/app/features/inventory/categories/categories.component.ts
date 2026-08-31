@@ -10,7 +10,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { CategoryResponse, CategoryService } from '../services/category.service';
 import { CategoriesListComponent } from './categories-list/categories-list.component';
 import { CategoriesFormDialogComponent } from './categories-form-dialog/categories-form-dialog.component';
-import { tap } from 'rxjs';
+import { tap, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
@@ -32,6 +32,7 @@ export class CategoriesComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     categories: CategoryResponse[] = [];
     selectedParentCategory: CategoryResponse | null = null;
@@ -64,7 +65,18 @@ export class CategoriesComponent implements OnInit {
         this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.buildStatusOptions();
         });
+        this.setupSearchDebounce();
         this.loadCategories();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     loadCategories(page = 1, pageSize = this.rows): void {

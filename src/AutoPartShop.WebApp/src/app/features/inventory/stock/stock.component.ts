@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
@@ -67,6 +67,8 @@ export class StockComponent implements OnInit {
     private readonly route = inject(ActivatedRoute);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly allStockSearchSubject$ = new Subject<string>();
+    private readonly lowStockSearchSubject$ = new Subject<string>();
 
     allStockLevels: StockLevelResponse[] = [];
     lowStockLevels: StockLevelResponse[] = [];
@@ -138,10 +140,20 @@ export class StockComponent implements OnInit {
             if (params.get('tab') === 'low') this.activeTab = 1;
         });
 
+        this.setupSearchDebounce();
         this.loadWarehouses();
         this.loadAllStock();
         this.loadLowStock();
         this.loadStats();
+    }
+
+    private setupSearchDebounce(): void {
+        this.allStockSearchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onAllStockSearch();
+        });
+        this.lowStockSearchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onLowStockSearch();
+        });
     }
 
     private buildStockStatusOptions(): void {
@@ -254,7 +266,7 @@ export class StockComponent implements OnInit {
     }
 
     onAllStockSearchInput(): void {
-        // Debounced search will be triggered on input
+        this.allStockSearchSubject$.next(this.allStockFilters.search);
     }
 
     onAllStockSearchClear(): void {
@@ -279,7 +291,7 @@ export class StockComponent implements OnInit {
     }
 
     onLowStockSearchInput(): void {
-        // Debounced search will be triggered on input
+        this.lowStockSearchSubject$.next(this.lowStockFilters.search);
     }
 
     onLowStockSearchClear(): void {

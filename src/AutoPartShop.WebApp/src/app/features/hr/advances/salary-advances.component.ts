@@ -1,6 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SalaryAdvanceService, SalaryAdvanceResponse } from '../services/salary-advance.service';
 import { EmployeeService, EmployeeResponse } from '../services/employee.service';
 import { SalaryAdvanceStatus } from '@/shared/models/status.types';
@@ -53,6 +55,8 @@ export class SalaryAdvancesComponent implements OnInit {
     private readonly employeeService = inject(EmployeeService);
     private readonly messageService = inject(MessageService);
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     advances: SalaryAdvanceResponse[] = [];
     loading = false;
@@ -89,7 +93,18 @@ export class SalaryAdvancesComponent implements OnInit {
     form = this.emptyForm();
 
     ngOnInit(): void {
+        this.setupSearchDebounce();
         this.loadAdvances();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     private emptyForm() {

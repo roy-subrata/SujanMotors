@@ -19,6 +19,7 @@ import { StatusBadgeComponent } from '../components/status-badge.component';
 import { CurrencyService } from '../../../shared/services/currency.service';
 import { SupplierService } from '../../inventory/services/supplier.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { I18nService } from '@/shared/services/i18n.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
@@ -66,6 +67,7 @@ export class SupplierPaymentListComponent implements OnInit {
     private readonly supplierService = inject(SupplierService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     supplierPayments: SupplierPaymentResponse[] = [];
     searchTerm: string = '';
@@ -101,7 +103,18 @@ export class SupplierPaymentListComponent implements OnInit {
             this.loadSupplierName(supplierId);
         }
 
+        this.setupSearchDebounce();
         this.loadSupplierPayments();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     private buildStatusOptions(): void {

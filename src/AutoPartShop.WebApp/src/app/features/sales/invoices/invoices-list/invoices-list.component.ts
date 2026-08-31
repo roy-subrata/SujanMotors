@@ -20,7 +20,7 @@ import { PaginatorState } from 'primeng/paginator';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MenuModule } from 'primeng/menu';
 import { Menu } from 'primeng/menu';
-import { tap } from 'rxjs';
+import { tap, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApplyCustomerAdvanceCreditDialogComponent } from '../../sales-orders/apply-advance-credit/apply-advance-credit-dialog.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
@@ -72,6 +72,7 @@ export class InvoicesListComponent implements OnInit {
     private readonly destroyRef = inject(DestroyRef);
     private readonly statusDisplay = inject(StatusDisplayService);
     private activateRoute = inject(ActivatedRoute);
+    private readonly searchSubject$ = new Subject<string>();
 
     private dialogRef: DynamicDialogRef | null | undefined;
 
@@ -131,7 +132,18 @@ export class InvoicesListComponent implements OnInit {
                 })
             )
             .subscribe();
+        this.setupSearchDebounce();
         this.loadInvoices();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     /** Invoice status is a server enum rendered directly in the table; map it to its

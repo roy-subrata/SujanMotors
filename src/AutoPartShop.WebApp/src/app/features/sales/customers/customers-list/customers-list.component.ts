@@ -19,7 +19,7 @@ import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { CustomerService, CustomerResponse } from '../../services/customer.service';
 import { CustomerTypeService, ItemResponse } from '@/shared/services/CountryService';
 import { CurrencyService } from '../../../../shared/services/currency.service';
-import { tap } from 'rxjs';
+import { tap, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { I18nService } from '@/shared/services/i18n.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
@@ -65,6 +65,7 @@ export class CustomersListComponent implements OnInit {
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly searchSubject$ = new Subject<string>();
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -90,10 +91,21 @@ export class CustomersListComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadCustomerTypes();
+        this.setupSearchDebounce();
         this.loadData();
         this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             if (this.selectedCustomer) this.buildActionMenuItems(this.selectedCustomer);
         });
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     private loadCustomerTypes(): void {

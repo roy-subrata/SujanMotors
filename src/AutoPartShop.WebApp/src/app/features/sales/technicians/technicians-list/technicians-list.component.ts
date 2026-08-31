@@ -13,6 +13,7 @@ import { SelectModule } from 'primeng/select';
 import { PaginatorState } from 'primeng/paginator';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { I18nService } from '@/shared/services/i18n.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
@@ -52,6 +53,7 @@ export class TechniciansListComponent implements OnInit {
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly searchSubject$ = new Subject<string>();
 
     technicians: TechnicianResponse[] = [];
     loading = false;
@@ -70,7 +72,18 @@ export class TechniciansListComponent implements OnInit {
         this.i18n.translationsLoaded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.buildStatusOptions();
         });
+        this.setupSearchDebounce();
         this.loadTechnicians();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     private buildStatusOptions(): void {
