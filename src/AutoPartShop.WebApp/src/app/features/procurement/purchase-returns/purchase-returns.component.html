@@ -24,7 +24,7 @@
         <div search class="filter-group search-group">
             <div class="search-input-wrapper">
                 <i class="pi pi-search"></i>
-                <input type="text" [(ngModel)]="searchTerm" placeholder="Search by return number, supplier..." (keyup.enter)="onSearch()" class="search-input" />
+                <input type="text" [(ngModel)]="searchTerm" placeholder="Search by return number, supplier..." (keyup.enter)="onSearch()" (input)="onSearchInput()" class="search-input" />
                 <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()">
                     <i class="pi pi-times"></i>
                 </button>

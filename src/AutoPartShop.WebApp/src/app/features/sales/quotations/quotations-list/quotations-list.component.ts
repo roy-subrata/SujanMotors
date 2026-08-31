@@ -24,6 +24,7 @@ import { ConvertQuotationDialogComponent } from '../convert-quotation-dialog.com
 import { QuotationStatus } from '@/shared/models/status.types';
 import { CurrencyService } from '@/shared/services/currency.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { I18nService } from '@/shared/services/i18n.service';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
@@ -72,6 +73,7 @@ export class QuotationsListComponent implements OnInit {
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly statusDisplay = inject(StatusDisplayService);
+    private readonly searchSubject$ = new Subject<string>();
 
     @ViewChild('actionMenu') actionMenu!: Menu;
 
@@ -106,7 +108,18 @@ export class QuotationsListComponent implements OnInit {
             }
         });
 
+        this.setupSearchDebounce();
         this.loadData();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     private buildStatusOptions(): void {

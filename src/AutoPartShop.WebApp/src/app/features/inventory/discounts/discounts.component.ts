@@ -10,7 +10,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { DiscountResponse, DiscountService } from '../services/discount.service';
 import { DiscountsListComponent } from './discounts-list/discounts-list.component';
 import { DiscountFormDialogComponent } from './discount-form-dialog/discount-form-dialog.component';
-import { tap } from 'rxjs';
+import { tap, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { PageContainerComponent } from '@/shared/components/page-container/page-container.component';
 import { PageHeaderComponent } from '@/shared/components/page-header/page-header.component';
 import { FilterBarComponent } from '@/shared/components/filter-bar/filter-bar.component';
@@ -48,6 +48,7 @@ export class DiscountsComponent implements OnInit {
     private readonly messageService = inject(MessageService);
     private readonly i18n = inject(I18nService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly searchSubject$ = new Subject<string>();
 
     // Data
     discounts: DiscountResponse[] = [];
@@ -98,7 +99,18 @@ export class DiscountsComponent implements OnInit {
             this.buildFilterOptions();
             this.updateStats();
         });
+        this.setupSearchDebounce();
         this.loadDiscounts();
+    }
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
     }
 
     /**

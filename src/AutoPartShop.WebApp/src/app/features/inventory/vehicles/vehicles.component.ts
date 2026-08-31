@@ -1,7 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -40,6 +42,8 @@ export class VehiclesComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly searchSubject$ = new Subject<string>();
 
   vehicles: VehicleResponse[] = [];
   loading = false;
@@ -51,7 +55,18 @@ export class VehiclesComponent implements OnInit {
   constructor() {}
 
   ngOnInit(): void {
+    this.setupSearchDebounce();
     this.loadVehicles();
+  }
+
+  private setupSearchDebounce(): void {
+    this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.onSearch();
+    });
+  }
+
+  onSearchInput(): void {
+    this.searchSubject$.next(this.searchTerm);
   }
 
   /**

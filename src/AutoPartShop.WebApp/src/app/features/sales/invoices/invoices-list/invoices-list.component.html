@@ -23,7 +23,7 @@
         <div search class="filter-group search-group">
             <div class="search-input-wrapper">
                 <i class="pi pi-search"></i>
-                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'invoices.searchPlaceholder' | translate" class="search-input" (keyup.enter)="onSearch()" />
+                <input type="text" [(ngModel)]="searchTerm" [placeholder]="'invoices.searchPlaceholder' | translate" class="search-input" (keyup.enter)="onSearch()" (input)="onSearchInput()" />
                 <button *ngIf="searchTerm" class="search-clear" (click)="clearSearch()"><i class="pi pi-times"></i></button>
             </div>
         </div>

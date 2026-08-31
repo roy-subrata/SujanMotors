@@ -31,6 +31,7 @@
                 [(ngModel)]="searchTerm"
                 [placeholder]="'units.searchUnits' | translate"
                 (keyup.enter)="onSearch(searchTerm)"
+                (input)="onSearchInput()"
                 class="search-input" />
               <button *ngIf="searchTerm" class="search-clear" (click)="clearUnitsSearch()">
                 <i class="pi pi-times"></i>
@@ -90,6 +91,7 @@
                 [(ngModel)]="conversionSearchTerm"
                 [placeholder]="'conversions.searchConversions' | translate"
                 (keyup.enter)="onConversionSearch(conversionSearchTerm)"
+                (input)="onConversionSearchInput()"
                 class="search-input" />
               <button *ngIf="conversionSearchTerm" class="search-clear" (click)="clearConversionSearch()">
                 <i class="pi pi-times"></i>

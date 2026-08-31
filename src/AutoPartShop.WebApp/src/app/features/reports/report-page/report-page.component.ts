@@ -1,8 +1,9 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule, formatDate } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -61,7 +62,9 @@ export class ReportPageComponent implements OnInit, OnDestroy {
     private readonly warehouseService = inject(WarehouseService);
     private readonly categoryService = inject(CategoryService);
     private readonly brandService = inject(BrandService);
+    private readonly destroyRef = inject(DestroyRef);
     readonly i18n = inject(I18nService);
+    private readonly searchSubject$ = new Subject<string>();
 
     config!: ReportPageConfig;
 
@@ -91,6 +94,7 @@ export class ReportPageComponent implements OnInit, OnDestroy {
     private routeSub?: Subscription;
 
     ngOnInit(): void {
+        this.setupSearchDebounce();
         this.routeSub = this.route.paramMap.subscribe(params => {
             const key = params.get('reportKey') ?? '';
             const config = REPORT_REGISTRY.get(key);
@@ -181,6 +185,16 @@ export class ReportPageComponent implements OnInit, OnDestroy {
     }
 
     // ── Filter events ───────────────────────────────────────────────────────────
+
+    private setupSearchDebounce(): void {
+        this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+            this.onSearch();
+        });
+    }
+
+    onSearchInput(): void {
+        this.searchSubject$.next(this.searchTerm);
+    }
 
     onSearch(): void {
         this.pageNumber = 1;

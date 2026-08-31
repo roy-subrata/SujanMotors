@@ -1,6 +1,8 @@
-import { Component, inject, ViewChild, OnInit } from '@angular/core';
+import { Component, inject, ViewChild, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
@@ -50,6 +52,9 @@ export class UnitsComponent implements OnInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly i18n = inject(I18nService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly searchSubject$ = new Subject<string>();
+  private readonly conversionSearchSubject$ = new Subject<string>();
 
   // Units tab state
   selectedUnit: UnitResponse | null = null;
@@ -65,7 +70,20 @@ export class UnitsComponent implements OnInit {
   conversionSearchTerm = '';
 
   ngOnInit(): void {
-    // Initialize component if needed
+    this.searchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe((query) => {
+      this.onSearch(query);
+    });
+    this.conversionSearchSubject$.pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe((query) => {
+      this.onConversionSearch(query);
+    });
+  }
+
+  onSearchInput(): void {
+    this.searchSubject$.next(this.searchTerm);
+  }
+
+  onConversionSearchInput(): void {
+    this.conversionSearchSubject$.next(this.conversionSearchTerm);
   }
 
   /**
