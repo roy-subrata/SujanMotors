@@ -191,7 +191,7 @@ export class TechnicianFormComponent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: this.i18n.t('common.messages.error'),
-            detail: this.i18n.t('technicians.form.messages.createFailed')
+            detail: err?.error?.message || this.i18n.t('technicians.form.messages.createFailed')
           });
           console.error('Error creating technician:', err);
         }
@@ -224,7 +224,7 @@ export class TechnicianFormComponent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: this.i18n.t('common.messages.error'),
-            detail: this.i18n.t('technicians.form.messages.updateFailed')
+            detail: err?.error?.message || this.i18n.t('technicians.form.messages.updateFailed')
           });
           console.error('Error updating technician:', err);
         }
