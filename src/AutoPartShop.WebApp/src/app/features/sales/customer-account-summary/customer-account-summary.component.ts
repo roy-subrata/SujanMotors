@@ -35,6 +35,7 @@ import { DataPaginationComponent } from '@/shared/components/data-pagination/dat
 import { StatusDisplayService, StatusSeverity } from '@/shared/services/status-display.service';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+import { PdfPreviewService } from '@/shared/services/pdf-preview.service';
 
 @Component({
     selector: 'app-customer-account-summary',
@@ -63,6 +64,7 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
     private readonly customerService = inject(CustomerService);
     private readonly vehicleService = inject(CustomerVehicleService);
     private readonly summaryService = inject(CustomerAccountSummaryService);
+    private readonly pdfPreview = inject(PdfPreviewService);
     private readonly ledgerService = inject(CustomerLedgerService);
     private readonly router = inject(Router);
     private readonly messageService = inject(MessageService);
@@ -295,21 +297,10 @@ export class CustomerAccountSummaryComponent implements OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (blob) => {
-                    const url = window.URL.createObjectURL(blob);
-                    const anchor = document.createElement('a');
                     const s = this.summary()!;
                     const dateStr = new Date().toISOString().split('T')[0];
-                    anchor.href = url;
-                    anchor.download = `account-statement-${s.customerCode || 'customer'}-${dateStr}.pdf`;
-                    anchor.click();
-                    window.URL.revokeObjectURL(url);
+                    this.pdfPreview.open(blob, `account-statement-${s.customerCode || 'customer'}-${dateStr}.pdf`);
                     this.pdfLoading.set(false);
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: this.i18n.t('common.messages.success'),
-                        detail: this.i18n.t('customerAccountSummary.messages.pdfSuccess'),
-                        life: 3000
-                    });
                 },
                 error: () => {
                     this.pdfLoading.set(false);

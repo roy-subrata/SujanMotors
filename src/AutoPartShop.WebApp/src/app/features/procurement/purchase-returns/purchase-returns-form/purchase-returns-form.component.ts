@@ -951,7 +951,7 @@ export class PurchaseReturnsFormComponent implements OnInit {
   }
 
   /**
-   * Download the server-rendered Purchase Return PDF and trigger the browser save dialog.
+   * Download the server-rendered Purchase Return PDF and show it in the preview dialog.
    */
   printReturn(): void {
     if (!this.currentReturn) {

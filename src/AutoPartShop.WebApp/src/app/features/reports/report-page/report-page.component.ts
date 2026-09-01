@@ -23,6 +23,7 @@ import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
 import { MoneyFormatPipe } from '@/shared/pipes/money-format.pipe';
 import { AmountSignPipe } from '@/shared/pipes/amount-sign.pipe';
+import { PdfPreviewService } from '@/shared/services/pdf-preview.service';
 
 import { WarehouseService } from '../../inventory/services/warehouse.service';
 import { CategoryService } from '../../inventory/services/category.service';
@@ -58,6 +59,7 @@ export class ReportPageComponent implements OnInit, OnDestroy {
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private readonly reportsService = inject(ReportsService);
+    private readonly pdfPreview = inject(PdfPreviewService);
     private readonly messageService = inject(MessageService);
     private readonly warehouseService = inject(WarehouseService);
     private readonly categoryService = inject(CategoryService);
@@ -243,12 +245,17 @@ export class ReportPageComponent implements OnInit, OnDestroy {
 
         this.reportsService.export(this.config, this.buildQuery(), format).subscribe({
             next: blob => {
-                const url = URL.createObjectURL(blob);
-                const anchor = document.createElement('a');
-                anchor.href = url;
-                anchor.download = `${this.config.key}-${formatDate(new Date(), 'yyyyMMdd', 'en-US')}.${format}`;
-                anchor.click();
-                URL.revokeObjectURL(url);
+                const filename = `${this.config.key}-${formatDate(new Date(), 'yyyyMMdd', 'en-US')}.${format}`;
+                if (format === 'pdf') {
+                    this.pdfPreview.open(blob, filename);
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const anchor = document.createElement('a');
+                    anchor.href = url;
+                    anchor.download = filename;
+                    anchor.click();
+                    URL.revokeObjectURL(url);
+                }
                 this.exporting = null;
             },
             error: () => {

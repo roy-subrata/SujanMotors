@@ -351,6 +351,9 @@
             "billTo": "বিল প্রাপক"
         }
     },
+    "pdfPreview": {
+        "download": "ডাউনলোড"
+    },
     "categories": {
         "countLabel": "বিভাগ",
         "title": "বিভাগসমূহ",

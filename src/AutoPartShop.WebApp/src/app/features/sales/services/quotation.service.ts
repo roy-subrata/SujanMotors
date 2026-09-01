@@ -135,8 +135,8 @@ export class QuotationService {
         return this.http.post<ConvertQuotationResponse>(`${this.apiUrl}/${id}/convert`, { warehouseId });
     }
 
-    /** Download the server-rendered Quotation PDF and trigger the browser save dialog. */
+    /** Download the server-rendered Quotation PDF and show it in the preview dialog. */
     downloadPdf(id: string, quotationNumber: string): Observable<void> {
-        return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `quotation-${quotationNumber}.pdf`);
+        return this.pdfDownload.previewGet(`${this.apiUrl}/${id}/pdf`, `quotation-${quotationNumber}.pdf`);
     }
 }

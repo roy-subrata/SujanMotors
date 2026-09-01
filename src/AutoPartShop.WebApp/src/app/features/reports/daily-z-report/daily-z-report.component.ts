@@ -73,7 +73,7 @@ export class DailyZReportComponent implements OnInit {
         };
         const filename = `daily-sales-report-${formatDate(this.businessDate, 'yyyyMMdd', 'en-US')}.pdf`;
 
-        this.pdfDownloadService.downloadPost(
+        this.pdfDownloadService.previewPost(
             `${environment.apiUrl}/v1/reports/sales/daily-z-report/pdf`,
             query,
             filename

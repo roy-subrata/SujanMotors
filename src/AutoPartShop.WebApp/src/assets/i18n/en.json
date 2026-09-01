@@ -351,6 +351,9 @@
             "billTo": "Bill To"
         }
     },
+    "pdfPreview": {
+        "download": "Download"
+    },
     "categories": {
         "countLabel": "categories",
         "title": "Categories",

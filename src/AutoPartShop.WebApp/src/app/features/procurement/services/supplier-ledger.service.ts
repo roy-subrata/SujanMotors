@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { I18nService } from '@/shared/services/i18n.service';
+import { PdfDownloadService } from '@/shared/services/pdf-download.service';
 
 export enum SupplierLedgerTransactionType {
     PURCHASE = 'PURCHASE',       // PO confirmation (debit - increases debt)
@@ -74,6 +74,7 @@ export interface SettlePurchaseReturnRequest {
 export class SupplierLedgerService {
     private readonly http = inject(HttpClient);
     private readonly i18n = inject(I18nService);
+    private readonly pdfDownload = inject(PdfDownloadService);
     private readonly apiUrl = `${environment.apiUrl}/v1/supplier-ledger`;
 
     /**
@@ -115,23 +116,18 @@ export class SupplierLedgerService {
     /**
      * Download the server-rendered supplier ledger statement PDF. Mirrors the date filter
      * currently applied on-screen; totals are always all-time (matches the summary endpoint).
-     * Returns an Observable that completes once the browser download is triggered.
+     * Returns an Observable that completes once the preview dialog is shown.
      */
     downloadStatementPdf(supplierId: string, supplierCode: string, fromDate?: string, toDate?: string): Observable<void> {
         let params = new HttpParams();
         if (fromDate) params = params.set('fromDate', fromDate);
         if (toDate) params = params.set('toDate', toDate);
 
-        return this.http.get(`${this.apiUrl}/${supplierId}/statement-pdf`, { params, responseType: 'blob' }).pipe(
-            map(blob => {
-                const objectUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = objectUrl;
-                const dateStr = new Date().toISOString().split('T')[0];
-                a.download = `supplier-ledger-${supplierCode || supplierId}-${dateStr}.pdf`;
-                a.click();
-                URL.revokeObjectURL(objectUrl);
-            })
+        const dateStr = new Date().toISOString().split('T')[0];
+        return this.pdfDownload.previewGet(
+            `${this.apiUrl}/${supplierId}/statement-pdf`,
+            `supplier-ledger-${supplierCode || supplierId}-${dateStr}.pdf`,
+            params
         );
     }
 

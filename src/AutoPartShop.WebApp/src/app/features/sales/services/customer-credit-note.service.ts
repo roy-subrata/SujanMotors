@@ -122,8 +122,8 @@ export class CustomerCreditNoteService {
     return this.http.patch<void>(`${this.apiUrl}/${id}/cancel`, null, { params });
   }
 
-  /** Download the server-rendered Credit Note PDF and trigger the browser save dialog. */
+  /** Download the server-rendered Credit Note PDF and show it in the preview dialog. */
   downloadPdf(id: string, creditNoteNumber: string): Observable<void> {
-    return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `credit-note-${creditNoteNumber}.pdf`);
+    return this.pdfDownload.previewGet(`${this.apiUrl}/${id}/pdf`, `credit-note-${creditNoteNumber}.pdf`);
   }
 }
