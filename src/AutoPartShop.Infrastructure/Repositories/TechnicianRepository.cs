@@ -77,6 +77,12 @@ public class TechnicianRepository : ITechnicianRepository
             .FirstOrDefaultAsync(x => x.TechnicianCode == technicianCode && !x.Isdeleted, cancellationToken);
     }
 
+    public async Task<Technician?> GetByPhoneAsync(string phone, Guid? excludeId = null, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Technicians
+            .FirstOrDefaultAsync(x => x.Phone == phone && !x.Isdeleted && (excludeId == null || x.Id != excludeId), cancellationToken);
+    }
+
     public async Task<IEnumerable<Technician>> GetByStatusAsync(TechnicianStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Technicians

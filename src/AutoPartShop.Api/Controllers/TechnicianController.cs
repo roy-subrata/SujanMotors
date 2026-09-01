@@ -139,6 +139,10 @@ public class TechnicianController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone))
                 return BadRequest(new { message = "Name and Phone are required" });
 
+            var existingByPhone = await _technicianRepository.GetByPhoneAsync(request.Phone.Trim(), null, cancellationToken);
+            if (existingByPhone != null)
+                return Conflict(new { message = $"A technician with phone {request.Phone.Trim()} already exists ({existingByPhone.TechnicianCode})." });
+
             var technicianCode = await _codeGenerateService.GenerateAsync("TECH", cancellationToken);
 
             var technician = Technician.Create(
@@ -179,6 +183,13 @@ public class TechnicianController : ControllerBase
         {
             var technician = await _technicianRepository.GetByIdAsync(id, cancellationToken);
             if (technician is null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var existingByPhone = await _technicianRepository.GetByPhoneAsync(request.Phone.Trim(), id, cancellationToken);
+                if (existingByPhone != null)
+                    return Conflict(new { message = $"A technician with phone {request.Phone.Trim()} already exists ({existingByPhone.TechnicianCode})." });
+            }
 
             technician.UpdateInfo(
                 request.Name,
