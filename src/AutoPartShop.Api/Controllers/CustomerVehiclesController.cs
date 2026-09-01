@@ -71,6 +71,9 @@ public class CustomerVehiclesController : ControllerBase
             if (!await _customerRepository.ExistsAsync(customerId, cancellationToken))
                 return NotFound(new { message = "Customer not found" });
 
+            if (await _vehicleRepository.RegistrationExistsForCustomerAsync(customerId, request.RegistrationNo, null, cancellationToken))
+                return Conflict(new { message = $"This customer already has a vehicle registered as '{request.RegistrationNo.Trim().ToUpper()}'" });
+
             var vehicle = CustomerVehicle.Create(
                 customerId,
                 request.RegistrationNo,
@@ -113,6 +116,9 @@ public class CustomerVehiclesController : ControllerBase
             var vehicle = await _vehicleRepository.GetByIdAsync(vehicleId, cancellationToken);
             if (vehicle is null || vehicle.CustomerId != customerId)
                 return NotFound(new { message = "Vehicle not found" });
+
+            if (await _vehicleRepository.RegistrationExistsForCustomerAsync(customerId, request.RegistrationNo, vehicleId, cancellationToken))
+                return Conflict(new { message = $"This customer already has a vehicle registered as '{request.RegistrationNo.Trim().ToUpper()}'" });
 
             vehicle.Update(
                 request.RegistrationNo,
