@@ -152,6 +152,6 @@ export class TillSessionService {
     downloadPdf(id: string, terminalLabel: string, openedAt: string): Observable<void> {
         const day = (openedAt || '').split('T')[0]?.replace(/-/g, '') || '';
         const terminal = (terminalLabel || '').replace(/\s+/g, '');
-        return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `shift-report-${day}-${terminal}.pdf`);
+        return this.pdfDownload.previewGet(`${this.apiUrl}/${id}/pdf`, `shift-report-${day}-${terminal}.pdf`);
     }
 }

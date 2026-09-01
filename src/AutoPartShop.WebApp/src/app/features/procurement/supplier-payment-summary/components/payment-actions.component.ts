@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { MessageService } from 'primeng/api';
 import { SupplierPaymentService } from '../../services/supplier-payment.service';
 import { I18nService } from '@/shared/services/i18n.service';
+import { PdfPreviewService } from '@/shared/services/pdf-preview.service';
 
 @Component({
   selector: 'app-payment-actions',
@@ -20,6 +21,7 @@ export class PaymentActionsComponent {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly supplierPaymentService = inject(SupplierPaymentService);
+  private readonly pdfPreview = inject(PdfPreviewService);
   protected readonly i18n = inject(I18nService);
 
   createNewPayment(): void {
@@ -37,26 +39,8 @@ export class PaymentActionsComponent {
   downloadReport(): void {
     this.supplierPaymentService.downloadPaymentSummaryReport(this.supplierId).subscribe({
       next: (blob: Blob) => {
-
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `payment-summary-${this.supplierName}-${new Date().toISOString().split('T')[0]}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up after a brief delay to ensure download completes
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-        }, 100);
-
-        this.messageService.add({
-          severity: 'success',
-          summary: this.i18n.t('common.messages.success'),
-          detail: this.i18n.t('supplierPaymentSummary.actions.reportSuccess'),
-          life: 5000
-        });
+        const filename = `payment-summary-${this.supplierName}-${new Date().toISOString().split('T')[0]}.pdf`;
+        this.pdfPreview.open(blob, filename);
       },
       error: (error) => {
         console.error('Error downloading report:', error);

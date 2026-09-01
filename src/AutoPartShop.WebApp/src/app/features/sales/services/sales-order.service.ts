@@ -171,8 +171,8 @@ export class SalesOrderService {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 
-    /** Download the server-rendered Sales Order PDF and trigger the browser save dialog. */
+    /** Download the server-rendered Sales Order PDF and show it in the preview dialog. */
     downloadPdf(id: string, soNumber: string): Observable<void> {
-        return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `sales-order-${soNumber}.pdf`);
+        return this.pdfDownload.previewGet(`${this.apiUrl}/${id}/pdf`, `sales-order-${soNumber}.pdf`);
     }
 }

@@ -106,7 +106,7 @@ export class VatReportComponent implements OnInit {
         const query = this.buildQuery();
         const filename = `vat-report-${formatDate(this.dateRange![0], 'yyyyMMdd', 'en-US')}-${formatDate(this.dateRange![1], 'yyyyMMdd', 'en-US')}.pdf`;
 
-        this.pdfDownloadService.downloadPost(
+        this.pdfDownloadService.previewPost(
             `${environment.apiUrl}/v1/reports/financial/vat/pdf`,
             query,
             filename

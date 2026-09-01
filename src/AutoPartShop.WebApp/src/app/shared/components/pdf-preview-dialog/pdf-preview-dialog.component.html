@@ -1,0 +1,18 @@
+<p-dialog
+  [visible]="!!state()"
+  (visibleChange)="!$event && close()"
+  [modal]="true"
+  [maximizable]="true"
+  [dismissableMask]="true"
+  [style]="{ width: '80vw', height: '90vh' }"
+  [breakpoints]="{ '960px': '95vw' }"
+  [header]="state()?.filename ?? ''"
+  styleClass="pdf-preview-dialog">
+  <div class="pdf-preview-body">
+    <iframe *ngIf="safeUrl as url" [src]="url" class="pdf-preview-frame" title="PDF preview"></iframe>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton type="button" icon="pi pi-download" [label]="'pdfPreview.download' | translate" (click)="download()"></button>
+    <button pButton type="button" icon="pi pi-times" class="p-button-outlined" [label]="'common.actions.close' | translate" (click)="close()"></button>
+  </ng-template>
+</p-dialog>

@@ -112,8 +112,8 @@ export class PayrollService {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 
-    /** Download the server-rendered Payslip PDF and trigger the browser save dialog. */
+    /** Download the server-rendered Payslip PDF and show it in the preview dialog. */
     downloadPayslipPdf(runId: string, payslipId: string, employeeCode: string): Observable<void> {
-        return this.pdfDownload.downloadGet(`${this.apiUrl}/${runId}/payslips/${payslipId}/pdf`, `payslip-${employeeCode}.pdf`);
+        return this.pdfDownload.previewGet(`${this.apiUrl}/${runId}/payslips/${payslipId}/pdf`, `payslip-${employeeCode}.pdf`);
     }
 }

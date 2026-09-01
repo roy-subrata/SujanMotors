@@ -235,10 +235,10 @@ export class InvoicePdfService {
 
   /**
    * Download the server-rendered QuestPDF invoice for the given invoice ID.
-   * Returns an Observable that completes once the browser download is triggered.
+   * Returns an Observable that completes once the preview dialog is shown.
    */
   downloadServerPdf(invoiceId: string, invoiceNumber: string): Observable<void> {
     const url = `${environment.apiUrl}/salesorder/invoices/${invoiceId}/pdf`;
-    return this.pdfDownload.downloadGet(url, `invoice-${invoiceNumber}.pdf`);
+    return this.pdfDownload.previewGet(url, `invoice-${invoiceNumber}.pdf`);
   }
 }

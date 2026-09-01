@@ -295,8 +295,8 @@ export class PurchaseReturnService {
     return this.http.get<ReturnPrefillFromGrn>(`${this.apiUrl}/from-goods-receipt/${goodsReceiptId}`);
   }
 
-  /** Download the server-rendered Purchase Return PDF and trigger the browser save dialog. */
+  /** Download the server-rendered Purchase Return PDF and show it in the preview dialog. */
   downloadPdf(id: string, returnNumber: string): Observable<void> {
-    return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `purchase-return-${returnNumber}.pdf`);
+    return this.pdfDownload.previewGet(`${this.apiUrl}/${id}/pdf`, `purchase-return-${returnNumber}.pdf`);
   }
 }

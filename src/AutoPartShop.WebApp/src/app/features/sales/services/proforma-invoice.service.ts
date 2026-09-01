@@ -65,8 +65,8 @@ export class ProformaInvoiceService {
         return this.http.get<ProformaInvoiceListResponse>(`${this.apiUrl}/list`, { params });
     }
 
-    /** Download the server-rendered Proforma Invoice PDF and trigger the browser save dialog. */
+    /** Download the server-rendered Proforma Invoice PDF and show it in the preview dialog. */
     downloadPdf(id: string, proformaNumber: string): Observable<void> {
-        return this.pdfDownload.downloadGet(`${this.apiUrl}/${id}/pdf`, `proforma-invoice-${proformaNumber}.pdf`);
+        return this.pdfDownload.previewGet(`${this.apiUrl}/${id}/pdf`, `proforma-invoice-${proformaNumber}.pdf`);
     }
 }
