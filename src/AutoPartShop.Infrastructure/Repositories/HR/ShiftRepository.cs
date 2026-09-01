@@ -47,6 +47,12 @@ public class ShiftRepository : IShiftRepository
         if (entity == null)
             throw new ArgumentNullException(nameof(entity));
 
+        var exists = await _dbContext.Shifts
+            .AnyAsync(x => x.Name == entity.Name && !x.Isdeleted && x.Id != entity.Id, cancellationToken);
+
+        if (exists)
+            throw new InvalidOperationException($"Shift '{entity.Name}' already exists");
+
         _dbContext.Shifts.Update(entity);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
