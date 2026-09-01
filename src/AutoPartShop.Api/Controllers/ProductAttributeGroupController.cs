@@ -95,6 +95,10 @@ public class ProductAttributeGroupController : ControllerBase
     {
         try
         {
+            if (!string.IsNullOrWhiteSpace(req.Name) &&
+                await _db.ProductAttributeGroups.AnyAsync(g => g.Name.ToLower() == req.Name.Trim().ToLower() && !g.Isdeleted, ct))
+                return Conflict(new { message = $"An attribute group named '{req.Name.Trim()}' already exists" });
+
             var group = ProductAttributeGroup.Create(req.Name, req.SortOrder);
             _db.ProductAttributeGroups.Add(group);
             await _db.SaveChangesAsync(ct);
@@ -118,6 +122,10 @@ public class ProductAttributeGroupController : ControllerBase
                 .Include(g => g.Attributes).ThenInclude(a => a.Options)
                 .FirstOrDefaultAsync(g => g.Id == id, ct);
             if (group is null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(req.Name) &&
+                await _db.ProductAttributeGroups.AnyAsync(g => g.Name.ToLower() == req.Name.Trim().ToLower() && !g.Isdeleted && g.Id != id, ct))
+                return Conflict(new { message = $"An attribute group named '{req.Name.Trim()}' already exists" });
 
             group.Update(req.Name, req.SortOrder, req.IsActive);
             await _db.SaveChangesAsync(ct);
