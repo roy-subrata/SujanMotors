@@ -404,6 +404,18 @@ public class ProductsController : ControllerBase
                 return Conflict(ApiError.Conflict($"A product with part number '{request.PartNumber}' already exists", instance: Request.Path));
         }
 
+        // Barcode is manually entered (a real scanned UPC/EAN), so unlike SKU it isn't
+        // guaranteed unique by generation — check it against other products and variants,
+        // matching the check already done on the variant side (ProductVariantController).
+        if (!string.IsNullOrWhiteSpace(request.Barcode))
+        {
+            var normalizedBarcode = request.Barcode.Trim();
+            if (await _dbContext.Parts.AnyAsync(p => !p.Isdeleted && p.Barcode == normalizedBarcode, cancellationToken))
+                return Conflict(ApiError.Conflict($"Barcode '{request.Barcode}' is already used by another product", instance: Request.Path));
+            if (await _dbContext.ProductVariants.AnyAsync(v => !v.Isdeleted && v.Barcode == normalizedBarcode, cancellationToken))
+                return Conflict(ApiError.Conflict($"Barcode '{request.Barcode}' is already used by a variant", instance: Request.Path));
+        }
+
         var sku = await _codeGenerateService.GenerateAsync(await GetSkuPrefixAsync(cancellationToken), cancellationToken);
         // PartNumber is optional — some brands don't publish a catalog code. SKU identifies the part.
         var partNumber = string.IsNullOrWhiteSpace(request.PartNumber)
@@ -467,6 +479,15 @@ public class ProductsController : ControllerBase
 
         if (!await _categoryRepository.ExistsAsync(request.CategoryId, cancellationToken))
             return BadRequest(ApiError.Validation("Category does not exist", instance: Request.Path));
+
+        if (!string.IsNullOrWhiteSpace(request.Barcode))
+        {
+            var normalizedBarcode = request.Barcode.Trim();
+            if (await _dbContext.Parts.AnyAsync(p => !p.Isdeleted && p.Barcode == normalizedBarcode && p.Id != id, cancellationToken))
+                return Conflict(ApiError.Conflict($"Barcode '{request.Barcode}' is already used by another product", instance: Request.Path));
+            if (await _dbContext.ProductVariants.AnyAsync(v => !v.Isdeleted && v.Barcode == normalizedBarcode, cancellationToken))
+                return Conflict(ApiError.Conflict($"Barcode '{request.Barcode}' is already used by a variant", instance: Request.Path));
+        }
 
         var oldSellingPrice = part.SellingPrice;
         var oldWarranty = (part.HasWarranty, part.WarrantyPeriodMonths, part.WarrantyType,
