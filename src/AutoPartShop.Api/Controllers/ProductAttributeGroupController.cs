@@ -227,6 +227,9 @@ public class ProductAttributeGroupController : ControllerBase
                 .FirstOrDefaultAsync(a => a.Id == attrId && a.AttributeGroupId == groupId, ct);
             if (attr is null) return NotFound();
 
+            if (await _db.ProductAttributes.AnyAsync(a => a.Code == req.Code.Trim().ToUpperInvariant() && a.Id != attrId, ct))
+                return Conflict(new { message = $"Attribute code '{req.Code}' already exists" });
+
             attr.Update(req.Name, req.Code, req.DataType, req.Unit ?? "", req.IsActive);
             await _db.SaveChangesAsync(ct);
             return Ok(MapAttribute(attr));
@@ -273,6 +276,9 @@ public class ProductAttributeGroupController : ControllerBase
             if (!await _db.ProductAttributes.AnyAsync(a => a.Id == attrId && a.AttributeGroupId == groupId, ct))
                 return NotFound(new { message = "Attribute not found" });
 
+            if (await _db.ProductAttributeOptions.AnyAsync(o => o.AttributeId == attrId && o.Value.ToLower() == req.Value.Trim().ToLower(), ct))
+                return Conflict(new { message = $"Option '{req.Value}' already exists for this attribute" });
+
             var option = ProductAttributeOption.Create(attrId, req.Value, req.SortOrder);
             _db.ProductAttributeOptions.Add(option);
             await _db.SaveChangesAsync(ct);
@@ -295,6 +301,9 @@ public class ProductAttributeGroupController : ControllerBase
             var opt = await _db.ProductAttributeOptions
                 .FirstOrDefaultAsync(o => o.Id == optId && o.AttributeId == attrId, ct);
             if (opt is null) return NotFound();
+
+            if (await _db.ProductAttributeOptions.AnyAsync(o => o.AttributeId == attrId && o.Value.ToLower() == req.Value.Trim().ToLower() && o.Id != optId, ct))
+                return Conflict(new { message = $"Option '{req.Value}' already exists for this attribute" });
 
             opt.Update(req.Value, req.SortOrder);
             await _db.SaveChangesAsync(ct);
