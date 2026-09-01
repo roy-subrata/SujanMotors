@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Common;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Enums;
@@ -173,7 +174,7 @@ public class StockManagementService
         await _stockMovementRepository.AddAsync(movement, cancellationToken);
 
         // Status-tagged stock lot for batch/lot + cost tracking (Damaged/Quarantine lots are excluded from sale)
-        var lotNumber = await _codeGenerateService.GenerateAsync("LOT", cancellationToken);
+        var lotNumber = await _codeGenerateService.GenerateAsync(LotNumberPrefix.Today(), cancellationToken);
         var stockLot = StockLot.Create(
             lotNumber: lotNumber,
             partId: grnLine.PartId,

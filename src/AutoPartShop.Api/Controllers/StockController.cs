@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Common;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.DTOs.StockDtos;
@@ -111,7 +112,7 @@ public class StockController : ControllerBase
     {
         // A part that doesn't exist and a part that's out of stock both produce zero levels, so
         // without this probe the POS reports "insufficient stock" for a mistyped or soft-deleted
-        // barcode — which sends the cashier hunting for inventory instead of re-scanning.
+        // barcode ï¿½ which sends the cashier hunting for inventory instead of re-scanning.
         var partExists = await _dbContext.Parts
             .AnyAsync(p => p.Id == partId && !p.Isdeleted, cancellationToken);
 
@@ -562,7 +563,7 @@ public class StockController : ControllerBase
                 : request.Reference;
             var currentUser = _currentUserService.GetCurrentUsername();
 
-            // Everything below mutates stock — level buckets, movements AND lots — so it must be
+            // Everything below mutates stock ï¿½ level buckets, movements AND lots ï¿½ so it must be
             // atomic. Without a transaction a mid-way failure could remove from the source but never
             // add to the destination (stock destroyed), or move levels without moving lots (making the
             // transferred stock unsellable at the destination, since sales deduct FIFO from lots).
@@ -627,7 +628,7 @@ public class StockController : ControllerBase
                         srcLotMovement.ModifiedBy = currentUser;
                         _dbContext.StockLotMovements.Add(srcLotMovement);
 
-                        var destLotNumber = await _codeGenerateService.GenerateAsync("LOT", cancellationToken);
+                        var destLotNumber = await _codeGenerateService.GenerateAsync(LotNumberPrefix.Today(), cancellationToken);
                         var destLot = srcLot.SupplierId.HasValue
                             ? StockLot.Create(
                                 lotNumber: destLotNumber,
@@ -842,7 +843,7 @@ public class StockController : ControllerBase
             // Apply level + movement + lot sync atomically. Lots must move with the level or lot
             // quantities drift from level quantities and lot-driven costing goes stale.
             // The execution strategy may retry the whole lambda on transient failures, so each
-            // attempt clears the change tracker and reloads fresh state — otherwise a retry
+            // attempt clears the change tracker and reloads fresh state ï¿½ otherwise a retry
             // would re-apply the delta to already-mutated tracked entities.
             StockAdjustmentApplier.AdjustmentOutcome outcome = null!;
             IActionResult? failure = null;
@@ -887,7 +888,7 @@ public class StockController : ControllerBase
 
             if (outcome.LotSyncSkipped)
                 _logger.LogWarning(
-                    "Stock adjustment {Reference} applied to level but lots only partially synced (part {PartId}, warehouse {WarehouseId}) — pre-existing lot/level drift or no lot to receive found stock",
+                    "Stock adjustment {Reference} applied to level but lots only partially synced (part {PartId}, warehouse {WarehouseId}) ï¿½ pre-existing lot/level drift or no lot to receive found stock",
                     adjustmentReference, request.PartId, request.WarehouseId);
 
             var newQuantity = stockLevel.QuantityOnHand;
@@ -926,7 +927,7 @@ public class StockController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Domain guard (e.g. reserved stock blocks the decrease) — the transaction rolled back.
+            // Domain guard (e.g. reserved stock blocks the decrease) ï¿½ the transaction rolled back.
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
