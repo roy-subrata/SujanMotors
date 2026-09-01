@@ -138,6 +138,17 @@ public class EmployeesController : ControllerBase
             if (request.JoinDate == default)
                 return BadRequest(new { message = "Join date is required" });
 
+            var existingByPhone = await _employeeRepository.GetByPhoneAsync(request.Phone.Trim(), null, cancellationToken);
+            if (existingByPhone != null)
+                return Conflict(new { message = $"An employee with phone {request.Phone.Trim()} already exists ({existingByPhone.EmployeeCode})." });
+
+            if (!string.IsNullOrWhiteSpace(request.NidNumber))
+            {
+                var existingByNid = await _employeeRepository.GetByNidNumberAsync(request.NidNumber.Trim(), null, cancellationToken);
+                if (existingByNid != null)
+                    return Conflict(new { message = $"An employee with NID {request.NidNumber.Trim()} already exists ({existingByNid.EmployeeCode})." });
+            }
+
             var employeeCode = await _codeGenerateService.GenerateAsync("EMP", cancellationToken);
 
             var employee = Employee.Create(
@@ -201,6 +212,20 @@ public class EmployeesController : ControllerBase
         {
             var employee = await _employeeRepository.GetByIdAsync(id, cancellationToken);
             if (employee is null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var existingByPhone = await _employeeRepository.GetByPhoneAsync(request.Phone.Trim(), id, cancellationToken);
+                if (existingByPhone != null)
+                    return Conflict(new { message = $"An employee with phone {request.Phone.Trim()} already exists ({existingByPhone.EmployeeCode})." });
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.NidNumber))
+            {
+                var existingByNid = await _employeeRepository.GetByNidNumberAsync(request.NidNumber.Trim(), id, cancellationToken);
+                if (existingByNid != null)
+                    return Conflict(new { message = $"An employee with NID {request.NidNumber.Trim()} already exists ({existingByNid.EmployeeCode})." });
+            }
 
             employee.UpdateInfo(
                 request.Name,

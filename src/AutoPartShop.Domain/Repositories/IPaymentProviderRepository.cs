@@ -5,6 +5,7 @@ using AutoPartShop.Domain.Repositories;
 public interface IPaymentProviderRepository : IBaseRepository<PaymentProvider>
 {
     Task<PaymentProvider?> GetByNameAsync(string providerName, CancellationToken cancellationToken = default);
+    Task<bool> NameExistsAsync(string providerName, Guid? excludeId = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<PaymentProvider>> GetByTypeAsync(string providerType, CancellationToken cancellationToken = default);
     Task<IEnumerable<PaymentProvider>> GetByStatusAsync(string status, CancellationToken cancellationToken = default);
     Task<PaymentProvider?> GetDefaultAsync(CancellationToken cancellationToken = default);

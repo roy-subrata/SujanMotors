@@ -246,6 +246,15 @@ public class CustomerPaymentController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.PaymentMethod))
                 return BadRequest(new { message = "Payment method is required" });
 
+            // A blank TransactionNumber auto-generates a collision-free one; only a
+            // user-supplied value needs a duplicate check.
+            if (!string.IsNullOrWhiteSpace(request.TransactionNumber))
+            {
+                var existingByTxn = await _repository.GetByTransactionNumberAsync(request.TransactionNumber.Trim(), cancellationToken);
+                if (existingByTxn != null)
+                    return Conflict(new { message = $"A payment with transaction number '{request.TransactionNumber.Trim()}' already exists" });
+            }
+
             var payment = CustomerPayment.Create(request.CustomerId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate, request.Currency);
             var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
             payment.SetFxBaseAmount(paymentFx.BaseAmount, paymentFx.RateToBase);

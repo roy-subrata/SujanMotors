@@ -101,4 +101,9 @@ public class SupplierRepository(AutoPartDbContext _db) : ISupplierRepository
         return await _db.Suppliers.FirstOrDefaultAsync(s => s.Code == normalizedCode && !s.Isdeleted, cancellationToken);
     }
 
+    public async Task<Supplier?> GetByPhoneAsync(string phone, Guid? excludeSupplierId = null, CancellationToken cancellationToken = default)
+    {
+        return await _db.Suppliers.FirstOrDefaultAsync(s => s.Phone == phone && !s.Isdeleted && (excludeSupplierId == null || s.Id != excludeSupplierId), cancellationToken);
+    }
+
 }

@@ -9,6 +9,7 @@ public interface ISupplierPaymentAccountRepository
     Task<IEnumerable<SupplierPaymentAccount>> GetBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default);
     Task<SupplierPaymentAccount?> GetDefaultBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default);
     Task<IEnumerable<SupplierPaymentAccount>> GetActiveBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default);
+    Task<bool> NameExistsForSupplierAsync(Guid supplierId, string accountName, Guid? excludeId = null, CancellationToken cancellationToken = default);
     Task AddAsync(SupplierPaymentAccount entity, CancellationToken cancellationToken = default);
     Task UpdateAsync(SupplierPaymentAccount entity, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);

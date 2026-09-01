@@ -1,3 +1,4 @@
+using AutoPartShop.Api.Common;
 using AutoPartShop.Application.Services;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Domain.Enums;
@@ -158,7 +159,7 @@ public class StockAdjustmentApplier
                 : part?.CostPrice ?? 0;
         string currency = variant?.Currency ?? part?.CostPriceCurrency ?? "BDT";
 
-        var lotNumber = await _codeGenerateService.GenerateAsync("ADJ", cancellationToken);
+        var lotNumber = await _codeGenerateService.GenerateAsync(LotNumberPrefix.Today("ADJ"), cancellationToken);
         var adjustmentLot = StockLot.CreateFromAdjustment(
             lotNumber: lotNumber,
             partId: stockLevel.PartId,

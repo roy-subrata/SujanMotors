@@ -85,4 +85,16 @@ public class WarehouseRepository(AutoPartDbContext dbContext) : IWarehouseReposi
             cancellationToken);
         return reusult;
     }
+
+    public async Task<bool> NameExistsAsync(string name, Guid? excludeWarehouseId = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return false;
+        var normalized = name.Trim().ToLower();
+
+        return await dbContext.Warehouses.AnyAsync(
+            w => w.Name.ToLower() == normalized
+                 && !w.Isdeleted
+                 && (excludeWarehouseId == null || w.Id != excludeWarehouseId),
+            cancellationToken);
+    }
 }

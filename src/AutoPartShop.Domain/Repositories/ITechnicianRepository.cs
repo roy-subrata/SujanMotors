@@ -14,6 +14,7 @@ public interface ITechnicianRepository
 
     // Specialized queries
     Task<Technician?> GetByCodeAsync(string technicianCode, CancellationToken cancellationToken = default);
+    Task<Technician?> GetByPhoneAsync(string phone, Guid? excludeId = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<Technician>> GetByStatusAsync(TechnicianStatus status, CancellationToken cancellationToken = default);
     Task<(IEnumerable<Technician> technicians, int totalCount)> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
     Task<(IEnumerable<Technician> technicians, int totalCount)> SearchPagedAsync(string searchTerm, int pageNumber, int pageSize, CancellationToken cancellationToken = default);

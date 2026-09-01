@@ -36,6 +36,16 @@ public class DiscountRepository : IDiscountRepository
                 !x.Isdeleted, cancellationToken);
     }
 
+    public async Task<bool> PromoCodeExistsAsync(string promoCode, Guid? excludeId = null, CancellationToken cancellationToken = default)
+    {
+        var normalizedCode = promoCode.Trim().ToUpper();
+        return await _dbContext.Discounts
+            .AnyAsync(x =>
+                x.PromoCode == normalizedCode &&
+                !x.Isdeleted &&
+                (excludeId == null || x.Id != excludeId), cancellationToken);
+    }
+
     public async Task<IEnumerable<Discount>> GetActiveDiscountsAsync(DateTime today, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Discounts

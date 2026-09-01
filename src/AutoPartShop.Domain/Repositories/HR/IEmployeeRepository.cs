@@ -15,5 +15,7 @@ public interface IEmployeeRepository
     // Specialized queries
     Task<Employee?> GetByCodeAsync(string employeeCode, CancellationToken cancellationToken = default);
     Task<Employee?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<Employee?> GetByPhoneAsync(string phone, Guid? excludeId = null, CancellationToken cancellationToken = default);
+    Task<Employee?> GetByNidNumberAsync(string nidNumber, Guid? excludeId = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<Employee>> GetByStatusAsync(EmployeeStatus status, CancellationToken cancellationToken = default);
 }

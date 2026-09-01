@@ -24,7 +24,7 @@
         <div class="form-row">
           <div class="form-group">
             <label><span class="required">*</span> {{ 'paymentProviderForm.providerName' | translate }}</label>
-            <input pInputText formControlName="providerName" placeholder="e.g., Stripe, PayPal, BOC" />
+            <input pInputText formControlName="providerName" placeholder="e.g., Stripe, PayPal, City Bank - Current A/C" />
             <small class="p-error" *ngIf="form.get('providerName')?.touched && form.get('providerName')?.invalid">
               {{ 'paymentProviderForm.providerNameRequired' | translate }}
             </small>

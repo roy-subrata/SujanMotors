@@ -34,6 +34,16 @@ public class CustomerVehicleRepository : ICustomerVehicleRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<bool> RegistrationExistsForCustomerAsync(Guid customerId, string registrationNo, Guid? excludeVehicleId = null, CancellationToken cancellationToken = default)
+    {
+        var normalized = registrationNo.Trim().ToUpper();
+        return await _dbContext.CustomerVehicles.AnyAsync(x =>
+            x.CustomerId == customerId &&
+            x.RegistrationNo == normalized &&
+            !x.Isdeleted &&
+            (excludeVehicleId == null || x.Id != excludeVehicleId), cancellationToken);
+    }
+
     public async Task<CustomerVehicle?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CustomerVehicles

@@ -85,6 +85,18 @@ public class EmployeeRepository : IEmployeeRepository
             .FirstOrDefaultAsync(x => x.UserId == userId && !x.Isdeleted, cancellationToken);
     }
 
+    public async Task<Employee?> GetByPhoneAsync(string phone, Guid? excludeId = null, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Employees
+            .FirstOrDefaultAsync(x => x.Phone == phone && !x.Isdeleted && (excludeId == null || x.Id != excludeId), cancellationToken);
+    }
+
+    public async Task<Employee?> GetByNidNumberAsync(string nidNumber, Guid? excludeId = null, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Employees
+            .FirstOrDefaultAsync(x => x.NidNumber == nidNumber && !x.Isdeleted && (excludeId == null || x.Id != excludeId), cancellationToken);
+    }
+
     public async Task<IEnumerable<Employee>> GetByStatusAsync(EmployeeStatus status, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Employees

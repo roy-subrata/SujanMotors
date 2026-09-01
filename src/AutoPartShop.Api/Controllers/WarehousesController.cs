@@ -84,6 +84,9 @@ public class WarehousesController(
                 string.IsNullOrWhiteSpace(request.Location))
                 return BadRequest(new { message = "Name, Code, and Location are required" });
 
+            if (await _warehouseRepository.NameExistsAsync(request.Name, null, cancellationToken))
+                return Conflict(new { message = $"A warehouse named '{request.Name.Trim()}' already exists" });
+
             var code = request.Code.Trim().ToUpper();
             if (await _warehouseRepository.CodeExistsAsync(code, null, cancellationToken))
             {
@@ -137,6 +140,9 @@ public class WarehousesController(
         {
             var warehouse = await _warehouseRepository.GetByIdAsync(id, cancellationToken);
             if (warehouse is null) return NotFound(new { message = "Warehouse not found" });
+
+            if (await _warehouseRepository.NameExistsAsync(request.Name, id, cancellationToken))
+                return Conflict(new { message = $"A warehouse named '{request.Name.Trim()}' already exists" });
 
             warehouse.Update(request.Name, request.Location, request.City, request.State,
                 request.Country, request.PostalCode, request.Manager, request.ManagerEmail,

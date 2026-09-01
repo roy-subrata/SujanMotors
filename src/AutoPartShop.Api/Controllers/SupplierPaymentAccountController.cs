@@ -139,6 +139,9 @@ public class SupplierPaymentAccountController : ControllerBase
             if (supplier is null)
                 return BadRequest(new { message = "Supplier not found" });
 
+            if (await _repository.NameExistsForSupplierAsync(request.SupplierId, request.AccountName, null, cancellationToken))
+                return Conflict(new { message = $"A payment account named '{request.AccountName.Trim()}' already exists for this supplier" });
+
             var account = SupplierPaymentAccount.Create(
                 request.SupplierId,
                 request.AccountType,
@@ -213,6 +216,9 @@ public class SupplierPaymentAccountController : ControllerBase
         {
             var account = await _repository.GetByIdAsync(id, cancellationToken);
             if (account is null) return NotFound(new { message = "Payment account not found" });
+
+            if (await _repository.NameExistsForSupplierAsync(account.SupplierId, request.AccountName, id, cancellationToken))
+                return Conflict(new { message = $"A payment account named '{request.AccountName.Trim()}' already exists for this supplier" });
 
             account.Update(request.AccountName, request.IsActive);
 
