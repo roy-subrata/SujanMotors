@@ -50,6 +50,16 @@ public class SupplierPaymentAccountRepository(AutoPartDbContext _db) : ISupplier
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<bool> NameExistsForSupplierAsync(Guid supplierId, string accountName, Guid? excludeId = null, CancellationToken cancellationToken = default)
+    {
+        var normalizedName = accountName.ToLower();
+        return await _db.SupplierPaymentAccounts.AnyAsync(x =>
+            x.SupplierId == supplierId &&
+            x.AccountName.ToLower() == normalizedName &&
+            !x.Isdeleted &&
+            (excludeId == null || x.Id != excludeId), cancellationToken);
+    }
+
     public async Task AddAsync(SupplierPaymentAccount entity, CancellationToken cancellationToken = default)
     {
         _db.SupplierPaymentAccounts.Add(entity);
