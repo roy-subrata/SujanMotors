@@ -107,6 +107,10 @@ public class DiscountsController : ControllerBase
     {
         try
         {
+            if (!string.IsNullOrWhiteSpace(request.PromoCode) &&
+                await _discountRepository.PromoCodeExistsAsync(request.PromoCode, null, cancellationToken))
+                return Conflict(new { message = $"Promo code '{request.PromoCode.Trim().ToUpper()}' is already in use" });
+
             var discount = Discount.Create(
                 request.Name,
                 request.Type,
@@ -149,6 +153,10 @@ public class DiscountsController : ControllerBase
             var discount = await _discountRepository.GetByIdAsync(id, cancellationToken);
             if (discount is null)
                 return NotFound(new { message = "Discount not found" });
+
+            if (!string.IsNullOrWhiteSpace(request.PromoCode) &&
+                await _discountRepository.PromoCodeExistsAsync(request.PromoCode, id, cancellationToken))
+                return Conflict(new { message = $"Promo code '{request.PromoCode.Trim().ToUpper()}' is already in use" });
 
             discount.Update(
                 request.Name,

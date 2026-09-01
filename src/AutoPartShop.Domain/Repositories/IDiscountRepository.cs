@@ -5,6 +5,7 @@ namespace AutoPartShop.Domain.Repositories;
 public interface IDiscountRepository : IBaseRepository<Discount>
 {
     Task<Discount?> GetByPromoCodeAsync(string promoCode, CancellationToken cancellationToken = default);
+    Task<bool> PromoCodeExistsAsync(string promoCode, Guid? excludeId = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<Discount>> GetActiveDiscountsAsync(DateTime today, CancellationToken cancellationToken = default);
 
     /// <summary>Returns active variant-level discounts for a specific variant.</summary>
