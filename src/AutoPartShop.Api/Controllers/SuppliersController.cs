@@ -151,6 +151,13 @@ public class SuppliersController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.Name))
                 return BadRequest(new { message = "Name is required" });
 
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var existingByPhone = await _supplierRepository.GetByPhoneAsync(request.Phone.Trim(), null, cancellationToken);
+                if (existingByPhone != null)
+                    return Conflict(new { message = $"A supplier with phone {request.Phone.Trim()} already exists ({existingByPhone.Code})." });
+            }
+
             // CreateSupplierRequest.Code was accepted and then thrown away, so a caller migrating
             // records with their own codes silently got SUP001, SUP002... Honour an explicit code
             // when it is free, and fall back to the generated sequence when none is given.
@@ -197,6 +204,13 @@ public class SuppliersController : ControllerBase
         {
             var supplier = await _supplierRepository.GetByIdAsync(id, cancellationToken);
             if (supplier is null) return NotFound(new { message = "Supplier not found" });
+
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                var existingByPhone = await _supplierRepository.GetByPhoneAsync(request.Phone.Trim(), id, cancellationToken);
+                if (existingByPhone != null)
+                    return Conflict(new { message = $"A supplier with phone {request.Phone.Trim()} already exists ({existingByPhone.Code})." });
+            }
 
             supplier.Update(request.Name, request.ContactPerson, request.Email, request.Phone,
                 request.Address, request.Country,

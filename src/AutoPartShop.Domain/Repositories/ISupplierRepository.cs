@@ -24,5 +24,10 @@ public interface ISupplierRepository : IBaseRepository<Supplier>
     /// Get supplier by code
     /// </summary>
     Task<Supplier?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get supplier by phone (excluding a given id, for edit-time uniqueness checks)
+    /// </summary>
+    Task<Supplier?> GetByPhoneAsync(string phone, Guid? excludeSupplierId = null, CancellationToken cancellationToken = default);
 }
 
