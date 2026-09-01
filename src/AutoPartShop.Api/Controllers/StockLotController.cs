@@ -263,6 +263,9 @@ public class StockLotController(
     {
         try
         {
+            if (await _repository.LotNumberExistsAsync(request.LotNumber, null, cancellationToken))
+                return Conflict(new { message = $"A stock lot with number '{request.LotNumber.Trim().ToUpper()}' already exists" });
+
             var lot = StockLot.Create(
                 request.LotNumber,
                 request.PartId,

@@ -99,6 +99,18 @@ public class StockLotRepository : IStockLotRepository
             .FirstOrDefaultAsync(x => x.LotNumber == lotNumber && !x.Isdeleted, cancellationToken);
     }
 
+    public async Task<bool> LotNumberExistsAsync(string lotNumber, Guid? excludeLotId = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(lotNumber)) return false;
+        var normalized = lotNumber.Trim().ToUpper();
+
+        return await _dbContext.StockLots.AnyAsync(
+            x => x.LotNumber == normalized
+                 && !x.Isdeleted
+                 && (excludeLotId == null || x.Id != excludeLotId),
+            cancellationToken);
+    }
+
     public async Task<IEnumerable<StockLot>> GetBySupplierAsync(Guid supplierId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.StockLots
