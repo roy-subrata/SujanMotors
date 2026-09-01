@@ -273,6 +273,15 @@ public class SupplierPaymentController : ControllerBase
                     return BadRequest(new { message = $"Payment amount ({request.Amount:N2}) exceeds the accepted value of goods receipt {grn.GRNNumber} ({acceptedValue:N2}). Rejected/damaged items are excluded from the supplier invoice." });
             }
 
+            // A blank TransactionNumber auto-generates a collision-free one; only a
+            // user-supplied value needs a duplicate check.
+            if (!string.IsNullOrWhiteSpace(request.TransactionNumber))
+            {
+                var existingByTxn = await _repository.GetByTransactionNumberAsync(request.TransactionNumber.Trim(), cancellationToken);
+                if (existingByTxn != null)
+                    return Conflict(new { message = $"A payment with transaction number '{request.TransactionNumber.Trim()}' already exists" });
+            }
+
             var payment = SupplierPayment.Create(request.SupplierId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate, request.Currency);
 
             var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
