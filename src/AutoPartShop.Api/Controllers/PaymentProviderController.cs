@@ -95,6 +95,9 @@ public class PaymentProviderController : ControllerBase
     {
         try
         {
+            if (await _repository.NameExistsAsync(request.ProviderName, null, cancellationToken))
+                return Conflict(new { message = $"A payment provider named '{request.ProviderName.Trim()}' already exists" });
+
             var provider = PaymentProvider.Create(request.ProviderName, request.ProviderType);
 
             if (!string.IsNullOrWhiteSpace(request.BankName))
@@ -137,6 +140,9 @@ public class PaymentProviderController : ControllerBase
         {
             var provider = await _repository.GetByIdAsync(id, cancellationToken);
             if (provider is null) return NotFound();
+
+            if (await _repository.NameExistsAsync(request.ProviderName, id, cancellationToken))
+                return Conflict(new { message = $"A payment provider named '{request.ProviderName.Trim()}' already exists" });
 
             provider.SetProviderName(request.ProviderName);
             provider.SetProviderType(request.ProviderType);

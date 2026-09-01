@@ -44,6 +44,12 @@ public class PaymentProviderRepository(AutoPartDbContext _db) : IPaymentProvider
     public async Task<PaymentProvider?> GetByNameAsync(string providerName, CancellationToken cancellationToken = default)
         => await _db.PaymentProviders.FirstOrDefaultAsync(x => x.ProviderName == providerName && !x.Isdeleted, cancellationToken);
 
+    public async Task<bool> NameExistsAsync(string providerName, Guid? excludeId = null, CancellationToken cancellationToken = default)
+    {
+        var normalizedName = providerName.ToLower();
+        return await _db.PaymentProviders.AnyAsync(x => x.ProviderName.ToLower() == normalizedName && !x.Isdeleted && (excludeId == null || x.Id != excludeId), cancellationToken);
+    }
+
     public async Task<IEnumerable<PaymentProvider>> GetByTypeAsync(string providerType, CancellationToken cancellationToken = default)
         => await _db.PaymentProviders.Where(x => x.ProviderType == providerType.ToUpper() && !x.Isdeleted).OrderBy(x => x.ProviderName).ToListAsync(cancellationToken);
 
