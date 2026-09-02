@@ -523,9 +523,14 @@ namespace AutoPartShop.Api.Controllers
                                         invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
                                     }
 
-                                    if (totalRefunded > 0)
+                                    // ProcessRefund only lowers PaidAmount — it can only ever be handed the
+                                    // CASH heading back to the customer (cashPart <= PaidAmount). The balance
+                                    // part is a write-off of what they still owed and is applied on the
+                                    // customer's balance below; folding it in here made a partially-paid
+                                    // order's refund exceed PaidAmount and abort the whole return with a 500.
+                                    if (cashPart > 0)
                                     {
-                                        salesOrder!.ProcessRefund(totalRefunded);
+                                        salesOrder!.ProcessRefund(cashPart);
                                         salesOrder.ModifiedBy = _currentUserService.GetCurrentUsername();
                                         await _salesOrderRepository.UpdateAsync(salesOrder, CancellationToken.None);
                                     }

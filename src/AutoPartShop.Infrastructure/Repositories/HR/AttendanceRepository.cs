@@ -1,4 +1,5 @@
 using AutoPartShop.Domain.Entities.HR;
+using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.EntityFrameworkCore;
 
@@ -65,6 +66,36 @@ public class AttendanceRepository : IAttendanceRepository
                 match.ModifiedBy = modifiedBy;
             }
         }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ApplyLeaveMarksAsync(Guid employeeId, DateTime fromDate, DateTime toDate, string leaveType,
+        string modifiedBy, CancellationToken cancellationToken = default)
+    {
+        var start = fromDate.Date;
+        var end = toDate.Date;
+
+        var existingDays = await _dbContext.AttendanceRecords
+            .Where(x => x.EmployeeId == employeeId && x.Date >= start && x.Date <= end && !x.Isdeleted)
+            .Select(x => x.Date)
+            .ToListAsync(cancellationToken);
+        var existing = existingDays.ToHashSet();
+
+        var toAdd = new List<AttendanceRecord>();
+        for (var day = start; day <= end; day = day.AddDays(1))
+        {
+            if (existing.Contains(day)) continue;
+
+            var record = AttendanceRecord.Create(employeeId, day, AttendanceStatus.LEAVE,
+                notes: $"{leaveType} leave");
+            record.CreatedBy = modifiedBy;
+            record.ModifiedBy = modifiedBy;
+            toAdd.Add(record);
+        }
+
+        if (toAdd.Count > 0)
+            await _dbContext.AttendanceRecords.AddRangeAsync(toAdd, cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
     }

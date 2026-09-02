@@ -192,11 +192,22 @@ public class CreditNoteController : ControllerBase
                     creditNote.ApplyToPurchaseOrder(request.PurchaseOrderId, request.AmountToApply);
                     await _creditNoteRepository.UpdateAsync(creditNote, cancellationToken);
 
-                    // No SupplierPayment row is written here. The credit was already recognised
-                    // when the note was issued: PurchaseReturnController.IssueCreditNote creates a
-                    // COMPLETED SupplierPayment marked as an advance for the full credit amount,
-                    // which is what the supplier ledger and GetAvailableAdvanceCreditAsync read.
-                    // Booking a second payment on apply would credit the same money twice.
+                    // The credit was recognised as an ADVANCE SupplierPayment when the note was issued
+                    // (PurchaseReturnController.IssueCreditNote writes a COMPLETED payment with
+                    // TransactionNumber == credit note number, PaymentMethod "CREDIT_NOTE"). That advance's
+                    // RemainingAmount powers GetAvailableAdvanceCreditBySupplierAsync — if we don't reduce
+                    // it here the same credit stays "available" in the supplier ledger after being applied
+                    // to a PO, i.e. it can be spent twice.
+                    var linkedPayment = await _supplierPaymentRepository.GetByTransactionNumberAsync(
+                        creditNote.CreditNoteNumber, cancellationToken);
+                    if (linkedPayment is not null)
+                    {
+                        if (linkedPayment.SupplierId != creditNote.SupplierId)
+                            throw new InvalidOperationException("Linked supplier payment does not match credit note supplier");
+
+                        linkedPayment.ReduceRemainingAmount(request.AmountToApply);
+                        await _supplierPaymentRepository.UpdateAsync(linkedPayment, cancellationToken);
+                    }
 
                     // Update PO outstanding amount
                     purchaseOrder.ApplyCredit(request.AmountToApply);
@@ -251,6 +262,17 @@ public class CreditNoteController : ControllerBase
 
             creditNote.Cancel(reason);
             await _creditNoteRepository.UpdateAsync(creditNote, cancellationToken);
+
+            // Retract the paired advance payment so a cancelled note's credit no longer shows as
+            // "available" in GetAvailableAdvanceCreditBySupplierAsync (which sums RemainingAmount).
+            var linkedPayment = await _supplierPaymentRepository.GetByTransactionNumberAsync(
+                creditNote.CreditNoteNumber, cancellationToken);
+            if (linkedPayment is not null && linkedPayment.PaymentType == PaymentType.ADVANCE
+                && linkedPayment.RemainingAmount > 0)
+            {
+                linkedPayment.ReduceRemainingAmount(linkedPayment.RemainingAmount);
+                await _supplierPaymentRepository.UpdateAsync(linkedPayment, cancellationToken);
+            }
 
             return Ok(MapToResponse(creditNote));
         }

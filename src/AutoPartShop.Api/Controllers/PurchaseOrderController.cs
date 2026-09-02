@@ -287,6 +287,16 @@ public class PurchaseOrderController : ControllerBase
             if (request.SupplierId == Guid.Empty || request.DeliveryDate == default)
                 return BadRequest(new { message = "SupplierId and DeliveryDate are required" });
 
+            // A nonexistent warehouse would leave the PO permanently unable to resolve a stock level
+            // for manual purchase returns, so fail fast instead of persisting a dangling reference.
+            if (request.WarehouseId.HasValue)
+            {
+                var warehouseExists = await _dbContext.Warehouses
+                    .AnyAsync(w => w.Id == request.WarehouseId.Value && !w.Isdeleted, cancellationToken);
+                if (!warehouseExists)
+                    return BadRequest(new { message = "Warehouse not found" });
+            }
+
             // Every line is resolved and validated BEFORE a PO number is allocated. This method has
             // no transaction, so allocating first meant a rejected create burned the number for
             // good — three rejected attempts left the next real order at PO005.
@@ -313,14 +323,14 @@ public class PurchaseOrderController : ControllerBase
                         quantityInBaseUnit = lineRequest.Quantity;
                     }
                     // If unitId is provided and different from part base unit, convert
-                    else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
+                    else if (unitId.HasValue && (part.BaseUnitId ?? part.UnitId).HasValue && unitId.Value != (part.BaseUnitId ?? part.UnitId).Value)
                     {
                         try
                         {
                             var qtyInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
                                 lineRequest.Quantity,
                                 unitId.Value,
-                                part.UnitId.Value);
+                                (part.BaseUnitId ?? part.UnitId)!.Value);
                             quantityInBaseUnit = (int)Math.Round(qtyInBaseUnit);
                         }
                         catch (InvalidOperationException ex)
@@ -348,7 +358,7 @@ public class PurchaseOrderController : ControllerBase
             var order = PurchaseOrder.Create(
                 purchaseOrderNumber,
                 request.SupplierId,
-                null,  // warehouseId - optional
+                request.WarehouseId,  // expected delivery warehouse
                 request.DeliveryDate,
                 request.Notes,
                 request.Currency
@@ -432,14 +442,14 @@ public class PurchaseOrderController : ControllerBase
                 {
                     quantityInBaseUnit = lineRequest.Quantity;
                 }
-                else if (unitId.HasValue && part.UnitId.HasValue && unitId.Value != part.UnitId.Value)
+                else if (unitId.HasValue && (part.BaseUnitId ?? part.UnitId).HasValue && unitId.Value != (part.BaseUnitId ?? part.UnitId).Value)
                 {
                     try
                     {
                         var qtyInBaseUnit = await _unitConversionService.ConvertQuantityAsync(
                             lineRequest.Quantity,
                             unitId.Value,
-                            part.UnitId.Value);
+                            (part.BaseUnitId ?? part.UnitId)!.Value);
                         quantityInBaseUnit = (int)Math.Round(qtyInBaseUnit);
                     }
                     catch (InvalidOperationException ex)
@@ -472,6 +482,7 @@ public class PurchaseOrderController : ControllerBase
             order.SetDiscount(request.DiscountPercentage, request.DiscountAmount, request.DiscountType);
             order.UpdateNotes(request.Notes);
             order.UpdateExpectedDeliveryDate(request.DeliveryDate);
+            order.UpdateWarehouse(request.WarehouseId);
 
             // Domain handles line item sync (business logic)
             order.SyncLineItems(lineItemDataList);
@@ -703,18 +714,6 @@ public class PurchaseOrderController : ControllerBase
                     if (poLine is null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
 
-                    // Calculate remaining quantity using the single authoritative formula
-                    // (accepted qty net of rejections, minus in-flight not-yet-accepted GRNs).
-                    var remainingQty = purchaseOrder.GetOutstandingQuantity(poLine.Id);
-
-                    if (lineRequest.ReceivedQuantity > remainingQty)
-                    {
-                        return BadRequest(new
-                        {
-                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Ordered: {poLine.Quantity}"
-                        });
-                    }
-
                     // Damaged units -> Damaged stock; Wrong units -> Quarantine stock. Both can also
                     // raise a Purchase Return on accept. The Good (accepted) portion counts toward the PO line.
                     if (lineRequest.DamagedQuantity < 0 || lineRequest.WrongQuantity < 0 ||
@@ -759,6 +758,18 @@ public class PurchaseOrderController : ControllerBase
                         damagedQuantityInBaseUnit = (int)Math.Round(lineRequest.DamagedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
                         wrongQuantityInBaseUnit = (int)Math.Round(lineRequest.WrongQuantity * conversionFactor, MidpointRounding.AwayFromZero);
                         unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
+                    }
+
+                    // Authoritative over-receipt guard in BASE units (stock/quantities are tracked in
+                    // base units). Comparing the received display quantity against the display-unit
+                    // outstanding let a box-vs-piece mismatch slip a receipt past the ordered stock.
+                    var remainingQtyInBase = purchaseOrder.GetOutstandingQuantityInBaseUnit(poLine.Id);
+                    if (receivedQuantityInBaseUnit > remainingQtyInBase)
+                    {
+                        return BadRequest(new
+                        {
+                            message = $"Received quantity ({receivedQuantityInBaseUnit} base units) exceeds remaining ordered quantity ({remainingQtyInBase} base units) for part {lineRequest.PartId}. Ordered: {poLine.QuantityInBaseUnit} base units"
+                        });
                     }
 
                     // Create GRN line item with cost information and base unit quantities
@@ -939,18 +950,6 @@ public class PurchaseOrderController : ControllerBase
                     if (poLine is null)
                         return BadRequest(new { message = $"Part {lineRequest.PartId} not found in purchase order" });
 
-                    // Calculate remaining quantity using the single authoritative formula,
-                    // excluding the GRN currently being updated so its own lines aren't double-counted.
-                    var remainingQty = purchaseOrder.GetOutstandingQuantity(poLine.Id, excludeGoodsReceiptId: id);
-
-                    if (lineRequest.ReceivedQuantity > remainingQty)
-                    {
-                        return BadRequest(new
-                        {
-                            message = $"Received quantity ({lineRequest.ReceivedQuantity}) exceeds remaining ordered quantity ({remainingQty}) for part {lineRequest.PartId}. Ordered: {poLine.Quantity}"
-                        });
-                    }
-
                     // Damaged units -> Damaged stock; Wrong units -> Quarantine stock. Both can also
                     // raise a Purchase Return on accept. The Good (accepted) portion counts toward the PO line.
                     if (lineRequest.DamagedQuantity < 0 || lineRequest.WrongQuantity < 0 ||
@@ -995,6 +994,17 @@ public class PurchaseOrderController : ControllerBase
                         damagedQuantityInBaseUnit = (int)Math.Round(lineRequest.DamagedQuantity * conversionFactor, MidpointRounding.AwayFromZero);
                         wrongQuantityInBaseUnit = (int)Math.Round(lineRequest.WrongQuantity * conversionFactor, MidpointRounding.AwayFromZero);
                         unitCostInBaseUnit = lineRequest.UnitCost / conversionFactor;
+                    }
+
+                    // Authoritative over-receipt guard in BASE units, excluding this GRN so its own
+                    // (about-to-be-replaced) lines are not double-counted against the new quantities.
+                    var remainingQtyInBase = purchaseOrder.GetOutstandingQuantityInBaseUnit(poLine.Id, excludeGoodsReceiptId: id);
+                    if (receivedQuantityInBaseUnit > remainingQtyInBase)
+                    {
+                        return BadRequest(new
+                        {
+                            message = $"Received quantity ({receivedQuantityInBaseUnit} base units) exceeds remaining ordered quantity ({remainingQtyInBase} base units) for part {lineRequest.PartId}. Ordered: {poLine.QuantityInBaseUnit} base units"
+                        });
                     }
 
                     // Create GRN line item with cost information and base unit quantities

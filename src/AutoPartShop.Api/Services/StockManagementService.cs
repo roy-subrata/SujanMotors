@@ -331,9 +331,15 @@ public class StockManagementService
                     .Where(l => l.PurchaseOrderLineId == poLine.Id)
                     .Sum(l => l.AcceptedQuantity);
 
+                var totalAcceptedForLineInBase = purchaseOrder.GoodsReceipts
+                    .Where(gr => gr.Status == GoodsReceiptStatus.ACCEPTED || gr.Id == acceptingGrnId)
+                    .SelectMany(gr => gr.LineItems)
+                    .Where(l => l.PurchaseOrderLineId == poLine.Id)
+                    .Sum(l => l.AcceptedQuantityInBaseUnit);
+
                 if (totalAcceptedForLine > 0)
                 {
-                    poLine.UpdateReceivedQuantity(totalAcceptedForLine);
+                    poLine.UpdateReceivedQuantity(totalAcceptedForLine, totalAcceptedForLineInBase);
                 }
             }
 

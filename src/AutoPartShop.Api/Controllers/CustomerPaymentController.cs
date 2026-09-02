@@ -255,6 +255,20 @@ public class CustomerPaymentController : ControllerBase
                     return Conflict(new { message = $"A payment with transaction number '{request.TransactionNumber.Trim()}' already exists" });
             }
 
+            // A payment linked to an invoice must belong to the same customer as that invoice's
+            // order — otherwise one customer can pay down (or complete) another's invoice and the
+            // payment status / order PaidAmount updates land on the wrong account.
+            if (request.InvoiceId.HasValue)
+            {
+                var linkedInvoice = await _dbContext.Invoices
+                    .Include(i => i.SalesOrder)
+                    .FirstOrDefaultAsync(i => i.Id == request.InvoiceId.Value && !i.Isdeleted, cancellationToken);
+                if (linkedInvoice is null)
+                    return BadRequest(new { message = "Invoice not found" });
+                if (linkedInvoice.SalesOrder is null || linkedInvoice.SalesOrder.CustomerId != request.CustomerId)
+                    return BadRequest(new { message = "Invoice does not belong to this customer" });
+            }
+
             var payment = CustomerPayment.Create(request.CustomerId, request.PaymentProviderId, request.Amount, request.PaymentMethod, request.TransactionNumber, request.ReferenceNumber, request.PaymentDate, request.Currency);
             var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(payment.Amount, payment.Currency, payment.PaymentDate, cancellationToken);
             payment.SetFxBaseAmount(paymentFx.BaseAmount, paymentFx.RateToBase);
@@ -414,6 +428,12 @@ public class CustomerPaymentController : ControllerBase
 
                         if (invoice != null)
                         {
+                            // The payment must belong to the invoice's customer — completing it here
+                            // otherwise credits the wrong customer's balance and records the payment
+                            // against a foreign order's PaidAmount.
+                            if (invoice.SalesOrder is null || invoice.SalesOrder.CustomerId != payment.CustomerId)
+                                throw new InvalidOperationException("Payment customer does not match invoice customer");
+
                             invoice.UpdatePaymentStatus();
                             invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
                             await _invoiceRepository.UpdateAsync(invoice, cancellationToken);

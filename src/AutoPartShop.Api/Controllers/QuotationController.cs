@@ -424,9 +424,13 @@ public class QuotationController(
     {
         if (part.UnitId is null) return (quantity, unitId, unitPrice);
         if (!unitId.HasValue) return (quantity, part.UnitId, unitPrice);
-        if (unitId.Value == part.UnitId.Value) return (quantity, unitId, unitPrice);
 
-        var conversionFactor = await unitConversionService.GetConversionFactorAsync(unitId.Value, part.UnitId.Value);
+        // Stock is tracked in the part's BASE unit — convert display quantity to BaseUnitId so
+        // quotation conversion agrees with GRN posting, which also anchors on BaseUnitId.
+        var stockBaseUnit = part.BaseUnitId ?? part.UnitId;
+        if (unitId.Value == stockBaseUnit.Value) return (quantity, unitId, unitPrice);
+
+        var conversionFactor = await unitConversionService.GetConversionFactorAsync(unitId.Value, stockBaseUnit.Value);
         if (conversionFactor <= 0)
             throw new InvalidOperationException("Invalid unit conversion factor.");
 

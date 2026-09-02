@@ -113,6 +113,9 @@ public class PurchaseReturn : AuditableEntity
 
     public void IssueCreditNote(decimal creditAmount)
     {
+        if (IsSettled)
+            throw new InvalidOperationException($"This return has already been settled via {SettlementMethod} — issuing a credit note would settle the same return twice");
+
         if (Status is not (PurchaseReturnStatus.RETURNED or PurchaseReturnStatus.RECEIVED))
             throw new InvalidOperationException($"Credit notes can only be issued for RETURNED or RECEIVED purchase returns. Current status: {Status}");
 
@@ -161,6 +164,9 @@ public class PurchaseReturn : AuditableEntity
     /// <param name="notes">Optional settlement notes</param>
     public void SettleReturn(decimal amount, string method, string notes = "")
     {
+        if (IsSettled)
+            throw new InvalidOperationException($"This return has already been settled via {SettlementMethod} on {SettledDate:u}");
+
         if (Status != PurchaseReturnStatus.RETURNED && Status != PurchaseReturnStatus.RECEIVED && Status != PurchaseReturnStatus.CREDITED)
             throw new InvalidOperationException("Only returned, received, or credited returns can be settled");
 

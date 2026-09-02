@@ -215,6 +215,7 @@ builder.Services.AddScoped<ITechnicianLedgerService, TechnicianLedgerService>();
 builder.Services.AddScoped<ICustomerAccountSummaryService, CustomerAccountSummaryService>();
 builder.Services.AddScoped<IUnitConversionService, UnitConversionService>();
 builder.Services.AddScoped<IFinancialSummaryService, FinancialSummaryService>();
+builder.Services.AddScoped<ILeaveRequestApprovalService, LeaveRequestApprovalService>();
 builder.Services.AddScoped<IReportExportService, ReportExportService>();
 builder.Services.AddScoped<IDailyExpenseService, DailyExpenseService>();
 builder.Services.AddScoped<IPricingValidationService, PricingValidationService>();

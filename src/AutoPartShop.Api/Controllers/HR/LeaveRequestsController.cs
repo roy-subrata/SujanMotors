@@ -1,4 +1,5 @@
 using AutoPartShop.Api.Services;
+using AutoPartShop.Api.Services.HR;
 using AutoPartShop.Application.Common;
 using AutoPartShop.Application.HR;
 using AutoPartShop.Application.HR.Dtos;
@@ -22,7 +23,7 @@ public class LeaveRequestsController : ControllerBase
     private readonly ILeaveRequestRepository _leaveRequestRepository;
     private readonly ILeaveRequestReadRepository _leaveRequestReadRepository;
     private readonly IEmployeeRepository _employeeRepository;
-    private readonly IAttendanceRepository _attendanceRepository;
+    private readonly ILeaveRequestApprovalService _leaveRequestApprovalService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<LeaveRequestsController> _logger;
 
@@ -30,14 +31,14 @@ public class LeaveRequestsController : ControllerBase
         ILeaveRequestRepository leaveRequestRepository,
         ILeaveRequestReadRepository leaveRequestReadRepository,
         IEmployeeRepository employeeRepository,
-        IAttendanceRepository attendanceRepository,
+        ILeaveRequestApprovalService leaveRequestApprovalService,
         ICurrentUserService currentUserService,
         ILogger<LeaveRequestsController> logger)
     {
         _leaveRequestRepository = leaveRequestRepository;
         _leaveRequestReadRepository = leaveRequestReadRepository;
         _employeeRepository = employeeRepository;
-        _attendanceRepository = attendanceRepository;
+        _leaveRequestApprovalService = leaveRequestApprovalService;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -193,45 +194,14 @@ public class LeaveRequestsController : ControllerBase
     {
         try
         {
-            var leaveRequest = await _leaveRequestRepository.GetByIdAsync(id, cancellationToken);
-            if (leaveRequest is null) return NotFound();
-
-            // Enforce per-employee entitlements at approval time (creation stays permissive).
-            var employee = await _employeeRepository.GetByIdAsync(leaveRequest.EmployeeId, cancellationToken);
-            if (employee is null) return BadRequest(new { message = "Employee not found" });
-
-            var entitlement = employee.GetLeaveEntitlement(leaveRequest.LeaveType);
-            if (entitlement.HasValue)
-            {
-                var employeeRequests = await _leaveRequestRepository.GetByEmployeeAsync(leaveRequest.EmployeeId, cancellationToken);
-                var usedDays = employeeRequests
-                    .Where(r => r.Status == LeaveRequestStatus.APPROVED && r.LeaveType == leaveRequest.LeaveType)
-                    .Sum(r => r.TotalDays);
-                var remaining = entitlement.Value - usedDays;
-                if (leaveRequest.TotalDays > remaining)
-                    return BadRequest(new
-                    {
-                        message = $"Insufficient {leaveRequest.LeaveType} leave balance. Entitlement: {entitlement} day(s), already used: {usedDays}, remaining: {Math.Max(0, remaining)}, requested: {leaveRequest.TotalDays}."
-                    });
-            }
+            // Fast-path existence check for a friendly 404; the authoritative entitlement check and
+            // the atomic approve+attendance-marks transaction live in the approval service.
+            if (await _leaveRequestRepository.GetByIdAsync(id, cancellationToken) is null) return NotFound();
 
             var currentUser = _currentUserService.GetCurrentUsername();
-            leaveRequest.Approve(currentUser, request?.Notes ?? string.Empty);
-            leaveRequest.ModifiedBy = currentUser;
+            var result = await _leaveRequestApprovalService.ApproveAsync(id, request?.Notes ?? string.Empty, currentUser, cancellationToken);
 
-            await _leaveRequestRepository.UpdateAsync(leaveRequest, cancellationToken);
-
-            // Reflect the approved leave in the attendance sheet
-            var leaveMarks = new List<AttendanceRecord>();
-            for (var day = leaveRequest.FromDate; day <= leaveRequest.ToDate; day = day.AddDays(1))
-            {
-                leaveMarks.Add(AttendanceRecord.Create(
-                    leaveRequest.EmployeeId, day, AttendanceStatus.LEAVE,
-                    notes: $"{leaveRequest.LeaveType} leave"));
-            }
-            await _attendanceRepository.UpsertRangeAsync(leaveMarks, currentUser, cancellationToken);
-
-            return Ok(new { leaveRequest.Id, leaveRequest.Status });
+            return Ok(new { result.Id, result.Status });
         }
         catch (InvalidOperationException ex)
         {
@@ -249,16 +219,14 @@ public class LeaveRequestsController : ControllerBase
     {
         try
         {
-            var leaveRequest = await _leaveRequestRepository.GetByIdAsync(id, cancellationToken);
-            if (leaveRequest is null) return NotFound();
+            // Fast-path existence check for a friendly 404; the decision transaction lives in the
+            // approval service.
+            if (await _leaveRequestRepository.GetByIdAsync(id, cancellationToken) is null) return NotFound();
 
             var currentUser = _currentUserService.GetCurrentUsername();
-            leaveRequest.Reject(currentUser, request?.Notes ?? string.Empty);
-            leaveRequest.ModifiedBy = currentUser;
+            var result = await _leaveRequestApprovalService.RejectAsync(id, request?.Notes ?? string.Empty, currentUser, cancellationToken);
 
-            await _leaveRequestRepository.UpdateAsync(leaveRequest, cancellationToken);
-
-            return Ok(new { leaveRequest.Id, leaveRequest.Status });
+            return Ok(new { result.Id, result.Status });
         }
         catch (InvalidOperationException ex)
         {

@@ -72,10 +72,14 @@ public class PayrollRepository : IPayrollRepository
     {
         if (run == null) throw new ArgumentNullException(nameof(run));
 
-        _dbContext.Payslips.AddRange(newPayslips);
-
+        // A run created by the caller but not yet committed is INSERTed together with the payslips
+        // in a single SaveChanges so generation is atomic (no orphan half-run row). A run loaded
+        // from the DB is already tracked, so change detection just persists the soft-deleted
+        // regenerated slips alongside the fresh batch.
         if (_dbContext.Entry(run).State == EntityState.Detached)
-            _dbContext.PayrollRuns.Update(run);
+            _dbContext.PayrollRuns.Add(run);
+
+        _dbContext.Payslips.AddRange(newPayslips);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -111,7 +115,33 @@ public class PayrollRepository : IPayrollRepository
 
             await _dailyExpenseRepository.AddAsync(expense, cancellationToken);
 
+            // Post the expense, then atomically flip the run APPROVED → PAID. A plain in-memory
+            // MarkPaid + SaveChanges lets two concurrent /pay calls both read APPROVED and both
+            // post the SALARIES expense — the row is gated here: only one transition wins, the
+            // other rolls back and errors out. This is the single gate that stops a double payment.
+            var transitioned = await _dbContext.PayrollRuns
+                .Where(r => r.Id == run.Id && r.Status == PayrollRunStatus.APPROVED && !r.Isdeleted)
+                .ExecuteUpdateAsync(
+                    s => s
+                        .SetProperty(r => r.Status, PayrollRunStatus.PAID)
+                        .SetProperty(r => r.PaidBy, (string?)paidBy)
+                        .SetProperty(r => r.PaidAt, (DateTime?)DateTime.UtcNow)
+                        .SetProperty(r => r.PaymentMethod, paymentMethod.Trim().ToUpper())
+                        .SetProperty(r => r.ExpenseId, (Guid?)expense.Id)
+                        .SetProperty(r => r.ModifiedBy, paidBy)
+                        .SetProperty(r => r.ModifiedDate, DateTime.UtcNow),
+                    cancellationToken);
+
+            if (transitioned == 0)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw new InvalidOperationException("Payroll run was already paid or is no longer APPROVED");
+            }
+
+            // Keep the in-memory graph aligned with what the gate wrote, so the caller's response
+            // and the context stay consistent (the expense is already inserted above).
             run.MarkPaid(paidBy, paymentMethod, expense.Id);
+            await _dbContext.Entry(run).ReloadAsync(cancellationToken);
 
             if (settleIds.Count > 0)
             {

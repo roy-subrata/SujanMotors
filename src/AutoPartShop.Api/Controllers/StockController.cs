@@ -368,12 +368,13 @@ public class StockController : ControllerBase
             if (part is null) return NotFound(new { message = "Part not found for this stock level" });
 
             // Base units per display unit. Absent a display unit (or when it already is the base
-            // unit) the two columns are the same measure, so the factor is 1.
+            // unit) the two columns are the same measure, so the factor is 1. Levels are measured
+            // in the part's BASE unit, so the factor is level.UnitId -> BaseUnitId.
             var conversionFactor = 1m;
-            if (level.UnitId.HasValue && part.UnitId.HasValue && level.UnitId.Value != part.UnitId.Value)
+            if (level.UnitId.HasValue && (part.BaseUnitId ?? part.UnitId).HasValue && level.UnitId.Value != (part.BaseUnitId ?? part.UnitId).Value)
             {
                 conversionFactor = await _unitConversionService.GetConversionFactorAsync(
-                    level.UnitId.Value, part.UnitId.Value);
+                    level.UnitId.Value, (part.BaseUnitId ?? part.UnitId)!.Value);
             }
 
             var before = new { level.QuantityOnHand, level.QuantityReserved };
@@ -469,24 +470,120 @@ public class StockController : ControllerBase
         {
             if (request.PartId == Guid.Empty)
                 return BadRequest(new { message = "PartId is required" });
+            if (request.WarehouseId == Guid.Empty)
+                return BadRequest(new { message = "WarehouseId is required" });
+            if (request.Quantity == 0)
+                return BadRequest(new { message = "Quantity must not be zero" });
+            if (string.Equals(request.Type, "TRANSFER", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "Use the transfer endpoint to move stock between warehouses" });
 
-            // Note: In production, we would need to get the StockLevelId from PartId and WarehouseId
-            // For now, this is a simplified version
-            var movement = StockMovement.Create(
-                Guid.NewGuid(),
-                request.Type,
-                request.Quantity,
-                request.Reference,
-                request.Reference
-            );
-            movement.CreatedBy = _currentUserService.GetCurrentUsername();
-            movement.ModifiedBy = _currentUserService.GetCurrentUsername();
+            var movementType = request.Type.ToUpper();
+            var validTypes = new[] { "IN", "OUT", "RETURN", "ADJUST" };
+            if (!validTypes.Contains(movementType))
+                return BadRequest(new { message = $"MovementType must be one of: {string.Join(", ", validTypes)}" });
 
-            await _stockMovementRepository.AddAsync(movement, cancellationToken);
+            var part = await _dbContext.Parts
+                .FirstOrDefaultAsync(p => p.Id == request.PartId && !p.Isdeleted, cancellationToken);
+            if (part is null)
+                return NotFound(new { message = "Part not found" });
 
-            return CreatedAtAction(nameof(GetMovementById), new { id = movement.Id }, MapToStockMovementResponse(movement));
+            var warehouse = await _dbContext.Set<Warehouse>()
+                .FirstOrDefaultAsync(w => w.Id == request.WarehouseId && !w.Isdeleted, cancellationToken);
+            if (warehouse is null)
+                return NotFound(new { message = "Warehouse not found" });
+
+            var currentUser = _currentUserService.GetCurrentUsername();
+            var stockBaseUnit = part.BaseUnitId ?? part.UnitId;
+            var isInbound = movementType is "IN" or "RETURN";
+
+            // The stock movement has no display unit of its own, so the requested quantity is
+            // assumed to be in the part's stock (base) unit — the same contract as the stock
+            // transfer endpoint. This endpoint previously ignored PartId/WarehouseId entirely and
+            // wrote a movement against a random StockLevelId; it now resolves (or seeds) the real
+            // level so quantities actually move.
+            var level = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                request.PartId, null, request.WarehouseId, cancellationToken);
+
+            if (level is null && isInbound)
+                level = StockLevel.Create(request.PartId, request.WarehouseId, unitId: stockBaseUnit);
+
+            if (level is null)
+                return BadRequest(new { message = "No stock level exists for this part in the warehouse" });
+
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            StockMovement? createdMovement = null;
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // A freshly seeded level has no Id until it is persisted — do that first so the
+                    // movement (and the ADJUST applier below) can reference a real StockLevelId.
+                    if (level.Id == Guid.Empty)
+                        await _stockLevelRepository.AddAsync(level, cancellationToken);
+
+                    if (movementType == "ADJUST")
+                    {
+                        // Signed adjustment: reuse the reviewed applier so the level change is also
+                        // mirrored into stock lots (FIFO consumption / newest-lot topping-up) and a
+                        // lot movement is recorded — otherwise the level and lot quantities drift.
+                        var outcome = await _adjustmentApplier.ApplyAsync(
+                            level,
+                            request.Quantity,
+                            request.Quantity,
+                            request.Reference,
+                            request.Reference,
+                            request.Notes,
+                            currentUser,
+                            referenceType: "ManualMovement",
+                            cancellationToken: cancellationToken);
+                        createdMovement = outcome.Movement;
+                    }
+                    else
+                    {
+                        if (isInbound)
+                            level.AddStock(request.Quantity, request.Quantity, request.Reference);
+                        else
+                            level.RemoveStock(request.Quantity, request.Quantity, request.Reference);
+                        level.ModifiedBy = currentUser;
+
+                        createdMovement = StockMovement.Create(
+                            level.Id,
+                            movementType,
+                            request.Quantity,
+                            request.Reference,
+                            request.Reference,
+                            unitId: stockBaseUnit,
+                            quantityInBaseUnit: request.Quantity);
+                        createdMovement.Approve(currentUser);
+                        createdMovement.CreatedBy = currentUser;
+                        createdMovement.ModifiedBy = currentUser;
+                        if (!string.IsNullOrWhiteSpace(request.Notes))
+                            createdMovement.AddNotes(request.Notes);
+
+                        await _stockMovementRepository.AddAsync(createdMovement, cancellationToken);
+                    }
+
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            _logger.LogInformation("Stock movement {Type} for part {PartId} in warehouse {WarehouseId} recorded by {User}",
+                movementType, request.PartId, request.WarehouseId, currentUser);
+
+            return CreatedAtAction(nameof(GetMovementById), new { id = createdMovement.Id },
+                MapToStockMovementResponse(createdMovement));
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -540,18 +637,26 @@ public class StockController : ControllerBase
             if (sourceStockLevel == null)
                 return BadRequest(new { message = "Part not available in source warehouse" });
 
-            // Check if enough stock is available (use base unit for comparison)
+            // Stock is tracked in the part's BASE unit — convert a display-unit quantity to
+            // BaseUnitId so transfers agree with GRN reception and sales consumption.
+            var stockBaseUnit = part.BaseUnitId ?? part.UnitId;
             int quantityInBaseUnit = request.QuantityInBaseUnit;
-            if (request.UnitId.HasValue && part.UnitId.HasValue && request.UnitId != part.UnitId)
+            if (request.UnitId.HasValue && stockBaseUnit.HasValue && request.UnitId != stockBaseUnit)
             {
                 // Convert from display unit to base unit
                 var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
-                    request.UnitId.Value, part.UnitId.Value);
+                    request.UnitId.Value, stockBaseUnit.Value);
                 quantityInBaseUnit = (int)Math.Round(request.Quantity * conversionFactor, MidpointRounding.AwayFromZero);
             }
             else if (!request.UnitId.HasValue)
             {
                 // If no unit specified, assume display quantity equals base quantity
+                quantityInBaseUnit = request.Quantity;
+            }
+            else
+            {
+                // Unit matches the stock base unit — display and base must move together or the
+                // two columns silently diverge (the exact drift this check prevents).
                 quantityInBaseUnit = request.Quantity;
             }
 
@@ -590,7 +695,8 @@ public class StockController : ControllerBase
                                                 && sl.WarehouseId == request.ToWarehouseId, cancellationToken);
                     if (dest == null)
                     {
-                        dest = StockLevel.Create(request.PartId, request.ToWarehouseId, 0, 0, variantId: request.VariantId);
+                        dest = StockLevel.Create(request.PartId, request.ToWarehouseId, 0, 0,
+                            unitId: stockBaseUnit, variantId: request.VariantId);
                         dest.CreatedBy = currentUser;
                         dest.ModifiedBy = currentUser;
                         _dbContext.StockLevels.Add(dest);
@@ -605,9 +711,12 @@ public class StockController : ControllerBase
                                  && l.VariantId == request.VariantId
                                  && l.WarehouseId == request.FromWarehouseId
                                  && l.Status == StockLotStatus.AVAILABLE
+                                 && l.IsActive
                                  && l.QuantityAvailableInBaseUnit > 0
                                  && !l.Isdeleted)
-                        .OrderBy(l => l.ExpiryDate)
+                        // FEFO: lots with no expiry are never sold before lots that are about to expire
+                        // (SQL Server orders NULLs first on ASC, which would eat fresh stock first).
+                        .OrderBy(l => l.ExpiryDate == null ? DateTime.MaxValue : l.ExpiryDate)
                         .ThenBy(l => l.CreatedDate)
                         .ToListAsync(cancellationToken);
 
@@ -692,9 +801,11 @@ public class StockController : ControllerBase
                             $"Insufficient lot stock in source warehouse: on-hand level is sufficient but lot records are short by {remainingBase} base units. Run a stock reconciliation.");
 
                     // -- Level bucket movements (audit) ---------------------------------------------
+                    // Movements are recorded in the stock base unit (as GRN and sales do) so a
+                    // "(sum of movements) == level" audit stays meaningful for multi-unit parts.
                     var outMovement = StockMovement.Create(
-                        source.Id, "TRANSFER", -request.Quantity, transferReference,
-                        $"Transfer to {toWarehouse.Name}", unitId: request.UnitId, quantityInBaseUnit: -quantityInBaseUnit);
+                        source.Id, "TRANSFER", -quantityInBaseUnit, transferReference,
+                        $"Transfer to {toWarehouse.Name}", unitId: stockBaseUnit, quantityInBaseUnit: -quantityInBaseUnit);
                     outMovement.CreatedBy = currentUser;
                     outMovement.ModifiedBy = currentUser;
                     outMovement.Approve("System");
@@ -702,18 +813,21 @@ public class StockController : ControllerBase
                     outMovementId = outMovement.Id;
 
                     var inMovement = StockMovement.Create(
-                        dest.Id, "TRANSFER", request.Quantity, transferReference,
-                        $"Transfer from {fromWarehouse.Name}", unitId: request.UnitId, quantityInBaseUnit: quantityInBaseUnit);
+                        dest.Id, "TRANSFER", quantityInBaseUnit, transferReference,
+                        $"Transfer from {fromWarehouse.Name}", unitId: stockBaseUnit, quantityInBaseUnit: quantityInBaseUnit);
                     inMovement.CreatedBy = currentUser;
                     inMovement.ModifiedBy = currentUser;
                     inMovement.Approve("System");
                     _dbContext.StockMovements.Add(inMovement);
 
-                    // -- Aggregate level buckets ----------------------------------------------------
-                    source.RemoveStock(request.Quantity, quantityInBaseUnit, "Transfer");
+                    // -- Aggregate level buckets ------------------------------------------------
+                    // Levels are measured in the part's base unit (GRN posts display == base == baseQty),
+                    // so both columns move by the base quantity — display must not track the caller's
+                    // display unit or the two columns silently drift apart.
+                    source.RemoveStock(quantityInBaseUnit, quantityInBaseUnit, "Transfer");
                     source.ModifiedBy = currentUser;
 
-                    dest.AddStock(request.Quantity, quantityInBaseUnit, "Transfer");
+                    dest.AddStock(quantityInBaseUnit, quantityInBaseUnit, "Transfer");
                     dest.ModifiedBy = currentUser;
 
                     await _dbContext.SaveChangesAsync(cancellationToken);
@@ -806,6 +920,7 @@ public class StockController : ControllerBase
                     request.WarehouseId,
                     0,
                     0,
+                    unitId: part.BaseUnitId ?? part.UnitId,
                     variantId: request.VariantId
                 );
                 stockLevel.CreatedBy = _currentUserService.GetCurrentUsername();
@@ -816,13 +931,15 @@ public class StockController : ControllerBase
             var previousQuantity = stockLevel.QuantityOnHand;
             var previousQuantityBase = stockLevel.QuantityOnHandInBaseUnit;
 
-            // Calculate quantity in base unit
+            // Stock is tracked in the part's BASE unit — convert a display-unit adjustment to
+            // BaseUnitId so adjustments agree with GRN reception and sales consumption.
+            var stockBaseUnit = part.BaseUnitId ?? part.UnitId;
             int quantityInBaseUnit = request.QuantityInBaseUnit;
-            if (request.UnitId.HasValue && part.UnitId.HasValue && request.UnitId != part.UnitId)
+            if (request.UnitId.HasValue && stockBaseUnit.HasValue && request.UnitId != stockBaseUnit)
             {
                 // Convert from display unit to base unit
                 var conversionFactor = await _unitConversionService.GetConversionFactorAsync(
-                    request.UnitId.Value, part.UnitId.Value);
+                    request.UnitId.Value, stockBaseUnit.Value);
                 quantityInBaseUnit = (int)Math.Round(Math.Abs(request.Quantity) * conversionFactor, MidpointRounding.AwayFromZero);
                 // Preserve sign (positive for increase, negative for decrease)
                 quantityInBaseUnit = request.Quantity < 0 ? -quantityInBaseUnit : quantityInBaseUnit;
@@ -830,6 +947,12 @@ public class StockController : ControllerBase
             else if (!request.UnitId.HasValue)
             {
                 // If no unit specified, assume display quantity equals base quantity
+                quantityInBaseUnit = request.Quantity;
+            }
+            else
+            {
+                // Unit matches the stock base unit — display and base must move together or the
+                // two columns silently diverge.
                 quantityInBaseUnit = request.Quantity;
             }
 
@@ -869,13 +992,13 @@ public class StockController : ControllerBase
 
                 outcome = await _adjustmentApplier.ApplyAsync(
                     level,
-                    request.Quantity,
+                    quantityInBaseUnit,
                     quantityInBaseUnit,
                     request.Reason,
                     adjustmentReference,
                     request.Notes,
                     username,
-                    unitId: request.UnitId,
+                    unitId: stockBaseUnit,
                     cancellationToken: cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await tx.CommitAsync(cancellationToken);

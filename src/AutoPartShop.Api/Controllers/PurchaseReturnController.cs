@@ -434,6 +434,11 @@ public class PurchaseReturnController : ControllerBase
                 int acceptedQuantity = line.Quantity - line.RejectedQuantity;
                 if (acceptedQuantity <= 0) continue;
 
+                // Stock is tracked in the part's BASE unit; the return quantity is entered in the
+                // PO line's ordering unit. Convert before comparing availability so a line ordered in
+                // boxes is never silently drawn as individual pieces (or vice-versa).
+                int acceptedQuantityInBase = GetAcceptedQuantityInBaseUnit(purchaseReturn, line, acceptedQuantity);
+
                 var variantId = purchaseReturn.PurchaseOrder?.LineItems
                     .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
                 var (stockLevel, stockLevelError) = await ResolveStockLevelForLineAsync(purchaseReturn, line, variantId, cancellationToken);
@@ -449,11 +454,14 @@ public class PurchaseReturnController : ControllerBase
                     if (lot == null)
                         return BadRequest(new { message = $"Selected stock lot not found for part {line.Part?.Name ?? line.PartId.ToString()}." });
                     bucket = NormalizeBucket(lot.Status);
+
+                    if (lot.QuantityAvailableInBaseUnit < acceptedQuantityInBase)
+                        return BadRequest(new { message = $"Insufficient stock in selected lot for part {line.Part?.Name ?? line.PartId.ToString()}. Available: {lot.QuantityAvailableInBaseUnit}, Required: {acceptedQuantityInBase}" });
                 }
 
-                int bucketAvailable = GetBucketAvailable(stockLevel, bucket);
-                if (bucketAvailable < acceptedQuantity)
-                    return BadRequest(new { message = $"Insufficient {bucket.ToLower()} stock for part {line.Part?.Name ?? line.PartId.ToString()}. {bucket}: {bucketAvailable}, Required: {acceptedQuantity}" });
+                int bucketAvailable = GetBucketAvailableInBase(stockLevel, bucket);
+                if (bucketAvailable < acceptedQuantityInBase)
+                    return BadRequest(new { message = $"Insufficient {bucket.ToLower()} stock for part {line.Part?.Name ?? line.PartId.ToString()}. {bucket}: {bucketAvailable}, Required: {acceptedQuantityInBase}" });
             }
 
             // Process stock movements for each line item inside a transaction, run under the EF
@@ -475,6 +483,10 @@ public class PurchaseReturnController : ControllerBase
                         int acceptedQuantity = line.Quantity - line.RejectedQuantity;
                         if (acceptedQuantity <= 0) continue;
 
+                        // Same base-unit conversion as the pre-validation pass — stock levels, lots and
+                        // movements are all tracked in base units, so the draw must be too.
+                        int acceptedQuantityInBase = GetAcceptedQuantityInBaseUnit(purchaseReturn, line, acceptedQuantity);
+
                         var variantId = purchaseReturn.PurchaseOrder?.LineItems
                             .FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId)?.VariantId;
                         var (stockLevel, stockLevelError) = await ResolveStockLevelForLineAsync(purchaseReturn, line, variantId, cancellationToken);
@@ -494,18 +506,18 @@ public class PurchaseReturnController : ControllerBase
                                     continue;
                                 }
 
-                                if (selectedLot.QuantityAvailable < acceptedQuantity)
+                                if (selectedLot.QuantityAvailableInBaseUnit < acceptedQuantityInBase)
                                 {
                                     _logger.LogWarning(
                                         "Insufficient stock in selected lot {LotId}. Required: {Required}, Available: {Available}",
-                                        line.StockLotId, acceptedQuantity, selectedLot.QuantityAvailable);
-                                    throw new InvalidOperationException($"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailable}, Required: {acceptedQuantity}");
+                                        line.StockLotId, acceptedQuantityInBase, selectedLot.QuantityAvailableInBaseUnit);
+                                    throw new InvalidOperationException($"Insufficient stock in selected lot. Available: {selectedLot.QuantityAvailableInBaseUnit}, Required: {acceptedQuantityInBase}");
                                 }
 
                                 // Reduce stock from the bucket matching the lot's status (Available/Damaged/Quarantine).
                                 // Items are being returned to supplier.
                                 var bucket = NormalizeBucket(selectedLot.Status);
-                                RemoveFromBucket(stockLevel, bucket, acceptedQuantity);
+                                RemoveFromBucket(stockLevel, bucket, acceptedQuantity, acceptedQuantityInBase);
                                 await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                                 // Create stock movement record
@@ -514,7 +526,9 @@ public class PurchaseReturnController : ControllerBase
                                     "OUT",
                                     acceptedQuantity,
                                     $"Purchase Return {purchaseReturn.ReturnNumber}",
-                                    purchaseReturn.ReturnNumber
+                                    purchaseReturn.ReturnNumber,
+                                    unitId: stockLevel.UnitId,
+                                    quantityInBaseUnit: acceptedQuantityInBase
                                 );
                                 stockMovement.Approve("System");
                                 stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
@@ -522,20 +536,23 @@ public class PurchaseReturnController : ControllerBase
                                 await _stockMovementRepository.AddAsync(stockMovement, cancellationToken);
 
                                 // Reduce the selected lot quantity
-                                selectedLot.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
+                                selectedLot.RemoveStock(acceptedQuantity, acceptedQuantityInBase, "Purchase Return");
                                 await _stockLotRepository.UpdateAsync(selectedLot, cancellationToken);
 
                                 // Create lot movement for the specific lot
                                 var lotMovement = StockLotMovement.Create(
                                     selectedLot.Id,
-                                    acceptedQuantity,
+                                    acceptedQuantityInBase,
                                     "RETURN",
                                     purchaseReturn.Id,
                                     "PurchaseReturn",
                                     DateTime.UtcNow,
-                                    selectedLot.CostPrice,
+                                    selectedLot.CostPriceInBaseUnit,
                                     $"Purchase Return {purchaseReturn.ReturnNumber}",
-                                    $"Returned to supplier (Selected Lot: {selectedLot.LotNumber})"
+                                    $"Returned to supplier (Selected Lot: {selectedLot.LotNumber})",
+                                    unitId: stockLevel.UnitId,
+                                    quantityInBaseUnit: acceptedQuantityInBase,
+                                    costAtMovementInBaseUnit: selectedLot.CostPriceInBaseUnit
                                 );
                                 lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
                                 lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
@@ -560,18 +577,18 @@ public class PurchaseReturnController : ControllerBase
                                 // Must have enough AVAILABLE stock from THIS supplier. We never draw a return
                                 // from another supplier's lots — that would destroy lot/supplier traceability.
                                 // If the originating supplier's lots are short, the operator must pick specific
-                                // lots on the return lines instead.
-                                int totalAvailableFromSupplier = supplierLots.Sum(l => l.QuantityAvailable);
-                                if (totalAvailableFromSupplier < acceptedQuantity)
+                                // lots on the return lines instead. Availability is compared in BASE units.
+                                int totalAvailableFromSupplier = supplierLots.Sum(l => l.QuantityAvailableInBaseUnit);
+                                if (totalAvailableFromSupplier < acceptedQuantityInBase)
                                 {
                                     throw new InvalidOperationException(
                                         $"Insufficient available stock from this supplier for part {line.Part?.Name ?? line.PartId.ToString()} " +
-                                        $"(available: {totalAvailableFromSupplier}, required: {acceptedQuantity}). " +
+                                        $"(available: {totalAvailableFromSupplier}, required: {acceptedQuantityInBase}). " +
                                         "Select specific stock lots on the return lines to proceed.");
                                 }
 
                                 // Reduce stock - items are being returned to supplier
-                                stockLevel.RemoveStock(acceptedQuantity, acceptedQuantity, "Purchase Return");
+                                stockLevel.RemoveStock(acceptedQuantity, acceptedQuantityInBase, "Purchase Return");
                                 await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
 
                                 // Create stock movement record
@@ -580,7 +597,9 @@ public class PurchaseReturnController : ControllerBase
                                     "OUT",
                                     acceptedQuantity,
                                     $"Purchase Return {purchaseReturn.ReturnNumber}",
-                                    purchaseReturn.ReturnNumber
+                                    purchaseReturn.ReturnNumber,
+                                    unitId: stockLevel.UnitId,
+                                    quantityInBaseUnit: acceptedQuantityInBase
                                 );
                                 stockMovement.Approve("System");
                                 stockMovement.CreatedBy = _currentUserService.GetCurrentUsername();
@@ -589,33 +608,47 @@ public class PurchaseReturnController : ControllerBase
 
                                 // Process lot movements - prioritizing supplier-specific lots
                                 int remainingQty = acceptedQuantity;
+                                int remainingQtyInBase = acceptedQuantityInBase;
                                 foreach (var lot in supplierLots)
                                 {
-                                    if (remainingQty <= 0) break;
+                                    if (remainingQty <= 0 || remainingQtyInBase <= 0) break;
 
                                     int qtyToReturn = Math.Min(remainingQty, lot.QuantityAvailable);
+                                    int qtyToReturnInBase = Math.Min(remainingQtyInBase,
+                                        (int)Math.Round((decimal)qtyToReturn * acceptedQuantityInBase / acceptedQuantity, MidpointRounding.AwayFromZero));
+                                    qtyToReturnInBase = Math.Clamp(qtyToReturnInBase, 0, lot.QuantityAvailableInBaseUnit);
+                                    qtyToReturnInBase = Math.Min(qtyToReturnInBase, remainingQtyInBase);
+
+                                    // Last-lot correction so rounding drift never leaves a residue that is
+                                    // drawn from the level but never removed from any lot.
+                                    if (remainingQty - qtyToReturn <= 0)
+                                        qtyToReturnInBase = remainingQtyInBase;
 
                                     // Reduce lot quantity
-                                    lot.RemoveStock(qtyToReturn, qtyToReturn, "Purchase Return");
+                                    lot.RemoveStock(qtyToReturn, qtyToReturnInBase, "Purchase Return");
                                     await _stockLotRepository.UpdateAsync(lot, cancellationToken);
 
                                     // Create lot movement with supplier reference
                                     var lotMovement = StockLotMovement.Create(
                                         lot.Id,
-                                        qtyToReturn,
+                                        qtyToReturnInBase,
                                         "RETURN",
                                         purchaseReturn.Id,
                                         "PurchaseReturn",
                                         DateTime.UtcNow,
-                                        lot.CostPrice,
+                                        lot.CostPriceInBaseUnit,
                                         $"Purchase Return {purchaseReturn.ReturnNumber}",
-                                        $"Returned to supplier (Lot from Supplier: {lot.SupplierId})"
+                                        $"Returned to supplier (Lot from Supplier: {lot.SupplierId})",
+                                        unitId: stockLevel.UnitId,
+                                        quantityInBaseUnit: qtyToReturnInBase,
+                                        costAtMovementInBaseUnit: lot.CostPriceInBaseUnit
                                     );
                                     lotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
                                     lotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                                     await _stockLotMovementRepository.AddAsync(lotMovement, cancellationToken);
 
                                     remainingQty -= qtyToReturn;
+                                    remainingQtyInBase -= qtyToReturnInBase;
                                 }
 
                                 if (remainingQty > 0)
@@ -626,6 +659,24 @@ public class PurchaseReturnController : ControllerBase
                                 }
                             }
                         }
+                    }
+
+                    // Write the returned quantities back to the originating PO line. Goods that have
+                    // gone back to the supplier are no longer "received", so the outstanding quantity
+                    // reopens for re-receiving and the PO's receipt status recomputes (DELIVERED -> PARTIAL).
+                    var po = purchaseReturn.PurchaseOrder;
+                    if (po is not null)
+                    {
+                        foreach (var line in purchaseReturn.LineItems)
+                        {
+                            if (line.PurchaseOrderLineId == Guid.Empty) continue;
+                            int acceptedQuantity = line.Quantity - line.RejectedQuantity;
+                            if (acceptedQuantity <= 0) continue;
+                            int acceptedQuantityInBase = GetAcceptedQuantityInBaseUnit(purchaseReturn, line, acceptedQuantity);
+                            po.ReduceReceivedQuantityForReturn(line.PurchaseOrderLineId, acceptedQuantity, acceptedQuantityInBase);
+                        }
+                        po.UpdateReceiptStatus();
+                        po.ModifiedBy = _currentUserService.GetCurrentUsername();
                     }
 
                     // NOTE: Supplier balance is NOT updated here.
@@ -1167,29 +1218,45 @@ public class PurchaseReturnController : ControllerBase
         _ => "AVAILABLE"
     };
 
-    /// <summary>Available units in the given StockLevel bucket.</summary>
-    private static int GetBucketAvailable(StockLevel stockLevel, string bucket) => bucket switch
+    /// <summary>Available units in the given StockLevel bucket, expressed in the part's BASE unit.</summary>
+    private static int GetBucketAvailableInBase(StockLevel stockLevel, string bucket) => bucket switch
     {
-        "DAMAGED" => stockLevel.QuantityDamaged,
-        "QUARANTINE" => stockLevel.QuantityQuarantine,
-        _ => stockLevel.QuantityAvailable
+        "DAMAGED" => stockLevel.QuantityDamagedInBaseUnit,
+        "QUARANTINE" => stockLevel.QuantityQuarantineInBaseUnit,
+        _ => stockLevel.QuantityAvailableInBaseUnit
     };
 
     /// <summary>Removes units from the given StockLevel bucket (Available/Damaged/Quarantine).</summary>
-    private static void RemoveFromBucket(StockLevel stockLevel, string bucket, int quantity)
+    private static void RemoveFromBucket(StockLevel stockLevel, string bucket, int quantity, int quantityInBaseUnit = 0)
     {
         switch (bucket)
         {
             case "DAMAGED":
-                stockLevel.RemoveDamagedStock(quantity, quantity, "Purchase Return");
+                stockLevel.RemoveDamagedStock(quantity, quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity, "Purchase Return");
                 break;
             case "QUARANTINE":
-                stockLevel.RemoveQuarantineStock(quantity, quantity, "Purchase Return");
+                stockLevel.RemoveQuarantineStock(quantity, quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity, "Purchase Return");
                 break;
             default:
-                stockLevel.RemoveStock(quantity, quantity, "Purchase Return");
+                stockLevel.RemoveStock(quantity, quantityInBaseUnit > 0 ? quantityInBaseUnit : quantity, "Purchase Return");
                 break;
         }
+    }
+
+    /// <summary>
+    /// Converts a return line's accepted quantity (entered in the PO line's ordering unit) into the
+    /// part's BASE unit using the originating PO line's recorded unit ratio. Identity when the PO
+    /// line was ordered in base units or the ratio cannot be determined.
+    /// </summary>
+    private static int GetAcceptedQuantityInBaseUnit(PurchaseReturn purchaseReturn, PurchaseReturnLine line, int acceptedQuantity)
+    {
+        var poLine = purchaseReturn.PurchaseOrder?.LineItems.FirstOrDefault(pol => pol.Id == line.PurchaseOrderLineId);
+        if (poLine is null || poLine.Quantity <= 0 || poLine.QuantityInBaseUnit <= 0)
+            return acceptedQuantity;
+        if (poLine.QuantityInBaseUnit == poLine.Quantity)
+            return acceptedQuantity;
+
+        return (int)Math.Round((decimal)acceptedQuantity * poLine.QuantityInBaseUnit / poLine.Quantity, MidpointRounding.AwayFromZero);
     }
 
     private PurchaseReturnResponse MapToPurchaseReturnResponse(PurchaseReturn purchaseReturn)

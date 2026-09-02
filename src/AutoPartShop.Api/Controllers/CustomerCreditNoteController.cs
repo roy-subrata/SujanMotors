@@ -308,6 +308,14 @@ public class CustomerCreditNoteController : ControllerBase
                     if (invoice is null)
                         throw new ArgumentException("Invoice not found");
 
+                    // The supplied invoice must actually belong to the supplied order — otherwise the
+                    // credit (and its payment row) lands on an invoice that isn't part of this sale.
+                    if (invoice.SalesOrderId != salesOrder.Id)
+                        throw new InvalidOperationException("Invoice does not belong to the supplied sales order");
+
+                    if (invoice.SalesOrder is null || invoice.SalesOrder.CustomerId != creditNote.CustomerId)
+                        throw new InvalidOperationException("Credit note customer does not match invoice customer");
+
                     if (request.AmountToApply > invoice.OutstandingAmount)
                         throw new InvalidOperationException($"Amount exceeds invoice outstanding amount. Outstanding: {invoice.OutstandingAmount}");
 

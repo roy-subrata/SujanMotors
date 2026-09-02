@@ -93,5 +93,21 @@ public class PurchaseOrderLine : AuditableEntity
         VariantId = variantId;
     }
 
+    /// <summary>
+    /// Reduces received quantities when a purchase return ships goods back to the supplier. Kept in
+    /// base units alongside the display-unit count so re-receipt and receipt-status math stay consistent.
+    /// </summary>
+    public void ReduceReceivedQuantityForReturn(int quantity, int quantityInBaseUnit)
+    {
+        if (quantity < 0)
+            throw new ArgumentException("Return quantity cannot be negative", nameof(quantity));
+
+        if (quantityInBaseUnit < 0)
+            quantityInBaseUnit = quantity;
+
+        ReceivedQuantity = Math.Max(0, ReceivedQuantity - quantity);
+        ReceivedQuantityInBaseUnit = Math.Max(0, ReceivedQuantityInBaseUnit - quantityInBaseUnit);
+    }
+
     public bool IsFullyReceived => ReceivedQuantity >= Quantity;
 }

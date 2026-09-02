@@ -573,6 +573,91 @@ public class SupplierPaymentController : ControllerBase
         }
     }
 
+    [HttpPatch("{id:guid}/reverse")]
+    public async Task<IActionResult> Reverse(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var payment = await _repository.GetByIdAsync(id, cancellationToken);
+            if (payment is null) return NotFound(new { message = "Supplier payment not found" });
+
+            // Only money that actually moved can come back. PENDING/PROCESSING payments can simply
+            // be cancelled (they were never applied); reconciled payments are bank-settled and must
+            // be reversed through the bank, not by unwinding the ledger here.
+            if (payment.Status != SupplierPaymentStatus.COMPLETED)
+                return BadRequest(new { message = $"Only completed payments can be reversed. Current status: {payment.Status}" });
+
+            if (payment.IsReconciled)
+                return BadRequest(new { message = "Cannot reverse a reconciled payment — settle the reversal through the bank first." });
+
+            // Credit-note offsets are not cash movements; unwinding one here would corrupt the
+            // supplier ledger. Reversal is for REGULAR payments (money sent to the supplier).
+            if (payment.PaymentType != PaymentType.REGULAR)
+                return BadRequest(new { message = "Only regular (cash) payments can be reversed. Cancel pending payments instead." });
+
+            var currentUser = _currentUserService.GetCurrentUsername();
+
+            payment.MarkAsReturned();
+            payment.ModifiedBy = currentUser;
+
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // Undo the PO's paid amount so the outstanding balance reopens for a corrected
+                    // payment (or a fresh one) instead of reporting the reversed money as received.
+                    if (payment.PurchaseOrderId.HasValue)
+                    {
+                        var purchaseOrder = await _purchaseOrderRepository.GetByIdAsync(payment.PurchaseOrderId.Value, cancellationToken);
+                        if (purchaseOrder is not null)
+                        {
+                            purchaseOrder.ReversePayment(payment.Amount);
+                            purchaseOrder.ModifiedBy = currentUser;
+                            await _purchaseOrderRepository.UpdateAsync(purchaseOrder, cancellationToken);
+                        }
+                    }
+
+                    // If this REGULAR payment was spawned from an ADVANCE, put the money back on the
+                    // advance so it can be applied to a different order later.
+                    if (payment.SourceAdvancePaymentId.HasValue)
+                    {
+                        var sourceAdvance = await _repository.GetByIdAsync(payment.SourceAdvancePaymentId.Value, cancellationToken);
+                        if (sourceAdvance is not null && sourceAdvance.PaymentType == PaymentType.ADVANCE)
+                        {
+                            sourceAdvance.RestoreRemainingAmount(payment.Amount);
+                            sourceAdvance.ModifiedBy = currentUser;
+                            await _repository.UpdateAsync(sourceAdvance, cancellationToken);
+                        }
+                    }
+
+                    await _repository.UpdateAsync(payment, cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            _logger.LogInformation("Supplier payment {TxnNumber} reversed (marked RETURNED). Amount: {Amount}. Outputs on PO/advance restored.",
+                payment.TransactionNumber, payment.Amount);
+
+            return Ok(MapResponse(payment));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reversing supplier payment: {PaymentId}", id);
+            return StatusCode(500, new { message = "An error occurred while reversing the supplier payment" });
+        }
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

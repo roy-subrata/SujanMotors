@@ -1,10 +1,11 @@
+using AutoPartShop.Api.Authorization;
 using AutoPartShop.Api.Services;
 using AutoPartShop.Application.DTOs.InventoryDtos;
 using AutoPartShop.Domain.Entities;
 using AutoPartShop.Infrastructure.Repositories;
-using AutoPartShop.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AutoPartShop.Api.Controllers;
 [Route("api/v1/[controller]")]
@@ -16,17 +17,20 @@ public class StockLotMovementController : ControllerBase
     private readonly IStockLotRepository _lotRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStockLevelRepository _stockLevelRepository;
+    private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<StockLotMovementController> _logger;
     private readonly ICurrentUserService _currentUserService;
 
     public StockLotMovementController(IStockLotMovementRepository repository, IStockLotRepository lotRepository,
         IProductRepository productRepository, IStockLevelRepository stockLevelRepository,
-        ICurrentUserService currentUserService, ILogger<StockLotMovementController> logger)
+        AutoPartDbContext dbContext, ICurrentUserService currentUserService,
+        ILogger<StockLotMovementController> logger)
     {
         _repository = repository;
         _lotRepository = lotRepository;
         _productRepository = productRepository;
         _stockLevelRepository = stockLevelRepository;
+        _dbContext = dbContext;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -215,50 +219,69 @@ public class StockLotMovementController : ControllerBase
             var lot = await _lotRepository.GetByIdAsync(request.StockLotId, cancellationToken);
             if (lot is null) return NotFound("Stock lot not found");
 
-            var movement = StockLotMovement.Create(request.StockLotId, request.Quantity, request.MovementType,
-                request.ReferenceId, request.ReferenceType, request.MovementDate, request.CostAtMovement, request.Reason, request.Notes);
-
             var currentUser = _currentUserService.GetCurrentUsername();
-            movement.CreatedBy = currentUser;
-            movement.ModifiedBy = currentUser;
 
-            var movementTypeUpper = request.MovementType.ToUpper();
+            // The lot and its parent stock level both carry display + base-unit quantities; a
+            // movement only persists if every side of the mutation succeeds. The repository
+            // SaveChanges calls share this scoped DbContext, so one transaction makes the
+            // lot/level/movement writes atomic (a failure rolls back the whole adjustment).
+            var baseQuantity = request.QuantityInBaseUnit > 0 ? request.QuantityInBaseUnit : request.Quantity;
+            StockLotMovement? created = null;
 
-            if (new[] { "SALE", "DAMAGE", "RETURN" }.Contains(movementTypeUpper))
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                lot.RemoveStock(request.Quantity, request.Quantity, request.Reason);
-                lot.ModifiedBy = currentUser;
-                await _lotRepository.UpdateAsync(lot, cancellationToken);
-
-                var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
-                    lot.PartId, lot.VariantId, lot.WarehouseId, cancellationToken);
-                if (stockLevel != null)
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    stockLevel.RemoveStock(request.Quantity, request.Quantity,
-                        $"Lot movement {request.MovementType}: {request.Reason}");
-                    stockLevel.ModifiedBy = currentUser;
-                    await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
-                }
-            }
-            else if (new[] { "PURCHASE", "RECEIVE", "ADJUSTMENT" }.Contains(movementTypeUpper))
-            {
-                lot.AddStock(request.Quantity, request.Quantity, request.Reason);
-                lot.ModifiedBy = currentUser;
-                await _lotRepository.UpdateAsync(lot, cancellationToken);
+                    var movementTypeUpper = request.MovementType.ToUpper();
 
-                var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
-                    lot.PartId, lot.VariantId, lot.WarehouseId, cancellationToken);
-                if (stockLevel != null)
+                    if (new[] { "SALE", "DAMAGE", "RETURN" }.Contains(movementTypeUpper))
+                    {
+                        lot.RemoveStock(request.Quantity, baseQuantity, request.Reason);
+                        lot.ModifiedBy = currentUser;
+
+                        var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                            lot.PartId, lot.VariantId, lot.WarehouseId, cancellationToken);
+                        if (stockLevel != null)
+                        {
+                            stockLevel.RemoveStock(request.Quantity, baseQuantity,
+                                $"Lot movement {movementTypeUpper}: {request.Reason}");
+                            stockLevel.ModifiedBy = currentUser;
+                        }
+                    }
+                    else if (new[] { "RECEIPT", "ADJUSTMENT", "PURCHASE", "RECEIVE" }.Contains(movementTypeUpper))
+                    {
+                        lot.AddStock(request.Quantity, baseQuantity, request.Reason);
+                        lot.ModifiedBy = currentUser;
+
+                        var stockLevel = await _stockLevelRepository.GetByPartVariantAndWarehouseAsync(
+                            lot.PartId, lot.VariantId, lot.WarehouseId, cancellationToken);
+                        if (stockLevel != null)
+                        {
+                            stockLevel.AddStock(request.Quantity, baseQuantity,
+                                $"Lot movement {movementTypeUpper}: {request.Reason}");
+                            stockLevel.ModifiedBy = currentUser;
+                        }
+                    }
+
+                    created = StockLotMovement.Create(request.StockLotId, request.Quantity, request.MovementType,
+                        request.ReferenceId, request.ReferenceType, request.MovementDate, request.CostAtMovement,
+                        request.Reason, request.Notes, request.UnitId, baseQuantity, request.CostAtMovementInBaseUnit);
+                    created.CreatedBy = currentUser;
+                    created.ModifiedBy = currentUser;
+
+                    await _repository.AddAsync(created, cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
                 {
-                    stockLevel.AddStock(request.Quantity, request.Quantity,
-                        $"Lot movement {request.MovementType}: {request.Reason}");
-                    stockLevel.ModifiedBy = currentUser;
-                    await _stockLevelRepository.UpdateAsync(stockLevel, cancellationToken);
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
                 }
-            }
+            });
 
-            await _repository.AddAsync(movement, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = movement.Id }, await MapResponse(movement));
+            return CreatedAtAction(nameof(GetById), new { id = created!.Id }, await MapResponse(created));
         }
         catch (ArgumentException ex)
         {
@@ -279,7 +302,7 @@ public class StockLotMovementController : ControllerBase
     /// Maps a list without re-entering the DbContext per row.
     ///
     /// The previous form was Task.WhenAll(movements.Select(MapResponse)), which fired one lot
-    /// lookup per movement *concurrently* on the scoped DbContext — EF rejects that with
+    /// lookup per movement *concurrently* on the scoped DbContext ï¿½ EF rejects that with
     /// "A second operation was started on this context instance", so both list endpoints 500'd on
     /// any non-empty result. Resolving the distinct lots once also removes the N+1.
     /// </summary>
