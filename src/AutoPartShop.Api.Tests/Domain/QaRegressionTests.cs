@@ -293,7 +293,8 @@ public class SupplierPaymentReversalTests
 
         var ex = Assert.Throws<InvalidOperationException>(() => po.ReversePayment(200m));
 
-        Assert.Contains($"only $100.00", ex.Message);
+        Assert.Contains("only ", ex.Message);
+        Assert.Contains(100m.ToString("C"), ex.Message);
         Assert.Equal(100m, po.PaidAmount);
     }
 
