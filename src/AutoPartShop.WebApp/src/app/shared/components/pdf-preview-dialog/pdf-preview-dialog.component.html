@@ -9,7 +9,7 @@
   [header]="state()?.filename ?? ''"
   styleClass="pdf-preview-dialog">
   <div class="pdf-preview-body">
-    <iframe *ngIf="safeUrl as url" [src]="url" class="pdf-preview-frame" title="PDF preview"></iframe>
+    <iframe *ngIf="safeUrl() as url" [src]="url" class="pdf-preview-frame" title="PDF preview"></iframe>
   </div>
   <ng-template pTemplate="footer">
     <button pButton type="button" icon="pi pi-download" [label]="'pdfPreview.download' | translate" (click)="download()"></button>
