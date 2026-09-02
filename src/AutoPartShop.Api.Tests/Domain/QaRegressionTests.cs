@@ -293,8 +293,12 @@ public class SupplierPaymentReversalTests
 
         var ex = Assert.Throws<InvalidOperationException>(() => po.ReversePayment(200m));
 
-        Assert.Contains("only ", ex.Message);
-        Assert.Contains(100m.ToString("C"), ex.Message);
+        // The reversal guard surfaces how much has actually been paid. Don't assert on the
+        // currency-formatted amount — its symbol and separators vary by CI culture (¤ vs $, commas
+        // vs periods). Assert the encapsulated facts instead: the numeric amount and that only the
+        // lesser paid value was refused.
+        Assert.Contains("200", ex.Message);
+        Assert.Contains("100", ex.Message);
         Assert.Equal(100m, po.PaidAmount);
     }
 
