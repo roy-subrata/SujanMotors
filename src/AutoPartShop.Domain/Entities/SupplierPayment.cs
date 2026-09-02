@@ -240,6 +240,25 @@ public class SupplierPayment : AuditableEntity
         RemainingAmount -= amountUsed;
     }
 
+    /// <summary>
+    /// Restores balance to an ADVANCE payment when the REGULAR payment that consumed it is reversed
+    /// (the money comes back from the supplier, so the advance is available again). Opposite of
+    /// <see cref="ReduceRemainingAmount"/>.
+    /// </summary>
+    public void RestoreRemainingAmount(decimal amountRestored)
+    {
+        if (PaymentType != PaymentType.ADVANCE)
+            throw new InvalidOperationException("Only advance payments have remaining amounts");
+
+        if (amountRestored <= 0)
+            throw new ArgumentException("Amount restored must be greater than 0", nameof(amountRestored));
+
+        if (RemainingAmount + amountRestored > Amount)
+            throw new InvalidOperationException($"Cannot restore {amountRestored} to advance. Only {Amount - RemainingAmount} was consumed.");
+
+        RemainingAmount += amountRestored;
+    }
+
     public bool HasRemainingBalance()
     {
         return PaymentType == PaymentType.ADVANCE && RemainingAmount > 0;

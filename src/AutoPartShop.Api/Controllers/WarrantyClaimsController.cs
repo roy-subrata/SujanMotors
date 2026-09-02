@@ -542,12 +542,22 @@ public class WarrantyClaimsController : ControllerBase
             if (string.IsNullOrWhiteSpace(actor))
                 actor = "system";
 
-            // Don't let a repair be completed while the customer's item is still out at the manufacturer.
+            var claim = await _claimRepository.GetByIdAsync(id, cancellationToken);
+            if (claim == null)
+                return NotFound(new { message = "Warranty claim not found" });
+
+            // Don't let a claim be completed while the customer's item is still out at the
+            // manufacturer. REPAIR claims are tracked via send/receive events; REPLACEMENT claims
+            // via the defective-sent / replacement-received stock movements.
             if (await IsItemOutForRepairAsync(id, cancellationToken))
                 return BadRequest(new { message = "The item is still out for repair. Receive it back before completing the claim." });
 
+            if (claim.ServiceType.Equals("REPLACEMENT", StringComparison.OrdinalIgnoreCase) &&
+                await IsReplacementOutAtVendorAsync(claim.ClaimNumber, cancellationToken))
+                return BadRequest(new { message = "The defective item is still out at the vendor. Receive the replacement item before completing the claim." });
+
             // Fix #5: all stock movements, payments, and claim completion handled atomically in service
-            var claim = await _warrantyService.CompleteClaimAsync(
+            claim = await _warrantyService.CompleteClaimAsync(
                 claimId: id,
                 resolutionDetails: request.ResolutionDetails,
                 refundType: request.RefundType,
@@ -697,6 +707,12 @@ public class WarrantyClaimsController : ControllerBase
 
             if (!claim.ServiceType.Equals("REPLACEMENT", StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new { message = "Replacement receive tracking is only valid for replacement claims" });
+
+            // A replacement can only arrive while the claim is still actionable — receiving after the
+            // claim was completed/closed reverses stock that the completion already accounted for,
+            // and receiving before approval pre-empts a claim that may yet be rejected.
+            if (claim.Status != WarrantyClaimStatus.APPROVED && claim.Status != WarrantyClaimStatus.IN_PROGRESS)
+                return BadRequest(new { message = $"Replacement item can only be received on an approved or in-progress claim. Current status: {claim.Status}" });
 
             var warranty = await _warrantyRepository.GetByIdAsync(claim.WarrantyRegistrationId, cancellationToken);
             if (warranty == null)
@@ -1255,6 +1271,19 @@ public class WarrantyClaimsController : ControllerBase
     {
         var events = (await _claimEventRepository.GetByClaimIdAsync(claimId, cancellationToken)).ToList();
         return events.Count(e => e.EventType == "SENT_FOR_REPAIR") > events.Count(e => e.EventType == "RECEIVED_FROM_REPAIR");
+    }
+
+    /// <summary>
+    /// True when a replacement claim's defective item was sent to the vendor but the replacement
+    /// has not yet been received back. Mirrors <see cref="IsItemOutForRepairAsync"/> for the
+    /// replacement flow so the unit can't be completed while it is still out at the vendor.
+    /// </summary>
+    private async Task<bool> IsReplacementOutAtVendorAsync(string claimNumber, CancellationToken cancellationToken)
+    {
+        var movements = (await _stockMovementRepository.GetByReferenceNumberAsync(claimNumber, cancellationToken)).ToList();
+        var hasSentToVendor = movements.Any(m => m.Reason == WarrantyDefectiveSentToVendorReason);
+        var hasReplacementReceived = movements.Any(m => m.Reason == WarrantyReplacementReceivedFromVendorReason);
+        return hasSentToVendor && !hasReplacementReceived;
     }
 
     private async Task<List<WarrantyClaimResponse>> MapToResponsesWithLogisticsAsync(

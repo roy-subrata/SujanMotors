@@ -556,10 +556,24 @@ public class SalesOrderController : ControllerBase
                     // Confirm, then the order moves through READY_FOR_DELIVERY ? PAID ? PACKED ? SHIPPED �
                     // all of which are cancellable and still hold the deducted stock. Restoring only for
                     // "CONFIRMED" would leak inventory when a later-stage order is cancelled.
-                    var stockDeductedStatuses = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.PAID, SalesOrderStatus.PACKED, SalesOrderStatus.SHIPPED };
+                    var stockDeductedStatuses = new[] { SalesOrderStatus.CONFIRMED, SalesOrderStatus.READY_FOR_DELIVERY, SalesOrderStatus.PAID, SalesOrderStatus.PACKED, SalesOrderStatus.SHIPPED, SalesOrderStatus.PARTIALLY_SHIPPED };
                     if (stockDeductedStatuses.Contains(order.Status))
                     {
                         var lineIds = order.LineItems.Select(l => (Guid?)l.Id).ToList();
+
+                        // Return-aware restore: quantities already returned (and therefore re-stocked) via a
+                        // sales return on this line must not be restored a second time — that would double the
+                        // returned goods back onto the shelf when a partially-returned order is cancelled.
+                        var priorReturnedByLine = (await _dbContext.StockLotMovements
+                            .Where(m => m.MovementType == "RETURN"
+                                     && m.ReferenceType == "SalesOrderLine"
+                                     && m.ReferenceId != null
+                                     && lineIds.Contains(m.ReferenceId)
+                                     && !m.Isdeleted)
+                            .ToListAsync(cancellationToken))
+                            .GroupBy(m => m.ReferenceId!.Value)
+                            .ToDictionary(g => g.Key, g => g.Sum(m => m.QuantityInBaseUnit > 0 ? m.QuantityInBaseUnit : m.Quantity));
+
                         var lotMovements = await _dbContext.StockLotMovements
                             .Include(m => m.StockLot)
                             .Where(m => m.MovementType == "SALE"
@@ -573,13 +587,19 @@ public class SalesOrderController : ControllerBase
                         var levelRestores = new Dictionary<(Guid PartId, Guid? VariantId, Guid WarehouseId), int>();
                         foreach (var lm in lotMovements)
                         {
-                            if (lm.StockLot is null) continue;
-                            lm.StockLot.AddStock(lm.Quantity, lm.Quantity, $"Cancellation of SO {order.SONumber}");
+                            if (lm.StockLot is null || lm.ReferenceId is null) continue;
+
+                            var soldQtyBase = lm.QuantityInBaseUnit > 0 ? lm.QuantityInBaseUnit : lm.Quantity;
+                            var alreadyReturned = priorReturnedByLine.TryGetValue(lm.ReferenceId.Value, out var pulled) ? pulled : 0;
+                            var qtyToRestore = Math.Max(0, soldQtyBase - alreadyReturned);
+                            if (qtyToRestore <= 0) continue;
+
+                            lm.StockLot.AddStock(qtyToRestore, qtyToRestore, $"Cancellation of SO {order.SONumber}");
                             lm.StockLot.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                             var reversalLotMovement = StockLotMovement.Create(
                                 lm.StockLot.Id,
-                                lm.Quantity,
+                                qtyToRestore,
                                 "RETURN",
                                 lm.ReferenceId,
                                 lm.ReferenceType,
@@ -588,14 +608,14 @@ public class SalesOrderController : ControllerBase
                                 $"Cancellation of SO {order.SONumber}",
                                 "",
                                 lm.StockLot.UnitId,
-                                lm.Quantity,
+                                qtyToRestore,
                                 lm.CostAtMovementInBaseUnit > 0 ? lm.CostAtMovementInBaseUnit : lm.CostAtMovement);
                             reversalLotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
                             reversalLotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                             await _dbContext.StockLotMovements.AddAsync(reversalLotMovement, cancellationToken);
 
                             var key = (lm.StockLot.PartId, lm.StockLot.VariantId, lm.StockLot.WarehouseId);
-                            levelRestores[key] = levelRestores.GetValueOrDefault(key) + lm.Quantity;
+                            levelRestores[key] = levelRestores.GetValueOrDefault(key) + qtyToRestore;
                         }
 
                         // Restore the aggregate stock level for each affected (part, variant, warehouse)
@@ -620,19 +640,41 @@ public class SalesOrderController : ControllerBase
                         }
                     }
 
-                    // Cancel the invoice if it hasn't been paid
+                    // Cancel the invoice if it hasn't been paid. Balance is only ever charged at invoice
+                    // ISSUE (never at DRAFT), so capture whether this invoice had been issued before
+                    // we cancel it — we must not "credit back" a balance that was never charged.
                     var invoice = await _dbContext.Invoices
                         .Include(i => i.CustomerPayments)
                         .FirstOrDefaultAsync(i => i.SalesOrderId == order.Id && !i.Isdeleted, cancellationToken);
 
-                    if (invoice is not null && invoice.Status is not (InvoiceStatus.PAID or InvoiceStatus.PARTIALLY_PAID or InvoiceStatus.CANCELLED))
+                    if (invoice is not null && invoice.Status is (InvoiceStatus.PAID or InvoiceStatus.PARTIALLY_PAID))
+                        throw new InvalidOperationException(
+                            "Cannot cancel an order with a paid invoice. Cancel the invoice (and refund its completed payments) or process a sales return instead.");
+
+                    var wasChargedToBalance = invoice is { Status: InvoiceStatus.ISSUED };
+
+                    if (invoice is not null && invoice.Status is not (InvoiceStatus.DRAFT or InvoiceStatus.ISSUED or InvoiceStatus.CANCELLED))
+                        throw new InvalidOperationException($"Cannot cancel an order with an invoice in state {invoice.Status}");
+
+                    if (invoice is not null)
                     {
+                        // Pending payments were never completed, so they never moved the customer balance
+                        // or the sales-order paid amount — cancelling the rows is sufficient.
+                        foreach (var payment in invoice.CustomerPayments
+                            .Where(p => p.Status is CustomerPaymentStatus.PENDING or CustomerPaymentStatus.PROCESSING or CustomerPaymentStatus.FAILED)
+                            .ToList())
+                        {
+                            if (payment.Status is CustomerPaymentStatus.PENDING or CustomerPaymentStatus.PROCESSING)
+                                payment.Cancel();
+                            payment.ModifiedBy = _currentUserService.GetCurrentUsername();
+                        }
+
                         invoice.Cancel("Sales order cancelled");
                         invoice.ModifiedBy = _currentUserService.GetCurrentUsername();
                     }
 
                     // Credit customer balance back if balance was charged (i.e. invoice was ISSUED)
-                    if (invoice is { Status: InvoiceStatus.CANCELLED } && order.CustomerId != Guid.Empty)
+                    if (wasChargedToBalance && invoice is { Status: InvoiceStatus.CANCELLED } && order.CustomerId != Guid.Empty)
                     {
                         var grandTotal = invoice.BaseGrandTotal ?? invoice.GrandTotal;
                         if (grandTotal > 0)
@@ -649,8 +691,9 @@ public class SalesOrderController : ControllerBase
 
                     order.Cancel();
 
-                    // Reverse TotalPurchaseAmount on the customer for this cancelled order
-                    if (order.CustomerId != Guid.Empty)
+                    // Reverse TotalPurchaseAmount on the customer only for orders whose sale was actually
+                    // recorded (invoice had been issued — DRAFT invoices never recorded a purchase).
+                    if (wasChargedToBalance && order.CustomerId != Guid.Empty)
                     {
                         var custForReverse = await _customerRepository.GetByIdAsync(order.CustomerId, cancellationToken);
                         if (custForReverse is not null)
@@ -756,6 +799,8 @@ public class SalesOrderController : ControllerBase
                                     .FirstOrDefaultAsync(sl =>
                                         sl.Id == alloc.StockLotId &&
                                         sl.WarehouseId == warehouseId &&
+                                        sl.Status == StockLotStatus.AVAILABLE &&
+                                        sl.IsActive &&
                                         !sl.Isdeleted, cancellationToken);
 
                                 if (lot == null)
@@ -778,14 +823,19 @@ public class SalesOrderController : ControllerBase
                         }
                         else
                         {
-                            // FIFO — oldest lot first (expiry date, then receipt date), scoped to the variant
+                            // FIFO — oldest lot first (expiry date, then receipt date), scoped to the variant.
+                            // Only AVAILABLE + active lots are sellable; DAMAGED/QUARANTINE/deactivated lots
+                            // (e.g. from a reversed GRN) must never be consumed by a sale. FEFO first: lots
+                            // with no expiry are never sold before lots that are about to expire.
                             var stockLots = await _dbContext.StockLots
                                 .Where(sl => sl.PartId == line.PartId &&
                                             sl.VariantId == line.ProductVariantId &&
                                             sl.WarehouseId == warehouseId &&
+                                            sl.Status == StockLotStatus.AVAILABLE &&
+                                            sl.IsActive &&
                                             sl.QuantityAvailableInBaseUnit > 0 &&
                                             !sl.Isdeleted)
-                                .OrderBy(sl => sl.ExpiryDate)
+                                .OrderBy(sl => sl.ExpiryDate == null ? DateTime.MaxValue : sl.ExpiryDate)
                                 .ThenBy(sl => sl.CreatedDate)
                                 .ToListAsync(cancellationToken);
 
@@ -1003,7 +1053,10 @@ public class SalesOrderController : ControllerBase
                             var customer = await _customerRepository.GetByIdAsync(order.CustomerId, cancellationToken);
                             if (customer != null)
                             {
-                                customer.UpdateBalance(invoice.BaseGrandTotal ?? invoice.GrandTotal);
+                                var purchasedAmount = invoice.BaseGrandTotal ?? invoice.GrandTotal;
+                                customer.UpdateBalance(purchasedAmount);
+                                if (purchasedAmount > 0)
+                                    customer.RecordPurchase(purchasedAmount, invoice.InvoiceDate);
                                 customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                                 // GetByIdAsync uses AsNoTracking — must attach explicitly so
                                 // SaveChangesAsync persists the balance change.
@@ -1483,7 +1536,13 @@ public class SalesOrderController : ControllerBase
 
                     inv.Issue();
                     inv.ModifiedBy = _currentUserService.GetCurrentUsername();
-                    cust.UpdateBalance(inv.BaseGrandTotal ?? inv.GrandTotal);
+                    var purchasedAmount = inv.BaseGrandTotal ?? inv.GrandTotal;
+                    cust.UpdateBalance(purchasedAmount);
+                    // An issued invoice is a completed sale — feed the customer's purchase history
+                    // (TotalPurchaseAmount + LastPurchaseDate) that ReverseRecordPurchase later draws
+                    // down on cancellation/return.
+                    if (purchasedAmount > 0)
+                        cust.RecordPurchase(purchasedAmount, inv.InvoiceDate);
                     cust.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                     await _invoiceRepository.UpdateAsync(inv, cancellationToken);
@@ -1713,6 +1772,19 @@ public class SalesOrderController : ControllerBase
                         // are exactly the DELIVERED/COMPLETED orders this block now covers.
                         var lineIds = salesOrder.LineItems.Select(l => (Guid?)l.Id).ToList();
                         var orderId = (Guid?)salesOrder.Id;
+
+                        // Return-aware restore for the sales-order route: quantities already returned (and
+                        // re-stocked) by a sales return on a line must not be restored a second time.
+                        var priorReturnedByLine = (await _dbContext.StockLotMovements
+                            .Where(m => m.MovementType == "RETURN"
+                                     && m.ReferenceType == "SalesOrderLine"
+                                     && m.ReferenceId != null
+                                     && lineIds.Contains(m.ReferenceId)
+                                     && !m.Isdeleted)
+                            .ToListAsync(cancellationToken))
+                            .GroupBy(m => m.ReferenceId!.Value)
+                            .ToDictionary(g => g.Key, g => g.Sum(m => m.QuantityInBaseUnit > 0 ? m.QuantityInBaseUnit : m.Quantity));
+
                         var lotMovements = await _dbContext.StockLotMovements
                             .Include(m => m.StockLot)
                             .Where(m => m.MovementType == "SALE"
@@ -1726,12 +1798,21 @@ public class SalesOrderController : ControllerBase
                         foreach (var lm in lotMovements)
                         {
                             if (lm.StockLot is null) continue;
-                            lm.StockLot.AddStock(lm.Quantity, lm.Quantity, $"Invoice cancellation {invoice.InvoiceNumber}");
+
+                            var qtyToRestore = lm.QuantityInBaseUnit > 0 ? lm.QuantityInBaseUnit : lm.Quantity;
+                            if (lm.ReferenceType == "SalesOrderLine" && lm.ReferenceId is Guid lineId2
+                                && priorReturnedByLine.TryGetValue(lineId2, out var alreadyPulled))
+                            {
+                                qtyToRestore = Math.Max(0, qtyToRestore - alreadyPulled);
+                            }
+                            if (qtyToRestore <= 0) continue;
+
+                            lm.StockLot.AddStock(qtyToRestore, qtyToRestore, $"Invoice cancellation {invoice.InvoiceNumber}");
                             lm.StockLot.ModifiedBy = _currentUserService.GetCurrentUsername();
 
                             var reversalLotMovement = StockLotMovement.Create(
                                 lm.StockLot.Id,
-                                lm.Quantity,
+                                qtyToRestore,
                                 "RETURN",
                                 lm.ReferenceId,
                                 lm.ReferenceType,
@@ -1740,14 +1821,14 @@ public class SalesOrderController : ControllerBase
                                 $"Invoice cancellation {invoice.InvoiceNumber}",
                                 "",
                                 lm.StockLot.UnitId,
-                                lm.Quantity,
+                                qtyToRestore,
                                 lm.CostAtMovementInBaseUnit > 0 ? lm.CostAtMovementInBaseUnit : lm.CostAtMovement);
                             reversalLotMovement.CreatedBy = _currentUserService.GetCurrentUsername();
                             reversalLotMovement.ModifiedBy = _currentUserService.GetCurrentUsername();
                             await _dbContext.StockLotMovements.AddAsync(reversalLotMovement, cancellationToken);
 
                             var key = (lm.StockLot.PartId, lm.StockLot.VariantId, lm.StockLot.WarehouseId);
-                            levelRestores[key] = levelRestores.GetValueOrDefault(key) + lm.Quantity;
+                            levelRestores[key] = levelRestores.GetValueOrDefault(key) + qtyToRestore;
                         }
 
                         foreach (var (key, restoreQty) in levelRestores)
@@ -1780,7 +1861,12 @@ public class SalesOrderController : ControllerBase
                         var customer = await _customerRepository.GetByIdAsync(salesOrder.CustomerId, cancellationToken);
                         if (customer is not null)
                         {
-                            customer.UpdateBalance(-(invoice.BaseGrandTotal ?? invoice.GrandTotal));
+                            var reversedAmount = invoice.BaseGrandTotal ?? invoice.GrandTotal;
+                            customer.UpdateBalance(-reversedAmount);
+                            // Reverse the purchase recorded when this invoice was issued so the
+                            // customer's TotalPurchaseAmount stays consistent with their live sales.
+                            if (reversedAmount > 0)
+                                customer.ReverseRecordPurchase(reversedAmount);
                             customer.ModifiedBy = _currentUserService.GetCurrentUsername();
                             await _customerRepository.UpdateAsync(customer, cancellationToken);
                         }
@@ -2193,7 +2279,12 @@ public class SalesOrderController : ControllerBase
         decimal unitPrice,
         CancellationToken cancellationToken)
     {
-        if (part.UnitId is null)
+        // Stock is always tracked in the part's BASE unit, so a sale quantity expressed in a
+        // display unit must be converted to BaseUnitId (not UnitId). When UnitId == BaseUnitId
+        // the factor is 1 and this is a no-op; when they differ this keeps sales consumption
+        // consistent with GRN reception, which also posts stock in BaseUnitId.
+        var stockBaseUnit = part.BaseUnitId ?? part.UnitId;
+        if (stockBaseUnit is null)
         {
             return (quantity, unitId, unitPrice);
         }
@@ -2203,14 +2294,14 @@ public class SalesOrderController : ControllerBase
             return (quantity, part.UnitId, unitPrice);
         }
 
-        if (unitId.Value == part.UnitId.Value)
+        if (unitId.Value == stockBaseUnit.Value)
         {
             return (quantity, unitId, unitPrice);
         }
 
         try
         {
-            var conversionFactor = await _unitConversionService.GetConversionFactorAsync(unitId.Value, part.UnitId.Value);
+            var conversionFactor = await _unitConversionService.GetConversionFactorAsync(unitId.Value, stockBaseUnit.Value);
             if (conversionFactor <= 0)
                 throw new InvalidOperationException("Invalid unit conversion factor.");
 
@@ -2619,7 +2710,10 @@ public class SalesOrderController : ControllerBase
                         var customerForBalance = await _customerRepository.GetByIdAsync(request.CustomerId.Value, cancellationToken);
                         if (customerForBalance != null)
                         {
-                            customerForBalance.UpdateBalance(invoice.BaseGrandTotal ?? invoice.GrandTotal);
+                            var purchasedAmount = invoice.BaseGrandTotal ?? invoice.GrandTotal;
+                            customerForBalance.UpdateBalance(purchasedAmount);
+                            if (purchasedAmount > 0)
+                                customerForBalance.RecordPurchase(purchasedAmount, invoice.InvoiceDate);
                             if (advancePaymentAmount > 0)
                                 customerForBalance.UpdateBalance(-advancePaymentAmount);
 

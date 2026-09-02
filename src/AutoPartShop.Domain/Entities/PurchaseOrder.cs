@@ -7,6 +7,9 @@ namespace AutoPartShop.Domain.Entities;
 /// </summary>
 public class PurchaseOrder : AuditableEntity
 {
+    /// <summary>Optimistic-concurrency token (SQL Server rowversion).</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public string PONumber { get; private set; } = string.Empty;  // Unique PO number
     public Guid SupplierId { get; private set; }
     public Guid? WarehouseId { get; private set; }  // Expected delivery warehouse
@@ -175,6 +178,27 @@ public class PurchaseOrder : AuditableEntity
     }
 
     /// <summary>
+    /// Reverses a payment that was applied to this PO (e.g. a supplier payment that was later sent
+    /// back). Opposite of <see cref="RecordPayment"/> — restores the still-owed balance and recomputes
+    /// the payment status so a fully-paid order correctly drops back to PARTIAL/PENDING on reversal.
+    /// </summary>
+    public void ReversePayment(decimal amount)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("Reversal amount must be greater than 0", nameof(amount));
+
+        if (amount > PaidAmount)
+            throw new InvalidOperationException($"Cannot reverse {amount:C} — only {PaidAmount:C} has been paid on {PONumber}");
+
+        PaidAmount -= amount;
+        PaymentStatus = PaidAmount + CreditAppliedAmount >= TotalAmount
+            ? PurchaseOrderPaymentStatus.PAID
+            : PaidAmount + CreditAppliedAmount > 0
+                ? PurchaseOrderPaymentStatus.PARTIAL
+                : PurchaseOrderPaymentStatus.PENDING;
+    }
+
+    /// <summary>
     /// Apply credit note amount to this purchase order
     /// </summary>
     public void ApplyCredit(decimal amount)
@@ -261,6 +285,34 @@ public class PurchaseOrder : AuditableEntity
         return poLine.Quantity - accepted - inFlight;
     }
 
+    /// <summary>
+    /// Base-unit equivalent of <see cref="GetOutstandingQuantity"/>. Stock is tracked in the part's
+    /// BASE unit (QuantityInBaseUnit / *_InBaseUnit columns), so over-receipt guards comparing a GRN's
+    /// received quantity against what is still due must run in base units too — otherwise a PO line
+    /// ordered in boxes is judged against a received quantity expressed in pieces (or vice-versa).
+    /// </summary>
+    public int GetOutstandingQuantityInBaseUnit(Guid purchaseOrderLineId, Guid? excludeGoodsReceiptId = null)
+    {
+        var poLine = LineItems.FirstOrDefault(l => l.Id == purchaseOrderLineId);
+        if (poLine is null)
+            return 0;
+
+        var acceptedBase = GoodsReceipts
+            .Where(gr => gr.Status == GoodsReceiptStatus.ACCEPTED)
+            .SelectMany(gr => gr.LineItems)
+            .Where(grl => grl.PurchaseOrderLineId == purchaseOrderLineId)
+            .Sum(grl => grl.AcceptedQuantityInBaseUnit);
+
+        var inFlightBase = GoodsReceipts
+            .Where(gr => (gr.Status == GoodsReceiptStatus.PENDING || gr.Status == GoodsReceiptStatus.VERIFIED)
+                && gr.Id != (excludeGoodsReceiptId ?? Guid.Empty))
+            .SelectMany(gr => gr.LineItems)
+            .Where(grl => grl.PurchaseOrderLineId == purchaseOrderLineId)
+            .Sum(grl => grl.ReceivedQuantityInBaseUnit);
+
+        return poLine.QuantityInBaseUnit - acceptedBase - inFlightBase;
+    }
+
     public void UpdateNotes(string notes)
     {
         Notes = notes?.Trim() ?? string.Empty;
@@ -314,6 +366,32 @@ public class PurchaseOrder : AuditableEntity
     public PurchaseOrderLine? GetLineItem(Guid lineItemId)
     {
         return LineItems.FirstOrDefault(l => l.Id == lineItemId);
+    }
+
+    /// <summary>
+    /// Sets the expected delivery warehouse. Only allowed while the PO is still a draft — once a
+    /// warehouse is fixed by an accepted goods receipt the PO's expectation should not silently move,
+    /// otherwise manual purchase returns resolve against the wrong stock level.
+    /// </summary>
+    public void UpdateWarehouse(Guid? warehouseId)
+    {
+        if (Status != PurchaseOrderStatus.DRAFT)
+            throw new InvalidOperationException($"Can only change the expected delivery warehouse on draft POs. Current status: {Status}");
+
+        WarehouseId = warehouseId;
+    }
+
+    /// <summary>
+    /// Updates a PO line's received quantity after goods are returned to the supplier, freeing the
+    /// returned units for re-receiving (GetOutstandingQuantity/UpdateReceiptStatus) instead of leaving
+    /// them counted as received-forever on the order.
+    /// </summary>
+    public void ReduceReceivedQuantityForReturn(Guid purchaseOrderLineId, int quantity, int quantityInBaseUnit)
+    {
+        var poLine = LineItems.FirstOrDefault(l => l.Id == purchaseOrderLineId);
+        if (poLine is null)
+            throw new InvalidOperationException($"PO line {purchaseOrderLineId} not found on order {PONumber}");
+        poLine.ReduceReceivedQuantityForReturn(quantity, quantityInBaseUnit);
     }
 
     /// <summary>

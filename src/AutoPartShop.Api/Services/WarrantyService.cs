@@ -536,6 +536,12 @@ public class WarrantyService(
         }
         else
         {
+            // A store credit is a rebate of money the customer handed over — never more than they
+            // actually paid on the order, or the credit pays for something that was never settled.
+            if (effectiveRefundAmount > salesOrder.PaidAmount)
+                throw new InvalidOperationException(
+                    $"Store credit ({effectiveRefundAmount}) cannot exceed the amount the customer actually paid ({salesOrder.PaidAmount}). Reduce the credit to the paid amount.");
+
             var creditNote = CustomerCreditNote.Create(
                 creditNoteNumber: $"CN-WAR-{claim.ClaimNumber}",
                 customerId: claim.CustomerId,

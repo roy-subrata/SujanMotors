@@ -11,6 +11,7 @@ using AutoPartShop.Domain.Enums.HR;
 using AutoPartShop.Domain.Repositories.HR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
 namespace AutoPartShop.Api.Controllers.HR;
@@ -32,6 +33,7 @@ public class PayrollController : ControllerBase
     private readonly INotificationService _notificationService;
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly AutoPartDbContext _dbContext;
     private readonly ILogger<PayrollController> _logger;
 
     public PayrollController(
@@ -43,6 +45,7 @@ public class PayrollController : ControllerBase
         INotificationService notificationService,
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
+        AutoPartDbContext dbContext,
         ILogger<PayrollController> logger)
     {
         _payrollRepository = payrollRepository;
@@ -53,6 +56,7 @@ public class PayrollController : ControllerBase
         _notificationService = notificationService;
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -105,68 +109,96 @@ public class PayrollController : ControllerBase
                 return BadRequest(new { message = "Cannot generate payroll for a future month" });
 
             var currentUser = _currentUserService.GetCurrentUsername();
-            var existing = await _payrollRepository.GetByYearMonthAsync(request.Year, request.Month, includePayslips: true, cancellationToken);
 
-            PayrollRun run;
-            if (existing is not null)
+            // The whole run (new run row + payslips, or regenerated slips replacing the draft) is
+            // written in ONE transaction. Previously the run was INSERTed before the payslips were
+            // even computed, so a mid-generation failure left a half-owned orphan DRAFT run behind.
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            PayrollRun? result = null;
+            await strategy.ExecuteAsync(async () =>
             {
-                if (existing.Status != PayrollRunStatus.DRAFT)
-                    return BadRequest(new { message = $"Payroll for {request.Year}-{request.Month:D2} is already {existing.Status}" });
+                await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // Reload inside the lambda so a retried attempt computes from the committed
+                    // baseline instead of a mutated in-memory graph from the failed attempt.
+                    _dbContext.ChangeTracker.Clear();
+                    var run = await _payrollRepository.GetByYearMonthAsync(
+                        request.Year, request.Month, includePayslips: true, cancellationToken);
 
-                // Regenerate: drop existing draft payslips
-                foreach (var slip in existing.Payslips)
-                    slip.Isdeleted = true;
-                run = existing;
-            }
-            else
-            {
-                var runCode = await _codeGenerateService.GenerateAsync("PAY", cancellationToken);
-                run = PayrollRun.Create(runCode, request.Year, request.Month, request.Notes);
-                run.CreatedBy = currentUser;
-                run.ModifiedBy = currentUser;
-                await _payrollRepository.AddAsync(run, cancellationToken);
-            }
+                    if (run != null && run.Status != PayrollRunStatus.DRAFT)
+                        throw new InvalidOperationException($"Payroll for {request.Year}-{request.Month:D2} is already {run.Status}");
 
-            var employees = (await _employeeRepository.GetByStatusAsync(EmployeeStatus.ACTIVE, cancellationToken)).ToList();
-            if (employees.Count == 0)
-                return BadRequest(new { message = "No active employees to run payroll for" });
+                    PayrollRun target;
+                    if (run is not null)
+                    {
+                        // Regenerate: drop existing draft payslips
+                        foreach (var slip in run.Payslips)
+                            slip.Isdeleted = true;
+                        target = run;
+                    }
+                    else
+                    {
+                        var runCode = await _codeGenerateService.GenerateAsync("PAY", cancellationToken);
+                        target = PayrollRun.Create(runCode, request.Year, request.Month, request.Notes);
+                        target.CreatedBy = currentUser;
+                        target.ModifiedBy = currentUser;
+                    }
 
-            var summary = await _attendanceReadRepository.GetMonthlySummary(request.Year, request.Month, cancellationToken);
-            var outstandingAdvances = await _salaryAdvanceRepository.GetOutstandingTotalsAsync(cancellationToken);
-            var salesTotals = await _hrSalesReadRepository.GetMonthlySalesTotalsByEmployee(request.Year, request.Month, cancellationToken);
-            var daysInMonth = DateTime.DaysInMonth(request.Year, request.Month);
+                    var employees = (await _employeeRepository.GetByStatusAsync(EmployeeStatus.ACTIVE, cancellationToken)).ToList();
+                    if (employees.Count == 0)
+                        throw new InvalidOperationException("No active employees to run payroll for");
 
-            var newPayslips = new List<Payslip>();
-            foreach (var employee in employees)
-            {
-                var att = summary.FirstOrDefault(s => s.EmployeeId == employee.Id);
-                var payslip = Payslip.Create(
-                    run.Id, employee, daysInMonth,
-                    att?.PresentDays ?? 0,
-                    att?.LateDays ?? 0,
-                    att?.HalfDays ?? 0,
-                    att?.AbsentDays ?? 0,
-                    att?.LeaveDays ?? 0,
-                    att?.HolidayDays ?? 0);
+                    var summary = await _attendanceReadRepository.GetMonthlySummary(request.Year, request.Month, cancellationToken);
+                    var outstandingAdvances = await _salaryAdvanceRepository.GetOutstandingTotalsAsync(cancellationToken);
+                    var salesTotals = await _hrSalesReadRepository.GetMonthlySalesTotalsByEmployee(request.Year, request.Month, cancellationToken);
+                    var daysInMonth = DateTime.DaysInMonth(request.Year, request.Month);
 
-                payslip.ApplyGeneratedFigures(
-                    advanceDeduction: outstandingAdvances.GetValueOrDefault(employee.Id),
-                    taxDeduction: employee.MonthlyTaxDeduction,
-                    monthlySalesTotal: salesTotals.GetValueOrDefault(employee.Id),
-                    commissionRate: employee.CommissionRate);
+                    var newPayslips = new List<Payslip>();
+                    foreach (var employee in employees)
+                    {
+                        var att = summary.FirstOrDefault(s => s.EmployeeId == employee.Id);
+                        var payslip = Payslip.Create(
+                            target.Id, employee, daysInMonth,
+                            att?.PresentDays ?? 0,
+                            att?.LateDays ?? 0,
+                            att?.HalfDays ?? 0,
+                            att?.AbsentDays ?? 0,
+                            att?.LeaveDays ?? 0,
+                            att?.HolidayDays ?? 0);
 
-                payslip.CreatedBy = currentUser;
-                payslip.ModifiedBy = currentUser;
-                run.Payslips.Add(payslip);
-                newPayslips.Add(payslip);
-            }
+                        payslip.ApplyGeneratedFigures(
+                            advanceDeduction: outstandingAdvances.GetValueOrDefault(employee.Id),
+                            taxDeduction: employee.MonthlyTaxDeduction,
+                            monthlySalesTotal: salesTotals.GetValueOrDefault(employee.Id),
+                            commissionRate: employee.CommissionRate);
 
-            run.RecalculateTotals();
-            run.ModifiedBy = currentUser;
-            await _payrollRepository.SaveGeneratedAsync(run, newPayslips, cancellationToken);
+                        payslip.CreatedBy = currentUser;
+                        payslip.ModifiedBy = currentUser;
+                        target.Payslips.Add(payslip);
+                        newPayslips.Add(payslip);
+                    }
 
-            var fresh = await _payrollRepository.GetByIdAsync(run.Id, includePayslips: true, cancellationToken);
+                    target.RecalculateTotals();
+                    target.ModifiedBy = currentUser;
+                    await _payrollRepository.SaveGeneratedAsync(target, newPayslips, cancellationToken);
+
+                    await tx.CommitAsync(cancellationToken);
+                    result = target;
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            var fresh = await _payrollRepository.GetByIdAsync(result!.Id, includePayslips: true, cancellationToken);
             return Ok(MapRun(fresh!, includePayslips: true));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (ArgumentException ex)
         {

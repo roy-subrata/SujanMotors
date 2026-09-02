@@ -6,6 +6,7 @@ namespace AutoPartShop.Application.DTOs.PurchaseOrderDtos;
 public class UpdatePurchaseOrderRequest
 {
     public Guid SupplierId { get; set; }
+    public Guid? WarehouseId { get; set; }  // Expected delivery warehouse — used to resolve stock levels for manual purchase returns
     public DateTime DeliveryDate { get; set; }
     public decimal TaxPercentage { get; set; } = 0;
     public decimal DiscountPercentage { get; set; } = 0;

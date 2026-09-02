@@ -92,10 +92,13 @@ public class PricingController : ControllerBase
 
     private async Task<decimal> NormalizeUnitPriceAsync(Product part, decimal unitPrice, Guid? unitId, CancellationToken cancellationToken)
     {
-        if (part.UnitId is null || unitId is null || unitId.Value == part.UnitId.Value)
+        // Pricing validations are expressed in the part's stock base unit so they agree with the
+        // quantities recorded at sale time (BaseUnitId is the stock accounting unit).
+        var stockBaseUnit = part.BaseUnitId ?? part.UnitId;
+        if (stockBaseUnit is null || unitId is null || unitId.Value == stockBaseUnit.Value)
             return unitPrice;
 
-        var conversionFactor = await _unitConversionService.GetConversionFactorAsync(unitId.Value, part.UnitId.Value);
+        var conversionFactor = await _unitConversionService.GetConversionFactorAsync(unitId.Value, stockBaseUnit.Value);
         if (conversionFactor <= 0)
             throw new InvalidOperationException("Invalid unit conversion factor.");
 

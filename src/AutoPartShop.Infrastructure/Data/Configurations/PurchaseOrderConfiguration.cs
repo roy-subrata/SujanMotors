@@ -12,6 +12,8 @@ namespace AutoPartsShop.Infrastructure.Data.Configurations
 
             builder.HasKey(p => p.Id);
 
+            builder.Property(p => p.RowVersion).IsRowVersion();
+
             builder.Property(p => p.PONumber)
                 .IsRequired()
                 .HasMaxLength(50);

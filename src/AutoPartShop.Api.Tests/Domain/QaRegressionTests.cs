@@ -241,3 +241,176 @@ public class SalaryAdvanceApprovalTests
         Assert.Throws<InvalidOperationException>(() => advance.Recover(1000m, Guid.NewGuid()));
     }
 }
+
+/// <summary>
+/// Pins the supplier-payment reversal path (fix #11): a REGULAR payment sent back to us must undo
+/// the PO's paid amount exactly, and an ADVANCE consumed by that payment must have its balance
+/// restored — never beyond what was consumed, and never on a REGULAR payment.
+/// </summary>
+public class SupplierPaymentReversalTests
+{
+    private static SupplierPayment NewAdvance() =>
+        SupplierPayment.Create(Guid.NewGuid(), Guid.NewGuid(), 5000m, "CASH");
+
+    [Fact]
+    public void ReversePayment_DropsAPaidOrderBackToPartial()
+    {
+        var po = PurchaseOrder.Create("PO-REV-1", Guid.NewGuid(), null, DateTime.UtcNow.AddDays(7));
+        po.SyncLineItems([new LineItemData(null, Guid.NewGuid(), null, 10, 100m, null, 0)]);
+        po.CalculateTotal();
+
+        po.RecordPayment(1000m);
+        Assert.Equal(PurchaseOrderPaymentStatus.PAID, po.PaymentStatus);
+        Assert.Equal(1000m, po.PaidAmount);
+
+        po.ReversePayment(400m);
+
+        Assert.Equal(600m, po.PaidAmount);
+        Assert.Equal(PurchaseOrderPaymentStatus.PARTIAL, po.PaymentStatus);
+    }
+
+    [Fact]
+    public void ReversePayment_DropsDownToPendingWhenNothingRemainsPaid()
+    {
+        var po = PurchaseOrder.Create("PO-REV-2", Guid.NewGuid(), null, DateTime.UtcNow.AddDays(7));
+        po.SyncLineItems([new LineItemData(null, Guid.NewGuid(), null, 10, 100m, null, 0)]);
+        po.CalculateTotal();
+
+        po.RecordPayment(300m);
+        po.ReversePayment(300m);
+
+        Assert.Equal(0m, po.PaidAmount);
+        Assert.Equal(PurchaseOrderPaymentStatus.PENDING, po.PaymentStatus);
+    }
+
+    [Fact]
+    public void ReversePayment_IsRefusedBeyondWhatWasPaid()
+    {
+        var po = PurchaseOrder.Create("PO-REV-3", Guid.NewGuid(), null, DateTime.UtcNow.AddDays(7));
+        po.SyncLineItems([new LineItemData(null, Guid.NewGuid(), null, 10, 100m, null, 0)]);
+        po.CalculateTotal();
+        po.RecordPayment(100m);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => po.ReversePayment(200m));
+
+        Assert.Contains($"only $100.00", ex.Message);
+        Assert.Equal(100m, po.PaidAmount);
+    }
+
+    [Fact]
+    public void ReversePayment_IsRefusedForNonPositiveAmounts()
+    {
+        var po = PurchaseOrder.Create("PO-REV-4", Guid.NewGuid(), null, DateTime.UtcNow.AddDays(7));
+        po.SyncLineItems([new LineItemData(null, Guid.NewGuid(), null, 10, 100m, null, 0)]);
+        po.CalculateTotal();
+
+        Assert.Throws<ArgumentException>(() => po.ReversePayment(0m));
+    }
+
+    [Fact]
+    public void RestoreRemainingAmount_PutsConsumedBalanceBackOnTheAdvance()
+    {
+        var advance = NewAdvance();
+        advance.MarkAsAdvance();
+        advance.ReduceRemainingAmount(2000m);
+
+        advance.RestoreRemainingAmount(1500m);
+
+        Assert.Equal(4500m, advance.RemainingAmount);
+    }
+
+    [Fact]
+    public void RestoreRemainingAmount_IsRefusedBeyondWhatWasConsumed()
+    {
+        var advance = NewAdvance();
+        advance.MarkAsAdvance();
+        advance.ReduceRemainingAmount(2000m);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => advance.RestoreRemainingAmount(5001m));
+
+        Assert.Contains("consumed", ex.Message);
+        Assert.Equal(3000m, advance.RemainingAmount);
+    }
+
+    [Fact]
+    public void RestoreRemainingAmount_IsRefusedOnRegularPayments()
+    {
+        var regular = SupplierPayment.Create(Guid.NewGuid(), Guid.NewGuid(), 500m, "CASH");
+        regular.MarkAsRegular();
+
+        Assert.Throws<InvalidOperationException>(() => regular.RestoreRemainingAmount(100m));
+    }
+
+    [Fact]
+    public void MarkAsReturned_IsOnlyReachableFromCompleted()
+    {
+        var payment = SupplierPayment.Create(Guid.NewGuid(), Guid.NewGuid(), 500m, "CASH");
+
+        Assert.Throws<InvalidOperationException>(() => payment.MarkAsReturned());
+
+        payment.MarkAsProcessed("cashier");
+        payment.MarkAsReturned();
+
+        Assert.Equal(SupplierPaymentStatus.RETURNED, payment.Status);
+    }
+}
+
+/// <summary>
+/// Pins the purchase-return write-back (fix #10): returning goods to the supplier must reduce the
+/// PO line's received count so the units can be re-received, and the warehouse that manual returns
+/// resolve to can only be fixed on a DRAFT PO.
+/// </summary>
+public class PurchaseReturnWritebackTests
+{
+    private static (PurchaseOrder po, PurchaseOrderLine line) PoWithReceivedLine(int quantity, int quantityInBaseUnit, int received, int receivedInBase)
+    {
+        var po = PurchaseOrder.Create($"PO-RTN-{Guid.NewGuid():N}", Guid.NewGuid(), null, DateTime.UtcNow.AddDays(7));
+        po.SyncLineItems([new LineItemData(null, Guid.NewGuid(), null, quantity, 100m, null, quantityInBaseUnit)]);
+        var line = po.LineItems.First();
+        line.UpdateReceivedQuantity(received, receivedInBase);
+        return (po, line);
+    }
+
+    [Fact]
+    public void ReduceReceivedQuantityForReturn_FreesUpTheReceivedAmount()
+    {
+        var (po, line) = PoWithReceivedLine(quantity: 10, quantityInBaseUnit: 120, received: 10, receivedInBase: 120);
+
+        po.ReduceReceivedQuantityForReturn(line.Id, 4, 48);
+
+        Assert.Equal(6, line.ReceivedQuantity);
+        Assert.Equal(72, line.ReceivedQuantityInBaseUnit);
+    }
+
+    [Fact]
+    public void ReduceReceivedQuantityForReturn_ClampsAtZero()
+    {
+        var (po, line) = PoWithReceivedLine(quantity: 10, quantityInBaseUnit: 120, received: 5, receivedInBase: 60);
+
+        po.ReduceReceivedQuantityForReturn(line.Id, 99, 999);
+
+        Assert.Equal(0, line.ReceivedQuantity);
+        Assert.Equal(0, line.ReceivedQuantityInBaseUnit);
+    }
+
+    [Fact]
+    public void ReduceReceivedQuantityForReturn_ThrowsForAStaleLineId()
+    {
+        var (po, _) = PoWithReceivedLine(quantity: 10, quantityInBaseUnit: 120, received: 3, receivedInBase: 36);
+
+        Assert.Throws<InvalidOperationException>(() => po.ReduceReceivedQuantityForReturn(Guid.NewGuid(), 1, 12));
+    }
+
+    [Fact]
+    public void UpdateWarehouse_IsRefusedOnceThePoLeavesDraft()
+    {
+        var po = PurchaseOrder.Create("PO-WH-1", Guid.NewGuid(), null, DateTime.UtcNow.AddDays(7));
+        po.SyncLineItems([new LineItemData(null, Guid.NewGuid(), null, 1, 100m, null, 0)]);
+        po.Submit();
+        po.Confirm("manager");
+
+        var ex = Assert.Throws<InvalidOperationException>(() => po.UpdateWarehouse(Guid.NewGuid()));
+
+        Assert.Contains("draft", ex.Message);
+    }
+}
