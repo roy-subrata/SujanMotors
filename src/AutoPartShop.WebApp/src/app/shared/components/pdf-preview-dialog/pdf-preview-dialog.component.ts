@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
 import { DialogModule } from 'primeng/dialog';
@@ -24,10 +24,14 @@ export class PdfPreviewDialogComponent {
 
   readonly state = this.preview.state;
 
-  get safeUrl() {
+  // Memoized on the blob URL so the iframe src keeps a stable identity across change-detection
+  // cycles. A plain getter would rebuild a fresh SafeResourceUrl (new object identity) on every
+  // check and Angular would re-set the iframe src each time, reloading the PDF and flickering
+  // the preview on every periodic change-detection run.
+  readonly safeUrl = computed(() => {
     const current = this.state();
     return current ? this.sanitizer.bypassSecurityTrustResourceUrl(current.blobUrl) : null;
-  }
+  });
 
   download(): void {
     const current = this.state();
