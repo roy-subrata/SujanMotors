@@ -1,9 +1,5 @@
 {
-    "$schema": "https://xunit.net/schema/current/xunit.runner.schema.json",
-    // Test classes each spin their own MsSql Testcontainer; running all collections
-    // in parallel exhausts Docker on loaded machines and flakes with connection
-    // refusals (observed 30/49 failures under load, all green serially).
-    // Cap parallelism — stability of the CI deploy gate beats a faster suite.
-    "parallelizeTestCollections": true,
-    "maxParallelThreads": 2
+  "$schema": "https://xunit.net/schema/current/xunit.runner.schema.json",
+  "parallelizeTestCollections": true,
+  "maxParallelThreads": 2
 }
