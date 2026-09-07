@@ -10,6 +10,10 @@ export interface PosCartLine {
     totalLabel: string;
     discountBadge?: string | null;
     belowCostBadge?: string | null;
+    /** Only set when the part has more than one compatible unit of sale (e.g. Piece/Box) —
+     *  renders a small unit selector under the unit-price line when present. */
+    unitId?: string | null;
+    unitOptions?: { id: string; label: string }[] | null;
 }
 
 /**
@@ -57,6 +61,7 @@ export class PosCartPanelComponent {
     decrementLine = output<number>();
     incrementLine = output<number>();
     removeLine = output<number>();
+    unitChange = output<{ index: number; unitId: string }>();
     stockCheck = output<void>();
     priceCheck = output<void>();
     saveQuotation = output<void>();

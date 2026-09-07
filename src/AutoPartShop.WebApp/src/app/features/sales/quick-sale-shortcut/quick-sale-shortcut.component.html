@@ -65,6 +65,7 @@
                 (decrementLine)="onCartDecrement($event)"
                 (incrementLine)="incrementQty($event)"
                 (removeLine)="removeFromCart($event)"
+                (unitChange)="onCartLineUnitChange($event)"
                 (stockCheck)="openStockSearch()"
                 (priceCheck)="openPriceCheck()"
                 (saveQuotation)="saveAsQuotation()"
@@ -89,6 +90,7 @@
     </ng-container>
 
     <app-pos-shortcut-bar
+        *ngIf="!checkingTillSession() && !tillSessionBlocked()"
         [shortcuts]="shortcutKeys()"
         [extraActions]="shortcutExtraActions()"
         [statusLine]="statusLine()"

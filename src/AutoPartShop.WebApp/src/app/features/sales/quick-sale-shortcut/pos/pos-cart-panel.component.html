@@ -30,6 +30,17 @@
                         <small *ngIf="line.localName" class="pos-line-local">{{ line.localName }}</small>
                     </div>
                     <div class="pos-line-unit">{{ line.unitLabel }}</div>
+                    @if (line.unitOptions && line.unitOptions.length > 1) {
+                        <select
+                            class="pos-line-unit-select"
+                            [attr.aria-label]="'pos.unitOfSale' | translate"
+                            [value]="line.unitId"
+                            (click)="$event.stopPropagation()"
+                            (change)="unitChange.emit({ index: i, unitId: $any($event.target).value })"
+                        >
+                            <option *ngFor="let opt of line.unitOptions" [value]="opt.id">{{ opt.label }}</option>
+                        </select>
+                    }
                     @if (line.discountBadge) {
                         <div class="pos-line-badge discount">{{ line.discountBadge }}</div>
                     }

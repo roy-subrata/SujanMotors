@@ -199,9 +199,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     priceOverrideSubmitting = false;
     private priceOverrideApprovalToken: string | null = null;
 
-    // Parts
-    selectedPartModel: PublicPartResponse | null = null;
-
     // Customers
     selectedCustomer = signal<any | null>(null);
     selectedCustomerModel: any | null = null;
@@ -481,16 +478,43 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     ticketLabel = computed(() => `${this.i18n.t('pos.ticketPrefix')} ${this.invoiceNumber()}`);
 
     cartLines = computed<PosCartLine[]>(() =>
-        this.cartItems().map((item) => ({
-            name: item.partName || '',
-            localName: item.partLocalName,
-            unitLabel: `${this.formatCurrency(item.unitPrice)} ${this.i18n.t('pos.each')}`,
-            qty: item.quantity,
-            totalLabel: this.formatCurrency(this.calculateLineTotal(item)),
-            discountBadge: item.discount > 0 ? `${item.discount}% ${this.i18n.t('pos.off')}` : item.autoDiscountAmount ? `-${this.formatCurrency(this.lineDiscountAmount(item))}` : null,
-            belowCostBadge: this.lineIsBelowCost(item) ? `${this.i18n.t('pos.belowCost')} ${this.formatCurrency(this.lineBelowCostLoss(item))}` : null
-        }))
+        this.cartItems().map((item) => {
+            const compatibleUnits = this.compatibleUnitsMap.get(item.partId);
+            return {
+                name: item.partName || '',
+                localName: item.partLocalName,
+                unitLabel: `${this.formatCurrency(item.unitPrice)} ${this.i18n.t('pos.each')}`,
+                qty: item.quantity,
+                totalLabel: this.formatCurrency(this.calculateLineTotal(item)),
+                discountBadge: item.discount > 0 ? `${item.discount}% ${this.i18n.t('pos.off')}` : item.autoDiscountAmount ? `-${this.formatCurrency(this.lineDiscountAmount(item))}` : null,
+                belowCostBadge: this.lineIsBelowCost(item) ? `${this.i18n.t('pos.belowCost')} ${this.formatCurrency(this.lineBelowCostLoss(item))}` : null,
+                unitId: item.unitId ?? null,
+                unitOptions: compatibleUnits && compatibleUnits.length > 1 ? compatibleUnits.map((u) => ({ id: u.id, label: u.symbol || u.name })) : null
+            };
+        })
     );
+
+    /** Unit-of-sale selector on a cart line (e.g. switch a part from Piece to Box) — mutates the
+     *  line's unitId then reuses the existing conversion/re-pricing logic in onCartUnitChanged(),
+     *  same as the old inline p-select did. */
+    onCartLineUnitChange(event: { index: number; unitId: string }): void {
+        const { index, unitId } = event;
+        const current = this.cartItems()[index];
+        if (!current || current.unitId === unitId) return;
+        this.cartItems.update((items) => {
+            const next = [...items];
+            next[index] = { ...next[index], unitId };
+            return next;
+        });
+        this.onCartUnitChanged(this.cartItems()[index], index);
+    }
+
+    /** `compatibleUnitsMap` is a plain Map, not a signal, so writing into it doesn't by itself
+     *  make the `cartLines` computed (which reads it) re-evaluate — call this right after any
+     *  `compatibleUnitsMap.set(...)` so a just-arrived unit list actually appears in the UI. */
+    private pokeCartLines(): void {
+        this.cartItems.update((items) => [...items]);
+    }
 
     /** Design rule: decrementing to zero removes the line — decrementQty() alone never goes
      *  below 1, so a tap at qty 1 falls through to the existing removeFromCart() instead. */
@@ -803,6 +827,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             return;
         }
 
+        // The till-session gate hides the catalog/cart/shortcut-bar UI entirely, but this listener
+        // is bound at the window level regardless — without this guard, a blocked cashier could
+        // still drive the whole sale via F-keys (search/add a part, attach a customer, tender) only
+        // to have it fail server-side at the final submit. Escape still closes whatever's open.
+        if (this.tillSessionBlocked() && event.key !== 'Escape') return;
+
         if (event.key === 'Escape') {
             if (this.isOverlayOpen()) {
                 event.preventDefault();
@@ -1036,8 +1066,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
         if (part.unitId) {
             this.unitService.getCompatibleUnits(part.unitId).subscribe({
-                next: (compatibleUnits) => this.compatibleUnitsMap.set(part.id, compatibleUnits),
-                error: () => this.compatibleUnitsMap.set(part.id, this.units())
+                next: (compatibleUnits) => {
+                    this.compatibleUnitsMap.set(part.id, compatibleUnits);
+                    this.pokeCartLines();
+                },
+                error: () => {
+                    this.compatibleUnitsMap.set(part.id, this.units());
+                    this.pokeCartLines();
+                }
             });
         }
 
@@ -1059,7 +1095,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         if (part.unitId) {
             this.cartUnitSelection.set(this.cartItems().length - 1, part.unitId);
         }
-        this.selectedPartModel = null;
 
         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.partAdded'), detail: this.i18n.t('pos.messages.partAddedDetail', { name: part.displayName || part.name }) });
     }
@@ -1171,8 +1206,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Resolves the item-level (VARIANT/PRODUCT) discount rule for a freshly added line and records it
-     * on the cart item, so the payment section reflects the discount the backend will apply on submit.
+     * Resolves the item-level (VARIANT/PRODUCT) discount rule for a cart line and records it on it,
+     * so the payment section reflects the discount the backend will apply on submit. Only called
+     * after a unit-of-sale switch (onCartUnitChanged) re-prices a line — freshly added lines instead
+     * go through fetchLineInfo(), which resolves cost + discount together in one round trip.
      * result.discountAmount is a PER-UNIT amount (the backend uses it directly as salesOrderLine.Discount
      * and totals quantity * Discount), so it is stored per-unit too. A line that already carries a manual
      * percentage override is left untouched (manual wins).
@@ -1607,7 +1644,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.clearVehicleSelection();
         this.selectedTechnician.set(null);
         this.selectedTechnicianModel = null;
-        this.selectedPartModel = null;
         this.manualDiscountAmount.set(0);
         this.promoCode.set('');
         this.promoResult.set(null);
@@ -1740,8 +1776,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             this.cartUnitSelection.set(index, item.unitId);
             if (!this.compatibleUnitsMap.has(item.partId)) {
                 this.unitService.getCompatibleUnits(item.unitId).subscribe({
-                    next: (compatibleUnits) => this.compatibleUnitsMap.set(item.partId, compatibleUnits),
-                    error: () => this.compatibleUnitsMap.set(item.partId, this.units())
+                    next: (compatibleUnits) => {
+                        this.compatibleUnitsMap.set(item.partId, compatibleUnits);
+                        this.pokeCartLines();
+                    },
+                    error: () => {
+                        this.compatibleUnitsMap.set(item.partId, this.units());
+                        this.pokeCartLines();
+                    }
                 });
             }
         });
@@ -1881,7 +1923,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             },
             error: () => {
                 this.reprintLoading.set(false);
-                this.reprintError = 'Invoice not found. Check the number and try again.';
+                this.reprintError = this.i18n.t('pos.reprintNotFound');
             }
         });
     }
@@ -1943,9 +1985,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             reason: 'POS quick return'
         }));
 
-        const refundLabel = this.returnRefundType === 'STORE_CREDIT' ? 'store credit' : 'cash refund';
+        const refundLabel = this.i18n.t(this.returnRefundType === 'STORE_CREDIT' ? 'pos.storeCredit' : 'pos.cashRefund');
         this.confirmationService.confirm({
-            message: `Create a return for ${chosen.length} item(s) (${this.formatCurrency(this.returnRefundTotal)}) on invoice ${this.returnInvoice.invoiceNumber} as ${refundLabel}?`,
+            message: this.i18n.t('pos.returnConfirmMessage', {
+                count: chosen.length,
+                amount: this.formatCurrency(this.returnRefundTotal),
+                invoice: this.returnInvoice.invoiceNumber,
+                refundLabel
+            }),
             header: this.i18n.t('pos.messages.confirmReturn'),
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: this.i18n.t('common.actions.confirm'),

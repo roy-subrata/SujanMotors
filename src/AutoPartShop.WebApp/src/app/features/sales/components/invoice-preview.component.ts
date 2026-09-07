@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, signal, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, OnInit, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -17,7 +17,7 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
     templateUrl: './invoice-preview.component.html',
     styleUrl: './invoice-preview.component.scss'
 })
-export class InvoicePreviewComponent implements OnInit {
+export class InvoicePreviewComponent implements OnInit, OnChanges {
     private readonly pdfService = inject(InvoicePdfService);
     private readonly thermalReceipt = inject(ThermalReceiptService);
     private readonly messageService = inject(MessageService);

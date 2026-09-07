@@ -6,7 +6,7 @@
     </div>
 
     <div class="pos-grid-scroll" #gridScroll (scroll)="onGridScroll($event)">
-        @if (loading()) {
+        @if (loading() || (tiles().length === 0 && loadingMore())) {
             <div class="pos-grid-loading"><i class="pi pi-spin pi-spinner"></i></div>
         } @else if (tiles().length === 0) {
             <div class="pos-grid-empty">{{ 'pos.catalogEmpty' | translate }}</div>

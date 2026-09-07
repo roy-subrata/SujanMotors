@@ -195,6 +195,19 @@
     margin-top: 4px;
 }
 
+.pos-line-unit-select {
+    margin-top: 5px;
+    height: 24px;
+    font-size: 11px;
+    font-family: inherit;
+    color: var(--pos-body);
+    background: var(--pos-canvas);
+    border: 1px solid var(--pos-border);
+    border-radius: 6px;
+    padding: 0 4px;
+    cursor: pointer;
+}
+
 .pos-line-badge {
     display: inline-flex;
     align-items: center;
