@@ -1,0 +1,102 @@
+.pos-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 23, 26, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 3vw, 40px);
+    overflow: auto;
+    z-index: 20;
+}
+
+.pos-list-panel {
+    width: min(720px, 100%);
+    max-width: 100%;
+    max-height: 100%;
+    background: var(--pos-surface);
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.pos-list-header {
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid var(--pos-line-2);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex: 0 0 auto;
+}
+
+.pos-list-header-text {
+    min-width: 0;
+}
+
+.pos-list-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--pos-ink);
+}
+
+.pos-list-subtitle {
+    font-size: 13px;
+    color: var(--pos-body);
+    margin-top: 4px;
+}
+
+.pos-close-btn {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 10px;
+    border: 1px solid var(--pos-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    color: var(--pos-body);
+    cursor: pointer;
+}
+
+.pos-close-btn:hover {
+    border-color: var(--pos-ink);
+}
+
+.pos-list-filter {
+    padding: 16px 24px 0;
+    flex: 0 0 auto;
+}
+
+.pos-list-filter-input {
+    width: 100%;
+    height: 50px;
+    border: 1px solid var(--pos-line);
+    border-radius: 11px;
+    padding: 0 15px;
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--pos-ink);
+    background: var(--pos-canvas);
+    outline: none;
+}
+
+.pos-list-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 12px 16px 16px;
+}
+
+.pos-list-footer {
+    border-top: 1px solid var(--pos-line-2);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+}

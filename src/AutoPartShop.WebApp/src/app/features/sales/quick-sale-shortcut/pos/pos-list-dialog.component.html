@@ -1,0 +1,38 @@
+@if (open()) {
+    <div class="pos-overlay-backdrop" (click)="onBackdropClick()">
+        <div class="pos-list-panel" [style.width.px]="maxWidth()" (click)="onPanelClick($event)">
+            <div class="pos-list-header">
+                <div class="pos-list-header-text">
+                    <div class="pos-list-title">{{ title() }}</div>
+                    @if (subtitle()) {
+                        <div class="pos-list-subtitle">{{ subtitle() }}</div>
+                    }
+                </div>
+                <div class="pos-close-btn" (click)="closed.emit()">×</div>
+            </div>
+
+            @if (showFilter()) {
+                <div class="pos-list-filter">
+                    <input
+                        type="text"
+                        [ngModel]="filterValue()"
+                        (ngModelChange)="filterValueChange.emit($event)"
+                        (keydown.enter)="filterEnter.emit()"
+                        [placeholder]="filterPlaceholder()"
+                        class="pos-list-filter-input"
+                    />
+                </div>
+            }
+
+            <div class="pos-list-body">
+                <ng-content></ng-content>
+            </div>
+
+            @if (hasFooter()) {
+                <div class="pos-list-footer">
+                    <ng-content select="[dialogFooter]"></ng-content>
+                </div>
+            }
+        </div>
+    </div>
+}

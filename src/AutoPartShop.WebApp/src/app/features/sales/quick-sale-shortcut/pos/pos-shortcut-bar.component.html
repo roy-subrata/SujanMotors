@@ -1,0 +1,10 @@
+<nav class="pos-shortcut-bar">
+    <div class="pos-shortcut-key" *ngFor="let k of shortcuts()" [class.disabled]="k.disabled" (click)="!k.disabled && shortcutClick.emit(k.action)">
+        <span class="pos-shortcut-cap">{{ k.key }}</span>{{ k.label }}
+    </div>
+    <div class="pos-shortcut-key extra" *ngFor="let a of extraActions()" [class.disabled]="a.disabled" (click)="!a.disabled && extraActionClick.emit(a.id)">
+        {{ a.label }}
+    </div>
+    <div class="pos-shortcut-spacer"></div>
+    <div class="pos-shortcut-status" [class.hidden]="hideStatus()">{{ statusLine() }}</div>
+</nav>

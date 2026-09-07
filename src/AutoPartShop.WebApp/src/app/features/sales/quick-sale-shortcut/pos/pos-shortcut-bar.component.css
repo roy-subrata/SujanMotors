@@ -1,0 +1,65 @@
+:host {
+    display: block;
+    height: 56px;
+    flex: 0 0 56px;
+}
+
+.pos-shortcut-bar {
+    height: 56px;
+    background: var(--pos-ink);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 20px;
+    overflow-x: auto;
+}
+
+.pos-shortcut-key {
+    height: 37px;
+    padding: 0 13px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--pos-ink-2);
+    color: var(--pos-on-dark-body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.pos-shortcut-key:hover:not(.disabled) {
+    background: var(--pos-ink-3);
+}
+
+.pos-shortcut-key.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pos-shortcut-cap {
+    font-family: var(--pos-mono);
+    font-size: 11px;
+    color: var(--pos-ink);
+    background: var(--pos-keycap);
+    border-radius: 5px;
+    padding: 2px 5px;
+}
+
+.pos-shortcut-spacer {
+    flex: 1;
+    min-width: 12px;
+}
+
+.pos-shortcut-status {
+    font-size: 12px;
+    color: var(--pos-on-dark-muted);
+    font-family: var(--pos-mono);
+    white-space: nowrap;
+}
+
+.pos-shortcut-status.hidden {
+    display: none;
+}

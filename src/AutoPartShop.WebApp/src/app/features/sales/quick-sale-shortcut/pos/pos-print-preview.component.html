@@ -1,0 +1,14 @@
+@if (open()) {
+    <div class="pos-overlay-backdrop" (click)="onBackdropClick()">
+        <div class="pos-preview-column" (click)="onPanelClick($event)">
+            <div class="pos-thermal-sheet">
+                <iframe class="pos-thermal-frame" [srcdoc]="receiptHtml()" title="Thermal receipt preview"></iframe>
+            </div>
+            <div class="pos-preview-actions">
+                <div class="pos-preview-btn close" (click)="close.emit()">{{ 'common.actions.close' | translate }}</div>
+                <div class="pos-preview-btn switch" (click)="switchToInvoice.emit()">{{ 'pos.switchToA4' | translate }}</div>
+                <div class="pos-preview-btn send" (click)="sendToPrinter.emit()">{{ 'pos.sendToPrinter' | translate }}</div>
+            </div>
+        </div>
+    </div>
+}

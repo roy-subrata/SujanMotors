@@ -1,0 +1,94 @@
+@if (open()) {
+    <div class="pos-overlay-backdrop" (click)="onBackdropClick()">
+        <div class="pos-tender-panel" (click)="onPanelClick($event)">
+            <div class="pos-tender-rail">
+                <div class="pos-eyebrow on-dark">{{ 'pos.balanceDueEyebrow' | translate }}</div>
+                <div class="pos-tender-amount">{{ dueLabel() }}</div>
+                <div class="pos-tender-sub">{{ 'pos.ticketTotalPrefix' | translate }} {{ totalLabel() }}</div>
+                <div class="pos-tender-rule"></div>
+                <div class="pos-eyebrow on-dark small-gap">{{ 'pos.tenderedEyebrow' | translate }}</div>
+                <div class="pos-tender-list">
+                    @if (tenders().length === 0) {
+                        <div class="pos-tender-empty">{{ 'pos.tenderEmptyHint' | translate }}</div>
+                    }
+                    <div class="pos-tender-chip" *ngFor="let t of tenders(); let i = index">
+                        <span class="pos-tender-chip-type">{{ t.label }}</span>
+                        <span class="pos-tender-chip-amount mono">{{ t.amountLabel }}</span>
+                        <span class="pos-tender-chip-remove" (click)="removeTender.emit(i)">×</span>
+                    </div>
+                </div>
+                @if (hasChange()) {
+                    <div class="pos-change-block">
+                        <span>{{ 'pos.changeDueLabel' | translate }}</span>
+                        <span class="mono">{{ changeLabel() }}</span>
+                    </div>
+                }
+            </div>
+
+            <div class="pos-tender-right">
+                <div class="pos-tender-title-row">
+                    <div>
+                        <div class="pos-tender-title">{{ 'pos.takePayment' | translate }}</div>
+                        <div class="pos-tender-subtitle">{{ customerSubtitle() }}</div>
+                    </div>
+                    <div class="pos-close-btn" (click)="close.emit()">×</div>
+                </div>
+
+                <div>
+                    <div class="pos-eyebrow">{{ 'pos.paymentTypeEyebrow' | translate }}</div>
+                    <div class="pos-paytype-grid">
+                        <div class="pos-paytype-tile" *ngFor="let p of payTypes()" [class.disabled]="p.disabled" (click)="!p.disabled && tenderType.emit(p.value)">
+                            <span class="pos-paytype-label">{{ p.label }}</span>
+                            <span class="pos-paytype-note mono">{{ p.note }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (referenceVisible()) {
+                    <div class="pos-reference-row">
+                        <label class="pos-eyebrow">{{ 'pos.referenceEyebrow' | translate }}</label>
+                        <input
+                            type="text"
+                            class="pos-reference-input"
+                            [ngModel]="referenceValue()"
+                            (ngModelChange)="referenceValueChange.emit($event)"
+                            [placeholder]="'pos.referencePlaceholder' | translate"
+                        />
+                    </div>
+                }
+
+                @if (!settled()) {
+                    <div class="pos-manual-row">
+                        <div class="pos-amount-col">
+                            <div class="pos-eyebrow">{{ 'pos.amountTenderedEyebrow' | translate }}</div>
+                            <div class="pos-amount-readout mono" [class.filled]="!amountEmpty()">{{ amountDisplay() }}</div>
+                            <div class="pos-keypad">
+                                <div class="pos-keypad-key mono" *ngFor="let k of keypadKeys" (click)="keypadPress.emit(k)">{{ k }}</div>
+                            </div>
+                        </div>
+                        <div class="pos-quickcash-col">
+                            <div class="pos-eyebrow">{{ 'pos.quickCashEyebrow' | translate }}</div>
+                            <div class="pos-quickcash-grid">
+                                <div class="pos-quickcash-btn" *ngFor="let c of quickCash()" (click)="quickCashTap.emit(c.amount)">
+                                    <span class="mono qc-amount">{{ c.label }}</span>
+                                    <span class="mono qc-note" [class.exact]="c.exact">{{ c.changeNote }}</span>
+                                </div>
+                            </div>
+                            <div class="pos-amount-hint">{{ amountHint() }}</div>
+                            <div class="pos-tender-spacer"></div>
+                            <div class="pos-tender-buttons">
+                                <div class="pos-tender-cash-btn" [class.disabled]="!canAddCash()" (click)="canAddCash() && addCash.emit()">{{ 'pos.tenderCash' | translate }}</div>
+                                <div class="pos-tender-card-btn" [class.disabled]="!canAddCard()" (click)="canAddCard() && addCard.emit()">{{ 'pos.tenderCard' | translate }}</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="pos-tender-footer">
+                    <div class="pos-back-btn" (click)="close.emit()">{{ 'pos.backToSale' | translate }}</div>
+                    <div class="pos-complete-btn" [class.disabled]="!completeEnabled()" (click)="completeEnabled() && completeSale.emit()">{{ completeLabel() }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

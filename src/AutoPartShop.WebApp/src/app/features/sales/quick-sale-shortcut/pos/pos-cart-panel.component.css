@@ -1,0 +1,421 @@
+/* NOTE: intentionally no `height: 100%` anywhere in this file. This component's host is a flex
+   item of `.pos-body` (a row container, so height is host's CROSS axis) — leaving height as the
+   default `auto` lets the parent's implicit `align-items: stretch` size it via the flex algorithm,
+   which is reliable. `.pos-cart` below is host's single child inside host's OWN column flex
+   context, so height there is a MAIN-axis size — `flex: 1 1 auto` (not a percentage) is what
+   actually fills it. A percentage height anywhere in this chain silently fails to resolve (the
+   browser doesn't treat a flex-grow-computed ancestor height as "definite" for percentage
+   purposes), letting `.pos-cart`/`.pos-lines-scroll` grow to full content height instead of
+   clipping+scrolling — exactly the "no scrollbar, footer pushed off-screen" bug this replaced. */
+:host {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--pos-surface);
+}
+
+.pos-cart {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.mono {
+    font-family: var(--pos-mono);
+}
+
+/* Customer bar */
+.pos-customer-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--pos-line-2);
+    cursor: pointer;
+    background: var(--pos-canvas-2);
+    flex: 0 0 auto;
+}
+
+.pos-customer-bar:hover {
+    background: var(--pos-chrome);
+}
+
+.pos-customer-bar.attached {
+    background: var(--pos-green-tint);
+}
+
+.pos-customer-avatar {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--pos-faint);
+}
+
+.pos-customer-avatar.attached {
+    background: var(--pos-green);
+}
+
+.pos-customer-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.pos-customer-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--pos-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pos-customer-meta {
+    font-size: 12px;
+    color: var(--pos-body);
+    font-family: var(--pos-mono);
+    margin-top: 2px;
+}
+
+.pos-keycap {
+    font-family: var(--pos-mono);
+    font-size: 11px;
+    color: var(--pos-body);
+    border: 1px solid var(--pos-border);
+    border-radius: 6px;
+    padding: 3px 7px;
+}
+
+.pos-keycap.on-surface {
+    background: var(--pos-surface);
+}
+
+/* Ticket header */
+.pos-ticket-header {
+    padding: 13px 20px 11px;
+    border-bottom: 1px solid var(--pos-line-2);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+
+.pos-ticket-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--pos-ink);
+}
+
+.pos-ticket-sub {
+    font-size: 12px;
+    color: var(--pos-muted);
+    font-family: var(--pos-mono);
+    margin-top: 3px;
+}
+
+.pos-clear-btn {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--pos-red);
+    cursor: pointer;
+}
+
+.pos-clear-btn:hover {
+    text-decoration: underline;
+}
+
+/* Line items */
+.pos-lines-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.pos-lines-empty {
+    padding: 56px 40px;
+    text-align: center;
+    color: var(--pos-muted);
+}
+
+.pos-lines-empty-box {
+    width: 52px;
+    height: 52px;
+    border: 2px dashed var(--pos-line-3);
+    border-radius: 15px;
+    margin: 0 auto 14px;
+}
+
+.pos-lines-empty-text {
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.pos-line {
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--pos-line-2);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.pos-line-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pos-line-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--pos-ink);
+}
+
+.pos-line-local {
+    display: block;
+    font-size: 12px;
+    color: var(--pos-body);
+    font-weight: 400;
+}
+
+.pos-line-unit {
+    font-family: var(--pos-mono);
+    font-size: 12px;
+    color: var(--pos-muted);
+    margin-top: 4px;
+}
+
+.pos-line-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+}
+
+.pos-line-badge.discount {
+    color: var(--pos-green);
+    background: var(--pos-green-tint);
+}
+
+.pos-line-badge.below-cost {
+    color: var(--pos-red);
+    background: var(--pos-red-tint);
+}
+
+.pos-stepper {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--pos-canvas);
+    border-radius: 10px;
+    padding: 3px;
+    flex: 0 0 auto;
+}
+
+.pos-stepper-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--pos-body);
+    cursor: pointer;
+    user-select: none;
+}
+
+.pos-stepper-btn:hover {
+    background: var(--pos-surface);
+}
+
+.pos-stepper-qty {
+    min-width: 24px;
+    text-align: center;
+    font-family: var(--pos-mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--pos-ink);
+}
+
+.pos-line-total {
+    width: 76px;
+    text-align: right;
+    font-family: var(--pos-mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--pos-ink);
+    flex: 0 0 auto;
+}
+
+.pos-line-remove {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--pos-muted);
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.pos-line-remove:hover {
+    background: var(--pos-red-tint);
+    color: var(--pos-red);
+}
+
+/* Footer */
+.pos-footer {
+    border-top: 1px solid var(--pos-line-2);
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding: 15px 20px 16px;
+    gap: 8px;
+}
+
+.pos-footer.short {
+    padding: 10px 16px 12px;
+    gap: 5px;
+}
+
+.pos-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--pos-body);
+}
+
+.pos-total-row.discount {
+    color: var(--pos-green);
+    font-weight: 600;
+}
+
+.pos-total-rule {
+    height: 1px;
+    background: var(--pos-line-2);
+    margin: 1px 0;
+}
+
+.pos-grand-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.pos-grand-label {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--pos-ink);
+}
+
+.pos-grand-value {
+    font-family: var(--pos-mono);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: 29px;
+    color: var(--pos-ink);
+}
+
+.pos-footer.short .pos-grand-value {
+    font-size: 23px;
+}
+
+.pos-secondary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.pos-footer.short .pos-secondary-grid {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    margin-top: 1px;
+}
+
+.pos-secondary-btn {
+    border-radius: 11px;
+    border: 1px solid var(--pos-border);
+    background: var(--pos-canvas-2);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    height: 43px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--pos-ink);
+}
+
+.pos-footer.short .pos-secondary-btn {
+    height: 40px;
+    flex: 0 0 auto;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+.pos-secondary-btn:hover:not(:disabled) {
+    border-color: var(--pos-ink);
+    background: var(--pos-surface);
+}
+
+.pos-secondary-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pos-charge-btn {
+    border-radius: 13px;
+    padding: 0 20px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+    height: 62px;
+    margin-top: 2px;
+    background: var(--pos-ink);
+    cursor: pointer;
+}
+
+.pos-footer.short .pos-charge-btn {
+    height: 52px;
+    margin-top: 1px;
+}
+
+.pos-charge-btn:hover:not(.disabled) {
+    background: var(--pos-green);
+}
+
+.pos-charge-btn.disabled {
+    background: var(--pos-disabled);
+    cursor: not-allowed;
+}
+
+.pos-charge-label {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.pos-charge-amount {
+    font-size: 21px;
+    font-weight: 700;
+}

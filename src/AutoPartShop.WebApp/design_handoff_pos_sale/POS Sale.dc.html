@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #E8E4DB; font-family: Archivo, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #1F6F4A; text-decoration: none; }
+  a:hover { color: #17543A; }
+  input::placeholder { color: #9A968C; }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: #DAD5C9; border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
+</style>
+</helmet>
+<div data-screen-label="Quick sale" style="width: 100%; min-height: 100vh; max-height: 100vh; display: flex; flex-direction: column; background: #F7F5F0; color: #17171A; overflow: hidden; position: relative;">
+
+  <div style="flex: 0 0 auto; min-height: 66px; display: flex; align-items: center; gap: 13px; padding: 10px 20px; background: #FFFFFF; border-bottom: 1px solid #E2DED4; flex-wrap: wrap;">
+    <div style="width: 40px; height: 40px; border-radius: 12px; background: #1F6F4A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px;">P</div>
+    <div style="line-height: 1.25;">
+      <div style="font-size: 16px; font-weight: 700; letter-spacing: -0.01em;">{{ storeName }}</div>
+      <div style="font-size: 12px; color: #6E6A62;">Point of sale</div>
+    </div>
+    <div style="flex: 1;"></div>
+    <div onClick="{{ openSearch }}" style="display: flex; align-items: center; gap: 10px; height: 44px; flex: 1 1 200px; max-width: 340px; min-width: 150px; background: #F7F5F0; border: 1px solid #E2DED4; border-radius: 11px; padding: 0 15px; cursor: pointer;" style-hover="border-color: #17171A;">
+      <div style="width: 14px; height: 14px; border: 2px solid #6E6A62; border-radius: 50%; flex: 0 0 14px;"></div>
+      <div style="flex: 1; min-width: 0; font-size: 14px; color: #6E6A62; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ searchPlaceholder }}</div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55524C; border: 1px solid #DDD8CD; border-radius: 6px; padding: 2px 6px;">F2</div>
+    </div>
+    <div style="width: 1px; height: 32px; background: #E2DED4;"></div>
+    <div style="text-align: right; line-height: 1.3;">
+      <div style="font-size: 14px; font-weight: 600;">Register 1 · Ruth K.</div>
+      <div style="font-size: 12px; color: #6E6A62; font-family: 'JetBrains Mono', monospace;">{{ contextLine }}</div>
+    </div>
+  </div>
+
+  <div style="{{ bodyRowStyle }}">
+
+    <div style="{{ catalogStyle }}">
+      <div style="display: flex; gap: 8px; padding: 15px 20px 3px; flex-wrap: wrap;">
+        <sc-for list="{{ chips }}" as="chip" hint-placeholder-count="6">
+          <div onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</div>
+        </sc-for>
+      </div>
+
+      <div style="flex: 1; min-height: 0; overflow: auto; padding: 13px 20px 18px;">
+        <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 80px 20px; text-align: center; color: #6E6A62; font-size: 15px;">Nothing matches that filter.</div>
+        </sc-if>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px;">
+          <sc-for list="{{ gridItems }}" as="item" hint-placeholder-count="12">
+            <div onClick="{{ item.onClick }}" style="{{ item.cardStyle }}" style-hover="border-color: #17171A;" style-active="transform: scale(0.985);">
+              <div style="min-width: 0;">
+                <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #6E6A62; margin-bottom: 7px;">{{ item.meta }}</div>
+                <div style="font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; text-wrap: pretty;">{{ item.name }}</div>
+              </div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 500;">{{ item.priceLabel }}</div>
+                <div style="font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: {{ item.stockColor }};">{{ item.stock }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="{{ cartStyle }}">
+
+      <div onClick="{{ openCustomer }}" style="{{ customerBarStyle }}" style-hover="background: #F2EFE8;">
+        <div style="{{ customerAvatarStyle }}">{{ customerInitials }}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ customerName }}</div>
+          <div style="font-size: 12px; color: #55524C; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">{{ customerMeta }}</div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #55524C; border: 1px solid #DDD8CD; border-radius: 6px; padding: 3px 7px; background: #FFFFFF;">F4</div>
+      </div>
+
+      <div style="padding: 13px 20px 11px; border-bottom: 1px solid #EFEBE2; display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+        <div>
+          <div style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em;">Current sale</div>
+          <div style="font-size: 12px; color: #6E6A62; font-family: 'JetBrains Mono', monospace; margin-top: 3px;">{{ ticketLabel }}</div>
+        </div>
+        <div onClick="{{ onClear }}" style="font-size: 13px; font-weight: 600; color: #C8461E; cursor: pointer;" style-hover="text-decoration: underline;">Clear</div>
+      </div>
+
+      <div style="flex: 1 1 auto; min-height: 0; overflow: auto;">
+        <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 56px 40px; text-align: center; color: #6E6A62;">
+            <div style="width: 52px; height: 52px; border: 2px dashed #D8D3C7; border-radius: 15px; margin: 0 auto 14px;"></div>
+            <div style="font-size: 15px; line-height: 1.5;">Scan an item or tap the grid to start serving this customer.</div>
+          </div>
+        </sc-if>
+        <sc-for list="{{ lines }}" as="line" hint-placeholder-count="3">
+          <div style="{{ line.rowStyle }}">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em; text-wrap: pretty;">{{ line.name }}</div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6E6A62; margin-top: 4px;">{{ line.unitLabel }}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 2px; background: #F7F5F0; border-radius: 10px; padding: 3px;">
+              <div onClick="{{ line.dec }}" style="width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 600; color: #55524C; cursor: pointer; user-select: none;" style-hover="background: #FFFFFF;">−</div>
+              <div style="min-width: 24px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700;">{{ line.qty }}</div>
+              <div onClick="{{ line.inc }}" style="width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 600; color: #55524C; cursor: pointer; user-select: none;" style-hover="background: #FFFFFF;">+</div>
+            </div>
+            <div style="width: 76px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 500;">{{ line.totalLabel }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="{{ footerStyle }}">
+        <div style="display: flex; justify-content: space-between; font-size: 14px; color: #55524C;">
+          <span>Subtotal {{ itemCountLabel }}</span>
+          <span style="font-family: 'JetBrains Mono', monospace;">{{ subtotalLabel }}</span>
+        </div>
+        <sc-if value="{{ hasDiscount }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; justify-content: space-between; font-size: 14px; color: #1F6F4A; font-weight: 600;">
+            <span>{{ discountLabel }}</span>
+            <span style="font-family: 'JetBrains Mono', monospace;">{{ discountAmountLabel }}</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hasPoints }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; justify-content: space-between; font-size: 14px; color: #1F6F4A; font-weight: 600;">
+            <span>{{ pointsLabel }}</span>
+            <span style="font-family: 'JetBrains Mono', monospace;">{{ pointsAmountLabel }}</span>
+          </div>
+        </sc-if>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; color: #55524C;">
+          <span>{{ taxLabel }}</span>
+          <span style="font-family: 'JetBrains Mono', monospace;">{{ taxAmountLabel }}</span>
+        </div>
+        <div style="height: 1px; background: #EFEBE2; margin: 1px 0;"></div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <span style="font-size: 17px; font-weight: 700;">Total</span>
+          <span style="{{ totalValueStyle }}">{{ totalLabel }}</span>
+        </div>
+
+        <div style="{{ secondaryGridStyle }}">
+          <sc-for list="{{ secondaryActions }}" as="s" hint-placeholder-count="4">
+            <div onClick="{{ s.onClick }}" style="{{ s.style }}" style-hover="border-color: #17171A; background: #FFFFFF;">{{ s.label }}</div>
+          </sc-for>
+        </div>
+
+        <div onClick="{{ onCharge }}" style="{{ chargeStyle }}" style-hover="background: #1F6F4A;">
+          <span style="font-size: 17px; font-weight: 700;">Charge</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 21px; font-weight: 700;">{{ totalLabel }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 56px; flex: 0 0 56px; background: #17171A; display: flex; align-items: center; gap: 7px; padding: 0 20px; overflow-x: auto;">
+    <sc-for list="{{ shortcuts }}" as="k" hint-placeholder-count="7">
+      <div onClick="{{ k.onClick }}" style="height: 37px; padding: 0 13px; border-radius: 9px; display: flex; align-items: center; gap: 8px; background: #262629; color: #F0EEE9; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;" style-hover="background: #3C3C40;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #17171A; background: #C9C4B8; border-radius: 5px; padding: 2px 5px;">{{ k.key }}</span>{{ k.label }}
+      </div>
+    </sc-for>
+    <div style="flex: 1; min-width: 12px;"></div>
+    <div style="{{ statusStyle }}">{{ statusLine }}</div>
+  </div>
+
+  <sc-if value="{{ overlayOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeOverlay }}" style="position: absolute; inset: 0; background: rgba(23,23,26,0.45); display: flex; align-items: center; justify-content: center; padding: clamp(12px, 3vw, 40px); overflow: auto;">
+
+      <sc-if value="{{ isTender }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ stop }}" style="width: min(960px, 100%); max-height: 100%; background: #F7F5F0; border-radius: 20px; overflow: auto; display: flex; flex-wrap: wrap; box-shadow: 0 30px 80px rgba(0,0,0,0.35);">
+          <div style="flex: 1 1 300px; min-width: 280px; max-width: 340px; background: #17171A; color: #FFFFFF; padding: 26px 24px; display: flex; flex-direction: column;">
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: #A5A199;">Balance due</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 50px; font-weight: 700; letter-spacing: -0.03em; margin-top: 4px;">{{ dueLabel }}</div>
+            <div style="font-size: 12px; color: #A5A199; margin-top: 4px; font-family: 'JetBrains Mono', monospace;">Ticket total {{ totalLabel }}</div>
+            <div style="height: 1px; background: #3C3C40; margin: 20px 0 14px;"></div>
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: #A5A199; margin-bottom: 10px;">Tendered</div>
+            <div style="flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px;">
+              <sc-if value="{{ noTenders }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size: 14px; color: #A5A199; line-height: 1.5;">Take the full amount or split it across several payment types.</div>
+              </sc-if>
+              <sc-for list="{{ tenders }}" as="t" hint-placeholder-count="0">
+                <div style="display: flex; align-items: center; gap: 10px; background: #262629; border-radius: 10px; padding: 11px 13px;">
+                  <span style="flex: 1; font-size: 14px; font-weight: 600;">{{ t.type }}</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px;">{{ t.amountLabel }}</span>
+                  <span onClick="{{ t.remove }}" style="color: #F0A188; font-size: 19px; cursor: pointer; line-height: 1;">×</span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ hasChange }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top: 12px; background: #1F6F4A; border-radius: 12px; padding: 13px 15px; display: flex; align-items: baseline; justify-content: space-between;">
+                <span style="font-size: 14px; font-weight: 700;">Change due</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 23px; font-weight: 700;">{{ changeLabel }}</span>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="flex: 1 1 420px; min-width: 300px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em;">Take payment</div>
+                <div style="font-size: 13px; color: #55524C; margin-top: 3px;">{{ tenderSubtitle }}</div>
+              </div>
+              <div onClick="{{ closeOverlay }}" style="width: 38px; height: 38px; border-radius: 10px; border: 1px solid #DDD8CD; display: flex; align-items: center; justify-content: center; font-size: 19px; color: #55524C; cursor: pointer;" style-hover="border-color: #17171A;">×</div>
+            </div>
+
+            <div>
+              <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: #6E6A62; margin-bottom: 9px;">Payment type</div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 9px;">
+                <sc-for list="{{ payTypes }}" as="p" hint-placeholder-count="6">
+                  <div onClick="{{ p.onClick }}" style="{{ p.style }}">
+                    <span style="font-size: 15px; font-weight: 600;">{{ p.label }}</span>
+                    <span style="font-size: 11px; color: #6E6A62; font-family: 'JetBrains Mono', monospace;">{{ p.note }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <sc-if value="{{ hasQuickCash }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; gap: 16px; min-height: 0; flex-wrap: wrap;">
+                <div style="flex: 1 1 210px; max-width: 260px; min-width: 190px;">
+                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: #6E6A62; margin-bottom: 8px;">Amount tendered</div>
+                  <div style="height: 48px; border: 1px solid #DDD8CD; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; justify-content: flex-end; padding: 0 14px; font-family: 'JetBrains Mono', monospace; font-size: 23px; font-weight: 700; color: {{ amountColor }};">{{ amountDisplay }}</div>
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px;">
+                    <sc-for list="{{ keypad }}" as="k" hint-placeholder-count="12">
+                      <div onClick="{{ k.onClick }}" style="{{ k.style }}">{{ k.label }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="flex: 1 1 260px; min-width: 220px; display: flex; flex-direction: column;">
+                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: #6E6A62; margin-bottom: 8px;">Quick cash</div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px;">
+                    <sc-for list="{{ quickCash }}" as="c" hint-placeholder-count="6">
+                      <div onClick="{{ c.onClick }}" style="height: 52px; border-radius: 11px; border: 1px solid #DDD8CD; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer;" style-hover="border-color: #17171A;">
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600;">{{ c.label }}</span>
+                        <span style="font-size: 10px; font-weight: 600; color: {{ c.changeColor }}; font-family: 'JetBrains Mono', monospace;">{{ c.changeNote }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="margin-top: 12px; font-size: 12px; color: #6E6A62; line-height: 1.5;">{{ amountHint }}</div>
+                  <div style="flex: 1;"></div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div onClick="{{ onAddCash }}" style="{{ addCashStyle }}">Tender cash</div>
+                    <div onClick="{{ onAddCard }}" style="{{ addCardStyle }}">Tender card</div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <div style="flex: 1;"></div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <div onClick="{{ closeOverlay }}" style="flex: 1 1 130px; max-width: 150px; height: 58px; border-radius: 12px; border: 1px solid #DDD8CD; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; cursor: pointer;" style-hover="border-color: #17171A;">Back to sale</div>
+              <div onClick="{{ onCompleteSale }}" style="{{ completeStyle }}">{{ completeLabel }}</div>
+
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isReceipt }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ stop }}" style="width: min(420px, 100%); max-height: 100%; overflow: auto; background: #FFFFFF; border-radius: 18px; padding: 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.35); display: flex; flex-direction: column; gap: 16px;">
+          <div style="text-align: center;">
+            <div style="width: 54px; height: 54px; border-radius: 50%; background: #1F6F4A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 12px;">✓</div>
+            <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.01em;">Sale complete</div>
+            <div style="font-size: 13px; color: #55524C; margin-top: 4px; font-family: 'JetBrains Mono', monospace;">{{ receiptRef }}</div>
+          </div>
+          <div style="background: #F7F5F0; border-radius: 12px; padding: 15px 16px; display: flex; flex-direction: column; gap: 9px;">
+            <sc-for list="{{ receiptRows }}" as="r" hint-placeholder-count="3">
+              <div style="display: flex; justify-content: space-between; font-size: 14px; color: {{ r.color }}; font-weight: {{ r.weight }};">
+                <span>{{ r.label }}</span>
+                <span style="font-family: 'JetBrains Mono', monospace;">{{ r.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 9px;">
+            <div onClick="{{ openThermal }}" style="height: 48px; border-radius: 11px; border: 1px solid #DDD8CD; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;" style-hover="border-color: #17171A;">
+              <span style="font-size: 14px; font-weight: 600;">Print receipt</span>
+              <span style="font-size: 11px; color: #6E6A62; font-family: 'JetBrains Mono', monospace;">80mm thermal</span>
+            </div>
+            <div onClick="{{ openInvoice }}" style="height: 48px; border-radius: 11px; border: 1px solid #DDD8CD; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;" style-hover="border-color: #17171A;">
+              <span style="font-size: 14px; font-weight: 600;">Tax invoice</span>
+              <span style="font-size: 11px; color: #6E6A62; font-family: 'JetBrains Mono', monospace;">A4 sheet</span>
+            </div>
+          </div>
+          <div onClick="{{ onNextCustomer }}" style="height: 54px; border-radius: 12px; background: #17171A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; cursor: pointer;" style-hover="background: #1F6F4A;">Next customer</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isThermal }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ stop }}" style="display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 100%;">
+          <div style="width: min(320px, 100%); max-height: 62vh; overflow: auto; background: #FFFFFF; padding: 22px 20px 26px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #17171A; line-height: 1.55; box-shadow: 0 24px 60px rgba(0,0,0,0.35);">
+            <div style="text-align: center; margin-bottom: 12px;">
+              <div style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em;">{{ storeName }}</div>
+              <div style="font-size: 11px;">{{ storeAddress }}</div>
+              <div style="font-size: 11px;">VAT {{ storeTaxId }}</div>
+            </div>
+            <div style="border-top: 1px dashed #17171A; padding-top: 8px; display: flex; flex-direction: column; gap: 2px; font-size: 11px;">
+              <div style="display: flex; justify-content: space-between;"><span>{{ docRef }}</span><span>{{ docStamp }}</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>Register 1</span><span>Ruth K.</span></div>
+              <div>{{ docContext }}</div>
+            </div>
+            <div style="border-top: 1px dashed #17171A; margin-top: 8px; padding-top: 8px; display: flex; flex-direction: column; gap: 7px;">
+              <sc-for list="{{ docLines }}" as="l" hint-placeholder-count="3">
+                <div>
+                  <div style="font-weight: 700;">{{ l.name }}</div>
+                  <div style="display: flex; justify-content: space-between;"><span>{{ l.qtyUnit }}</span><span>{{ l.amount }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-top: 1px dashed #17171A; margin-top: 8px; padding-top: 8px; display: flex; flex-direction: column; gap: 3px;">
+              <sc-for list="{{ docTotals }}" as="r" hint-placeholder-count="4">
+                <div style="display: flex; justify-content: space-between; font-weight: {{ r.weight }}; font-size: {{ r.size }};"><span>{{ r.label }}</span><span>{{ r.value }}</span></div>
+              </sc-for>
+            </div>
+            <div style="border-top: 1px dashed #17171A; margin-top: 8px; padding-top: 8px; display: flex; flex-direction: column; gap: 3px;">
+              <sc-for list="{{ docTenders }}" as="r" hint-placeholder-count="1">
+                <div style="display: flex; justify-content: space-between;"><span>{{ r.label }}</span><span>{{ r.value }}</span></div>
+              </sc-for>
+            </div>
+            <div style="text-align: center; margin-top: 14px; font-size: 11px; line-height: 1.6;">
+              <div>{{ docFooter }}</div>
+              <div style="margin-top: 8px; letter-spacing: -1px; font-size: 22px;">▌│█║▌║▌║█│▌║</div>
+              <div>{{ docRef }}</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+            <div onClick="{{ closeOverlay }}" style="height: 46px; padding: 0 20px; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 600; cursor: pointer;">Close</div>
+            <div onClick="{{ openInvoice }}" style="height: 46px; padding: 0 20px; border-radius: 11px; background: #3C3C40; color: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 600; cursor: pointer;">Switch to A4 invoice</div>
+            <div onClick="{{ onSendPrint }}" style="height: 46px; padding: 0 22px; border-radius: 11px; background: #1F6F4A; color: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 700; cursor: pointer;">Send to printer</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isInvoice }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ stop }}" style="display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 100%;">
+          <div style="width: min(620px, 100%); max-height: 62vh; overflow: auto; background: #FFFFFF; padding: clamp(20px, 4vw, 40px) clamp(20px, 4.5vw, 44px); color: #17171A; box-shadow: 0 24px 60px rgba(0,0,0,0.35);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 20px; border-bottom: 2px solid #17171A;">
+              <div>
+                <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em;">{{ storeName }}</div>
+                <div style="font-size: 12px; color: #55524C; margin-top: 5px; line-height: 1.6;">{{ storeAddress }}<br>VAT {{ storeTaxId }}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #6E6A62;">Tax invoice</div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 19px; font-weight: 700; margin-top: 4px;">{{ docRef }}</div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #55524C; margin-top: 3px;">{{ docStamp }}</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 20px 0; border-bottom: 1px solid #E2DED4;">
+              <div>
+                <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: #6E6A62; margin-bottom: 6px;">Billed to</div>
+                <div style="font-size: 14px; font-weight: 600;">{{ billToName }}</div>
+                <div style="font-size: 12px; color: #55524C; margin-top: 3px; line-height: 1.6;">{{ billToMeta }}</div>
+              </div>
+              <div>
+                <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: #6E6A62; margin-bottom: 6px;">Sale reference</div>
+                <div style="font-size: 12px; color: #55524C; line-height: 1.7; font-family: 'JetBrains Mono', monospace;">{{ docContext }}<br>Register 1 · Ruth K.<br>Paid by {{ docPaidBy }}</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) 44px 78px 88px; gap: 10px; padding: 14px 0 10px; border-bottom: 1px solid #E2DED4; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #6E6A62;">
+              <div>Description</div><div style="text-align: right;">Qty</div><div style="text-align: right;">Unit</div><div style="text-align: right;">Amount</div>
+            </div>
+            <sc-for list="{{ docLines }}" as="l" hint-placeholder-count="3">
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr) 44px 78px 88px; gap: 10px; padding: 11px 0; border-bottom: 1px solid #F3F0E9; font-size: 13px; align-items: baseline;">
+                <div style="font-weight: 600;">{{ l.name }}</div>
+                <div style="text-align: right; font-family: 'JetBrains Mono', monospace;">{{ l.qty }}</div>
+                <div style="text-align: right; font-family: 'JetBrains Mono', monospace;">{{ l.unitPrice }}</div>
+                <div style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 600;">{{ l.amount }}</div>
+              </div>
+            </sc-for>
+
+            <div style="display: flex; justify-content: flex-end; padding-top: 16px;">
+              <div style="width: 280px; display: flex; flex-direction: column; gap: 7px;">
+                <sc-for list="{{ docTotals }}" as="r" hint-placeholder-count="4">
+                  <div style="display: flex; justify-content: space-between; font-size: {{ r.size }}; font-weight: {{ r.weight }};">
+                    <span>{{ r.label }}</span><span style="font-family: 'JetBrains Mono', monospace;">{{ r.value }}</span>
+                  </div>
+                </sc-for>
+                <div style="height: 1px; background: #17171A; margin: 3px 0;"></div>
+                <sc-for list="{{ docTenders }}" as="r" hint-placeholder-count="1">
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; color: #55524C;">
+                    <span>{{ r.label }}</span><span style="font-family: 'JetBrains Mono', monospace;">{{ r.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="margin-top: 28px; padding-top: 16px; border-top: 1px solid #E2DED4; display: flex; justify-content: space-between; gap: 24px; font-size: 11px; color: #55524C; line-height: 1.7;">
+              <div style="flex: 1;">{{ docFooter }}</div>
+              <div style="flex: 0 0 180px; text-align: center; padding-top: 26px; border-top: 1px solid #9A968C; align-self: flex-end;">Authorised signature</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+            <div onClick="{{ closeOverlay }}" style="height: 46px; padding: 0 20px; border-radius: 11px; background: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 600; cursor: pointer;">Close</div>
+            <div onClick="{{ openThermal }}" style="height: 46px; padding: 0 20px; border-radius: 11px; background: #3C3C40; color: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 600; cursor: pointer;">Switch to 80mm receipt</div>
+            <div onClick="{{ onSendPrint }}" style="height: 46px; padding: 0 22px; border-radius: 11px; background: #1F6F4A; color: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 700; cursor: pointer;">Send to printer</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ stop }}" style="width: min(720px, 100%); max-height: 100%; background: #FFFFFF; border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 30px 80px rgba(0,0,0,0.35);">
+          <div style="padding: 22px 24px 16px; border-bottom: 1px solid #EFEBE2; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
+            <div style="min-width: 0;">
+              <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em;">{{ dialogTitle }}</div>
+              <div style="font-size: 13px; color: #55524C; margin-top: 4px;">{{ dialogSubtitle }}</div>
+            </div>
+            <div onClick="{{ closeOverlay }}" style="width: 38px; height: 38px; flex: 0 0 38px; border-radius: 10px; border: 1px solid #DDD8CD; display: flex; align-items: center; justify-content: center; font-size: 19px; color: #55524C; cursor: pointer;" style-hover="border-color: #17171A;">×</div>
+          </div>
+          <sc-if value="{{ dialogHasInput }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 16px 24px 0;">
+              <input value="{{ dialogQuery }}" onChange="{{ onDialogQuery }}" placeholder="{{ dialogPlaceholder }}" style="width: 100%; height: 50px; border: 1px solid #E2DED4; border-radius: 11px; padding: 0 15px; font-family: Archivo, sans-serif; font-size: 16px; color: #17171A; background: #F7F5F0; outline: none;">
+            </div>
+          </sc-if>
+          <div style="flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 16px;">
+            <sc-if value="{{ dialogEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 50px 20px; text-align: center; color: #6E6A62; font-size: 15px;">{{ dialogEmptyText }}</div>
+            </sc-if>
+            <sc-for list="{{ dialogRows }}" as="row" hint-placeholder-count="4">
+              <div onClick="{{ row.onClick }}" style="{{ row.style }}" style-hover="background: #F7F5F0;">
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">{{ row.primary }}</div>
+                  <div style="font-size: 13px; color: #55524C; margin-top: 3px;">{{ row.secondary }}</div>
+                </div>
+                <div style="text-align: right; flex: 0 0 auto;">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; color: {{ row.rightColor }};">{{ row.right }}</div>
+                  <div style="font-size: 12px; color: #6E6A62; margin-top: 3px; font-family: 'JetBrains Mono', monospace;">{{ row.rightSub }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ dialogHasFooter }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top: 1px solid #EFEBE2; padding: 14px 20px; display: flex; align-items: center; gap: 10px;">
+              <div style="flex: 1; font-size: 13px; color: #55524C;">{{ dialogFooterNote }}</div>
+              <div onClick="{{ dialogFooterAction }}" style="height: 46px; padding: 0 20px; border-radius: 11px; background: #17171A; color: #FFFFFF; display: flex; align-items: center; font-size: 14px; font-weight: 600; cursor: pointer;" style-hover="background: #1F6F4A;">{{ dialogFooterLabel }}</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 900}}">
+const CATALOGS = {
+  Grocery: {
+    search: "Scan barcode or search groceries  ·  F2",
+    context: "Lane open · drawer $220.00",
+    taxLabel: "Tax (food exempt)", taxRate: 0.02,
+    chips: ["Produce", "Bakery", "Dairy", "Pantry", "Frozen", "Household"],
+    actions: [["Price check", "stock"], ["Manual weight", null], ["Coupon", "discount"], ["Void line", null]],
+    items: [
+      ["Bananas", "PER LB", 0.69, "in stock", "Produce", 240],
+      ["Whole milk, gallon", "DAIRY", 4.29, "in stock", "Dairy", 86],
+      ["Sourdough loaf", "BAKERY", 5.5, "6 left", "Bakery", 6],
+      ["Large eggs, dozen", "DAIRY", 3.99, "in stock", "Dairy", 54],
+      ["Roma tomatoes", "PER LB", 1.89, "in stock", "Produce", 130],
+      ["Ground coffee 12oz", "PANTRY", 8.75, "in stock", "Pantry", 42],
+      ["Frozen peas", "FROZEN", 2.19, "in stock", "Frozen", 61],
+      ["Paper towels 6pk", "HOUSEHOLD", 9.99, "3 left", "Household", 3],
+      ["Chicken breast", "PER LB", 5.49, "in stock", "Produce", 38],
+      ["Cheddar block", "DAIRY", 6.25, "in stock", "Dairy", 27],
+      ["Olive oil 500ml", "PANTRY", 11.4, "in stock", "Pantry", 19],
+      ["Ice cream pint", "FROZEN", 4.85, "in stock", "Frozen", 33]
+    ]
+  },
+  "Auto parts": {
+    search: "Search part number, VIN or plate  ·  F2",
+    context: "Vehicle: 2018 Camry LE 2.5L",
+    taxLabel: "Sales tax 8.25%", taxRate: 0.0825,
+    chips: ["Filters", "Brakes", "Fluids", "Battery", "Belts", "Wipers"],
+    actions: [["Fitment check", "stock"], ["Core charge", null], ["Order in", null], ["Void line", null]],
+    items: [
+      ["Oil filter PH7317", "FITS SELECTED", 7.98, "in stock", "Filters", 44],
+      ["Cabin air filter", "FITS SELECTED", 15.75, "in stock", "Filters", 21],
+      ["Front brake pads", "FITS SELECTED", 48.5, "2 left", "Brakes", 2],
+      ["Brake rotor, front", "FITS SELECTED", 62.0, "in stock", "Brakes", 11],
+      ["Brake fluid DOT3", "FLUIDS", 8.4, "in stock", "Brakes", 30],
+      ["5W-30 synthetic 5qt", "FLUIDS", 27.99, "in stock", "Fluids", 26],
+      ["Coolant 1gal", "FLUIDS", 21.5, "in stock", "Fluids", 18],
+      ["Battery 35-AGM", "GROUP 35", 189.0, "1 left", "Battery", 1],
+      ["Serpentine belt", "FITS SELECTED", 33.4, "order in", "Belts", 0],
+      ["Timing belt kit", "FITS SELECTED", 128.0, "in stock", "Belts", 5],
+      ["Wiper blade 24\"", "UNIVERSAL", 18.25, "in stock", "Wipers", 40],
+      ["Wiper blade 18\"", "UNIVERSAL", 15.5, "in stock", "Wipers", 36]
+    ]
+  },
+  Pharmacy: {
+    search: "Search Rx number, patient or OTC item  ·  F2",
+    context: "Patient: M. Ortiz · insurance verified",
+    taxLabel: "Tax (Rx exempt)", taxRate: 0.0,
+    chips: ["Ready for pickup", "Pain relief", "Cold & flu", "Vitamins", "First aid", "Baby"],
+    actions: [["Counsel required", null], ["Insurance", null], ["Partial fill", null], ["Void line", null]],
+    items: [
+      ["Rx #48219 Ortiz", "READY · COPAY", 12.0, "counsel", "Ready for pickup", 1],
+      ["Rx #48220 Ortiz", "READY · COPAY", 4.0, "ready", "Ready for pickup", 1],
+      ["Ibuprofen 200mg 100ct", "PAIN RELIEF", 8.49, "in stock", "Pain relief", 62],
+      ["Acetaminophen 500mg", "PAIN RELIEF", 7.25, "in stock", "Pain relief", 48],
+      ["Cough syrup 8oz", "COLD & FLU", 11.99, "in stock", "Cold & flu", 23],
+      ["Allergy tabs 30ct", "COLD & FLU", 14.2, "in stock", "Cold & flu", 31],
+      ["Saline spray", "COLD & FLU", 6.8, "in stock", "Cold & flu", 40],
+      ["Vitamin D3 2000IU", "VITAMINS", 13.5, "in stock", "Vitamins", 55],
+      ["Multivitamin 90ct", "VITAMINS", 18.95, "in stock", "Vitamins", 29],
+      ["Bandage variety pk", "FIRST AID", 5.75, "in stock", "First aid", 70],
+      ["Thermometer digital", "FIRST AID", 16.4, "4 left", "First aid", 4],
+      ["Infant drops", "BABY", 9.6, "2 left", "Baby", 2]
+    ]
+  },
+  Restaurant: {
+    search: "Search menu or add open item  ·  F2",
+    context: "Table 12 · 2 guests · dine in",
+    taxLabel: "Tax 7% + service", taxRate: 0.07,
+    chips: ["Starters", "Mains", "Sides", "Drinks", "Desserts"],
+    actions: [["Modifiers", null], ["Send to kitchen", null], ["Split bill", "split"], ["Void line", null]],
+    items: [
+      ["Soup of the day", "STARTERS", 7.0, "available", "Starters", 20],
+      ["House salad", "STARTERS", 9.5, "available", "Starters", 20],
+      ["Grilled chicken plate", "MAINS", 18.0, "available", "Mains", 15],
+      ["Ribeye 10oz", "MAINS", 32.0, "4 left", "Mains", 4],
+      ["Pasta pomodoro", "MAINS", 16.5, "available", "Mains", 20],
+      ["Fish of the day", "MAINS", 24.0, "sold out", "Mains", 0],
+      ["Fries", "SIDES", 5.0, "available", "Sides", 40],
+      ["Garlic bread", "SIDES", 4.5, "available", "Sides", 30],
+      ["Draft beer", "DRINKS", 6.5, "available", "Drinks", 60],
+      ["House red, glass", "DRINKS", 9.0, "available", "Drinks", 35],
+      ["Espresso", "DRINKS", 3.25, "available", "Drinks", 99],
+      ["Cheesecake", "DESSERTS", 8.0, "available", "Desserts", 12]
+    ]
+  },
+  Retail: {
+    search: "Scan tag or search style number  ·  F2",
+    context: "Walk-in customer · no loyalty",
+    taxLabel: "Sales tax 8.25%", taxRate: 0.0825,
+    chips: ["Tops", "Bottoms", "Shoes", "Accessories", "Sale"],
+    actions: [["Size / color", null], ["Loyalty lookup", "customer"], ["Gift receipt", null], ["Void line", null]],
+    items: [
+      ["Oxford shirt", "M · WHITE", 68.0, "in stock", "Tops", 14],
+      ["Merino crew", "L · NAVY", 95.0, "2 left", "Tops", 2],
+      ["Denim jacket", "M · INDIGO", 128.0, "1 left", "Tops", 1],
+      ["Chino trouser", "32 · STONE", 78.0, "in stock", "Bottoms", 9],
+      ["Linen shorts", "30 · SAND", 52.0, "in stock", "Bottoms", 12],
+      ["Canvas sneaker", "10 · OFF WHITE", 85.0, "in stock", "Shoes", 7],
+      ["Leather boot", "9 · TAN", 165.0, "2 left", "Shoes", 2],
+      ["Leather belt", "34 · BROWN", 45.0, "in stock", "Accessories", 16],
+      ["Wool socks 3pk", "ONE SIZE", 24.0, "in stock", "Accessories", 33],
+      ["Tote bag", "ONE SIZE", 58.0, "in stock", "Accessories", 10],
+      ["Silk scarf", "ONE SIZE", 64.0, "3 left", "Accessories", 3],
+      ["Sale tee", "S · BLACK", 19.0, "clearance", "Sale", 25]
+    ]
+  }
+};
+
+const CUSTOMERS = [
+  { id: "c1", name: "Maria Ortiz", phone: "(415) 555-0132", tier: "Gold", points: 2450, balance: -18.5, visits: 34 },
+  { id: "c2", name: "Devon Clarke", phone: "(415) 555-0198", tier: "Silver", points: 780, balance: 0, visits: 12 },
+  { id: "c3", name: "Priya Raman", phone: "(628) 555-0110", tier: "Gold", points: 5120, balance: 42.0, visits: 61 },
+  { id: "c4", name: "Tom Whitfield", phone: "(510) 555-0176", tier: "Member", points: 145, balance: 0, visits: 4 }
+];
+
+const DISCOUNTS = [
+  { id: "d1", label: "10% off order", kind: "pct", value: 0.1, note: "Manager approval not required" },
+  { id: "d2", label: "20% off order", kind: "pct", value: 0.2, note: "Requires manager PIN" },
+  { id: "d3", label: "$5 off coupon", kind: "amt", value: 5, note: "Scan or key coupon code" },
+  { id: "d4", label: "Employee 25%", kind: "pct", value: 0.25, note: "Staff card on file" },
+  { id: "d5", label: "Loyalty tier discount", kind: "pct", value: 0.05, note: "Auto-applies for Gold" }
+];
+
+const INVOICES = [
+  { ref: "INV-10418", when: "Today 11:42", total: 64.2, pay: "Card ····4417", change: 0,
+    lines: [["Ground coffee 12oz", 2, 8.75], ["Olive oil 500ml", 1, 11.4], ["Cheddar block", 2, 6.25], ["Sourdough loaf", 1, 5.5]] },
+  { ref: "INV-10417", when: "Today 11:26", total: 12.85, pay: "Cash", change: 7.15,
+    lines: [["Whole milk, gallon", 2, 4.29], ["Bananas", 1, 0.69], ["Frozen peas", 1, 2.19]] },
+  { ref: "INV-10416", when: "Today 11:03", total: 189.0, pay: "Split", change: 0,
+    lines: [["Battery 35-AGM", 1, 189.0]] },
+  { ref: "INV-10415", when: "Today 10:47", total: 33.4, pay: "Wallet", change: 0,
+    lines: [["Wiper blade 24\"", 1, 18.25], ["Brake fluid DOT3", 1, 8.4], ["Bandage variety pk", 1, 5.75]] }
+].map(i => ({ ...i, items: i.lines.reduce((a, l) => a + l[1], 0) }));
+
+const PAY_TYPES = [
+  ["Cash", "drawer opens"], ["Card", "chip / tap"], ["Mobile wallet", "QR or NFC"],
+  ["Gift card", "check balance"], ["Store credit", "on account"], ["Split", "add another"]
+];
+
+const STORE = {
+  Grocery: { name: "Parkway Market", address: "418 Ashgrove Road, Riverside", taxId: "GB 412 8830 55", footer: "Exchanges within 14 days with this receipt. Fresh items are non-returnable. Thank you for shopping with us." },
+  "Auto parts": { name: "Parkway Auto Parts", address: "12 Dockside Way, Riverside", taxId: "GB 412 8830 56", footer: "Electrical parts are non-returnable once fitted. Core charges refunded on return of the old unit within 30 days. Warranty claims require this invoice." },
+  Pharmacy: { name: "Parkway Pharmacy", address: "418 Ashgrove Road, Riverside", taxId: "GB 412 8830 57", footer: "Prescription items cannot be returned or exchanged. Keep this receipt for insurance reimbursement. Pharmacist consultation available on request." },
+  Restaurant: { name: "Parkway Kitchen", address: "7 Mill Lane, Riverside", taxId: "GB 412 8830 58", footer: "Service charge is discretionary and shown separately where applied. We are happy to split the bill on request." },
+  Retail: { name: "Parkway & Co.", address: "22 High Street, Riverside", taxId: "GB 412 8830 59", footer: "Returns accepted within 30 days, unworn and with tags attached. Sale items are final. Gift receipts available on request." }
+};
+
+const money = n => (n < 0 ? "−$" : "$") + Math.abs(n).toFixed(2);
+const round2 = n => Math.round(n * 100) / 100;
+
+class Component extends DCLogic {
+  state = {
+    vertical: "Grocery", chip: null, cart: {}, seq: 1,
+    customer: null, discount: null, usePoints: false,
+    overlay: null, dialogQuery: "", tenders: [], held: [], lastSale: null, amt: "", finalised: false,
+    narrow: typeof window !== "undefined" && window.innerWidth < 780,
+    short: typeof window !== "undefined" && window.innerHeight < 660
+  };
+
+  cfg() { return CATALOGS[this.state.vertical]; }
+
+  totals() {
+    const cfg = this.cfg();
+    const prices = {};
+    cfg.items.forEach(it => { prices[it[0]] = it[2]; });
+    const names = Object.keys(this.state.cart);
+    const subtotal = round2(names.reduce((a, n) => a + (prices[n] || 0) * this.state.cart[n], 0));
+    const d = this.state.discount;
+    const discount = d ? round2(d.kind === "pct" ? subtotal * d.value : Math.min(d.value, subtotal)) : 0;
+    const maxPoints = this.state.customer ? round2(this.state.customer.points / 100) : 0;
+    const points = this.state.usePoints ? round2(Math.min(maxPoints, subtotal - discount)) : 0;
+    const taxable = Math.max(0, subtotal - discount - points);
+    const tax = round2(taxable * cfg.taxRate);
+    const total = round2(taxable + tax);
+    const paid = round2(this.state.tenders.reduce((a, t) => a + t.amount, 0));
+    return { prices, names, subtotal, discount, points, maxPoints, tax, total, paid, due: round2(Math.max(0, total - paid)), over: round2(Math.max(0, paid - total)) };
+  }
+
+  add(name) { this.setState(s => ({ cart: { ...s.cart, [name]: (s.cart[name] || 0) + 1 } })); }
+
+  bump(name, d) {
+    this.setState(s => {
+      const cart = { ...s.cart };
+      const q = (cart[name] || 0) + d;
+      if (q <= 0) delete cart[name]; else cart[name] = q;
+      return { cart };
+    });
+  }
+
+  open(o) { this.setState({ overlay: o, dialogQuery: "", amt: "" }); }
+
+  close() {
+    if (this.state.finalised) { this.nextCustomer(); return; }
+    this.setState({ overlay: null, dialogQuery: "", amt: "" });
+  }
+
+  addTender(type, amount) {
+    if (amount <= 0) return;
+    this.setState(s => ({ tenders: [...s.tenders, { type, amount, id: Math.random() }] }));
+  }
+
+  complete() {
+    const t = this.totals();
+    if (t.due > 0) return;
+    this.setState(s => ({
+      overlay: "receipt",
+      finalised: true,
+      lastSale: {
+        ref: "INV-" + (10419 + s.seq),
+        total: t.total, change: t.over, discount: t.discount, points: t.points,
+        subtotal: t.subtotal, tax: t.tax,
+        tenders: s.tenders.map(x => x.type).join(" + ") || "Cash",
+        tenderRows: s.tenders.map(x => ({ type: x.type, amount: x.amount })),
+        paid: t.paid,
+        discountLabel: s.discount ? s.discount.label : "Discount",
+        vertical: s.vertical,
+        customer: s.customer,
+        lines: t.names.map(n => ({ name: n, qty: s.cart[n], unit: t.prices[n] || 0, amount: round2((t.prices[n] || 0) * s.cart[n]) })),
+        stamp: new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      }
+    }));
+  }
+
+  reprint(inv) {
+    const cfg = this.cfg();
+    const lines = inv.lines.map(([name, qty, unit]) => ({ name, qty, unit, amount: round2(qty * unit) }));
+    const subtotal = round2(lines.reduce((a, l) => a + l.amount, 0));
+    const tax = round2(inv.total - subtotal);
+    this.setState({
+      overlay: "thermal",
+      lastSale: {
+        ref: inv.ref, total: inv.total, change: inv.change, discount: 0, points: 0,
+        subtotal, tax: tax > 0 ? tax : 0,
+        tenders: inv.pay, tenderRows: [{ type: inv.pay, amount: round2(inv.total + inv.change) }],
+        paid: round2(inv.total + inv.change), discountLabel: "Discount",
+        vertical: this.state.vertical, customer: null, lines,
+        stamp: inv.when + " · reprint"
+      }
+    });
+  }
+
+  nextCustomer() {
+    this.setState(s => ({
+      overlay: null, cart: {}, tenders: [], discount: null, usePoints: false, customer: null,
+      seq: s.seq + 1, finalised: false, dialogQuery: "", amt: ""
+    }));
+  }
+
+  hold() {
+    const t = this.totals();
+    if (!t.names.length) return;
+    this.setState(s => ({
+      held: [...s.held, { id: Math.random(), ref: "HOLD-" + (s.held.length + 1), cart: s.cart, customer: s.customer, vertical: s.vertical, total: t.total, count: t.names.length }],
+      cart: {}, discount: null, usePoints: false, customer: null, tenders: []
+    }));
+  }
+
+  renderVals() {
+    const cfg = this.cfg();
+    const t = this.totals();
+    const st = this.state;
+    const ov = st.overlay;
+    const dq = st.dialogQuery.trim().toLowerCase();
+
+    const verticals = Object.keys(CATALOGS).map(label => {
+      const on = label === st.vertical;
+      return {
+        label,
+        onClick: () => this.setState({ vertical: label, chip: null, cart: {}, tenders: [], discount: null, usePoints: false, overlay: null }),
+        style: "height: 36px; padding: 0 15px; border-radius: 9px; display: flex; align-items: center; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;"
+          + (on ? "background: #17171A; color: #FFFFFF;" : "color: #55524C;")
+      };
+    });
+
+    const chips = cfg.chips.map(label => {
+      const on = label === st.chip;
+      return {
+        label,
+        onClick: () => this.setState({ chip: on ? null : label }),
+        style: "height: 40px; padding: 0 17px; border-radius: 20px; display: flex; align-items: center; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; border: 1px solid "
+          + (on ? "#17171A;" : "#E2DED4;") + (on ? "background: #17171A; color: #FFFFFF;" : "background: #FFFFFF; color: #3C3A36;")
+      };
+    });
+
+    const gridItems = cfg.items
+      .filter(it => !st.chip || it[4] === st.chip)
+      .map(([name, meta, price, stock]) => {
+        const blocked = /sold out|order in/.test(stock);
+        return {
+          name, meta, stock: blocked ? stock.toUpperCase() : stock,
+          priceLabel: money(price),
+          stockColor: /sold out|order in|counsel|clearance/.test(stock) ? "#C8461E" : (/left/.test(stock) ? "#8A6110" : "#6E6A62"),
+          cardStyle: "background: #FFFFFF; border: 1px solid #E2DED4; border-radius: 15px; padding: 15px; height: 134px; display: flex; flex-direction: column; justify-content: space-between; transition: box-shadow 90ms ease, transform 90ms ease;"
+            + (blocked ? "opacity: 0.55; cursor: not-allowed; background: #FAF8F4;" : "cursor: pointer;"),
+          onClick: blocked ? undefined : () => this.add(name)
+        };
+      });
+
+    const lines = t.names.map(name => {
+      const qty = st.cart[name];
+      const unit = t.prices[name] || 0;
+      return {
+        name, qty,
+        unitLabel: money(unit) + " each",
+        totalLabel: money(unit * qty),
+        rowStyle: "padding: 13px 20px; border-bottom: 1px solid #F3F0E9; display: flex; gap: 12px; align-items: flex-start;",
+        inc: () => this.bump(name, 1),
+        dec: () => this.bump(name, -1)
+      };
+    });
+
+    const count = t.names.reduce((a, n) => a + st.cart[n], 0);
+    const cust = st.customer;
+
+    const short = st.short;
+    const secondaryActions = cfg.actions.map(([label, action]) => ({
+      label,
+      style: "border-radius: 11px; border: 1px solid #DDD8CD; background: #FBFAF7; display: flex; align-items: center; justify-content: center; font-weight: 600; cursor: pointer; white-space: nowrap;"
+        + (short
+            ? "height: 40px; flex: 0 0 auto; padding: 0 14px; font-size: 13px;"
+            : "height: 43px; font-size: 14px;"),
+      onClick: action ? () => this.open(action === "split" ? "tender" : action) : undefined
+    }));
+
+    const shortcuts = [
+      ["F2", "Search", () => this.open("search")],
+      ["F3", "Stock", () => this.open("stock")],
+      ["F4", "Customer", () => this.open("customer")],
+      ["F6", "Discount", () => this.open("discount")],
+      ["F7", "Hold", () => this.hold()],
+      ["F8", "Recall", () => this.open("recall")],
+      ["F9", "Reprint", () => this.open("reprint")],
+      ["F10", "Returns", () => this.open("reprint")]
+    ].map(([key, label, onClick]) => ({ key, label, onClick }));
+
+    // dialog content
+    let dialogTitle = "", dialogSubtitle = "", dialogRows = [], dialogPlaceholder = "", dialogEmptyText = "Nothing here yet.";
+    let dialogHasInput = false, dialogHasFooter = false, dialogFooterNote = "", dialogFooterLabel = "", dialogFooterAction = undefined;
+    const rowStyle = "display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 12px; cursor: pointer;";
+
+    if (ov === "search") {
+      dialogTitle = "Product search";
+      dialogSubtitle = "Search by name, code or category, then add straight to the ticket.";
+      dialogHasInput = true;
+      dialogPlaceholder = "Type a name, SKU or barcode";
+      dialogEmptyText = "No products match that search.";
+      dialogRows = cfg.items
+        .filter(it => !dq || it[0].toLowerCase().includes(dq) || it[1].toLowerCase().includes(dq) || it[4].toLowerCase().includes(dq))
+        .slice(0, 8)
+        .map(it => ({
+          primary: it[0], secondary: it[4] + " · " + it[1],
+          right: money(it[2]), rightSub: it[5] + " on hand", rightColor: "#17171A",
+          style: rowStyle, onClick: () => { this.add(it[0]); this.close(); }
+        }));
+    } else if (ov === "stock") {
+      dialogTitle = "Stock lookup";
+      dialogSubtitle = "On-hand quantity across this store and the warehouse.";
+      dialogHasInput = true;
+      dialogPlaceholder = "Filter items";
+      dialogEmptyText = "No items match.";
+      dialogRows = cfg.items
+        .filter(it => !dq || it[0].toLowerCase().includes(dq))
+        .slice(0, 8)
+        .map(it => ({
+          primary: it[0], secondary: it[4] + " · warehouse " + (it[5] * 3 + 12),
+          right: it[5] + " here", rightSub: it[3], rightColor: it[5] === 0 ? "#C8461E" : (it[5] < 5 ? "#8A6110" : "#1F6F4A"),
+          style: rowStyle, onClick: () => this.close()
+        }));
+    } else if (ov === "customer") {
+      dialogTitle = "Customer lookup";
+      dialogSubtitle = "Attach a profile to see points, account balance and visit history.";
+      dialogHasInput = true;
+      dialogPlaceholder = "Search name, phone or loyalty card";
+      dialogEmptyText = "No customer matches.";
+      dialogRows = CUSTOMERS
+        .filter(c => !dq || c.name.toLowerCase().includes(dq) || c.phone.includes(dq))
+        .map(c => ({
+          primary: c.name,
+          secondary: c.tier + " · " + c.phone + " · " + c.visits + " visits",
+          right: c.points + " pts",
+          rightSub: c.balance === 0 ? "no balance" : (c.balance < 0 ? "credit " + money(-c.balance) : "owes " + money(c.balance)),
+          rightColor: c.balance > 0 ? "#C8461E" : "#1F6F4A",
+          style: rowStyle,
+          onClick: () => this.setState({ customer: c, overlay: null, dialogQuery: "" })
+        }));
+      if (cust) {
+        dialogHasFooter = true;
+        dialogFooterNote = cust.name + " is attached to this ticket.";
+        dialogFooterLabel = "Remove customer";
+        dialogFooterAction = () => this.setState({ customer: null, usePoints: false, overlay: null });
+      }
+    } else if (ov === "discount") {
+      dialogTitle = "Apply discount";
+      dialogSubtitle = "Order-level discounts and loyalty redemption.";
+      dialogRows = DISCOUNTS.map(d => {
+        const on = st.discount && st.discount.id === d.id;
+        return {
+          primary: d.label, secondary: d.note,
+          right: on ? "Applied" : (d.kind === "pct" ? Math.round(d.value * 100) + "%" : money(d.value)),
+          rightSub: on ? "tap to remove" : "tap to apply",
+          rightColor: on ? "#1F6F4A" : "#17171A",
+          style: rowStyle + (on ? "background: #F0F5F2; border: 1px solid #1F6F4A;" : "border: 1px solid transparent;"),
+          onClick: () => this.setState({ discount: on ? null : d, overlay: null })
+        };
+      });
+      if (cust) {
+        dialogRows.push({
+          primary: "Redeem loyalty points",
+          secondary: cust.name + " has " + cust.points + " points · 100 pts = $1.00",
+          right: st.usePoints ? "Redeeming" : "up to " + money(t.maxPoints),
+          rightSub: st.usePoints ? "tap to stop" : "tap to redeem",
+          rightColor: st.usePoints ? "#1F6F4A" : "#17171A",
+          style: rowStyle + (st.usePoints ? "background: #F0F5F2; border: 1px solid #1F6F4A;" : "border: 1px solid transparent;"),
+          onClick: () => this.setState(s => ({ usePoints: !s.usePoints, overlay: null }))
+        });
+      }
+    } else if (ov === "recall") {
+      dialogTitle = "Held tickets";
+      dialogSubtitle = "Park a sale to serve the next customer, then bring it back here.";
+      dialogEmptyText = "No held tickets. Use F7 to park the current sale.";
+      dialogRows = st.held.map(h => ({
+        primary: h.ref + " · " + h.vertical,
+        secondary: (h.customer ? h.customer.name : "Walk-in") + " · " + h.count + " lines",
+        right: money(h.total), rightSub: "tap to recall", rightColor: "#17171A",
+        style: rowStyle,
+        onClick: () => this.setState(s => ({
+          cart: h.cart, customer: h.customer, vertical: h.vertical,
+          held: s.held.filter(x => x.id !== h.id), overlay: null
+        }))
+      }));
+    } else if (ov === "reprint") {
+      dialogTitle = "Recent invoices";
+      dialogSubtitle = "Reprint a receipt or start a return against a past sale.";
+      dialogRows = INVOICES.map(i => ({
+        primary: i.ref,
+        secondary: i.when + " · " + i.items + (i.items === 1 ? " item · " : " items · ") + i.pay,
+        right: money(i.total), rightSub: "tap to reprint", rightColor: "#17171A",
+        style: rowStyle,
+        onClick: () => this.reprint(i)
+      }));
+      dialogHasFooter = true;
+      dialogFooterNote = st.lastSale
+        ? "Last sale on this register: " + st.lastSale.ref + ". Reprints are logged against your operator ID."
+        : "No sale completed on this register yet. Reprints are logged against your operator ID.";
+      dialogFooterLabel = "Reprint last receipt";
+      dialogFooterAction = st.lastSale
+        ? () => this.setState({ overlay: "thermal" })
+        : () => this.reprint(INVOICES[0]);
+    }
+
+    const settled = t.due <= 0;
+    const entered = round2((parseInt(st.amt || "0", 10) || 0) / 100);
+    const payTypes = PAY_TYPES.map(([label, note]) => ({
+      label,
+      note: settled ? "balance settled" : note,
+      style: "height: 62px; border-radius: 12px; border: 1px solid #DDD8CD; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; padding: 0 15px;"
+        + (settled ? "background: #FAF8F4; opacity: 0.5; cursor: not-allowed;" : "background: #FFFFFF; cursor: pointer;"),
+      onClick: settled ? undefined : () => this.addTender(label, t.due)
+    }));
+
+    const NOTES = [5, 10, 20, 50, 100, 200, 500];
+    const cashOptions = settled ? [] : [t.due, Math.ceil(t.due)]
+      .concat([5, 10, 20, 50].map(s => Math.ceil(t.due / s) * s))
+      .concat(NOTES.filter(n => n > t.due))
+      .filter((v, i, a) => v > 0 && a.indexOf(v) === i)
+      .sort((a, b) => a - b)
+      .slice(0, 6);
+
+    const rows = [];
+    if (st.lastSale) {
+      rows.push({ label: "Ticket total", value: money(st.lastSale.total), color: "#55524C", weight: "500" });
+      if (st.lastSale.discount) rows.push({ label: "Discount applied", value: "−" + money(st.lastSale.discount), color: "#1F6F4A", weight: "600" });
+      if (st.lastSale.points) rows.push({ label: "Points redeemed", value: "−" + money(st.lastSale.points), color: "#1F6F4A", weight: "600" });
+      rows.push({ label: "Paid with", value: st.lastSale.tenders, color: "#55524C", weight: "500" });
+      if (st.lastSale.change > 0) rows.push({ label: "Change given", value: money(st.lastSale.change), color: "#17171A", weight: "700" });
+    }
+
+    const chargeOk = t.names.length > 0;
+    const stacked = st.narrow;
+
+    const sale = st.lastSale;
+    const docTotals = [];
+    const docTenders = [];
+    if (sale) {
+      docTotals.push({ label: "Subtotal", value: money(sale.subtotal), weight: "400", size: "13px" });
+      if (sale.discount > 0) docTotals.push({ label: sale.discountLabel, value: "−" + money(sale.discount), weight: "400", size: "13px" });
+      if (sale.points > 0) docTotals.push({ label: "Points redeemed", value: "−" + money(sale.points), weight: "400", size: "13px" });
+      docTotals.push({ label: cfg.taxLabel, value: money(sale.tax), weight: "400", size: "13px" });
+      docTotals.push({ label: "TOTAL", value: money(sale.total), weight: "700", size: "16px" });
+      sale.tenderRows.forEach(r => docTenders.push({ label: r.type, value: money(r.amount) }));
+      if (sale.change > 0) docTenders.push({ label: "Change", value: money(sale.change) });
+    }
+
+    return {
+      verticals, chips, gridItems, lines, secondaryActions, shortcuts, payTypes,
+      footerStyle: "border-top: 1px solid #EFEBE2; display: flex; flex-direction: column; flex: 0 0 auto;"
+        + (short ? "padding: 10px 16px 12px; gap: 5px;" : "padding: 15px 20px 16px; gap: 8px;"),
+      totalValueStyle: "font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: -0.02em;"
+        + (short ? "font-size: 23px;" : "font-size: 29px;"),
+      secondaryGridStyle: short
+        ? "display: flex; gap: 7px; margin-top: 1px; overflow-x: auto;"
+        : "display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px;",
+      bodyRowStyle: "flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden;"
+        + (stacked ? "flex-direction: column;" : ""),
+      catalogStyle: "min-width: 0; min-height: 0; display: flex; flex-direction: column;"
+        + (stacked ? "flex: 1 1 auto;" : "flex: 1 1 420px;"),
+      cartStyle: "background: #FFFFFF; display: flex; flex-direction: column; min-height: 0; overflow: hidden;"
+        + (stacked
+            ? "flex: 0 0 auto; max-height: 62%; width: 100%; border-top: 1px solid #E2DED4;"
+            : "flex: 0 1 430px; min-width: 300px; border-left: 1px solid #E2DED4;"),
+      statusStyle: "font-size: 12px; color: #A5A199; font-family: 'JetBrains Mono', monospace; white-space: nowrap;"
+        + (stacked ? "display: none;" : ""),
+      noResults: gridItems.length === 0,
+      searchPlaceholder: cfg.search,
+      contextLine: cfg.context,
+      openSearch: () => this.open("search"),
+      openCustomer: () => this.open("customer"),
+      customerName: cust ? cust.name : "Walk-in customer",
+      customerInitials: cust ? cust.name.split(" ").map(w => w[0]).join("") : "+",
+      customerMeta: cust
+        ? cust.tier + " · " + cust.points + " pts · " + (cust.balance === 0 ? "no balance" : (cust.balance < 0 ? "credit " + money(-cust.balance) : "owes " + money(cust.balance)))
+        : "Tap to attach a profile or loyalty card",
+      customerBarStyle: "display: flex; align-items: center; gap: 12px; padding: 13px 20px; border-bottom: 1px solid #EFEBE2; cursor: pointer; background: "
+        + (cust ? "#F0F5F2;" : "#FBFAF7;"),
+      customerAvatarStyle: "width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #FFFFFF; background: "
+        + (cust ? "#1F6F4A;" : "#9A968C;"),
+      ticketLabel: "Ticket #" + (1042 + st.seq) + " · " + st.vertical.toLowerCase(),
+      isEmpty: t.names.length === 0,
+      itemCountLabel: "(" + count + (count === 1 ? " item)" : " items)"),
+      subtotalLabel: money(t.subtotal),
+      hasDiscount: t.discount > 0,
+      discountLabel: st.discount ? st.discount.label : "Discount",
+      discountAmountLabel: "−" + money(t.discount),
+      hasPoints: t.points > 0,
+      pointsLabel: "Points redeemed",
+      pointsAmountLabel: "−" + money(t.points),
+      taxLabel: cfg.taxLabel,
+      taxAmountLabel: money(t.tax),
+      totalLabel: money(t.total),
+      chargeStyle: "border-radius: 13px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; color: #FFFFFF; flex: 0 0 auto;"
+        + (short ? "height: 52px; margin-top: 1px;" : "height: 62px; margin-top: 2px;")
+        + "background: "
+        + (chargeOk ? "#17171A; cursor: pointer;" : "#B9B5AC; cursor: not-allowed;"),
+      onCharge: chargeOk ? () => this.open("tender") : undefined,
+      onClear: () => this.setState({ cart: {}, discount: null, usePoints: false, tenders: [] }),
+      statusLine: st.held.length + " held · drawer $220.00 · printer ready · online",
+
+      overlayOpen: !!ov,
+      closeOverlay: () => this.close(),
+      stop: e => e.stopPropagation(),
+      isTender: ov === "tender",
+      isReceipt: ov === "receipt",
+      isThermal: ov === "thermal",
+      isInvoice: ov === "invoice",
+      isList: !!ov && ov !== "tender" && ov !== "receipt" && ov !== "thermal" && ov !== "invoice",
+      openThermal: () => this.setState({ overlay: "thermal" }),
+      openInvoice: () => this.setState({ overlay: "invoice" }),
+      onSendPrint: () => this.setState({ overlay: "receipt" }),
+      storeName: STORE[st.vertical].name,
+      storeAddress: STORE[st.vertical].address,
+      storeTaxId: STORE[st.vertical].taxId,
+      docRef: sale ? sale.ref : "",
+      docStamp: sale ? sale.stamp : "",
+      docContext: cfg.context,
+      docPaidBy: sale ? sale.tenders : "",
+      docFooter: STORE[st.vertical].footer,
+      billToName: sale && sale.customer ? sale.customer.name : "Cash customer",
+      billToMeta: sale && sale.customer
+        ? sale.customer.phone + " · " + sale.customer.tier + " member"
+        : "No account attached to this sale",
+      docLines: sale ? sale.lines.map(l => ({
+        name: l.name, qty: String(l.qty),
+        qtyUnit: l.qty + " × " + money(l.unit),
+        unitPrice: money(l.unit),
+        amount: money(l.amount)
+      })) : [],
+      docTotals: docTotals,
+      docTenders: docTenders,
+
+      dialogTitle, dialogSubtitle, dialogRows, dialogHasInput, dialogPlaceholder,
+      dialogEmpty: dialogRows.length === 0, dialogEmptyText,
+      dialogHasFooter, dialogFooterNote, dialogFooterLabel, dialogFooterAction,
+      dialogQuery: st.dialogQuery,
+      onDialogQuery: e => this.setState({ dialogQuery: e.target.value }),
+
+      dueLabel: money(t.due),
+      tenderSubtitle: cust ? cust.name + " · " + cust.tier : "Walk-in customer",
+      tenders: st.tenders.map(x => ({ type: x.type, amountLabel: money(x.amount), remove: () => this.setState(s => ({ tenders: s.tenders.filter(y => y.id !== x.id) })) })),
+      noTenders: st.tenders.length === 0,
+      hasChange: t.over > 0,
+      changeLabel: money(t.over),
+      hasQuickCash: cashOptions.length > 0,
+      amountDisplay: st.amt === "" ? money(0) : money(entered),
+      amountColor: st.amt === "" ? "#9A968C" : "#17171A",
+      amountHint: st.amt === ""
+        ? "Key an amount for a partial payment or an overtender, or tap a quick-cash note."
+        : (entered > t.due
+            ? "Change from " + money(entered) + " will be " + money(round2(entered - t.due)) + "."
+            : (entered === t.due ? "Exact amount." : money(round2(t.due - entered)) + " will remain on the ticket.")),
+      keypad: ["7","8","9","4","5","6","1","2","3","0","00","⌫"].map(label => ({
+        label,
+        style: "height: 46px; border-radius: 10px; border: 1px solid #DDD8CD; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 600; cursor: pointer; user-select: none;",
+        onClick: () => this.setState(s => ({
+          amt: label === "⌫" ? s.amt.slice(0, -1) : (s.amt + label).replace(/^0+(?=\d)/, "").slice(0, 8)
+        }))
+      })),
+      onAddCash: entered > 0 ? () => { this.addTender("Cash", entered); this.setState({ amt: "" }); } : undefined,
+      onAddCard: entered > 0 ? () => { this.addTender("Card", entered); this.setState({ amt: "" }); } : undefined,
+      addCashStyle: "height: 48px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #FFFFFF; background: "
+        + (entered > 0 ? "#17171A; cursor: pointer;" : "#C9C4B8; cursor: not-allowed;"),
+      addCardStyle: "height: 48px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; border: 1px solid "
+        + (entered > 0 ? "#17171A; color: #17171A; cursor: pointer;" : "#DDD8CD; color: #9A968C; cursor: not-allowed;"),
+      quickCash: cashOptions.map(v => {
+        const ch = round2(v - t.due);
+        return {
+          label: money(v),
+          changeNote: ch > 0 ? "change " + money(ch) : "exact",
+          changeColor: ch > 0 ? "#8A6110" : "#1F6F4A",
+          onClick: () => this.addTender("Cash", v)
+        };
+      }),
+      completeLabel: t.due > 0 ? "Balance " + money(t.due) + " remaining" : "Complete sale",
+      completeStyle: "flex: 2 1 200px; height: 58px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #FFFFFF; background: "
+        + (t.due > 0 ? "#B9B5AC; cursor: not-allowed;" : "#1F6F4A; cursor: pointer;"),
+      onCompleteSale: t.due > 0 ? undefined : () => this.complete(),
+
+      onNextCustomer: () => this.nextCustomer(),
+      receiptRef: st.lastSale ? st.lastSale.ref + " · " + st.vertical.toLowerCase() : "",
+      receiptRows: rows
+    };
+  }
+
+  componentDidMount() {
+    this._keys = e => {
+      const map = { F2: "search", F3: "stock", F4: "customer", F6: "discount", F8: "recall", F9: "reprint", F10: "reprint" };
+      if (e.key === "Escape") { this.close(); return; }
+      if (e.key === "F7") { e.preventDefault(); this.hold(); return; }
+      if (map[e.key]) { e.preventDefault(); this.open(map[e.key]); }
+    };
+    window.addEventListener("keydown", this._keys);
+    this._resize = () => {
+      const narrow = window.innerWidth < 780;
+      const short = window.innerHeight < 660;
+      if (narrow !== this.state.narrow || short !== this.state.short) this.setState({ narrow, short });
+    };
+    window.addEventListener("resize", this._resize);
+    this._resize();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("keydown", this._keys);
+    window.removeEventListener("resize", this._resize);
+  }
+}
+
+</script>
+</body>
+</html>

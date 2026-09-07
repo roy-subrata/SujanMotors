@@ -1,0 +1,36 @@
+<div class="pos-catalog">
+    <div class="pos-chip-row">
+        <button type="button" class="pos-chip" [class.active]="chip.active" *ngFor="let chip of chips()" (click)="chipToggle.emit(chip.label)">
+            {{ chip.label }}
+        </button>
+    </div>
+
+    <div class="pos-grid-scroll" #gridScroll (scroll)="onGridScroll($event)">
+        @if (loading()) {
+            <div class="pos-grid-loading"><i class="pi pi-spin pi-spinner"></i></div>
+        } @else if (tiles().length === 0) {
+            <div class="pos-grid-empty">{{ 'pos.catalogEmpty' | translate }}</div>
+        } @else {
+            <div class="pos-grid">
+                <div
+                    class="pos-tile"
+                    [class.blocked]="tile.blocked"
+                    *ngFor="let tile of tiles(); trackBy: trackTile"
+                    (click)="addToCart.emit(tile)"
+                >
+                    <div class="pos-tile-top">
+                        <div class="pos-tile-meta">{{ tile.meta }}</div>
+                        <div class="pos-tile-name">{{ tile.name }}</div>
+                    </div>
+                    <div class="pos-tile-foot">
+                        <div class="pos-tile-price">{{ tile.priceLabel }}</div>
+                        <div class="pos-tile-stock" [class]="'tone-' + tile.stockTone">{{ tile.stockLabel }}</div>
+                    </div>
+                </div>
+            </div>
+            @if (loadingMore()) {
+                <div class="pos-grid-loading-more"><i class="pi pi-spin pi-spinner"></i></div>
+            }
+        }
+    </div>
+</div>

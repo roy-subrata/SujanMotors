@@ -1,0 +1,159 @@
+/* See pos-cart-panel.component.css for why there's no `height: 100%` in this file — same
+   nested-flex percentage-height bug (grid grows to full content height instead of clipping and
+   scrolling internally). Height is sized via stretch (host) / `flex: 1 1 auto` (.pos-catalog),
+   never a percentage. */
+:host {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.pos-catalog {
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.pos-chip-row {
+    display: flex;
+    gap: 8px;
+    padding: 15px 20px 3px;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+}
+
+.pos-chip {
+    height: 40px;
+    padding: 0 17px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    background: var(--pos-surface);
+    border: 1px solid var(--pos-line);
+    color: var(--pos-text-dim);
+    font-family: inherit;
+}
+
+.pos-chip.active {
+    background: var(--pos-ink);
+    border-color: var(--pos-ink);
+    color: var(--pos-on-dark-body);
+}
+
+.pos-grid-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 13px 20px 18px;
+}
+
+.pos-grid-loading,
+.pos-grid-empty {
+    padding: 80px 20px;
+    text-align: center;
+    color: var(--pos-muted);
+    font-size: 15px;
+}
+
+.pos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+.pos-grid-loading-more {
+    padding: 18px 0 4px;
+    text-align: center;
+    color: var(--pos-muted);
+    font-size: 15px;
+}
+
+.pos-tile {
+    height: 134px;
+    background: var(--pos-surface);
+    border: 1px solid var(--pos-line);
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition:
+        box-shadow 90ms ease,
+        transform 90ms ease,
+        border-color 90ms ease;
+}
+
+.pos-tile:hover {
+    border-color: var(--pos-ink);
+}
+
+.pos-tile:active {
+    transform: scale(0.985);
+}
+
+/* Design shows "sold out"/"order in" tiles dimmed, but per product decision they stay
+   clickable — the backend remains the authority on whether the sale can proceed. */
+.pos-tile.blocked {
+    opacity: 0.55;
+    background: var(--pos-canvas-2);
+}
+
+.pos-tile-top {
+    min-width: 0;
+}
+
+.pos-tile-meta {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--pos-muted);
+    margin-bottom: 7px;
+}
+
+.pos-tile-name {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    color: var(--pos-ink);
+}
+
+.pos-tile-foot {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.pos-tile-price {
+    font-family: var(--pos-mono);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--pos-ink);
+}
+
+.pos-tile-stock {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--pos-mono);
+}
+
+.pos-tile-stock.tone-red {
+    color: var(--pos-red);
+}
+
+.pos-tile-stock.tone-amber {
+    color: var(--pos-amber);
+}
+
+.pos-tile-stock.tone-muted {
+    color: var(--pos-muted);
+}
