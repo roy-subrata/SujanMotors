@@ -230,6 +230,8 @@ builder.Services.AddScoped<IWarrantyClaimNotifier, WarrantyClaimNotifier>();
 
 // Register discount and pricing services
 builder.Services.AddScoped<IDiscountResolutionService, DiscountResolutionService>();
+builder.Services.AddScoped<ICostResolutionService, CostResolutionService>();
+builder.Services.AddScoped<ICostFloorEnforcementService, CostFloorEnforcementService>();
 
 // Bulk product import (Excel)
 builder.Services.AddScoped<IProductImportService, ProductImportService>();

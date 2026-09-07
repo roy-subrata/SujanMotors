@@ -1,0 +1,136 @@
+.pos-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 23, 26, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 3vw, 40px);
+    overflow: auto;
+    z-index: 20;
+}
+
+.mono {
+    font-family: var(--pos-mono);
+}
+
+.pos-receipt-panel {
+    width: min(420px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    background: var(--pos-surface);
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pos-receipt-head {
+    text-align: center;
+}
+
+.pos-receipt-check {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--pos-green);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin: 0 auto 12px;
+}
+
+.pos-receipt-title {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--pos-ink);
+}
+
+.pos-receipt-ref {
+    font-size: 13px;
+    color: var(--pos-body);
+    margin-top: 4px;
+}
+
+.pos-receipt-summary {
+    background: var(--pos-canvas);
+    border-radius: 12px;
+    padding: 15px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.pos-receipt-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--pos-body);
+    font-weight: 500;
+}
+
+.pos-receipt-row.tone-green {
+    color: var(--pos-green);
+}
+
+.pos-receipt-row.tone-ink {
+    color: var(--pos-ink);
+}
+
+.pos-receipt-row.bold {
+    font-weight: 700;
+}
+
+.pos-receipt-print-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.pos-receipt-print-btn {
+    height: 48px;
+    border-radius: 11px;
+    border: 1px solid var(--pos-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.pos-receipt-print-btn:hover {
+    border-color: var(--pos-ink);
+}
+
+.pos-receipt-print-btn .line1 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pos-ink);
+}
+
+.pos-receipt-print-btn .line2 {
+    font-size: 11px;
+    color: var(--pos-muted);
+}
+
+.pos-next-customer-btn {
+    height: 54px;
+    border-radius: 12px;
+    background: var(--pos-ink);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pos-next-customer-btn:hover {
+    background: var(--pos-green);
+}

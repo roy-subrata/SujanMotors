@@ -50,6 +50,7 @@ public class DatabaseSeeder
             var settingsRepository = scope.ServiceProvider.GetRequiredService<IApplicationSettingsRepository>();
             await SeedBackupSettingsAsync(settingsRepository, logger);
             await SeedShopProfileSettingsAsync(settingsRepository, logger);
+            await SeedSalesSettingsAsync(settingsRepository, logger);
 
             logger.LogInformation("Database seeding completed successfully");
         }
@@ -128,6 +129,7 @@ public class DatabaseSeeder
         ("sales.delete", "Delete Sales", "Sales", "Delete sales orders"),
         ("sales.process-payment", "Process Sales Payments", "Sales", "Record and process customer payments"),
         ("sales.require-till-session", "Require Till Session", "Sales", "Require an open till session to complete quick sales"),
+        ("sales.approve-price-override", "Approve Price Overrides", "Sales", "Eligible to approve an in-transaction price-override request (below-cost or above-MRP) via a live credential check"),
 
         // Procurement
         ("procurement.view", "View Procurement", "Procurement", "View purchase orders, suppliers and supplier payments"),
@@ -162,7 +164,7 @@ public class DatabaseSeeder
                 "Operational manager with full inventory, sales and procurement control (no user/role administration)",
                 [
                     "inventory.view", "inventory.create", "inventory.edit", "inventory.adjust-stock",
-                    "sales.view", "sales.create", "sales.edit", "sales.process-payment",
+                    "sales.view", "sales.create", "sales.edit", "sales.process-payment", "sales.approve-price-override",
                     "procurement.view", "procurement.create", "procurement.edit", "procurement.approve",
                     "reports.view", "reports.export",
                     "audit.view"
@@ -403,6 +405,29 @@ public class DatabaseSeeder
             await settingsRepository.SetValueAsync(key, value, dataType, category, description, isSystemSetting: false);
             logger.LogInformation("Seeded shop profile setting {Key}", key);
         }
+    }
+
+    /// <summary>
+    /// Default sales-policy settings — admin-editable from Application Settings.
+    /// SALES_MIN_MARGIN_PERCENT is the floor SalesOrderController enforces against a line's
+    /// resolved cost (from stock-lot FIFO cost or catalogue CostPrice): a line whose net price
+    /// (after any manual or auto-applied discount) would fall below cost × (1 + this%) is
+    /// rejected outright — a hard block with no override, for every role. Defaults to 0
+    /// (breakeven floor — a sale may not go below raw cost) so a fresh install never silently
+    /// allows loss-making sales.
+    /// </summary>
+    private static async Task SeedSalesSettingsAsync(IApplicationSettingsRepository settingsRepository, ILogger logger)
+    {
+        const string key = "SALES_MIN_MARGIN_PERCENT";
+        if (await settingsRepository.ExistsByKeyAsync(key))
+            return;
+
+        await settingsRepository.SetValueAsync(
+            key, "0", "DECIMAL", "SALES",
+            "Minimum margin (%) a sale line's net price must stay above its cost. 0 = may not sell below cost. " +
+            "Rejected outright with no override, for every role.",
+            isSystemSetting: false);
+        logger.LogInformation("Seeded sales setting {Key}", key);
     }
 
     /// <summary>

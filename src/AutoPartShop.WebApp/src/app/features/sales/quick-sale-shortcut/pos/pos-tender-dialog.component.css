@@ -1,0 +1,438 @@
+.pos-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 23, 26, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 3vw, 40px);
+    overflow: auto;
+    z-index: 20;
+}
+
+.mono {
+    font-family: var(--pos-mono);
+}
+
+.pos-tender-panel {
+    width: min(960px, 100%);
+    max-height: 100%;
+    background: var(--pos-canvas);
+    border-radius: 20px;
+    overflow: auto;
+    display: flex;
+    flex-wrap: wrap;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.pos-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--pos-muted);
+}
+
+.pos-eyebrow.on-dark {
+    color: var(--pos-on-dark-muted);
+}
+
+.pos-eyebrow.small-gap {
+    margin-bottom: 10px;
+}
+
+/* Left rail */
+.pos-tender-rail {
+    flex: 1 1 300px;
+    min-width: 280px;
+    max-width: 340px;
+    background: var(--pos-ink);
+    color: #fff;
+    padding: 26px 24px;
+    display: flex;
+    flex-direction: column;
+}
+
+.pos-tender-amount {
+    font-family: var(--pos-mono);
+    font-size: 50px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-top: 4px;
+    color: #fff;
+}
+
+.pos-tender-sub {
+    font-size: 12px;
+    color: var(--pos-on-dark-muted);
+    margin-top: 4px;
+    font-family: var(--pos-mono);
+}
+
+.pos-tender-rule {
+    height: 1px;
+    background: var(--pos-ink-3);
+    margin: 20px 0 14px;
+}
+
+.pos-tender-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pos-tender-empty {
+    font-size: 14px;
+    color: var(--pos-on-dark-muted);
+    line-height: 1.5;
+}
+
+.pos-tender-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--pos-ink-2);
+    border-radius: 10px;
+    padding: 11px 13px;
+}
+
+.pos-tender-chip-type {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.pos-tender-chip-amount {
+    font-size: 15px;
+    color: #fff;
+}
+
+.pos-tender-chip-remove {
+    color: var(--pos-removal);
+    font-size: 19px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.pos-change-block {
+    margin-top: 12px;
+    background: var(--pos-green);
+    border-radius: 12px;
+    padding: 13px 15px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.pos-change-block .mono {
+    font-size: 23px;
+}
+
+/* Right pane */
+.pos-tender-right {
+    flex: 1 1 420px;
+    min-width: 300px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--pos-canvas);
+}
+
+.pos-tender-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pos-tender-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--pos-ink);
+}
+
+.pos-tender-subtitle {
+    font-size: 13px;
+    color: var(--pos-body);
+    margin-top: 3px;
+}
+
+.pos-close-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--pos-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    color: var(--pos-body);
+    cursor: pointer;
+    flex: 0 0 38px;
+}
+
+.pos-close-btn:hover {
+    border-color: var(--pos-ink);
+}
+
+.pos-paytype-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 9px;
+    margin-top: 9px;
+}
+
+.pos-paytype-tile {
+    height: 62px;
+    border-radius: 12px;
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 3px;
+    padding: 0 15px;
+    cursor: pointer;
+}
+
+.pos-paytype-tile.disabled {
+    background: var(--pos-canvas-2);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pos-paytype-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--pos-ink);
+}
+
+.pos-paytype-note {
+    font-size: 11px;
+    color: var(--pos-muted);
+}
+
+.pos-reference-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pos-reference-input {
+    height: 42px;
+    border: 1px solid var(--pos-border);
+    border-radius: 10px;
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--pos-ink);
+    background: var(--pos-surface);
+    outline: none;
+}
+
+.pos-manual-row {
+    display: flex;
+    gap: 16px;
+    min-height: 0;
+    flex-wrap: wrap;
+}
+
+.pos-amount-col {
+    flex: 1 1 210px;
+    max-width: 260px;
+    min-width: 190px;
+}
+
+.pos-amount-readout {
+    height: 48px;
+    border: 1px solid var(--pos-border);
+    border-radius: 11px;
+    background: var(--pos-surface);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 14px;
+    font-size: 23px;
+    font-weight: 700;
+    color: var(--pos-faint);
+    margin-top: 8px;
+}
+
+.pos-amount-readout.filled {
+    color: var(--pos-ink);
+}
+
+.pos-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.pos-keypad-key {
+    height: 46px;
+    border-radius: 10px;
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    color: var(--pos-ink);
+}
+
+.pos-quickcash-col {
+    flex: 1 1 260px;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+}
+
+.pos-quickcash-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.pos-quickcash-btn {
+    height: 52px;
+    border-radius: 11px;
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+}
+
+.pos-quickcash-btn:hover {
+    border-color: var(--pos-ink);
+}
+
+.qc-amount {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--pos-ink);
+}
+
+.qc-note {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--pos-amber);
+}
+
+.qc-note.exact {
+    color: var(--pos-green);
+}
+
+.pos-amount-hint {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--pos-muted);
+    line-height: 1.5;
+}
+
+.pos-tender-spacer {
+    flex: 1;
+}
+
+.pos-tender-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.pos-tender-cash-btn,
+.pos-tender-card-btn {
+    height: 48px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pos-tender-cash-btn {
+    color: #fff;
+    background: var(--pos-ink);
+}
+
+.pos-tender-card-btn {
+    border: 1px solid var(--pos-ink);
+    color: var(--pos-ink);
+}
+
+.pos-tender-cash-btn.disabled {
+    background: var(--pos-disabled);
+    color: var(--pos-faint);
+    cursor: not-allowed;
+}
+
+.pos-tender-card-btn.disabled {
+    border-color: var(--pos-border);
+    color: var(--pos-faint);
+    cursor: not-allowed;
+}
+
+.pos-tender-footer {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: auto;
+}
+
+.pos-back-btn {
+    flex: 1 1 130px;
+    max-width: 150px;
+    height: 58px;
+    border-radius: 12px;
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--pos-ink);
+}
+
+.pos-back-btn:hover {
+    border-color: var(--pos-ink);
+}
+
+.pos-complete-btn {
+    flex: 2 1 200px;
+    height: 58px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--pos-green);
+    cursor: pointer;
+}
+
+.pos-complete-btn.disabled {
+    background: var(--pos-disabled);
+    cursor: not-allowed;
+}

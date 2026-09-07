@@ -10,235 +10,240 @@ import { I18nService } from '../../../shared/services/i18n.service';
 import { environment } from '../../../../environments/environment';
 
 const DEFAULT_PROFILE: ShopProfile = {
-  appName: 'Auto Part Shop', appLogoUrl: 'assets/logo.png',
-  name: '', address: '', phone: '', email: '', taxNo: '',
-  logoUrl: 'assets/logo.png', tagline: '',
-  invoiceFooterText: 'Thank you for your business!',
-  challanFooterText: 'Goods once dispatched will not be accepted back without prior notice.'
+    appName: 'Auto Part Shop',
+    appLogoUrl: 'assets/logo.png',
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    taxNo: '',
+    logoUrl: 'assets/logo.png',
+    tagline: '',
+    invoiceFooterText: 'Thank you for your business!',
+    challanFooterText: 'Goods once dispatched will not be accepted back without prior notice.'
 };
 
 export interface InvoicePdfData {
-  // Company Info
-  companyName: string;
-  companyAddress: string;
-  companyPhone: string;
-  companyEmail: string;
-  companyLogo?: string;
-  companyTaxId?: string;
+    // Company Info
+    companyName: string;
+    companyAddress: string;
+    companyPhone: string;
+    companyEmail: string;
+    companyLogo?: string;
+    companyTaxId?: string;
 
-  // Invoice Details
-  invoiceNumber: string;
-  invoiceDate: Date;
-  dueDate?: Date;
-  salesOrderNumber?: string;
+    // Invoice Details
+    invoiceNumber: string;
+    invoiceDate: Date;
+    dueDate?: Date;
+    salesOrderNumber?: string;
 
-  // Customer Info
-  customerName: string;
-  customerAddress?: string;
-  customerPhone?: string;
-  customerEmail?: string;
+    // Customer Info
+    customerName: string;
+    customerAddress?: string;
+    customerPhone?: string;
+    customerEmail?: string;
 
-  // Technician Info (if applicable)
-  technicianName?: string;
-  technicianPhone?: string;
+    // Technician Info (if applicable)
+    technicianName?: string;
+    technicianPhone?: string;
 
-  // Line Items
-  items: InvoicePdfItem[];
+    // Line Items
+    items: InvoicePdfItem[];
 
-  // Totals
-  subtotal: number;
-  discountAmount: number;
-  discountPercentage?: number;
-  vatPercentage: number;
-  vatAmount: number;
-  grandTotal: number;
+    // Totals
+    subtotal: number;
+    discountAmount: number;
+    discountPercentage?: number;
+    vatPercentage: number;
+    vatAmount: number;
+    grandTotal: number;
 
-  // Payment Info
-  payments: InvoicePdfPayment[];
-  paidAmount: number;
-  dueAmount: number;
+    // Payment Info
+    payments: InvoicePdfPayment[];
+    paidAmount: number;
+    dueAmount: number;
+    /** Cash change to hand back to the customer when tendered exceeded the grand total (0 otherwise). */
+    changeDue?: number;
 
-  // Additional
-  notes?: string;
-  paymentTerms?: string;
-  createdBy?: string;
+    // Additional
+    notes?: string;
+    paymentTerms?: string;
+    createdBy?: string;
 }
 
 export interface InvoicePdfItem {
-  slNo: number;
-  partNumber: string;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  discount: number;
-  total: number;
+    slNo: number;
+    partNumber: string;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+    total: number;
 }
 
 export interface InvoicePdfPayment {
-  method: string;
-  amount: number;
-  reference?: string;
-  date?: Date;
+    method: string;
+    amount: number;
+    reference?: string;
+    date?: Date;
 }
 
 @Injectable({ providedIn: 'root' })
 export class InvoicePdfService {
-  private readonly currencyService = inject(CurrencyService);
-  private readonly appSettings = inject(AppSettingsService);
-  private readonly http = inject(HttpClient);
-  private readonly pdfDownload = inject(PdfDownloadService);
-  private readonly i18n = inject(I18nService);
+    private readonly currencyService = inject(CurrencyService);
+    private readonly appSettings = inject(AppSettingsService);
+    private readonly http = inject(HttpClient);
+    private readonly pdfDownload = inject(PdfDownloadService);
+    private readonly i18n = inject(I18nService);
 
-  /** Loaded once from DB; all print components read this signal. */
-  readonly shopProfile = toSignal(
-    this.appSettings.getShopProfile().pipe(shareReplay(1)),
-    { initialValue: DEFAULT_PROFILE }
-  );
+    /** Loaded once from DB; all print components read this signal. */
+    readonly shopProfile = toSignal(this.appSettings.getShopProfile().pipe(shareReplay(1)), { initialValue: DEFAULT_PROFILE });
 
-  /** Backward-compatible accessor — returns current profile values. */
-  getCompanyConfig() {
-    const p = this.shopProfile();
-    return {
-      companyName:    p.name,
-      companyAddress: p.address,
-      companyPhone:   p.phone,
-      companyEmail:   p.email,
-      companyTaxId:   p.taxNo,
-      companyLogo:    p.logoUrl
-    };
-  }
-
-  /**
-   * Format currency for display
-   */
-  formatCurrency(amount: number): string {
-    const currencyCode = this.currencyService.selectedCurrency();
-    const locale = this.currencyService.getCurrencyLocale(currencyCode);
-    const fractionDigits = this.currencyService.getCurrencyDecimalPlaces(currencyCode);
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currencyCode,
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits
-    }).format(amount);
-  }
-
-  /**
-   * Format date for display
-   */
-  formatDate(date: Date | string): string {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  }
-
-  /**
-   * Format date with time
-   */
-  formatDateTime(date: Date | string): string {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-
-  /**
-   * Get payment method display name
-   */
-  getPaymentMethodLabel(method: string): string {
-    if (!method) return method;
-    const key = `paymentMethods.pos.${method}`;
-    const label = this.i18n.t(key);
-    return label === key ? method : label;
-  }
-
-  /**
-   * Generate invoice number with suffix for thermal print
-   */
-  generateThermalInvoiceNumber(invoiceNumber: string): string {
-    return `${invoiceNumber}-T`;
-  }
-
-  /**
-   * Convert number to words (for invoice total)
-   */
-  numberToWords(num: number): string {
-    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-    const convertLessThanThousand = (n: number): string => {
-      if (n === 0) return '';
-      if (n < 20) return ones[n];
-      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
-      return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertLessThanThousand(n % 100) : '');
-    };
-
-    if (num === 0) return 'Zero';
-
-    const intPart = Math.floor(num);
-    const decPart = Math.round((num - intPart) * 100);
-
-    let words = '';
-
-    if (intPart >= 10000000) {
-      words += convertLessThanThousand(Math.floor(intPart / 10000000)) + ' Crore ';
-      num = intPart % 10000000;
-    }
-    if (intPart >= 100000) {
-      words += convertLessThanThousand(Math.floor((intPart % 10000000) / 100000)) + ' Lakh ';
-      num = intPart % 100000;
-    }
-    if (intPart >= 1000) {
-      words += convertLessThanThousand(Math.floor((intPart % 100000) / 1000)) + ' Thousand ';
-      num = intPart % 1000;
-    }
-    words += convertLessThanThousand(intPart % 1000);
-
-    const currencyCode = this.currencyService.selectedCurrency();
-    const currencyWords = this.getCurrencyWords(currencyCode);
-    words = words.trim() + ` ${currencyWords.major}`;
-
-    if (decPart > 0) {
-      words += ' and ' + convertLessThanThousand(decPart) + ` ${currencyWords.minor}`;
+    /** Backward-compatible accessor — returns current profile values. `name` (the shop's legal/
+     *  invoice display name) is a separate, often-unconfigured setting from `appName` (the app's
+     *  own display name, always set) — fall back to it so the POS header, receipts and invoices
+     *  never render a blank company identity just because nobody's filled in Settings yet. */
+    getCompanyConfig() {
+        const p = this.shopProfile();
+        return {
+            companyName: p.name || p.appName,
+            companyAddress: p.address,
+            companyPhone: p.phone,
+            companyEmail: p.email,
+            companyTaxId: p.taxNo,
+            companyLogo: p.logoUrl
+        };
     }
 
-    return words + ' Only';
-  }
-
-  private getCurrencyWords(currencyCode: string): { major: string; minor: string } {
-    switch ((currencyCode || '').toUpperCase()) {
-      case 'USD':
-        return { major: 'Dollars', minor: 'Cents' };
-      case 'BDT':
-        return { major: 'Taka', minor: 'Paisa' };
-      case 'NPR':
-      case 'INR':
-        return { major: 'Rupees', minor: 'Paisa' };
-      default:
-        return { major: 'Units', minor: 'Subunits' };
+    /**
+     * Format currency for display
+     */
+    formatCurrency(amount: number): string {
+        const currencyCode = this.currencyService.selectedCurrency();
+        const locale = this.currencyService.getCurrencyLocale(currencyCode);
+        const fractionDigits = this.currencyService.getCurrencyDecimalPlaces(currencyCode);
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: currencyCode,
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits
+        }).format(amount);
     }
-  }
 
-  getInvoiceByNumber(invoiceNumber: string): Observable<{ id: string; invoiceNumber: string }> {
-    return this.http.get<{ id: string; invoiceNumber: string }>(
-      `${environment.apiUrl}/v1/salesorder/invoices/number/${encodeURIComponent(invoiceNumber)}`
-    );
-  }
+    /**
+     * Format date for display
+     */
+    formatDate(date: Date | string): string {
+        const d = typeof date === 'string' ? new Date(date) : date;
+        return d.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
 
-  /**
-   * Download the server-rendered QuestPDF invoice for the given invoice ID.
-   * Returns an Observable that completes once the preview dialog is shown.
-   */
-  downloadServerPdf(invoiceId: string, invoiceNumber: string): Observable<void> {
-    const url = `${environment.apiUrl}/salesorder/invoices/${invoiceId}/pdf`;
-    return this.pdfDownload.previewGet(url, `invoice-${invoiceNumber}.pdf`);
-  }
+    /**
+     * Format date with time
+     */
+    formatDateTime(date: Date | string): string {
+        const d = typeof date === 'string' ? new Date(date) : date;
+        return d.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    /**
+     * Get payment method display name
+     */
+    getPaymentMethodLabel(method: string): string {
+        if (!method) return method;
+        const key = `paymentMethods.pos.${method}`;
+        const label = this.i18n.t(key);
+        return label === key ? method : label;
+    }
+
+    /**
+     * Generate invoice number with suffix for thermal print
+     */
+    generateThermalInvoiceNumber(invoiceNumber: string): string {
+        return `${invoiceNumber}-T`;
+    }
+
+    /**
+     * Convert number to words (for invoice total)
+     */
+    numberToWords(num: number): string {
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+        const convertLessThanThousand = (n: number): string => {
+            if (n === 0) return '';
+            if (n < 20) return ones[n];
+            if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+            return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convertLessThanThousand(n % 100) : '');
+        };
+
+        if (num === 0) return 'Zero';
+
+        const intPart = Math.floor(num);
+        const decPart = Math.round((num - intPart) * 100);
+
+        let words = '';
+
+        if (intPart >= 10000000) {
+            words += convertLessThanThousand(Math.floor(intPart / 10000000)) + ' Crore ';
+            num = intPart % 10000000;
+        }
+        if (intPart >= 100000) {
+            words += convertLessThanThousand(Math.floor((intPart % 10000000) / 100000)) + ' Lakh ';
+            num = intPart % 100000;
+        }
+        if (intPart >= 1000) {
+            words += convertLessThanThousand(Math.floor((intPart % 100000) / 1000)) + ' Thousand ';
+            num = intPart % 1000;
+        }
+        words += convertLessThanThousand(intPart % 1000);
+
+        const currencyCode = this.currencyService.selectedCurrency();
+        const currencyWords = this.getCurrencyWords(currencyCode);
+        words = words.trim() + ` ${currencyWords.major}`;
+
+        if (decPart > 0) {
+            words += ' and ' + convertLessThanThousand(decPart) + ` ${currencyWords.minor}`;
+        }
+
+        return words + ' Only';
+    }
+
+    private getCurrencyWords(currencyCode: string): { major: string; minor: string } {
+        switch ((currencyCode || '').toUpperCase()) {
+            case 'USD':
+                return { major: 'Dollars', minor: 'Cents' };
+            case 'BDT':
+                return { major: 'Taka', minor: 'Paisa' };
+            case 'NPR':
+            case 'INR':
+                return { major: 'Rupees', minor: 'Paisa' };
+            default:
+                return { major: 'Units', minor: 'Subunits' };
+        }
+    }
+
+    getInvoiceByNumber(invoiceNumber: string): Observable<{ id: string; invoiceNumber: string }> {
+        return this.http.get<{ id: string; invoiceNumber: string }>(`${environment.apiUrl}/v1/salesorder/invoices/number/${encodeURIComponent(invoiceNumber)}`);
+    }
+
+    /**
+     * Download the server-rendered QuestPDF invoice for the given invoice ID.
+     * Returns an Observable that completes once the preview dialog is shown.
+     */
+    downloadServerPdf(invoiceId: string, invoiceNumber: string): Observable<void> {
+        const url = `${environment.apiUrl}/salesorder/invoices/${invoiceId}/pdf`;
+        return this.pdfDownload.previewGet(url, `invoice-${invoiceNumber}.pdf`);
+    }
 }

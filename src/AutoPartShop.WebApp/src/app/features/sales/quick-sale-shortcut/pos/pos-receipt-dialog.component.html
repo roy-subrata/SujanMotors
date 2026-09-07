@@ -1,0 +1,31 @@
+@if (open()) {
+    <div class="pos-overlay-backdrop" (click)="onBackdropClick()">
+        <div class="pos-receipt-panel" (click)="onPanelClick($event)">
+            <div class="pos-receipt-head">
+                <div class="pos-receipt-check">✓</div>
+                <div class="pos-receipt-title">{{ 'pos.saleComplete' | translate }}</div>
+                <div class="pos-receipt-ref mono">{{ reference() }}</div>
+            </div>
+
+            <div class="pos-receipt-summary">
+                <div class="pos-receipt-row" *ngFor="let r of rows()" [class]="'tone-' + r.tone" [class.bold]="r.bold">
+                    <span>{{ r.label }}</span>
+                    <span class="mono">{{ r.value }}</span>
+                </div>
+            </div>
+
+            <div class="pos-receipt-print-grid">
+                <div class="pos-receipt-print-btn" (click)="printThermal.emit()">
+                    <span class="line1">{{ 'pos.printReceiptBtn' | translate }}</span>
+                    <span class="line2 mono">{{ 'pos.thermal80mm' | translate }}</span>
+                </div>
+                <div class="pos-receipt-print-btn" (click)="printInvoice.emit()">
+                    <span class="line1">{{ 'pos.taxInvoiceBtn' | translate }}</span>
+                    <span class="line2 mono">{{ 'pos.a4Sheet' | translate }}</span>
+                </div>
+            </div>
+
+            <div class="pos-next-customer-btn" (click)="nextCustomer.emit()">{{ 'pos.nextCustomer' | translate }}</div>
+        </div>
+    </div>
+}

@@ -19,6 +19,12 @@ public class CreateSalesOrderRequest
     public string? PromoCode { get; set; }
     public string Channel { get; set; } = "POS";  // POS | MOBILE | API
     public List<CreateSalesOrderLineRequest> Lines { get; set; } = new();
+
+    /// <summary>
+    /// Token from PricingController's request-override endpoint, proving a manager approved this
+    /// specific sale going below the cost floor or above the MRP ceiling. Null for a normal sale.
+    /// </summary>
+    public Guid? PriceOverrideApprovalToken { get; set; }
 }
 
 public class CreateSalesOrderLineRequest

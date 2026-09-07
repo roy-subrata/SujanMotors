@@ -27,7 +27,9 @@ public class QuotationController(
     ICurrencyConversionService currencyConversionService,
     AutoPartDbContext dbContext,
     ILogger<QuotationController> logger,
-    IApplicationSettingsRepository settingsRepository) : ControllerBase
+    IApplicationSettingsRepository settingsRepository,
+    ICostResolutionService costResolutionService,
+    ICostFloorEnforcementService costFloorService) : ControllerBase
 {
     /// <summary>
     /// Configurable document-number prefix (Company Profile &gt; Document Numbering) —
@@ -72,11 +74,21 @@ public class QuotationController(
                         request.Notes,
                         request.Currency);
 
+                    var costFloorContext = await costFloorService.PrepareContextAsync(
+                        request.Lines.Select(l => l.PartId), quotation.Currency, DateTime.UtcNow, request.PriceOverrideApprovalToken, cancellationToken);
+                    var costLookup = request.Lines.Select(l => (l.PartId, l.ProductVariantId)).ToList();
+                    var resolvedCosts = await costResolutionService.ResolveCostsPerBaseUnitAsync(costLookup, cancellationToken);
+
                     var lineNumber = 1;
+                    var lineFloorChecks = new List<LineCostFloorCheck>();
+                    var usedApproval = false;
                     foreach (var lineRequest in request.Lines)
                     {
-                        var line = await BuildLineAsync(quotation, lineRequest, lineNumber, cancellationToken);
+                        var costPerBaseUnit = resolvedCosts.TryGetValue((lineRequest.PartId, lineRequest.ProductVariantId), out var resolvedCost) ? resolvedCost : 0m;
+                        var (line, lineCheck, lineUsedApproval) = await BuildLineAsync(quotation, lineRequest, lineNumber, costPerBaseUnit, costFloorContext, cancellationToken);
                         quotation.LineItems.Add(line);
+                        lineFloorChecks.Add(lineCheck);
+                        usedApproval |= lineUsedApproval;
                         lineNumber++;
                     }
 
@@ -84,11 +96,22 @@ public class QuotationController(
                     quotation.CalculateTotal();
                     quotation.SetTax(request.TaxAmount);
 
+                    // quotation.DiscountAmount is the whole quotation's cart-level (percentage) discount
+                    // — a line whose own discount passed the floor above can still end up below cost
+                    // once this is spread across the quote. Blocked here too (not just on conversion to
+                    // a real sale) so pricing is consistent whether it's still a draft or already a sale.
+                    if (costFloorService.EnforceCartDiscount(lineFloorChecks, quotation.SubTotal, quotation.DiscountAmount, costFloorContext.RateToBase, costFloorContext.Approval))
+                        usedApproval = true;
+
                     var username = currentUserService.GetCurrentUsername();
                     quotation.CreatedBy = username;
                     quotation.ModifiedBy = username;
 
                     await quotationRepository.AddAsync(quotation, cancellationToken);
+
+                    if (usedApproval)
+                        await costFloorService.MarkApprovalConsumedAsync(costFloorContext.Approval!, quotation.QuotationNumber, cancellationToken);
+
                     await tx.CommitAsync(cancellationToken);
                 }
                 catch
@@ -99,6 +122,11 @@ public class QuotationController(
             });
 
             return CreatedAtAction(nameof(GetById), new { id = quotation!.Id }, MapToResponse(quotation!));
+        }
+        catch (PriceOverrideRequiredException ex)
+        {
+            await costFloorService.LogBlockedAttemptAsync(ex, currentUserService.GetCurrentUsername(), cancellationToken);
+            return BadRequest(new { message = ex.Message, code = "PRICE_OVERRIDE_REQUIRED", limitType = ex.LimitType, partName = ex.PartName });
         }
         catch (ArgumentException ex)
         {
@@ -257,6 +285,18 @@ public class QuotationController(
                         notes: $"Converted from quotation {quotation.QuotationNumber}.",
                         currency: quotation.Currency);
 
+                    // A quotation's stored price/discount was never floor-checked against cost at any
+                    // point up to here (Create() checks it against the cost AT QUOTE TIME, but cost
+                    // may have moved since, and the copy below builds SalesOrderLine directly rather
+                    // than through SalesOrderController's validated path) — so a below-cost quotation
+                    // must not silently become a real, stock-consuming sale here.
+                    var costFloorContext = await costFloorService.PrepareContextAsync(
+                        quotation.LineItems.Select(l => l.PartId), order.Currency, order.SODate, request.PriceOverrideApprovalToken, cancellationToken);
+                    var costLookup = quotation.LineItems.Select(l => (l.PartId, l.ProductVariantId)).ToList();
+                    var resolvedCosts = await costResolutionService.ResolveCostsPerBaseUnitAsync(costLookup, cancellationToken);
+                    var lineFloorChecks = new List<LineCostFloorCheck>();
+                    var usedApproval = false;
+
                     var lineNumber = 1;
                     foreach (var ql in quotation.LineItems.OrderBy(l => l.LineNumber))
                     {
@@ -265,21 +305,38 @@ public class QuotationController(
                         if (part is null)
                             throw new InvalidOperationException($"Part {ql.PartId} on the quotation no longer exists.");
 
+                        if (costFloorService.EnforceCeiling(part.Name, ql.UnitPrice, part.SellingPrice, costFloorContext.RateToBase, costFloorContext.Approval))
+                            usedApproval = true;
+
                         var (quantityInBaseUnit, unitId, baseUnitPrice) =
                             await ResolveUnitPricingAsync(part, ql.Quantity, ql.UnitId, ql.UnitPrice, cancellationToken);
+
+                        var costPerBaseUnit = resolvedCosts.TryGetValue((ql.PartId, ql.ProductVariantId), out var resolvedCost) ? resolvedCost : 0m;
+                        var unitFactor = ql.Quantity > 0 && quantityInBaseUnit > 0 ? (decimal)quantityInBaseUnit / ql.Quantity : 1m;
+                        var discountPerBaseUnit = unitFactor <= 0 ? ql.Discount : ql.Discount / unitFactor;
+                        var netUnitPriceInBaseUnit = Math.Max(0, baseUnitPrice - discountPerBaseUnit);
+                        var minMarginPercent = costFloorContext.MinMarginFor(ql.PartId);
+                        if (costFloorService.EnforceLine(part.Name, netUnitPriceInBaseUnit, costPerBaseUnit, minMarginPercent, costFloorContext.RateToBase, costFloorContext.Approval))
+                            usedApproval = true;
 
                         var line = SalesOrderLine.Create(
                             order.Id, ql.PartId, ql.Quantity, ql.UnitPrice, lineNumber,
                             unitId, quantityInBaseUnit, ql.Discount, ql.Description, ql.ProductVariantId);
 
                         order.LineItems.Add(line);
+                        lineFloorChecks.Add(new LineCostFloorCheck(part.Name, line.TotalPrice, line.Quantity, line.QuantityInBaseUnit, netUnitPriceInBaseUnit, costPerBaseUnit, minMarginPercent));
                         lineNumber++;
-                        _ = baseUnitPrice; // resolved for correctness of quantityInBaseUnit; line pricing stays in the quote's own unit
                     }
 
                     order.SetDiscountPercentage(quotation.DiscountPercentage);
                     order.CalculateTotal();
                     order.SetTax(quotation.TaxAmount);
+
+                    // order.DiscountAmount is the whole order's cart-level (percentage) discount — a
+                    // line whose own discount passed the floor above can still end up below cost once
+                    // this is spread across the order.
+                    if (costFloorService.EnforceCartDiscount(lineFloorChecks, order.SubTotal, order.DiscountAmount, costFloorContext.RateToBase, costFloorContext.Approval))
+                        usedApproval = true;
 
                     var orderFx = await currencyConversionService.ConvertToBaseWithRateAsync(order.GrandTotal, order.Currency, order.SODate, cancellationToken);
                     order.SetFxBaseAmount(orderFx.BaseAmount, orderFx.RateToBase);
@@ -294,6 +351,9 @@ public class QuotationController(
                     quotation.MarkAsConverted(order.Id);
                     quotation.ModifiedBy = username;
                     await quotationRepository.UpdateAsync(quotation, cancellationToken);
+
+                    if (usedApproval)
+                        await costFloorService.MarkApprovalConsumedAsync(costFloorContext.Approval!, order.SONumber, cancellationToken);
 
                     await tx.CommitAsync(cancellationToken);
                 }
@@ -310,6 +370,15 @@ public class QuotationController(
                 SalesOrderId = order!.Id,
                 SONumber = order!.SONumber
             });
+        }
+        catch (PriceOverrideRequiredException ex)
+        {
+            await costFloorService.LogBlockedAttemptAsync(ex, currentUserService.GetCurrentUsername(), cancellationToken);
+            return BadRequest(new { message = ex.Message, code = "PRICE_OVERRIDE_REQUIRED", limitType = ex.LimitType, partName = ex.PartName });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
@@ -375,8 +444,9 @@ public class QuotationController(
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
-    private async Task<QuotationLine> BuildLineAsync(
-        Quotation quotation, CreateQuotationLineRequest lineRequest, int lineNumber, CancellationToken cancellationToken)
+    private async Task<(QuotationLine Line, LineCostFloorCheck Check, bool UsedApproval)> BuildLineAsync(
+        Quotation quotation, CreateQuotationLineRequest lineRequest, int lineNumber,
+        decimal costPerBaseUnit, CostFloorContext costFloorContext, CancellationToken cancellationToken)
     {
         if (lineRequest.Quantity <= 0)
             throw new ArgumentException($"Line item quantity must be greater than zero (got {lineRequest.Quantity}).");
@@ -408,9 +478,25 @@ public class QuotationController(
         if (unitPrice <= 0)
             throw new ArgumentException($"No selling price set for '{part.Name}'. Please set a selling price on the product or variant, or enter one manually.");
 
-        return QuotationLine.Create(
+        var usedApproval = costFloorService.EnforceCeiling(part.Name, unitPrice, part.SellingPrice, costFloorContext.RateToBase, costFloorContext.Approval);
+
+        var (quantityInBaseUnit, unitId, baseUnitPrice) = await ResolveUnitPricingAsync(
+            part, lineRequest.Quantity, lineRequest.UnitId, unitPrice, cancellationToken);
+
+        // Cost-floor enforcement — same base-unit normalization SalesOrderController uses, so a
+        // below-cost line is caught here too, not just when the quote later converts to a real sale.
+        var unitFactor = lineRequest.Quantity > 0 && quantityInBaseUnit > 0 ? (decimal)quantityInBaseUnit / lineRequest.Quantity : 1m;
+        var discountPerBaseUnit = unitFactor <= 0 ? lineRequest.Discount : lineRequest.Discount / unitFactor;
+        var netUnitPriceInBaseUnit = Math.Max(0, baseUnitPrice - discountPerBaseUnit);
+        var minMarginPercent = costFloorContext.MinMarginFor(lineRequest.PartId);
+        if (costFloorService.EnforceLine(part.Name, netUnitPriceInBaseUnit, costPerBaseUnit, minMarginPercent, costFloorContext.RateToBase, costFloorContext.Approval))
+            usedApproval = true;
+
+        var line = QuotationLine.Create(
             quotation.Id, lineRequest.PartId, lineRequest.Quantity, unitPrice, lineNumber,
-            lineRequest.UnitId ?? part.UnitId, lineRequest.Discount, string.Empty, lineRequest.ProductVariantId);
+            unitId ?? part.UnitId, lineRequest.Discount, string.Empty, lineRequest.ProductVariantId);
+        var check = new LineCostFloorCheck(part.Name, line.TotalPrice, line.Quantity, quantityInBaseUnit, netUnitPriceInBaseUnit, costPerBaseUnit, minMarginPercent);
+        return (line, check, usedApproval);
     }
 
     /// <summary>

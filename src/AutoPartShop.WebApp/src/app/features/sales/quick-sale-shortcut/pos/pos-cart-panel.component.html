@@ -1,0 +1,105 @@
+<div class="pos-cart">
+    <div class="pos-customer-bar" [class.attached]="customerAttached()" (click)="openCustomer.emit()">
+        <div class="pos-customer-avatar" [class.attached]="customerAttached()">{{ customerInitials() }}</div>
+        <div class="pos-customer-text">
+            <div class="pos-customer-name">{{ customerName() }}</div>
+            <div class="pos-customer-meta">{{ customerMeta() }}</div>
+        </div>
+        <span class="pos-keycap on-surface">F4</span>
+    </div>
+
+    <div class="pos-ticket-header">
+        <div>
+            <div class="pos-ticket-title">{{ 'pos.currentSale' | translate }}</div>
+            <div class="pos-ticket-sub">{{ ticketLabel() }}<span *ngIf="technicianLabel()"> · {{ technicianLabel() }}</span></div>
+        </div>
+        <div class="pos-clear-btn" (click)="clearCart.emit()">{{ 'pos.clear' | translate }}</div>
+    </div>
+
+    <div class="pos-lines-scroll">
+        @if (lines().length === 0) {
+            <div class="pos-lines-empty">
+                <div class="pos-lines-empty-box"></div>
+                <div class="pos-lines-empty-text">{{ 'pos.cartEmptyHintDesign' | translate }}</div>
+            </div>
+        } @else {
+            <div class="pos-line" *ngFor="let line of lines(); let i = index; trackBy: trackLine">
+                <div class="pos-line-top">
+                    <div class="pos-line-name">
+                        {{ line.name }}
+                        <small *ngIf="line.localName" class="pos-line-local">{{ line.localName }}</small>
+                    </div>
+                    <div class="pos-line-remove" [attr.aria-label]="'pos.removeLine' | translate" (click)="removeLine.emit(i)">
+                        <i class="pi pi-trash"></i>
+                    </div>
+                </div>
+
+                <div class="pos-line-meta-row">
+                    <div class="pos-line-unit">{{ line.unitLabel }}</div>
+                    @if (line.unitOptions && line.unitOptions.length > 1) {
+                        <select
+                            class="pos-line-unit-select"
+                            [attr.aria-label]="'pos.unitOfSale' | translate"
+                            [value]="line.unitId"
+                            (click)="$event.stopPropagation()"
+                            (change)="unitChange.emit({ index: i, unitId: $any($event.target).value })"
+                        >
+                            <option *ngFor="let opt of line.unitOptions" [value]="opt.id">{{ opt.label }}</option>
+                        </select>
+                    }
+                    @if (line.discountBadge) {
+                        <div class="pos-line-badge discount">{{ line.discountBadge }}</div>
+                    }
+                    @if (line.belowCostBadge) {
+                        <div class="pos-line-badge below-cost"><i class="pi pi-exclamation-triangle"></i> {{ line.belowCostBadge }}</div>
+                    }
+                </div>
+
+                <div class="pos-line-bottom">
+                    <div class="pos-stepper">
+                        <div class="pos-stepper-btn" (click)="decrementLine.emit(i)">−</div>
+                        <div class="pos-stepper-qty">{{ line.qty }}</div>
+                        <div class="pos-stepper-btn" (click)="incrementLine.emit(i)">+</div>
+                    </div>
+                    <div class="pos-line-total">{{ line.totalLabel }}</div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="pos-footer" [class.short]="short()">
+        <div class="pos-total-row">
+            <span>{{ itemCountLabel() }}</span>
+            <span class="mono">{{ subtotalLabel() }}</span>
+        </div>
+        @if (hasDiscount()) {
+            <div class="pos-total-row discount">
+                <span>{{ discountLabel() }}</span>
+                <span class="mono">{{ discountAmountLabel() }}</span>
+            </div>
+        }
+        @if (hasVat()) {
+            <div class="pos-total-row">
+                <span>{{ vatLabel() }}</span>
+                <span class="mono">{{ vatAmountLabel() }}</span>
+            </div>
+        }
+        <div class="pos-total-rule"></div>
+        <div class="pos-grand-row">
+            <span class="pos-grand-label">{{ 'pos.total' | translate }}</span>
+            <span class="pos-grand-value">{{ totalLabel() }}</span>
+        </div>
+
+        <div class="pos-secondary-grid">
+            <button type="button" class="pos-secondary-btn" [disabled]="stockCheckDisabled()" (click)="stockCheck.emit()">{{ 'pos.toolbar.stockCheck' | translate }}</button>
+            <button type="button" class="pos-secondary-btn" [disabled]="priceCheckDisabled()" (click)="priceCheck.emit()">{{ 'pos.toolbar.priceCheck' | translate }}</button>
+            <button type="button" class="pos-secondary-btn" [disabled]="quotationDisabled()" (click)="saveQuotation.emit()">{{ 'pos.toolbar.saveAsQuotation' | translate }}</button>
+            <button type="button" class="pos-secondary-btn" [disabled]="draftDisabled()" (click)="saveDraft.emit()">{{ 'pos.toolbar.saveDraft' | translate }}</button>
+        </div>
+
+        <div class="pos-charge-btn" [class.disabled]="!chargeEnabled()" (click)="chargeEnabled() && charge.emit()">
+            <span class="pos-charge-label">{{ 'pos.charge' | translate }}</span>
+            <span class="pos-charge-amount mono">{{ totalLabel() }}</span>
+        </div>
+    </div>
+</div>

@@ -1,29 +1,18 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed, ViewChild, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Subject, of } from 'rxjs';
-import { map, finalize } from 'rxjs/operators';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Subject } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 // PrimeNG Imports
-import { AutoCompleteModule } from 'primeng/autocomplete';
-import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { TableModule } from 'primeng/table';
-import { CardModule } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { TooltipModule } from 'primeng/tooltip';
-import { DialogModule } from 'primeng/dialog';
-import { SelectModule } from 'primeng/select';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
-import { TextareaModule } from 'primeng/textarea';
 import { MessageService, ConfirmationService } from 'primeng/api';
 
 // Services
-import { QuickSaleService, QuickSaleLineItem, QuickSaleDraft, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
-import { PaymentProviderService, PaymentProviderResponse } from '../../procurement/services/payment-provider.service';
+import { QuickSaleService, QuickSaleLineItem, QuickSaleDraft, PaymentDetail, PaymentMethod, PaymentResponsibility, CustomerOrderHistoryItem } from '../services/quick-sale.service';
 import { PublicPartService, PublicPartResponse } from '../services/public-part.service';
 import { DiscountService, ResolveDiscountResult } from '../../inventory/services/discount.service';
 import { UnitService, UnitResponse } from '../../inventory/services/unit.service';
@@ -39,13 +28,43 @@ import { PricingValidationService } from '../../../shared/services/pricing-valid
 import { extractApiError } from '../../../shared/utils/api-error.util';
 import { composeVariantDisplayName } from '../../../shared/utils/variant-name.util';
 import { LayoutService } from '../../../layout/service/layout.service';
+import { AuthService } from '../../../shared/services/auth.service';
 
 // Components
 import { QuickCustomerDialogComponent } from '../components/quick-customer-dialog.component';
 import { InvoicePreviewComponent } from '../components/invoice-preview.component';
-import { LazyAutocompleteComponent, LazyRequest, LazyResponse } from '../../../shared/components/lazy-autocomplete';
 import { I18nService } from '@/shared/services/i18n.service';
 import { TranslatePipe } from '@/shared/pipes/translate.pipe';
+
+// POS presentational children (design_handoff_pos_sale)
+import { PosHeaderComponent } from './pos/pos-header.component';
+import { PosCatalogComponent, PosCatalogChip, PosCatalogTile } from './pos/pos-catalog.component';
+import { PosCartPanelComponent, PosCartLine } from './pos/pos-cart-panel.component';
+import { PosShortcutBarComponent, PosShortcutKey, PosExtraAction } from './pos/pos-shortcut-bar.component';
+import { PosListDialogComponent } from './pos/pos-list-dialog.component';
+import { PosTenderDialogComponent, PosTenderRow, PosPayType, PosQuickCash } from './pos/pos-tender-dialog.component';
+import { PosReceiptDialogComponent, PosReceiptRow } from './pos/pos-receipt-dialog.component';
+import { PosPrintPreviewComponent } from './pos/pos-print-preview.component';
+
+/** Single active overlay — mirrors the design's own `overlay` state machine (README §"State Management"). */
+export type PosOverlay =
+    | 'search'
+    | 'stock'
+    | 'customer'
+    | 'discount'
+    | 'recall'
+    | 'reprint'
+    | 'returns'
+    | 'priceCheck'
+    | 'customerHistory'
+    | 'customerCredit'
+    | 'lastSale'
+    | 'vehicle'
+    | 'technician'
+    | 'options'
+    | 'tender'
+    | 'receipt'
+    | 'thermal';
 
 @Component({
     selector: 'app-quick-sale-shortcut',
@@ -54,24 +73,20 @@ import { TranslatePipe } from '@/shared/pipes/translate.pipe';
         CommonModule,
         ReactiveFormsModule,
         FormsModule,
-        AutoCompleteModule,
-        ButtonModule,
-        InputTextModule,
-        InputNumberModule,
-        TableModule,
-        CardModule,
         ToastModule,
         ConfirmDialogModule,
-        DialogModule,
-        TooltipModule,
-        SelectModule,
-        ToggleSwitchModule,
-        TextareaModule,
         RouterLink,
         QuickCustomerDialogComponent,
         InvoicePreviewComponent,
-        LazyAutocompleteComponent,
-        TranslatePipe
+        TranslatePipe,
+        PosHeaderComponent,
+        PosCatalogComponent,
+        PosCartPanelComponent,
+        PosShortcutBarComponent,
+        PosListDialogComponent,
+        PosTenderDialogComponent,
+        PosReceiptDialogComponent,
+        PosPrintPreviewComponent
     ],
     providers: [MessageService, ConfirmationService],
     templateUrl: './quick-sale-shortcut.component.html',
@@ -97,9 +112,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     private readonly invoicePdfService = inject(InvoicePdfService);
     private readonly thermalReceipt = inject(ThermalReceiptService);
     private readonly pricingValidationService = inject(PricingValidationService);
-    private readonly paymentProviderService = inject(PaymentProviderService);
+    private readonly authService = inject(AuthService);
+    private readonly sanitizer = inject(DomSanitizer);
     readonly layoutService = inject(LayoutService);
-    readonly isDarkMode = computed(() => this.layoutService.isDarkTheme());
+    readonly isDarkMode = computed(() => !!this.layoutService.isDarkTheme());
 
     toggleDarkMode(): void {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
@@ -113,6 +129,54 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     loading = signal(false);
     private destroy$ = new Subject<void>();
 
+    // ===== POS SHELL STATE (design_handoff_pos_sale) =====
+    /** Single active overlay — null means the sale screen itself. */
+    activeOverlay = signal<PosOverlay | null>(null);
+    isOverlayOpen = computed(() => this.activeOverlay() !== null);
+    dialogQuery = signal('');
+    /** Raw keypad digit string for the tender dialog, cents-first (README §3). */
+    keypadDigits = signal('');
+    /** Viewport-driven layout booleans (README "The layout is fluid" table). */
+    narrow = signal(typeof window !== 'undefined' && window.innerWidth < 780);
+    short = signal(typeof window !== 'undefined' && window.innerHeight < 660);
+
+    // Catalog (paginated, lazy-loaded on scroll — chip filtering stays client-side over whatever
+    // pages have loaded so far, since the parts API has no server-side category filter)
+    private static readonly CATALOG_PAGE_SIZE = 60;
+    catalogParts = signal<PublicPartResponse[]>([]);
+    catalogLoading = signal(false);
+    catalogLoadingMore = signal(false);
+    catalogChip = signal<string | null>(null);
+    private catalogPageNumber = 1;
+    private catalogHasMore = true;
+    private catalogStock = new Map<string, number>();
+
+    // Product search list-dialog (F2 — backend search, debounced; independent of the lazily-paged
+    // catalog grid cache so it can find any part regardless of scroll position)
+    searchDialogResults = signal<PublicPartResponse[]>([]);
+    searchDialogLoading = signal(false);
+    private searchDialogDebounce: ReturnType<typeof setTimeout> | undefined;
+
+    // Customer list-dialog (backend search, debounced — too many customers to bulk-load)
+    customerDialogResults = signal<any[]>([]);
+    customerDialogLoading = signal(false);
+    private customerDialogDebounce: ReturnType<typeof setTimeout> | undefined;
+
+    // Technician list-dialog (backend search, debounced)
+    technicianDialogResults = signal<TechnicianResponse[]>([]);
+    technicianDialogLoading = signal(false);
+    private technicianDialogDebounce: ReturnType<typeof setTimeout> | undefined;
+
+    // Discount dialog (F6) — manual preset % currently applied, so a second tap removes it
+    // (mirrors the design's "selecting the active one removes it" rule for its DISCOUNTS rows).
+    appliedManualDiscountPercent = signal(0);
+
+    // Receipt overlay — populated from the last completed sale (onSubmit() success payload).
+    lastReceiptData: InvoicePdfData | null = null;
+    thermalPreviewHtml = signal<SafeHtml | null>(null);
+    receiptReference = signal('');
+    receiptRows = signal<PosReceiptRow[]>([]);
+
     // Till session gate (opt-in via Permissions.SalesRequireTillSession) — see
     // TillSessionController.RequiresOpenSession. Blocks the whole cart/checkout UI until the
     // cashier opens a till session, for roles the gate applies to; a no-op for everyone else.
@@ -124,26 +188,16 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     invoicePreviewData: InvoicePdfData | null = null;
     currentInvoiceId = signal<string | null>(null);
 
-    // Parts
-    selectedPartModel: PublicPartResponse | null = null;
-    fetchPartsLazy = (req: LazyRequest) =>
-        this.partService
-            .getParts({
-                search: req.search || '',
-                pageNumber: req.pageNumber,
-                pageSize: req.pageSize,
-                isActive: true,
-                flattenVariants: true
-            })
-            .pipe(
-                map(
-                    (res) =>
-                        ({
-                            items: res.data ?? [],
-                            totalCount: res.pagination?.totalCount ?? 0
-                        }) as LazyResponse<PublicPartResponse>
-                )
-            );
+    // Price-override approval — the industry-standard in-transaction manager approval, not a
+    // role-based bypass. Opened when the server rejects a line for being below cost or above MRP
+    // (error code PRICE_OVERRIDE_REQUIRED); on success the returned token is attached and the same
+    // sale is resubmitted automatically.
+    showPriceOverrideDialog = false;
+    priceOverrideUsername = '';
+    priceOverridePassword = '';
+    priceOverrideError = '';
+    priceOverrideSubmitting = false;
+    private priceOverrideApprovalToken: string | null = null;
 
     // Customers
     selectedCustomer = signal<any | null>(null);
@@ -153,42 +207,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     customerVehicles = signal<CustomerVehicleResponse[]>([]);
     selectedVehicleId = signal<string | null>(null);
     loadingVehicles = signal(false);
-    fetchCustomersLazy = (req: LazyRequest) =>
-        this.customerService
-            .getCustomers({
-                search: req.search,
-                pageNumber: req.pageNumber,
-                pageSize: req.pageSize
-            })
-            .pipe(
-                map(
-                    (res) =>
-                        ({
-                            items: res.data,
-                            totalCount: res.pagination.totalCount
-                        }) as LazyResponse<any>
-                )
-            );
 
     // Technicians
     selectedTechnician = signal<TechnicianResponse | null>(null);
     selectedTechnicianModel: TechnicianResponse | null = null;
-    fetchTechniciansLazy = (req: LazyRequest) =>
-        this.technicianService
-            .getTechnicians({
-                search: req.search,
-                pageNumber: req.pageNumber,
-                pageSize: req.pageSize
-            })
-            .pipe(
-                map(
-                    (res) =>
-                        ({
-                            items: res.data.filter((t) => t.status === 'ACTIVE'),
-                            totalCount: res.pagination.totalCount
-                        }) as LazyResponse<TechnicianResponse>
-                )
-            );
 
     // Cart
     cartItems = signal<QuickSaleLineItem[]>([]);
@@ -202,26 +224,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
     // Payments
     payments = signal<PaymentDetail[]>([]);
-    paymentProviders: PaymentProviderResponse[] = [];
-    private _paymentProvidersLoaded = signal(false);
-    fetchPaymentProvidersLazy = (req: LazyRequest) => {
-        if (!this._paymentProvidersLoaded()) {
-            return this.paymentProviderService.getAllPaymentProviders().pipe(
-                map((providers) => {
-                    this.paymentProviders = Array.isArray(providers) ? providers : [];
-                    this._paymentProvidersLoaded.set(true);
-                    return {
-                        items: this.paymentProviders,
-                        totalCount: this.paymentProviders.length
-                    } as LazyResponse<PaymentProviderResponse>;
-                })
-            );
-        }
-        return of({
-            items: this.paymentProviders,
-            totalCount: this.paymentProviders.length
-        } as LazyResponse<PaymentProviderResponse>);
-    };
 
     // Manual Discount
     manualDiscountAmount = signal<number>(0);
@@ -259,15 +261,13 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     subtotal = computed(() => {
         return this.cartItems().reduce((sum, item) => {
             const lineTotal = item.quantity * item.unitPrice;
-            const discountAmount = (lineTotal * item.discount) / 100;
-            return sum + (lineTotal - discountAmount);
+            return sum + (lineTotal - this.lineDiscountAmount(item));
         }, 0);
     });
 
     discountAmount = computed(() => {
         return this.cartItems().reduce((sum, item) => {
-            const lineTotal = item.quantity * item.unitPrice;
-            return sum + (lineTotal * item.discount) / 100;
+            return sum + this.lineDiscountAmount(item);
         }, 0);
     });
 
@@ -291,8 +291,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
     // Options
     autoCreatePO = false;
-    /** Receipt format the sales manager prints on checkout. */
-    printType: 'NONE' | 'THERMAL' | 'A4' = 'THERMAL';
     saleNotes = '';
     paymentResponsibility: PaymentResponsibility = 'CUSTOMER';
 
@@ -300,17 +298,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     customerCreditInfo: { advanceAmount: number; dueBalance: number } | null = null;
     loadingCustomerCredit = false;
 
-    // Dialog States
-    showCustomerHistoryDialog = false;
-    showCustomerCreditDialog = false;
-    showHeldSalesDialog = false;
-    showLastSaleDialog = false;
-    showReturnsDialog = false;
-    showPriceCheckDialog = false;
-    showStockSearchDialog = false;
-    showBulkDiscountDialog = false;
+    // Dialog data (all now shown through the single `activeOverlay` state machine — see
+    // openOverlay()/closeOverlay() below — instead of one boolean per dialog).
     heldSales = signal<any[]>([]);
-    customerPurchaseHistory = signal<any[]>([]);
+    customerPurchaseHistory = signal<CustomerOrderHistoryItem[]>([]);
     lastSale: any = null;
     returnInvoiceNumber = '';
     returnInvoice: any = null;
@@ -323,7 +314,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     bulkDiscountPercent = 0;
 
     // Reprint Receipt dialog
-    showReprintDialog = false;
     reprintInvoiceNumber = '';
     reprintLoading = signal(false);
     reprintError = '';
@@ -341,8 +331,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     stockSearchTotal = 0;
     stockLevels = new Map<string, number>();
 
-    // Barcode
-    barcodeModeActive = false;
+    // Barcode (exact-code fallback used by the Search list-dialog — see onSearchDialogSubmit())
     barcodeValue = '';
 
     // Multi-payment (NEW)
@@ -381,9 +370,54 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             .filter((p) => p.method === 'DUE')
             .reduce((sum, p) => sum + p.amount, 0)
     );
+    /**
+     * Sum of every payment that isn't CASH (CARD/MOBILE_BANKING/DUE). Change can only be handed
+     * back in cash, so this must never exceed the grand total — otherwise we'd overcharge a
+     * card/mobile-banking instrument (or record more DUE than owed) to produce "change" that was
+     * never tendered in cash. Mirrors the backend guard in CreateQuickSale.
+     */
+    nonCashOrDueTotal = computed(() => this.payments().filter((p) => p.method !== 'CASH').reduce((sum, p) => sum + p.amount, 0));
     remainingBalance = computed(() => {
         const creditApplied = this.useCreditBalance() ? this.creditAmountToApply() || 0 : 0;
         return Math.max(0, this.grandTotal() - this.totalPaid() - creditApplied);
+    });
+    /**
+     * Cash change to return to the customer when tendered exceeds the settled amount.
+     * Only makes sense for a fully-settled (remainingBalance === 0) cash sale; the backend
+     * returns the same excess as ChangeDue so the figure shown pre-submit matches the receipt.
+     */
+    changeDue = computed(() => {
+        if (this.remainingBalance() > 0.01) return 0;
+        const creditApplied = this.useCreditBalance() ? this.creditAmountToApply() || 0 : 0;
+        return Math.max(0, this.totalPaid() + creditApplied - this.grandTotal());
+    });
+
+    /** Count of lines currently selling below cost. The backend rejects the whole sale over these,
+     *  with no override for any role — confirmCheckout() blocks client-side to match. */
+    belowCostLineCount = computed(() => this.cartItems().filter((i) => this.lineIsBelowCost(i)).length);
+
+    /**
+     * A cart-level discount (manual amount or promo) isn't tied to any one line, so a line whose OWN
+     * price passed lineIsBelowCost() can still end up below cost once the cart discount is spread
+     * across the order — mirrors the backend's EnforceCartDiscountAsync (proportional by each line's
+     * share of subtotal) so confirmCheckout() can block before submit, not just after a server
+     * rejection. Lines without a known cost are skipped, same as the backend.
+     */
+    cartDiscountBelowCostLineCount = computed(() => {
+        const cartDiscount = this.cartDiscountAmount();
+        const subTotal = this.subtotal();
+        if (cartDiscount <= 0 || subTotal <= 0) return 0;
+
+        return this.cartItems().filter((item) => {
+            if (!item.costPrice || item.costPrice <= 0 || item.quantity <= 0) return false;
+            const lineShare = this.calculateLineTotal(item) / subTotal;
+            const cartDiscountForLine = cartDiscount * lineShare;
+            const factor = item.baseUnitFactor || 1;
+            const additionalDiscountPerBaseUnit = cartDiscountForLine / item.quantity / factor;
+            const netUnitPriceInBaseUnit = this.lineNetUnitPrice(item) / factor;
+            const finalNetUnitPriceInBaseUnit = Math.max(0, netUnitPriceInBaseUnit - additionalDiscountPerBaseUnit);
+            return finalNetUnitPriceInBaseUnit < item.costPrice!;
+        }).length;
     });
     // Balance before any credit deduction — used as the ceiling for the "Apply" input.
     // remainingBalance() already nets out creditAmountToApply(), so using it as the [max]
@@ -392,7 +426,329 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         return Math.min(this.availableAdvance(), Math.max(0, this.grandTotal() - this.totalPaid()));
     });
 
+    /**
+     * Why Complete Sale is currently disabled, shown as an inline hint under the button instead of
+     * leaving it silently greyed out — a cashier shouldn't have to guess. null once nothing blocks
+     * checkout. Deliberately silent while the cart is empty (the empty-cart placeholder already
+     * explains that) and while a submit is in flight.
+     */
+    checkoutBlockedReason = computed<string | null>(() => {
+        if (this.cartItems().length === 0 || this.saving()) return null;
+        if (!this.selectedCustomer()) return this.i18n.t('pos.selectCustomerHint');
+        if (this.remainingBalance() > 0.01 && !this.hasDuePayments()) return this.i18n.t('pos.paymentIncompleteHint');
+        return null;
+    });
+
+    // ===== POS SHELL: HEADER (design_handoff_pos_sale §1a) =====
+    operatorLabel = computed(() => this.i18n.t('pos.registerLabel', { name: this.authService.currentUser()?.fullName || this.i18n.t('pos.cashier') }));
+
+    /** Single-vertical (auto parts) context line — the attached vehicle when there is one,
+     *  otherwise a generic walk-in line (README §1a "Context line is per-configuration"). */
+    contextLine = computed(() => {
+        const vehicleId = this.selectedVehicleId();
+        if (vehicleId) {
+            const vehicle = this.customerVehicles().find((v) => v.id === vehicleId);
+            if (vehicle) return this.i18n.t('pos.contextVehicle', { label: vehicle.registrationNo ? `${vehicle.registrationNo} · ${vehicle.make} ${vehicle.model}` : `${vehicle.make} ${vehicle.model}` });
+        }
+        return this.isWalkInCustomer() || !this.selectedCustomer() ? this.i18n.t('pos.contextWalkIn') : this.i18n.t('pos.contextCustomer', { name: this.selectedCustomer()?.fullName });
+    });
+
+    // ===== POS SHELL: CART PANEL (design_handoff_pos_sale §1c) =====
+    customerBarAttached = computed(() => !!this.selectedCustomer() && !this.isWalkInCustomer());
+    customerBarName = computed(() => this.selectedCustomer()?.fullName || this.i18n.t('pos.walkInCustomer'));
+    customerBarInitials = computed(() => {
+        const name = this.selectedCustomer()?.fullName;
+        if (!name || this.isWalkInCustomer()) return '+';
+        return name
+            .split(' ')
+            .filter(Boolean)
+            .map((w: string) => w[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+    });
+    customerBarMeta = computed(() => {
+        const c = this.selectedCustomer();
+        if (!c || this.isWalkInCustomer()) return this.i18n.t('pos.tapToAttach');
+        const due = c.dueAmount || 0;
+        const balance = due > 0.01 ? this.i18n.t('pos.owesAmount', { amount: this.formatCurrency(due) }) : this.i18n.t('pos.noBalance');
+        return `${c.customerType || this.i18n.t('pos.customer')} · ${balance}`;
+    });
+
+    ticketLabel = computed(() => `${this.i18n.t('pos.ticketPrefix')} ${this.invoiceNumber()}`);
+    /** Only shown once a technician is actually assigned — no placeholder when there isn't one. */
+    technicianLabel = computed(() => {
+        const tech = this.selectedTechnician();
+        return tech ? `${this.i18n.t('pos.technician')}: ${tech.name}` : null;
+    });
+
+    cartLines = computed<PosCartLine[]>(() =>
+        this.cartItems().map((item) => {
+            const compatibleUnits = this.compatibleUnitsMap.get(item.partId);
+            return {
+                name: item.partName || '',
+                localName: item.partLocalName,
+                unitLabel: `${this.formatCurrency(item.unitPrice)} ${this.i18n.t('pos.each')}`,
+                qty: item.quantity,
+                totalLabel: this.formatCurrency(this.calculateLineTotal(item)),
+                discountBadge: item.discount > 0 ? `${item.discount}% ${this.i18n.t('pos.off')}` : item.autoDiscountAmount ? `-${this.formatCurrency(this.lineDiscountAmount(item))}` : null,
+                belowCostBadge: this.lineIsBelowCost(item) ? `${this.i18n.t('pos.belowCost')} ${this.formatCurrency(this.lineBelowCostLoss(item))}` : null,
+                unitId: item.unitId ?? null,
+                unitOptions: compatibleUnits && compatibleUnits.length > 1 ? compatibleUnits.map((u) => ({ id: u.id, label: u.symbol || u.name })) : null
+            };
+        })
+    );
+
+    /** Unit-of-sale selector on a cart line (e.g. switch a part from Piece to Box) — mutates the
+     *  line's unitId then reuses the existing conversion/re-pricing logic in onCartUnitChanged(),
+     *  same as the old inline p-select did. */
+    onCartLineUnitChange(event: { index: number; unitId: string }): void {
+        const { index, unitId } = event;
+        const current = this.cartItems()[index];
+        if (!current || current.unitId === unitId) return;
+        this.cartItems.update((items) => {
+            const next = [...items];
+            next[index] = { ...next[index], unitId };
+            return next;
+        });
+        this.onCartUnitChanged(this.cartItems()[index], index);
+    }
+
+    /** `compatibleUnitsMap` is a plain Map, not a signal, so writing into it doesn't by itself
+     *  make the `cartLines` computed (which reads it) re-evaluate — call this right after any
+     *  `compatibleUnitsMap.set(...)` so a just-arrived unit list actually appears in the UI. */
+    private pokeCartLines(): void {
+        this.cartItems.update((items) => [...items]);
+    }
+
+    /** Design rule: decrementing to zero removes the line — decrementQty() alone never goes
+     *  below 1, so a tap at qty 1 falls through to the existing removeFromCart() instead. */
+    onCartDecrement(index: number): void {
+        const item = this.cartItems()[index];
+        if (item && item.quantity <= 1) this.removeFromCart(index);
+        else this.decrementQty(index);
+    }
+
+    itemCountLabel = computed(() => {
+        const count = this.cartItems().reduce((sum, i) => sum + i.quantity, 0);
+        return this.i18n.t(count === 1 ? 'pos.subtotalOneItem' : 'pos.subtotalItems', { count });
+    });
+
+    cartDiscountLabel = computed(() => (this.promoApplied() ? this.promoDiscountLabel() || this.i18n.t('pos.discount') : this.i18n.t('pos.manualDiscount')));
+
+    // ===== POS SHELL: SHORTCUT BAR (design_handoff_pos_sale §1d) =====
+    shortcutKeys = computed<PosShortcutKey[]>(() => [
+        { key: 'F2', label: this.i18n.t('pos.toolbar.search'), action: 'search' },
+        { key: 'F3', label: this.i18n.t('pos.toolbar.stock'), action: 'stock' },
+        { key: 'F4', label: this.i18n.t('pos.toolbar.customer'), action: 'customer' },
+        { key: 'F6', label: this.i18n.t('pos.toolbar.discount'), action: 'discount' },
+        { key: 'F7', label: this.i18n.t('pos.toolbar.hold'), action: 'hold', disabled: this.cartItems().length === 0 },
+        { key: 'F8', label: this.i18n.t('pos.toolbar.recall'), action: 'recall' },
+        { key: 'F9', label: this.i18n.t('pos.toolbar.reprint'), action: 'reprint' },
+        { key: 'F10', label: this.i18n.t('pos.toolbar.returns'), action: 'returns' }
+    ]);
+
+    shortcutExtraActions = computed<PosExtraAction[]>(() => [
+        { id: 'vehicle', label: this.i18n.t('pos.toolbar.vehicle'), disabled: !this.selectedCustomer() },
+        { id: 'technician', label: this.i18n.t('pos.toolbar.technician'), disabled: false },
+        { id: 'options', label: this.i18n.t('pos.toolbar.options'), disabled: false },
+        { id: 'lastSale', label: this.i18n.t('pos.toolbar.lastSale'), disabled: !this.hasLastSale() },
+        { id: 'history', label: this.i18n.t('pos.toolbar.history'), disabled: !this.selectedCustomer() },
+        { id: 'credit', label: this.i18n.t('pos.toolbar.credit'), disabled: !this.selectedCustomer() },
+        { id: 'newSale', label: this.i18n.t('pos.toolbar.newSale'), disabled: false }
+    ]);
+
+    statusLine = computed(() => this.i18n.t('pos.statusLine', { held: this.quickSaleService.getHeldSales().length }));
+
+    onShortcutClick(action: string): void {
+        switch (action) {
+            case 'search':
+                this.openSearchDialog();
+                break;
+            case 'stock':
+                this.openStockSearch();
+                break;
+            case 'customer':
+                this.openCustomerDialog();
+                break;
+            case 'discount':
+                this.openDiscountDialog();
+                break;
+            case 'hold':
+                this.holdSale();
+                break;
+            case 'recall':
+                this.recallHeldSales();
+                break;
+            case 'reprint':
+                this.openReprintDialog();
+                break;
+            case 'returns':
+                this.openReturns();
+                break;
+        }
+    }
+
+    onExtraActionClick(id: string): void {
+        switch (id) {
+            case 'vehicle':
+                this.openVehicleDialog();
+                break;
+            case 'technician':
+                this.openTechnicianDialog();
+                break;
+            case 'options':
+                this.activeOverlay.set('options');
+                break;
+            case 'lastSale':
+                this.viewLastSale();
+                break;
+            case 'history':
+                this.openCustomerHistory();
+                break;
+            case 'credit':
+                this.viewCustomerCredit();
+                break;
+            case 'newSale':
+                this.resetShortcut();
+                break;
+        }
+    }
+
+    // Note: the old inline sidebar's "quick tender chip" one-tap suggestions are superseded by the
+    // new Tender dialog's payment-type tiles (tenderFullBalance()) and Quick Cash grid
+    // (quickCashOptions()/onQuickCashTap()) below, which cover the same ground per the design.
+
     readonly Math = Math;
+
+    // ===== TENDER DIALOG (design_handoff_pos_sale §3) =====
+    /** Charge → opens the Tender overlay pre-loaded with the full remaining balance, same guard
+     *  (non-empty cart) the old inline Charge button used. */
+    openTenderDialog(): void {
+        if (this.cartItems().length === 0) return;
+        this.keypadDigits.set('');
+        this.activeOverlay.set('tender');
+    }
+
+    tenderPayTypeNotes: Record<'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE', string> = {
+        CASH: 'drawerOpens',
+        CARD: 'chipOrTap',
+        MOBILE_BANKING: 'qrOrNfc',
+        DUE: 'onAccount'
+    };
+
+    tenderPayTypes = computed<PosPayType[]>(() => {
+        const settled = this.remainingBalance() <= 0.01;
+        return this.paymentMethodOptions().map((o) => ({
+            value: o.value,
+            label: o.label,
+            note: settled ? this.i18n.t('pos.balanceSettled') : this.i18n.t(`pos.payNote.${this.tenderPayTypeNotes[o.value]}`),
+            disabled: settled
+        }));
+    });
+
+    tenderRows = computed<PosTenderRow[]>(() => this.payments().map((p) => ({ label: this.getPaymentLabel(p.method), amountLabel: this.formatCurrency(p.amount) })));
+
+    /** Tapping a payment-type tile tenders the *entire* remaining balance in that type (design
+     *  §3) — additive to the existing manual-amount keypad flow, both funnel through addNewPayment().
+     *  Whatever the cashier has already typed into the reference field (needed for CARD/MOBILE_BANKING
+     *  reconciliation — see requiresReference()) is preserved, not cleared, since there's no separate
+     *  "enter reference, then tender" step in this one-tap design. */
+    tenderFullBalance(method: 'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE'): void {
+        const remaining = this.remainingBalance();
+        if (remaining <= 0.01) return;
+        this.selectedPaymentMethod = method;
+        this.paymentInputAmount = remaining;
+        this.addNewPayment();
+    }
+
+    /** Cents-first keypad entry (README §3 "Entry is cents-first"): digits append to a string,
+     *  parsed as an integer and divided by 100. */
+    onKeypadPress(label: string): void {
+        this.keypadDigits.update((s) => (label === '⌫' ? s.slice(0, -1) : (s + label).replace(/^0+(?=\d)/, '').slice(0, 8)));
+    }
+
+    keypadAmount = computed(() => Math.round((parseInt(this.keypadDigits() || '0', 10) || 0)) / 100);
+    keypadAmountEmpty = computed(() => this.keypadDigits() === '');
+    keypadAmountDisplay = computed(() => this.formatCurrency(this.keypadAmountEmpty() ? 0 : this.keypadAmount()));
+
+    amountHint = computed(() => {
+        if (this.keypadAmountEmpty()) return this.i18n.t('pos.amountHintEmpty');
+        const entered = this.keypadAmount();
+        const due = this.remainingBalance();
+        if (entered > due) return this.i18n.t('pos.amountHintChange', { amount: this.formatCurrency(entered), change: this.formatCurrency(entered - due) });
+        if (Math.abs(entered - due) < 0.005) return this.i18n.t('pos.amountHintExact');
+        return this.i18n.t('pos.amountHintRemaining', { amount: this.formatCurrency(due - entered) });
+    });
+
+    addKeypadCash(): void {
+        if (this.keypadAmount() <= 0) return;
+        this.selectedPaymentMethod = 'CASH';
+        this.paymentInputAmount = this.keypadAmount();
+        this.addNewPayment();
+        this.keypadDigits.set('');
+    }
+
+    addKeypadCard(): void {
+        if (this.keypadAmount() <= 0) return;
+        this.selectedPaymentMethod = 'CARD';
+        this.paymentInputAmount = this.keypadAmount();
+        this.addNewPayment();
+        this.keypadDigits.set('');
+    }
+
+    /** Quick-cash denominations (README §3): the exact balance, its ceiling, the balance rounded
+     *  up to the next 5/10/20/50, and every standard note larger than the balance — deduplicated,
+     *  ascending, first six. A small pure helper, not a new business rule. */
+    static quickCashDenominations(due: number): number[] {
+        if (due <= 0) return [];
+        const notes = [5, 10, 20, 50, 100, 200, 500];
+        const candidates = [due, Math.ceil(due)].concat([5, 10, 20, 50].map((s) => Math.ceil(due / s) * s)).concat(notes.filter((n) => n > due));
+        const seen = new Set<number>();
+        const unique: number[] = [];
+        for (const v of candidates) {
+            const rounded = Math.round(v * 100) / 100;
+            if (rounded > 0 && !seen.has(rounded)) {
+                seen.add(rounded);
+                unique.push(rounded);
+            }
+        }
+        return unique.sort((a, b) => a - b).slice(0, 6);
+    }
+
+    quickCashOptions = computed<PosQuickCash[]>(() => {
+        const due = this.remainingBalance();
+        return QuickSaleShortcutComponent.quickCashDenominations(due).map((amount) => {
+            const change = Math.round((amount - due) * 100) / 100;
+            return {
+                amount,
+                label: this.formatCurrency(amount),
+                changeNote: change > 0.005 ? this.i18n.t('pos.changeNote', { amount: this.formatCurrency(change) }) : this.i18n.t('pos.exactNote'),
+                exact: change <= 0.005
+            };
+        });
+    });
+
+    onQuickCashTap(amount: number): void {
+        this.selectedPaymentMethod = 'CASH';
+        this.paymentInputAmount = amount;
+        this.addNewPayment();
+    }
+
+    /** Whether the tender dialog should show its optional reference field for the currently
+     *  selected payment type — CARD/MOBILE_BANKING need a transaction reference for reconciliation
+     *  (see requiresReference()); CASH/DUE never do. A plain method (not computed()) since
+     *  `selectedPaymentMethod` is a plain field, not a signal — Angular's own change detection
+     *  re-evaluates this on every check, same as any other template method call. */
+    tenderReferenceVisible(): boolean {
+        return this.requiresReference(this.selectedPaymentMethod);
+    }
+
+    tenderCompleteLabel = computed(() => {
+        if (this.remainingBalance() > 0.01) return this.i18n.t('pos.balanceRemaining', { amount: this.formatCurrency(this.remainingBalance()) });
+        const blocked = this.checkoutBlockedReason();
+        return blocked ?? this.i18n.t('pos.completeSale');
+    });
 
     // ===== LIFECYCLE =====
     ngOnInit(): void {
@@ -427,6 +783,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.generateInvoiceNumber();
         this.loadUnits();
         this.restoreDraft();
+        this.selectWalkInCustomerIfNone();
+        this.loadCatalog();
         this.quickSaleService.getVATConfig().subscribe((cfg) => {
             this.vatPercentage.set(cfg.percentage);
             this.vatEnabled.set(cfg.enabled);
@@ -436,6 +794,220 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.destroy$.next();
         this.destroy$.complete();
+        clearTimeout(this.customerDialogDebounce);
+        clearTimeout(this.technicianDialogDebounce);
+    }
+
+    // ===== POS SHELL: RESPONSIVE LAYOUT (README "The layout is fluid") =====
+    @HostListener('window:resize')
+    onWindowResize(): void {
+        const narrow = window.innerWidth < 780;
+        const short = window.innerHeight < 660;
+        if (narrow !== this.narrow()) this.narrow.set(narrow);
+        if (short !== this.short()) this.short.set(short);
+    }
+
+    // ===== POS SHELL: KEYBOARD SHORTCUTS (README §1d "Keyboard") =====
+    private readonly keyToOverlay: Record<string, PosOverlay> = {
+        F2: 'search',
+        F3: 'stock',
+        F4: 'customer',
+        F6: 'discount',
+        F8: 'recall',
+        F9: 'reprint',
+        F10: 'returns'
+    };
+
+    @HostListener('window:keydown', ['$event'])
+    onWindowKeydown(event: KeyboardEvent): void {
+        // The price-override panel is a bespoke overlay kept outside the activeOverlay stack (it
+        // layers on top of whatever triggered it) — it must own Escape/F-keys itself while open, or
+        // Escape would silently close the overlay *behind* it and F-keys would silently change
+        // activeOverlay while this panel stays visually on top.
+        if (this.showPriceOverrideDialog) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.cancelPriceOverrideDialog();
+            }
+            return;
+        }
+
+        // The till-session gate hides the catalog/cart/shortcut-bar UI entirely, but this listener
+        // is bound at the window level regardless — without this guard, a blocked cashier could
+        // still drive the whole sale via F-keys (search/add a part, attach a customer, tender) only
+        // to have it fail server-side at the final submit. Escape still closes whatever's open.
+        if (this.tillSessionBlocked() && event.key !== 'Escape') return;
+
+        if (event.key === 'Escape') {
+            if (this.isOverlayOpen()) {
+                event.preventDefault();
+                this.closeOverlay();
+            }
+            return;
+        }
+
+        // F-keys must not fire while the cashier is typing into a filter/text field (matches the
+        // plan's guard — Escape above is exempt on purpose).
+        const target = event.target as HTMLElement | null;
+        const typing = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+        if (typing) return;
+
+        if (event.key === 'F7') {
+            event.preventDefault();
+            this.holdSale();
+            return;
+        }
+
+        const overlay = this.keyToOverlay[event.key];
+        if (overlay) {
+            event.preventDefault();
+            this.openOverlayByKey(overlay);
+        }
+    }
+
+    /** Routes a keyboard/F-key shortcut to the right opener so every overlay's own bespoke setup
+     *  (search reset, stock search reset, etc.) still runs, instead of just poking activeOverlay. */
+    private openOverlayByKey(overlay: PosOverlay): void {
+        switch (overlay) {
+            case 'search':
+                this.openSearchDialog();
+                break;
+            case 'stock':
+                this.openStockSearch();
+                break;
+            case 'customer':
+                this.openCustomerDialog();
+                break;
+            case 'discount':
+                this.openDiscountDialog();
+                break;
+            case 'recall':
+                this.recallHeldSales();
+                break;
+            case 'reprint':
+                this.openReprintDialog();
+                break;
+            case 'returns':
+                this.openReturns();
+                break;
+            default:
+                this.activeOverlay.set(overlay);
+        }
+    }
+
+    // ===== POS SHELL: OVERLAY STATE MACHINE =====
+    closeOverlay(): void {
+        this.activeOverlay.set(null);
+        this.dialogQuery.set('');
+    }
+
+    // ===== POS SHELL: CATALOG (design_handoff_pos_sale §1b) =====
+    /** Loads the first page of the catalog. Further pages load on demand as the grid is scrolled
+     *  near its bottom (see loadMoreCatalog()) rather than bulk-loading the whole catalog upfront —
+     *  chip + free-text filtering still happen client-side, but only over pages loaded so far. */
+    loadCatalog(): void {
+        this.catalogLoading.set(true);
+        this.catalogPageNumber = 1;
+        this.catalogHasMore = true;
+        this.partService.getParts({ search: '', pageNumber: 1, pageSize: QuickSaleShortcutComponent.CATALOG_PAGE_SIZE, isActive: true, flattenVariants: true }).subscribe({
+            next: (res) => {
+                this.catalogParts.set(res.data ?? []);
+                this.catalogHasMore = this.catalogPageNumber < (res.pagination?.totalPages ?? 1);
+                this.catalogLoading.set(false);
+                this.resolveCatalogStock(res.data ?? []);
+            },
+            error: () => this.catalogLoading.set(false)
+        });
+    }
+
+    /** Fetches the next catalog page and appends it — called when the grid scrolls near its
+     *  bottom. No-ops while a fetch is already in flight or no further pages remain. */
+    loadMoreCatalog(): void {
+        if (this.catalogLoadingMore() || this.catalogLoading() || !this.catalogHasMore) return;
+        this.catalogLoadingMore.set(true);
+        const nextPage = this.catalogPageNumber + 1;
+        this.partService.getParts({ search: '', pageNumber: nextPage, pageSize: QuickSaleShortcutComponent.CATALOG_PAGE_SIZE, isActive: true, flattenVariants: true }).subscribe({
+            next: (res) => {
+                this.catalogPageNumber = nextPage;
+                this.catalogHasMore = this.catalogPageNumber < (res.pagination?.totalPages ?? 1);
+                const newParts = res.data ?? [];
+                this.catalogParts.set([...this.catalogParts(), ...newParts]);
+                this.catalogLoadingMore.set(false);
+                this.resolveCatalogStock(newParts);
+            },
+            error: () => this.catalogLoadingMore.set(false)
+        });
+    }
+
+    /** Batch-resolves on-hand stock for a set of newly-loaded parts (advisory display only — the
+     *  checkout itself is still authoritative server-side on a failure or omission here). */
+    private resolveCatalogStock(parts: PublicPartResponse[]): void {
+        const items = parts.map((p) => ({ partId: p.id, variantId: p.variantId ?? null, quantity: 1 }));
+        if (items.length === 0) return;
+        this.quickSaleService.checkMultipleStock(items).subscribe({
+            next: (results) => {
+                results.forEach((r) => this.catalogStock.set(this.catalogStockKey(r.partId, r.variantId ?? null), r.stockAvailable));
+                // Force a re-render of the (memo-free) tile mapper now that stock is known.
+                this.catalogParts.set([...this.catalogParts()]);
+            },
+            error: () => {
+                // Stock badges are advisory only.
+            }
+        });
+    }
+
+    private catalogStockKey(partId: string, variantId?: string | null): string {
+        return `${partId}|${variantId ?? ''}`;
+    }
+
+    /** Category chips derived from the loaded catalog, sorted, single-select (toggle off on repeat tap). */
+    catalogChips = computed<PosCatalogChip[]>(() => {
+        const active = this.catalogChip();
+        const names = Array.from(new Set(this.catalogParts().map((p) => p.categoryName).filter((n): n is string => !!n))).sort((a, b) => a.localeCompare(b));
+        return names.map((label) => ({ label, active: label === active }));
+    });
+
+    onCatalogChipToggle(label: string): void {
+        this.catalogChip.set(this.catalogChip() === label ? null : label);
+    }
+
+    /** Grid tiles: filtered by the active category chip only — free-text lookup lives in the
+     *  header's Search list-dialog (README §"Filtering"), not the grid itself. Formatting
+     *  (currency, i18n stock labels) stays in the orchestrator so the presentational child never
+     *  touches money/locale directly. */
+    catalogTiles = computed<PosCatalogTile[]>(() => {
+        const chip = this.catalogChip();
+        return this.catalogParts()
+            .filter((p) => !chip || p.categoryName === chip)
+            .map((p) => this.toCatalogTile(p));
+    });
+
+    private toCatalogTile(p: PublicPartResponse): PosCatalogTile {
+        const stock = this.catalogStock.get(this.catalogStockKey(p.id, p.variantId ?? null));
+        const blocked = stock != null && stock <= 0;
+        const tone: PosCatalogTile['stockTone'] = stock == null ? 'muted' : stock <= 0 ? 'red' : stock < 5 ? 'amber' : 'muted';
+        const stockLabel = stock == null ? '' : stock <= 0 ? this.i18n.t('pos.outOfStock') : stock < 5 ? this.i18n.t('pos.leftCount', { count: stock }) : this.i18n.t('pos.inStock');
+        return {
+            partId: p.id,
+            variantId: p.variantId ?? null,
+            meta: (p.variantName || p.categoryName || '').toUpperCase(),
+            name: p.displayName || p.name,
+            priceLabel: this.formatCurrency(p.effectiveSellingPrice ?? p.sellingPrice),
+            stockLabel,
+            stockTone: tone,
+            blocked
+        };
+    }
+
+    /** "N on hand" sub-label reused by the Search list-dialog rows (README §2 "Search" row spec). */
+    catalogOnHandLabel(part: PublicPartResponse): string {
+        const stock = this.catalogStock.get(this.catalogStockKey(part.id, part.variantId ?? null));
+        return stock == null ? '' : this.i18n.t('pos.onHand', { count: stock });
+    }
+
+    onCatalogTileAdd(tile: PosCatalogTile): void {
+        const part = this.catalogParts().find((p) => p.id === tile.partId && (p.variantId ?? null) === tile.variantId);
+        if (part) this.selectPart(part);
     }
 
     // ===== FORM =====
@@ -475,6 +1047,11 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                 message: this.i18n.t('pos.messages.restoreDraft'),
                 header: this.i18n.t('pos.messages.draftFound'),
                 icon: 'pi pi-info-circle',
+                // Every confirm() call must set its own accept/reject labels explicitly — PrimeNG's
+                // ConfirmationService carries over the LAST call's labels for any field a later call
+                // omits (e.g. without this, this dialog would show confirmCheckout()'s "Complete Sale").
+                acceptLabel: this.i18n.t('common.actions.restore'),
+                rejectLabel: this.i18n.t('common.actions.cancel'),
                 accept: () => {
                     this.restoreSaleState(draft);
                     this.quickSaleService.clearDraft();
@@ -494,8 +1071,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
         if (part.unitId) {
             this.unitService.getCompatibleUnits(part.unitId).subscribe({
-                next: (compatibleUnits) => this.compatibleUnitsMap.set(part.id, compatibleUnits),
-                error: () => this.compatibleUnitsMap.set(part.id, this.units())
+                next: (compatibleUnits) => {
+                    this.compatibleUnitsMap.set(part.id, compatibleUnits);
+                    this.pokeCartLines();
+                },
+                error: () => {
+                    this.compatibleUnitsMap.set(part.id, this.units());
+                    this.pokeCartLines();
+                }
             });
         }
 
@@ -513,10 +1096,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         };
 
         this.cartItems.update((items) => [...items, newItem]);
+        this.fetchLineInfo(newItem);
         if (part.unitId) {
             this.cartUnitSelection.set(this.cartItems().length - 1, part.unitId);
         }
-        this.selectedPartModel = null;
 
         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.partAdded'), detail: this.i18n.t('pos.messages.partAddedDetail', { name: part.displayName || part.name }) });
     }
@@ -553,8 +1136,115 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
     calculateLineTotal(item: QuickSaleLineItem): number {
         const lineTotal = item.quantity * item.unitPrice;
-        const discountAmount = (lineTotal * item.discount) / 100;
+        const discountAmount = this.lineDiscountAmount(item);
         return lineTotal - discountAmount;
+    }
+
+    /**
+     * Effective discount AMOUNT for the whole line (currency). A manual percentage override
+     * (item.discount > 0) wins — matching the backend, which applies it as a percentage before
+     * considering any resolved rule. Otherwise the line carries the auto-resolved item-level
+     * (VARIANT/PRODUCT) rule, whose unit amount is scaled by quantity to a line total.
+     */
+    lineDiscountAmount(item: QuickSaleLineItem): number {
+        if (item.discount > 0) {
+            return (item.quantity * item.unitPrice * item.discount) / 100;
+        }
+        return item.quantity * (item.autoDiscountAmount ?? 0);
+    }
+
+    /**
+     * Net per-unit price after ALL discount sources (manual %, auto item rule, cart-level promo /
+     * manual cart discount are folded into the unit price during line extract) — used to judge
+     * below-cost margins. Cost availability is advisory; lines without cost are never flagged.
+     */
+    lineNetUnitPrice(item: QuickSaleLineItem): number {
+        if (item.discount > 0) return Math.max(0, item.unitPrice - (item.unitPrice * item.discount) / 100);
+        return Math.max(0, item.unitPrice - (item.autoDiscountAmount ?? 0));
+    }
+
+    /**
+     * costPrice is always per BASE unit, but unitPrice (and so lineNetUnitPrice) is in the
+     * currently-selected sale unit — divide by baseUnitFactor to compare like-for-like, matching
+     * the backend's own base-unit normalization for the same check.
+     */
+    lineIsBelowCost(item: QuickSaleLineItem): boolean {
+        const cost = item.costPrice;
+        if (!cost || cost <= 0) return false;
+        const factor = item.baseUnitFactor || 1;
+        return this.lineNetUnitPrice(item) / factor < cost;
+    }
+
+    lineBelowCostLoss(item: QuickSaleLineItem): number {
+        if (!this.lineIsBelowCost(item)) return 0;
+        const factor = item.baseUnitFactor || 1;
+        return Math.max(0, (item.costPrice ?? 0) * factor - this.lineNetUnitPrice(item));
+    }
+
+    /**
+     * Populates both the authoritative per-unit COST (FIFO lot cost or catalogue fallback) and the
+     * auto-resolved item discount on a freshly added cart line, in one round trip instead of two
+     * separate calls (getUnitCost + resolveItemDiscount) — this fires on every "add to cart", so
+     * halving it halves the request count for the POS's most frequent interaction. Best-effort: a
+     * lookup failure simply leaves cost/discount unknown, same as before.
+     */
+    private fetchLineInfo(item: QuickSaleLineItem): void {
+        const variantId = item.productVariantId ?? null;
+        this.pricingValidationService.getLineInfo(item.partId, item.unitPrice, variantId).subscribe({
+            next: (res) => {
+                this.cartItems.update((items) =>
+                    items.map((existing) => {
+                        if (existing.partId !== item.partId || (existing.productVariantId ?? null) !== variantId) return existing;
+                        const withCost = res.costPrice > 0 && existing.costPrice == null ? { ...existing, costPrice: Math.round(res.costPrice * 100) / 100 } : existing;
+                        // Only apply the auto-discount while the line still has no manual override —
+                        // a cashier may have set a manual % while this response was in flight, and
+                        // manual always wins.
+                        if (res.appliedLevel === 'NONE' || res.appliedLevel === 'CART' || res.discountAmount <= 0 || withCost.discount !== 0) return withCost;
+                        return { ...withCost, autoDiscountAmount: Math.round(res.discountAmount * 100) / 100, autoDiscountName: res.discountName };
+                    })
+                );
+            },
+            error: () => {
+                // Best-effort display only — never blocks. The backend re-resolves authoritatively at submit.
+            }
+        });
+    }
+
+    /**
+     * Resolves the item-level (VARIANT/PRODUCT) discount rule for a cart line and records it on it,
+     * so the payment section reflects the discount the backend will apply on submit. Only called
+     * after a unit-of-sale switch (onCartUnitChanged) re-prices a line — freshly added lines instead
+     * go through fetchLineInfo(), which resolves cost + discount together in one round trip.
+     * result.discountAmount is a PER-UNIT amount (the backend uses it directly as salesOrderLine.Discount
+     * and totals quantity * Discount), so it is stored per-unit too. A line that already carries a manual
+     * percentage override is left untouched (manual wins).
+     */
+    private resolveItemDiscount(item: QuickSaleLineItem): void {
+        if (item.discount > 0) return;
+
+        const variantId = item.productVariantId ?? undefined;
+        this.discountService.resolveItemDiscount(item.partId, item.unitPrice, variantId).subscribe({
+            next: (result) => {
+                if (result.appliedLevel === 'NONE' || result.appliedLevel === 'CART' || result.discountAmount <= 0) return;
+                this.cartItems.update((items) =>
+                    items.map((existing) =>
+                        // Only apply while the line still has no manual override — a cashier may have
+                        // set a manual % while this response was in flight, and manual always wins.
+                        existing.partId === item.partId && (existing.productVariantId ?? null) === (variantId ?? null) && existing.discount === 0
+                            ? {
+                                  ...existing,
+                                  autoDiscountAmount: Math.round(result.discountAmount * 100) / 100,
+                                  autoDiscountName: result.discountName
+                              }
+                            : existing
+                    )
+                );
+            },
+            error: () => {
+                // Resolution is best-effort display help — a resolution failure should never block
+                // the sale. The backend re-resolves authoritatively at submit.
+            }
+        });
     }
 
     onCartUnitChanged(item: QuickSaleLineItem, index: number): void {
@@ -563,15 +1253,24 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         if (!previousUnitId || !nextUnitId || previousUnitId === nextUnitId) return;
 
         const currentPrice = Number(item.unitPrice || 0);
+        const previousBaseUnitFactor = item.baseUnitFactor || 1;
         this.unitConversionService.getConversion(nextUnitId, previousUnitId).subscribe({
             next: (res) => {
                 const newPrice = currentPrice * res.conversionFactor;
+                // baseUnitFactor tracks the same rescaling as unitPrice so costPrice (always
+                // per-base-unit) stays comparable to unitPrice after the switch.
+                const newBaseUnitFactor = previousBaseUnitFactor * res.conversionFactor;
                 this.cartItems.update((items) => {
                     const newItems = [...items];
-                    newItems[index] = { ...newItems[index], unitPrice: Math.round(newPrice * 100) / 100 };
+                    newItems[index] = { ...newItems[index], unitPrice: Math.round(newPrice * 100) / 100, baseUnitFactor: newBaseUnitFactor };
                     return newItems;
                 });
                 this.cartUnitSelection.set(index, nextUnitId);
+                // The per-unit auto discount depends on unit price, so re-resolve it against the new
+                // price — otherwise the displayed discount drifts from what the backend applies on
+                // submit. Manual % lines are untouched (manual wins).
+                const converted = this.cartItems()[index];
+                if (converted && converted.discount === 0) this.resolveItemDiscount(converted);
             }
         });
     }
@@ -608,6 +1307,28 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Defaults the reserved Walk-in customer onto a fresh/empty screen so the cashier isn't
+     * blocked on Complete Sale by an invisible "no customer selected" state — standard POS
+     * behavior (Square, Shopify POS, Lightspeed all pre-select a walk-in/guest account). The
+     * cashier can still swap it for a registered customer via the search at any time. A no-op
+     * if a customer is already set (draft restore, held-sale recall) or no reserved Walk-in
+     * account exists in this environment.
+     */
+    private selectWalkInCustomerIfNone(): void {
+        if (this.selectedCustomer()) return;
+        this.customerService.getCustomerByCode('WALKIN').subscribe({
+            next: (walkIn) => {
+                if (this.selectedCustomer()) return; // a draft/recall may have won the race meanwhile
+                this.selectedCustomer.set(walkIn);
+                this.selectedCustomerModel = walkIn;
+            },
+            error: () => {
+                // No reserved Walk-in account here — cashier picks a customer manually, as before.
+            }
+        });
+    }
+
     private loadCustomerVehicles(customerId: string, preselectVehicleId: string | null = null): void {
         this.clearVehicleSelection();
         this.loadingVehicles.set(true);
@@ -636,6 +1357,50 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.selectedTechnicianModel = event;
     }
 
+    // ===== VEHICLE PICKER (extra shortcut action — no F-key slot in the design) =====
+    openVehicleDialog(): void {
+        if (!this.selectedCustomer()) return;
+        this.activeOverlay.set('vehicle');
+    }
+
+    selectVehicleFromDialog(vehicleId: string | null): void {
+        this.selectedVehicleId.set(vehicleId);
+        this.closeOverlay();
+    }
+
+    // ===== TECHNICIAN PICKER (extra shortcut action — no F-key slot in the design) =====
+    openTechnicianDialog(): void {
+        this.dialogQuery.set('');
+        this.activeOverlay.set('technician');
+        this.runTechnicianDialogSearch();
+    }
+
+    onTechnicianDialogQuery(value: string): void {
+        this.dialogQuery.set(value);
+        clearTimeout(this.technicianDialogDebounce);
+        this.technicianDialogDebounce = setTimeout(() => this.runTechnicianDialogSearch(), 250);
+    }
+
+    private runTechnicianDialogSearch(): void {
+        this.technicianDialogLoading.set(true);
+        this.technicianService.getTechnicians({ search: this.dialogQuery(), pageNumber: 1, pageSize: 8 }).subscribe({
+            next: (res) => {
+                this.technicianDialogResults.set((res.data ?? []).filter((t) => t.status === 'ACTIVE'));
+                this.technicianDialogLoading.set(false);
+            },
+            error: () => this.technicianDialogLoading.set(false)
+        });
+    }
+
+    selectTechnicianFromDialog(tech: TechnicianResponse | null): void {
+        this.selectTechnician(tech);
+        this.closeOverlay();
+    }
+
+    setPaymentResponsibility(value: PaymentResponsibility): void {
+        this.paymentResponsibility = value;
+    }
+
     openQuickCustomerDialog(): void {
         this.quickCustomerDialog.open();
     }
@@ -648,20 +1413,118 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.customerCreated'), detail: this.i18n.t('pos.messages.customerCreatedDetail', { name: customer.fullName }) });
     }
 
+    // ===== SEARCH DIALOG (F2 / header search trigger) =====
+    /** Backend-searched rows (max 8, debounced) — independent of the lazily-paged catalog grid
+     *  cache so a search can find any active part regardless of how far the grid has scrolled. */
+    private runSearchDialogSearch(fallbackToBarcodeIfEmpty = false): void {
+        const q = this.dialogQuery().trim();
+        if (!q) {
+            this.searchDialogResults.set([]);
+            return;
+        }
+        this.searchDialogLoading.set(true);
+        this.partService.getParts({ search: q, pageNumber: 1, pageSize: 8, isActive: true, flattenVariants: true }).subscribe({
+            next: (res) => {
+                const rows = res.data ?? [];
+                this.searchDialogResults.set(rows);
+                this.searchDialogLoading.set(false);
+                // A searched-up part may not be one of the catalog grid's currently-loaded pages,
+                // so its on-hand stock (catalogOnHandLabel) may not be resolved yet — fetch it here
+                // too (harmless no-op if already known; resolveCatalogStock merges into the same map).
+                this.resolveCatalogStock(rows);
+                if (fallbackToBarcodeIfEmpty && rows.length === 0) {
+                    this.barcodeValue = q;
+                    this.processBarcodeInput();
+                    this.closeOverlay();
+                }
+            },
+            error: () => this.searchDialogLoading.set(false)
+        });
+    }
+
+    openSearchDialog(): void {
+        this.dialogQuery.set('');
+        this.searchDialogResults.set([]);
+        this.activeOverlay.set('search');
+    }
+
+    onSearchDialogQuery(value: string): void {
+        this.dialogQuery.set(value);
+        clearTimeout(this.searchDialogDebounce);
+        if (!value.trim()) {
+            this.searchDialogResults.set([]);
+            return;
+        }
+        this.searchDialogDebounce = setTimeout(() => this.runSearchDialogSearch(), 250);
+    }
+
+    selectSearchRow(part: PublicPartResponse): void {
+        this.selectPart(part);
+        this.closeOverlay();
+    }
+
+    /** Enter with no current matches falls back to an exact code lookup (barcode/SKU/part number)
+     *  via the existing barcode pipeline, run immediately rather than waiting on the debounce. */
+    onSearchDialogSubmit(): void {
+        clearTimeout(this.searchDialogDebounce);
+        if (this.searchDialogResults().length > 0) return;
+        if (!this.dialogQuery().trim()) return;
+        this.runSearchDialogSearch(true);
+    }
+
+    // ===== CUSTOMER LIST-DIALOG (F4 / customer bar) =====
+    openCustomerDialog(): void {
+        this.dialogQuery.set('');
+        this.activeOverlay.set('customer');
+        this.runCustomerDialogSearch();
+    }
+
+    onCustomerDialogQuery(value: string): void {
+        this.dialogQuery.set(value);
+        clearTimeout(this.customerDialogDebounce);
+        this.customerDialogDebounce = setTimeout(() => this.runCustomerDialogSearch(), 250);
+    }
+
+    private runCustomerDialogSearch(): void {
+        this.customerDialogLoading.set(true);
+        this.customerService.getCustomers({ search: this.dialogQuery(), pageNumber: 1, pageSize: 8 }).subscribe({
+            next: (res) => {
+                this.customerDialogResults.set(res.data ?? []);
+                this.customerDialogLoading.set(false);
+            },
+            error: () => this.customerDialogLoading.set(false)
+        });
+    }
+
+    selectCustomerFromDialog(customer: any): void {
+        this.selectCustomer(customer);
+        this.closeOverlay();
+    }
+
+    openQuickCustomerFromDialog(): void {
+        this.closeOverlay();
+        this.openQuickCustomerDialog();
+    }
+
+    removeAttachedCustomer(): void {
+        this.selectedCustomer.set(null);
+        this.selectedCustomerModel = null;
+        this.clearVehicleSelection();
+        this.useCreditBalance.set(false);
+        this.creditAmountToApply.set(0);
+        this.closeOverlay();
+        this.selectWalkInCustomerIfNone();
+    }
+
     // ===== FORMAT CURRENCY =====
     formatCurrency(amount: number): string {
         return this.currencyService.formatCurrency(amount, this.currencyService.selectedCurrency());
     }
 
     // ===== BARCODE =====
-    toggleBarcodeMode(): void {
-        this.barcodeModeActive = !this.barcodeModeActive;
-    }
-
-    setSearchMode(): void {
-        this.barcodeModeActive = false;
-    }
-
+    // The old dedicated "barcode mode" toggle is gone — the Search list-dialog (F2) now falls
+    // back to this same exact-code lookup automatically when its filter query has no client-side
+    // matches (see onSearchDialogSubmit()), so there's no separate UI mode to switch into.
     processBarcodeInput(): void {
         if (!this.barcodeValue.trim()) return;
         const code = this.barcodeValue.trim();
@@ -687,6 +1550,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                             discount: 0
                         };
                         this.cartItems.update((items) => [...items, newItem]);
+                        this.fetchLineInfo(newItem);
                         if (result.unitId) {
                             this.cartUnitSelection.set(this.cartItems().length - 1, result.unitId);
                         }
@@ -703,14 +1567,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     }
 
     // ===== PAYMENT METHODS =====
-    selectPaymentMethod(method: 'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE'): void {
-        if (method === 'DUE' && this.isWalkInCustomer()) {
-            this.messageService.add({ severity: 'error', summary: this.i18n.t('pos.messages.dueNotAllowed'), detail: this.i18n.t('pos.messages.dueNotAllowedDetail') });
-            return;
-        }
-        this.selectedPaymentMethod = method;
-    }
-
+    // Note: the old sidebar's manual "pick a method, then type an amount" flow (selectPaymentMethod()
+    // / onPaymentMethodChange()) is superseded by the Tender dialog's one-tap tiles
+    // (tenderFullBalance()) and keypad (addKeypadCash()/addKeypadCard()), which set
+    // selectedPaymentMethod + paymentInputAmount together and call addNewPayment() directly.
     addNewPayment(): void {
         const amount = this.paymentInputAmount || 0;
         if (amount <= 0) return;
@@ -718,6 +1578,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         if (this.selectedPaymentMethod === 'DUE' && this.isWalkInCustomer()) {
             this.messageService.add({ severity: 'error', summary: this.i18n.t('pos.messages.dueNotAllowed'), detail: this.i18n.t('pos.messages.dueNotAllowedDetail') });
             return;
+        }
+
+        if (this.selectedPaymentMethod !== 'CASH') {
+            const creditApplied = this.useCreditBalance() ? this.creditAmountToApply() || 0 : 0;
+            if (this.nonCashOrDueTotal() + amount + creditApplied > this.grandTotal() + 0.01) {
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('pos.messages.nonCashOverpay'), detail: this.i18n.t('pos.messages.nonCashOverpayDetail') });
+                return;
+            }
         }
 
         const payment: PaymentDetail = {
@@ -731,13 +1599,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.paymentInputAmount = null;
         this.paymentReference = '';
         this.paymentNotes = '';
-    }
-
-    onPaymentMethodChange(): void {
-        // Auto-fill remaining balance for DUE
-        if (this.selectedPaymentMethod === 'DUE') {
-            this.paymentInputAmount = this.remainingBalance();
-        }
     }
 
     requiresReference(method: string): boolean {
@@ -777,6 +1638,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     resetShortcut(): void {
         this.resetForm();
         this.generateInvoiceNumber();
+        this.selectWalkInCustomerIfNone();
     }
 
     resetForm(): void {
@@ -787,7 +1649,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.clearVehicleSelection();
         this.selectedTechnician.set(null);
         this.selectedTechnicianModel = null;
-        this.selectedPartModel = null;
         this.manualDiscountAmount.set(0);
         this.promoCode.set('');
         this.promoResult.set(null);
@@ -796,7 +1657,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.saving.set(false);
         this.autoCreatePO = false;
         this.saleNotes = '';
-        this.printType = 'THERMAL';
         this.useCreditBalance.set(false);
         this.creditAmountToApply.set(0);
         this.paymentInputAmount = null;
@@ -805,6 +1665,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.pricingErrors.clear();
         this.cartUnitSelection.clear();
         this.quickSaleService.clearDraft();
+        this.keypadDigits.set('');
+        this.appliedManualDiscountPercent.set(0);
+        this.bulkDiscountPercent = 0;
+        this.showPriceOverrideDialog = false;
+        this.priceOverrideUsername = '';
+        this.priceOverridePassword = '';
+        this.priceOverrideError = '';
+        this.priceOverrideApprovalToken = null;
     }
 
     // ===== PROMO CODE VALIDATION =====
@@ -840,12 +1708,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                         });
                     } else {
                         this.promoResult.set(null);
-                        this.promoError.set(this.i18n.t('pos.messages.promoInvalid'));
+                        this.promoError.set(this.i18n.t('pos.promoInvalid'));
                     }
                 },
                 error: () => {
                     this.promoResult.set(null);
-                    this.promoError.set(this.i18n.t('pos.messages.promoInvalid'));
+                    this.promoError.set(this.i18n.t('pos.promoInvalid'));
                 }
             });
     }
@@ -881,18 +1749,19 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         const holdId = this.quickSaleService.holdSale(this.captureSaleState());
         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.saleHeld'), detail: this.i18n.t('pos.messages.saleHeldDetail', { id: holdId }) });
         this.resetForm();
+        this.selectWalkInCustomerIfNone();
     }
 
     recallHeldSales(): void {
         this.heldSales.set(this.quickSaleService.getHeldSales());
-        this.showHeldSalesDialog = true;
+        this.activeOverlay.set('recall');
     }
 
     recallHeldSale(holdId: string): void {
         const sale = this.quickSaleService.recallHeldSale(holdId);
         if (sale) {
             this.restoreSaleState(sale);
-            this.showHeldSalesDialog = false;
+            this.closeOverlay();
             this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.saleRecalled') });
         }
     }
@@ -912,8 +1781,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             this.cartUnitSelection.set(index, item.unitId);
             if (!this.compatibleUnitsMap.has(item.partId)) {
                 this.unitService.getCompatibleUnits(item.unitId).subscribe({
-                    next: (compatibleUnits) => this.compatibleUnitsMap.set(item.partId, compatibleUnits),
-                    error: () => this.compatibleUnitsMap.set(item.partId, this.units())
+                    next: (compatibleUnits) => {
+                        this.compatibleUnitsMap.set(item.partId, compatibleUnits);
+                        this.pokeCartLines();
+                    },
+                    error: () => {
+                        this.compatibleUnitsMap.set(item.partId, this.units());
+                        this.pokeCartLines();
+                    }
                 });
             }
         });
@@ -941,6 +1816,10 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                     this.guardWalkInDuePaymentMethod();
                 }
             });
+        } else {
+            // The draft/held sale never had a customer — default to Walk-in rather than leaving
+            // Complete Sale invisibly blocked.
+            this.selectWalkInCustomerIfNone();
         }
     }
 
@@ -953,7 +1832,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         const sale = this.quickSaleService.getLastSale();
         if (sale) {
             this.lastSale = sale;
-            this.showLastSaleDialog = true;
+            this.activeOverlay.set('lastSale');
         }
     }
 
@@ -962,7 +1841,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     }
 
     printLastSaleReceipt(): void {
-        this.showLastSaleDialog = false;
+        this.closeOverlay();
         if (this.invoicePreviewData) {
             this.thermalReceipt.print(this.invoicePreviewData, (n) => this.formatCurrency(n));
         } else {
@@ -1031,7 +1910,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     openReprintDialog(): void {
         this.reprintInvoiceNumber = '';
         this.reprintError = '';
-        this.showReprintDialog = true;
+        this.activeOverlay.set('reprint');
     }
 
     reprintReceipt(): void {
@@ -1042,20 +1921,20 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.invoicePdfService.getInvoiceByNumber(num).subscribe({
             next: (invoice) => {
                 this.reprintLoading.set(false);
-                this.showReprintDialog = false;
+                this.closeOverlay();
                 this.invoicePdfService.downloadServerPdf(invoice.id, invoice.invoiceNumber).subscribe({
                     error: () => this.messageService.add({ severity: 'error', summary: this.i18n.t('pos.messages.downloadFailed'), detail: this.i18n.t('pos.messages.downloadFailedDetail') })
                 });
             },
             error: () => {
                 this.reprintLoading.set(false);
-                this.reprintError = 'Invoice not found. Check the number and try again.';
+                this.reprintError = this.i18n.t('pos.reprintNotFound');
             }
         });
     }
 
     openReturns(): void {
-        this.showReturnsDialog = true;
+        this.activeOverlay.set('returns');
         this.returnInvoiceNumber = '';
         this.returnInvoice = null;
         this.returnRefundType = 'CASH_REFUND';
@@ -1111,11 +1990,18 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             reason: 'POS quick return'
         }));
 
-        const refundLabel = this.returnRefundType === 'STORE_CREDIT' ? 'store credit' : 'cash refund';
+        const refundLabel = this.i18n.t(this.returnRefundType === 'STORE_CREDIT' ? 'pos.storeCredit' : 'pos.cashRefund');
         this.confirmationService.confirm({
-            message: `Create a return for ${chosen.length} item(s) (${this.formatCurrency(this.returnRefundTotal)}) on invoice ${this.returnInvoice.invoiceNumber} as ${refundLabel}?`,
+            message: this.i18n.t('pos.returnConfirmMessage', {
+                count: chosen.length,
+                amount: this.formatCurrency(this.returnRefundTotal),
+                invoice: this.returnInvoice.invoiceNumber,
+                refundLabel
+            }),
             header: this.i18n.t('pos.messages.confirmReturn'),
             icon: 'pi pi-exclamation-triangle',
+            acceptLabel: this.i18n.t('common.actions.confirm'),
+            rejectLabel: this.i18n.t('common.actions.cancel'),
             accept: () => {
                 this.quickSaleService
                     .processReturn({
@@ -1125,7 +2011,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                     })
                     .subscribe({
                         next: (res: any) => {
-                            this.showReturnsDialog = false;
+                            this.closeOverlay();
                             this.messageService.add({
                                 severity: 'success',
                                 summary: this.i18n.t('pos.messages.returnCreated'),
@@ -1148,7 +2034,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             this.messageService.add({ severity: 'warn', summary: this.i18n.t('pos.messages.selectCustomerFirst') });
             return;
         }
-        this.showCustomerHistoryDialog = true;
+        this.activeOverlay.set('customerHistory');
         this.quickSaleService.getCustomerHistory(this.selectedCustomer()!.id, 10).subscribe({
             next: (history) => this.customerPurchaseHistory.set(history)
         });
@@ -1156,7 +2042,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
     viewCustomerCredit(): void {
         if (!this.selectedCustomer()) return;
-        this.showCustomerCreditDialog = true;
+        this.activeOverlay.set('customerCredit');
         this.loadingCustomerCredit = true;
         this.quickSaleService.getCustomerCredit(this.selectedCustomer()!.id).subscribe({
             next: (credit) => {
@@ -1175,7 +2061,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     }
 
     openPriceCheck(): void {
-        this.showPriceCheckDialog = true;
+        this.activeOverlay.set('priceCheck');
         this.priceCheckCode = '';
         this.priceCheckResult = null;
         this.priceCheckNotFound = false;
@@ -1222,11 +2108,11 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             sellingPrice: r.sellingPrice,
             effectiveSellingPrice: r.sellingPrice
         });
-        this.showPriceCheckDialog = false;
+        this.closeOverlay();
     }
 
     openStockSearch(): void {
-        this.showStockSearchDialog = true;
+        this.activeOverlay.set('stock');
         this.stockSearchTerm = '';
         this.semanticMode = false;
         this.stockSearchResults = [];
@@ -1287,16 +2173,41 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.runStockSearch(1);
     }
 
-    openBulkDiscount(): void {
-        this.showBulkDiscountDialog = true;
-        this.bulkDiscountPercent = 0;
-    }
-
     applyBulkDiscountConfirm(): void {
         const value = Math.max(0, Math.min(100, this.bulkDiscountPercent));
-        this.cartItems.update((items) => items.map((item) => ({ ...item, discount: value })));
-        this.showBulkDiscountDialog = false;
+        // A manual % override clears any auto-resolved item discount so the manual value is the
+        // single source of truth (backend uses item.discount > 0 as the manual override branch).
+        this.cartItems.update((items) => items.map((item) => ({ ...item, discount: value, autoDiscountAmount: value > 0 ? undefined : item.autoDiscountAmount, autoDiscountName: value > 0 ? undefined : item.autoDiscountName })));
         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.discountApplied'), detail: this.i18n.t('pos.messages.discountAppliedDetail', { value }) });
+    }
+
+    // ===== DISCOUNT DIALOG (F6) =====
+    /** Preset manual discount rows (design_handoff_pos_sale §2 "Discount" row set) — a real analogue
+     *  of the mock's named DISCOUNTS list, adapted to this app's actual promo/manual-% model
+     *  (see plan §"Discount dialog (F6)"). */
+    readonly discountPresets: number[] = [10, 15, 20, 25];
+
+    openDiscountDialog(): void {
+        this.activeOverlay.set('discount');
+    }
+
+    /** Applies (or, on a second tap of the already-active preset, removes) a manual % discount —
+     *  mirrors the design's "selecting the active one removes it" rule. */
+    applyPresetDiscount(percent: number): void {
+        const next = this.appliedManualDiscountPercent() === percent ? 0 : percent;
+        this.bulkDiscountPercent = next;
+        this.applyBulkDiscountConfirm();
+        this.appliedManualDiscountPercent.set(next);
+        this.closeOverlay();
+    }
+
+    /** Toggle for the discount dialog's "use store credit / advance balance" row — the direct
+     *  analogue of the mock's loyalty-points redemption row (see plan §"Discount dialog (F6)"). */
+    toggleCreditRedeem(): void {
+        const next = !this.useCreditBalance();
+        this.useCreditBalance.set(next);
+        this.creditAmountToApply.set(next ? this.maxCreditApplicable() : 0);
+        this.closeOverlay();
     }
 
     clearCart(): void {
@@ -1304,6 +2215,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             message: this.i18n.t('pos.messages.clearCartMessage'),
             header: this.i18n.t('pos.messages.clearCartHeader'),
             icon: 'pi pi-exclamation-triangle',
+            acceptLabel: this.i18n.t('common.actions.clear'),
+            rejectLabel: this.i18n.t('common.actions.cancel'),
             accept: () => {
                 this.cartItems.set([]);
                 this.payments.set([]);
@@ -1312,44 +2225,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         });
     }
 
-    quickCashPayment(): void {
-        this.selectedPaymentMethod = 'CASH';
-        this.paymentInputAmount = this.remainingBalance() > 0 ? this.remainingBalance() : this.grandTotal();
-        this.paymentReference = '';
-        this.paymentNotes = '';
-        this.addNewPayment();
-    }
-
-    quickCardPayment(): void {
-        this.selectedPaymentMethod = 'CARD';
-        this.paymentInputAmount = this.remainingBalance() > 0 ? this.remainingBalance() : this.grandTotal();
-        // Don't auto-add — user needs to enter transaction number
-        this.paymentReference = '';
-        this.paymentNotes = '';
-    }
-
-    quickMobilePayment(): void {
-        this.selectedPaymentMethod = 'MOBILE_BANKING';
-        this.paymentInputAmount = this.remainingBalance() > 0 ? this.remainingBalance() : this.grandTotal();
-        // Don't auto-add — user needs to enter transaction number
-        this.paymentReference = '';
-        this.paymentNotes = '';
-    }
-
-    saveAndPrint(): void {
-        this.printType = 'THERMAL';
-        this.confirmCheckout();
-    }
-
     // ===== CHECKOUT =====
-    openCheckout(): void {
-        if (this.cartItems().length === 0) {
-            this.messageService.add({ severity: 'warn', summary: this.i18n.t('pos.messages.noItems'), detail: this.i18n.t('pos.messages.addItemsBeforeCheckout') });
-            return;
-        }
-        this.paymentInputAmount = this.remainingBalance();
-    }
-
     confirmCheckout(): void {
         if (!this.selectedCustomer()) {
             this.messageService.add({ severity: 'error', summary: this.i18n.t('pos.messages.customerRequired') });
@@ -1387,7 +2263,35 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             this.saleNotes = existingNotes ? `${existingNotes} | Credit: ${this.formatCurrency(creditApplied)}` : `Credit: ${this.formatCurrency(creditApplied)}`;
         }
 
-        this.onSubmit();
+        // Below-cost lines require manager approval server-side — surfaced here as a heads-up, not a
+        // block, since the actual limits (cost floor, per-category margin, MRP ceiling) are only
+        // authoritative server-side. Checked two ways, matching the backend: each line's own price,
+        // and (separately) whether the cart-level discount alone pushes a line below cost once
+        // distributed. If it does need approval, the server rejects with PRICE_OVERRIDE_REQUIRED and
+        // onSubmit() opens the approval dialog — see there.
+        const belowCostCount = this.belowCostLineCount();
+        const cartDiscountBelowCostCount = this.cartDiscountBelowCostLineCount();
+        const belowCostWarningCount = Math.max(belowCostCount, cartDiscountBelowCostCount);
+
+        // Explicit pre-completion confirmation — makes change-due visible before the sale is
+        // finalized. Print options are already selected in the sidebar.
+        const change = this.changeDue();
+        let message = this.i18n.t('pos.checkoutConfirmTotal', { amount: this.formatCurrency(this.grandTotal()) });
+        if (change > 0) {
+            message += `\n• ${this.i18n.t('pos.changeDue')}: ${this.formatCurrency(change)}`;
+        }
+        if (belowCostWarningCount > 0) {
+            message += `\n• ${this.i18n.t('pos.checkoutConfirmBelowCost', { count: belowCostWarningCount })}`;
+        }
+
+        this.confirmationService.confirm({
+            message,
+            header: this.i18n.t('pos.checkoutConfirmTitle'),
+            icon: change > 0 || belowCostWarningCount > 0 ? 'pi pi-exclamation-triangle' : 'pi pi-check-circle',
+            acceptLabel: this.i18n.t('pos.checkoutConfirmAccept'),
+            rejectLabel: this.i18n.t('common.actions.cancel'),
+            accept: () => this.onSubmit()
+        });
     }
 
     // ===== SUBMIT SALE =====
@@ -1429,7 +2333,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             notes: this.saleNotes,
             useAdvanceBalance: creditApplied > 0,
             advanceAmountToApply: creditApplied,
-            saveAsQuotation: false
+            saveAsQuotation: false,
+            priceOverrideApprovalToken: this.priceOverrideApprovalToken || undefined
         };
 
         this.quickSaleService.createQuickSale(request).subscribe({
@@ -1437,32 +2342,79 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                 this.quickSaleService.saveLastSale(result);
                 this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.saleCompleted'), detail: result.invoiceNumber });
 
-                // Capture the receipt + chosen format BEFORE resetForm() (which restores printType to default).
-                this.invoicePreviewData = this.buildReceiptData(result, request);
+                // Capture the receipt BEFORE resetForm() clears the cart/payments it's built from.
+                const receipt = this.buildReceiptData(result, request);
+                this.invoicePreviewData = receipt;
+                this.lastReceiptData = receipt;
                 this.currentInvoiceId.set(result.id);
-                const receipt = this.invoicePreviewData;
-                const printMode = this.printType;
+                this.receiptReference.set(result.invoiceNumber);
+                this.receiptRows.set(this.buildReceiptRows(result, paymentsForRequest, creditApplied));
 
                 this.saving.set(false);
+                this.priceOverrideApprovalToken = null; // single-use, already consumed server-side
                 this.resetForm();
+                // resetForm() also clears currentInvoiceId (it's part of the "current sale" state it
+                // wipes) — restore it so the receipt's Tax-invoice preview can still download/print
+                // the just-completed invoice by id (pre-existing gap: the old THERMAL/A4 auto-print
+                // branch below used to run before this reset, so it never surfaced in practice).
+                this.currentInvoiceId.set(result.id);
                 this.generateInvoiceNumber();
+                this.selectWalkInCustomerIfNone();
 
-                // Print in the format the sales manager selected.
-                if (receipt) {
-                    if (printMode === 'THERMAL') {
-                        // Auto-print the compact 80mm thermal receipt.
-                        this.thermalReceipt.print(receipt, (n) => this.formatCurrency(n));
-                    } else if (printMode === 'A4') {
-                        // Open the A4 invoice preview so the manager can review, then print or download.
-                        this.showInvoicePreview = true;
-                    }
-                }
+                // Sale-complete overlay (design_handoff_pos_sale §4) — the cashier picks which
+                // document to print from there instead of it being auto-printed by a pre-selection.
+                this.activeOverlay.set('receipt');
             },
             error: (err) => {
                 this.saving.set(false);
+                if (err.error?.code === 'PRICE_OVERRIDE_REQUIRED') {
+                    // The floor/ceiling limits are only authoritative server-side, so this is the
+                    // normal path for a below-cost/above-MRP line, not just an error case — open the
+                    // approval dialog instead of a plain failure toast.
+                    this.priceOverrideError = '';
+                    this.showPriceOverrideDialog = true;
+                    return;
+                }
                 this.messageService.add({ severity: 'error', summary: this.i18n.t('pos.messages.saleFailed'), detail: err.error?.message || this.i18n.t('pos.messages.genericFailed') });
             }
         });
+    }
+
+    // ===== PRICE-OVERRIDE APPROVAL =====
+    /**
+     * Verifies the entered manager credentials via PricingController's request-override endpoint;
+     * on success stores the returned single-use token and resubmits the same sale, which now
+     * carries it. On failure (wrong credentials, or valid credentials without the approval
+     * permission) shows the error and leaves the dialog open to retry.
+     */
+    submitPriceOverrideApproval(): void {
+        if (!this.priceOverrideUsername.trim() || !this.priceOverridePassword) {
+            this.priceOverrideError = this.i18n.t('pos.priceOverrideDialogBody');
+            return;
+        }
+
+        this.priceOverrideSubmitting = true;
+        this.priceOverrideError = '';
+
+        this.pricingValidationService.requestPriceOverride(this.priceOverrideUsername.trim(), this.priceOverridePassword).subscribe({
+            next: (res) => {
+                this.priceOverrideApprovalToken = res.token;
+                this.priceOverrideSubmitting = false;
+                this.showPriceOverrideDialog = false;
+                this.priceOverridePassword = '';
+                this.onSubmit();
+            },
+            error: (err) => {
+                this.priceOverrideSubmitting = false;
+                this.priceOverrideError = err.error?.message || this.i18n.t('pos.messages.genericFailed');
+            }
+        });
+    }
+
+    cancelPriceOverrideDialog(): void {
+        this.showPriceOverrideDialog = false;
+        this.priceOverridePassword = '';
+        this.priceOverrideError = '';
     }
 
     /** Assemble InvoicePdfData (used by the thermal receipt) from a completed sale. */
@@ -1486,8 +2438,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                 description: item.partName || '',
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
-                discount: item.discount || 0,
-                total: item.quantity * item.unitPrice - (item.discount || 0)
+                discount: this.lineDiscountAmount(item),
+                total: this.calculateLineTotal(item)
             })),
             subtotal: request.subtotal,
             discountAmount: request.discountAmount,
@@ -1497,8 +2449,51 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             payments: (request.payments || []).map((p: any) => ({ method: p.method, amount: p.amount, reference: p.reference })),
             paidAmount: request.paidAmount,
             dueAmount: request.dueAmount,
+            changeDue: result.changeDue ?? 0,
             notes: request.notes,
             paymentTerms: 'Thank you for your business!'
         };
+    }
+
+    /** Receipt-overlay summary rows (design_handoff_pos_sale §4) — built from the just-completed
+     *  sale's own response/payment snapshot rather than the live cart signals, since resetForm()
+     *  has already cleared those by the time the receipt overlay renders. */
+    private buildReceiptRows(result: any, paymentsForRequest: PaymentDetail[], creditApplied: number): PosReceiptRow[] {
+        const rows: PosReceiptRow[] = [{ label: this.i18n.t('pos.ticketTotal'), value: this.formatCurrency(result.grandTotal), tone: 'body', bold: false }];
+        if (result.discountAmount > 0) {
+            rows.push({ label: this.i18n.t('pos.discountApplied'), value: '−' + this.formatCurrency(result.discountAmount), tone: 'green', bold: true });
+        }
+        const tenderLabels = paymentsForRequest.map((p) => this.getPaymentLabel(p.method));
+        if (creditApplied > 0) tenderLabels.push(this.i18n.t('pos.storeCreditLabel'));
+        rows.push({ label: this.i18n.t('pos.paidWith'), value: tenderLabels.length ? tenderLabels.join(' + ') : this.i18n.t('pos.methods.CASH'), tone: 'body', bold: false });
+        const change = result.changeDue ?? 0;
+        if (change > 0.005) rows.push({ label: this.i18n.t('pos.changeGivenLabel'), value: this.formatCurrency(change), tone: 'ink', bold: true });
+        return rows;
+    }
+
+    // ===== PRINT PREVIEWS (design_handoff_pos_sale §5) =====
+    /** "Print receipt" from the receipt overlay — builds the on-screen 80mm preview from the exact
+     *  same HTML the hidden-iframe printer uses (see ThermalReceiptService.buildReceiptHtml()), so
+     *  the preview can never drift from the real print output. */
+    openThermalPreview(): void {
+        if (!this.lastReceiptData) return;
+        const html = this.thermalReceipt.buildReceiptHtml(this.lastReceiptData, (n) => this.formatCurrency(n));
+        this.thermalPreviewHtml.set(this.sanitizer.bypassSecurityTrustHtml(html));
+        this.activeOverlay.set('thermal');
+    }
+
+    /** "Tax invoice" from the receipt overlay, or "Switch to A4" from the thermal preview — both
+     *  hand off to the existing (restyled) InvoicePreviewComponent rather than a second on-screen
+     *  A4 renderer (see plan §"Print previews (5)"). */
+    openInvoicePreviewFromPos(): void {
+        this.closeOverlay();
+        this.showInvoicePreview = true;
+    }
+
+    /** Per design_handoff_pos_sale §5: "Send to printer" returns to the receipt screen (not a bare
+     *  close) so the cashier can still print the other format or tap Next customer from there. */
+    sendThermalToPrinter(): void {
+        if (this.lastReceiptData) this.thermalReceipt.print(this.lastReceiptData, (n) => this.formatCurrency(n));
+        this.activeOverlay.set('receipt');
     }
 }

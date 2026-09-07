@@ -53,6 +53,8 @@ public class SalesOrderController : ControllerBase
     private readonly ICurrencyConversionService _currencyService;
     private readonly IApplicationSettingsRepository _settingsRepository;
     private readonly IDiscountResolutionService _discountResolutionService;
+    private readonly ICostResolutionService _costResolutionService;
+    private readonly ICostFloorEnforcementService _costFloorService;
 
     public SalesOrderController(
         ISalesOrderRepository salesOrderRepository,
@@ -78,7 +80,9 @@ public class SalesOrderController : ControllerBase
         IStockConsumptionService stockConsumptionService,
         ICurrencyConversionService currencyService,
         IApplicationSettingsRepository settingsRepository,
-        IDiscountResolutionService discountResolutionService)
+        IDiscountResolutionService discountResolutionService,
+        ICostResolutionService costResolutionService,
+        ICostFloorEnforcementService costFloorService)
     {
         _salesOrderRepository = salesOrderRepository;
         _saleOrderReadRepository = saleOrderReadRepository;
@@ -104,6 +108,8 @@ public class SalesOrderController : ControllerBase
         _currencyService = currencyService;
         _settingsRepository = settingsRepository;
         _discountResolutionService = discountResolutionService;
+        _costResolutionService = costResolutionService;
+        _costFloorService = costFloorService;
     }
 
     /// <summary>
@@ -116,6 +122,12 @@ public class SalesOrderController : ControllerBase
         var value = await _settingsRepository.GetValueAsync(settingKey, cancellationToken);
         return string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
+
+    // Price policy (per-category margin floor, MRP ceiling, currency-safe, no role-based bypass —
+    // only a live manager-approved override token) lives in ICostFloorEnforcementService, shared
+    // with QuotationController and QuotesController so every path that can produce a real,
+    // confirmed sale enforces the same rules the same way. CostFloorContext (resolved once per
+    // request via _costFloorService.PrepareContextAsync) lives there too, not duplicated per controller.
 
     private static bool IsWalkIn(Customer? customer) =>
         customer != null && customer.CustomerCode.Equals("WALKIN", StringComparison.OrdinalIgnoreCase);
@@ -365,14 +377,20 @@ public class SalesOrderController : ControllerBase
                     // Pre-resolve item discounts in one batch
                     var itemLookup = request.Lines.Select(l => (l.PartId, l.ProductVariantId, l.UnitPrice)).ToList();
                     var resolvedItemDiscounts = await _discountResolutionService.ResolveItemDiscountsAsync(itemLookup, cancellationToken);
+                    var costFloorContext = await _costFloorService.PrepareContextAsync(
+                        request.Lines.Select(l => l.PartId), request.Currency, order.SODate, request.PriceOverrideApprovalToken, cancellationToken);
 
                     int lineNumber = 1;
+                    var lineFloorChecks = new List<LineCostFloorCheck>();
+                    var usedApproval = false;
                     for (int idx = 0; idx < request.Lines.Count; idx++)
                     {
                         var lineRequest = request.Lines[idx];
                         var resolved = resolvedItemDiscounts[idx];
-                        var line = await BuildSalesOrderLineAsync(order, lineRequest, lineNumber, resolved, cancellationToken);
+                        var (line, lineCheck, lineUsedApproval) = await BuildSalesOrderLineAsync(order, lineRequest, lineNumber, resolved, costFloorContext, cancellationToken);
                         order.LineItems.Add(line);
+                        lineFloorChecks.Add(lineCheck);
+                        usedApproval |= lineUsedApproval;
                         lineNumber++;
                     }
 
@@ -408,6 +426,12 @@ public class SalesOrderController : ControllerBase
                         }
                     }
 
+                    // order.DiscountAmount now reflects EVERY cart-level discount source (manual %,
+                    // promo code, threshold) combined — a line whose own discount passed the floor
+                    // above can still end up below cost once this is spread across the order.
+                    if (_costFloorService.EnforceCartDiscount(lineFloorChecks, order.SubTotal, order.DiscountAmount, costFloorContext.RateToBase, costFloorContext.Approval))
+                        usedApproval = true;
+
                     var fx = await _currencyService.ConvertToBaseWithRateAsync(order.GrandTotal, order.Currency, order.SODate, cancellationToken);
                     order.SetFxBaseAmount(fx.BaseAmount, fx.RateToBase);
 
@@ -417,6 +441,10 @@ public class SalesOrderController : ControllerBase
                     order.ModifiedBy = cashierUsername;
 
                     await _salesOrderRepository.AddAsync(order, cancellationToken);
+
+                    if (usedApproval)
+                        await _costFloorService.MarkApprovalConsumedAsync(costFloorContext.Approval!, order.SONumber, cancellationToken);
+
                     await tx.CommitAsync(cancellationToken);
                 }
                 catch
@@ -427,6 +455,11 @@ public class SalesOrderController : ControllerBase
             });
 
             return CreatedAtAction(nameof(GetById), new { id = order!.Id }, MapToSalesOrderResponse(order!));
+        }
+        catch (PriceOverrideRequiredException ex)
+        {
+            await _costFloorService.LogBlockedAttemptAsync(ex, _currentUserService.GetCurrentUsername(), cancellationToken);
+            return BadRequest(new { message = ex.Message, code = "PRICE_OVERRIDE_REQUIRED", limitType = ex.LimitType, partName = ex.PartName });
         }
         catch (ArgumentException ex)
         {
@@ -466,18 +499,25 @@ public class SalesOrderController : ControllerBase
 
             await executionStrategy.ExecuteAsync(async () =>
             {
-                var newLines = new List<SalesOrderLine>();
+                var costFloorContext = await _costFloorService.PrepareContextAsync(
+                    request.Lines.Select(l => l.PartId), request.Currency, order.SODate, request.PriceOverrideApprovalToken, cancellationToken);
+
+                var builtLines = new List<SalesOrderLine>();
+                var lineFloorChecks = new List<LineCostFloorCheck>();
+                var usedApproval = false;
                 int lineNumber = 1;
                 foreach (var lineRequest in request.Lines)
                 {
-                    var line = await BuildSalesOrderLineAsync(order, lineRequest, lineNumber, resolvedDiscount: null, cancellationToken);
-                    newLines.Add(line);
+                    var (line, lineCheck, lineUsedApproval) = await BuildSalesOrderLineAsync(order, lineRequest, lineNumber, resolvedDiscount: null, costFloorContext, cancellationToken);
+                    builtLines.Add(line);
+                    lineFloorChecks.Add(lineCheck);
+                    usedApproval |= lineUsedApproval;
                     lineNumber++;
                 }
 
                 // Delegate discount/total calculation to the domain so clamping and rounding stay consistent
                 order.ClearLineItems();
-                foreach (var l in newLines) order.LineItems.Add(l);
+                foreach (var line in builtLines) order.LineItems.Add(line);
                 order.SetDiscountPercentage(request.Discount);
                 order.CalculateTotal();
 
@@ -485,6 +525,12 @@ public class SalesOrderController : ControllerBase
                 var discountPercentage = order.DiscountPercentage;
                 var discountAmount = order.DiscountAmount;
                 var totalAmount = order.TotalAmount;
+
+                // discountAmount is the whole order's cart-level (percentage) discount — a line whose
+                // own discount passed the floor in BuildSalesOrderLineAsync can still end up below
+                // cost once this is spread across the order.
+                if (_costFloorService.EnforceCartDiscount(lineFloorChecks, subtotal, discountAmount, costFloorContext.RateToBase, costFloorContext.Approval))
+                    usedApproval = true;
 
                 var fx = await _currencyService.ConvertToBaseWithRateAsync(order.GrandTotal, request.Currency, order.SODate, cancellationToken);
 
@@ -510,8 +556,12 @@ public class SalesOrderController : ControllerBase
                     .Where(l => l.SalesOrderId == order.Id)
                     .ExecuteDeleteAsync(cancellationToken);
 
-                await _dbContext.Set<SalesOrderLine>().AddRangeAsync(newLines, cancellationToken);
+                await _dbContext.Set<SalesOrderLine>().AddRangeAsync(builtLines, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
+
+                if (usedApproval)
+                    await _costFloorService.MarkApprovalConsumedAsync(costFloorContext.Approval!, order.SONumber, cancellationToken);
+
                 await tx.CommitAsync(cancellationToken);
 
                 var updatedOrder = await _salesOrderRepository.GetByIdAsync(id, cancellationToken);
@@ -520,9 +570,18 @@ public class SalesOrderController : ControllerBase
 
             return Ok(response!);
         }
+        catch (PriceOverrideRequiredException ex)
+        {
+            await _costFloorService.LogBlockedAttemptAsync(ex, _currentUserService.GetCurrentUsername(), cancellationToken);
+            return BadRequest(new { message = ex.Message, code = "PRICE_OVERRIDE_REQUIRED", limitType = ex.LimitType, partName = ex.PartName });
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiError.BusinessRule(ex.Message, Request.Path));
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -2190,11 +2249,12 @@ public class SalesOrderController : ControllerBase
         };
     }
 
-    private async Task<SalesOrderLine> BuildSalesOrderLineAsync(
+    private async Task<(SalesOrderLine Line, LineCostFloorCheck Check, bool UsedApproval)> BuildSalesOrderLineAsync(
         SalesOrder order,
         CreateSalesOrderLineRequest lineRequest,
         int lineNumber,
         DiscountResolutionResult? resolvedDiscount,
+        CostFloorContext costFloorContext,
         CancellationToken cancellationToken)
     {
         if (lineRequest.Quantity <= 0)
@@ -2229,6 +2289,8 @@ public class SalesOrderController : ControllerBase
         if (unitPrice <= 0)
             throw new ArgumentException($"No selling price set for '{part.Name}'. Please set a selling price on the product or variant.");
 
+        var usedApproval = _costFloorService.EnforceCeiling(part.Name, unitPrice, part.SellingPrice, costFloorContext.RateToBase, costFloorContext.Approval);
+
         var (quantityInBaseUnit, unitId, baseUnitPrice) = await ResolveUnitPricingAsync(
             part,
             lineRequest.Quantity,
@@ -2257,6 +2319,17 @@ public class SalesOrderController : ControllerBase
             discountPerUnit = 0;
         }
 
+        // Cost-floor enforcement, regardless of whether the discount above came from a manual
+        // override or an auto-applied rule — same base-unit normalization the quick-sale flow uses.
+        var costPerBaseUnit = await _costResolutionService.ResolveCostPerBaseUnitAsync(
+            lineRequest.PartId, lineRequest.ProductVariantId, cancellationToken);
+        var unitFactor = lineRequest.Quantity > 0 && quantityInBaseUnit > 0 ? (decimal)quantityInBaseUnit / lineRequest.Quantity : 1m;
+        var discountPerBaseUnit = unitFactor <= 0 ? discountPerUnit : discountPerUnit / unitFactor;
+        var netUnitPriceInBaseUnit = Math.Max(0, baseUnitPrice - discountPerBaseUnit);
+        var minMarginPercent = costFloorContext.MinMarginFor(lineRequest.PartId);
+        if (_costFloorService.EnforceLine(part.Name, netUnitPriceInBaseUnit, costPerBaseUnit, minMarginPercent, costFloorContext.RateToBase, costFloorContext.Approval))
+            usedApproval = true;
+
         var salesOrderLine = SalesOrderLine.Create(
             order.Id,
             lineRequest.PartId,
@@ -2269,7 +2342,8 @@ public class SalesOrderController : ControllerBase
             productVariantId: lineRequest.ProductVariantId
         );
         salesOrderLine.DiscountRuleId = appliedDiscountRuleId;
-        return salesOrderLine;
+        var check = new LineCostFloorCheck(part.Name, salesOrderLine.TotalPrice, salesOrderLine.Quantity, salesOrderLine.QuantityInBaseUnit, netUnitPriceInBaseUnit, costPerBaseUnit, minMarginPercent);
+        return (salesOrderLine, check, usedApproval);
     }
 
     private async Task<(int quantityInBaseUnit, Guid? unitId, decimal baseUnitPrice)> ResolveUnitPricingAsync(
@@ -2461,6 +2535,8 @@ public class SalesOrderController : ControllerBase
 
             // Persist everything in a single transaction
             Invoice? savedInvoice = null;
+            decimal changeDue = 0;
+            var responseLines = new List<QuickSaleResponseLine>();
             var qsStrategy = _dbContext.Database.CreateExecutionStrategy();
             await qsStrategy.ExecuteAsync(async () =>
             {
@@ -2502,8 +2578,16 @@ public class SalesOrderController : ControllerBase
                         return (i.PartId, i.ProductVariantId, UnitPrice: price);
                     }).ToList();
                     var resolvedItemDiscounts = await _discountResolutionService.ResolveItemDiscountsAsync(itemLookup, cancellationToken);
+                    // Pre-resolve below-cost lookup costs in one batch too (avoids N+1 queries)
+                    var costLookup = request.Items.Select(i => (i.PartId, i.ProductVariantId)).ToList();
+                    var resolvedCosts = await _costResolutionService.ResolveCostsPerBaseUnitAsync(costLookup, cancellationToken);
+                    var costFloorContext = await _costFloorService.PrepareContextAsync(
+                        request.Items.Select(i => i.PartId), salesOrder.Currency, salesOrder.SODate, request.PriceOverrideApprovalToken, cancellationToken);
+                    var usedApproval = false;
 
                     int lineNumber = 1;
+                    responseLines = new List<QuickSaleResponseLine>();
+                    var lineFloorChecks = new List<LineCostFloorCheck>();
                     for (int idx = 0; idx < request.Items.Count; idx++)
                     {
                         var item = request.Items[idx];
@@ -2523,12 +2607,17 @@ public class SalesOrderController : ControllerBase
                         if (itemUnitPrice <= 0)
                             throw new ArgumentException($"No selling price set for '{part.Name}'. Please set a selling price on the product.");
 
+                        if (_costFloorService.EnforceCeiling(part.Name, itemUnitPrice, part.SellingPrice, costFloorContext.RateToBase, costFloorContext.Approval))
+                            usedApproval = true;
+
                         var (quantityInBaseUnit, unitId, baseUnitPrice) = await ResolveUnitPricingAsync(
                             part,
                             item.Quantity,
                             item.UnitId,
                             itemUnitPrice,
                             cancellationToken);
+
+                        var costPerBaseUnit = resolvedCosts.TryGetValue((item.PartId, item.ProductVariantId), out var resolvedCost) ? resolvedCost : 0m;
 
                         // Discount resolution: manual override wins, otherwise auto-apply resolved rule
                         decimal discountPerUnit;
@@ -2550,6 +2639,17 @@ public class SalesOrderController : ControllerBase
                             discountPerUnit = 0;
                         }
 
+                        // Express net price in BASE-unit terms so it's comparable with costPerBaseUnit — stock and
+                        // cost are both tracked per base unit. When the sale unit IS the base unit the
+                        // factor is 1 and this reduces to the display-unit comparison.
+                        var unitFactor = item.Quantity > 0 && quantityInBaseUnit > 0 ? (decimal)quantityInBaseUnit / item.Quantity : 1m;
+                        var discountPerBaseUnit = unitFactor <= 0 ? discountPerUnit : discountPerUnit / unitFactor;
+                        var netUnitPriceInBaseUnit = Math.Max(0, baseUnitPrice - discountPerBaseUnit);
+                        var isBelowCost = costPerBaseUnit > 0 && netUnitPriceInBaseUnit < costPerBaseUnit;
+                        var minMarginPercent = costFloorContext.MinMarginFor(item.PartId);
+                        if (_costFloorService.EnforceLine(part.Name, netUnitPriceInBaseUnit, costPerBaseUnit, minMarginPercent, costFloorContext.RateToBase, costFloorContext.Approval))
+                            usedApproval = true;
+
                         var salesOrderLine = SalesOrderLine.Create(
                             salesOrder.Id,
                             item.PartId,
@@ -2564,6 +2664,20 @@ public class SalesOrderController : ControllerBase
                         );
                         salesOrderLine.DiscountRuleId = appliedDiscountRuleId;
                         salesOrder.LineItems.Add(salesOrderLine);
+                        lineFloorChecks.Add(new LineCostFloorCheck(part.Name, salesOrderLine.TotalPrice, salesOrderLine.Quantity, salesOrderLine.QuantityInBaseUnit, netUnitPriceInBaseUnit, costPerBaseUnit, minMarginPercent));
+
+                        responseLines.Add(new QuickSaleResponseLine
+                        {
+                            SalesOrderLineId = salesOrderLine.Id,
+                            PartId = item.PartId,
+                            ProductVariantId = item.ProductVariantId,
+                            PartName = item.PartName,
+                            Quantity = item.Quantity,
+                            UnitPrice = itemUnitPrice,
+                            CostPrice = costPerBaseUnit,
+                            IsBelowCost = isBelowCost,
+                            BelowCostLoss = isBelowCost ? Math.Max(0, costPerBaseUnit - netUnitPriceInBaseUnit) : 0
+                        });
                     }
 
                     // Calculate totals
@@ -2603,6 +2717,13 @@ public class SalesOrderController : ControllerBase
                         }
                     }
 
+                    // A cart-level discount isn't tied to any one line, so a line whose own discount
+                    // passed EnforceCostFloor above can still end up below cost once this is spread
+                    // across the order (e.g. a flat cart discount entered separately from any
+                    // per-line discount) — re-check every line with its proportional share subtracted.
+                    if (_costFloorService.EnforceCartDiscount(lineFloorChecks, salesOrder.SubTotal, actualCartDiscount, costFloorContext.RateToBase, costFloorContext.Approval))
+                        usedApproval = true;
+
                     salesOrder.SetTax(request.VatAmount);
 
                     // If SaveAsQuotation = true, keep as DRAFT. Otherwise, confirm the order.
@@ -2627,6 +2748,9 @@ public class SalesOrderController : ControllerBase
 
                     if (request.SaveAsQuotation)
                     {
+                        if (usedApproval)
+                            await _costFloorService.MarkApprovalConsumedAsync(costFloorContext.Approval!, salesOrder.SONumber, cancellationToken);
+
                         await tx.CommitAsync(cancellationToken);
                         return;
                     }
@@ -2696,15 +2820,33 @@ public class SalesOrderController : ControllerBase
                     // advance credit applied must fully account for the invoice total. The POS UI
                     // already enforces this client-side, but the API must not trust that — otherwise
                     // a caller bypassing the UI could persist a sale whose payments don't add up.
+                    // Tendered MAY exceed the grand total: the excess is cash change returned to the
+                    // customer (never banked as a balance). Only underpayment is rejected.
                     var paymentsTendered = request.Payments?.Where(p => p.Amount > 0).Sum(p => p.Amount) ?? 0;
                     var totalAccountedFor = paymentsTendered + advancePaymentAmount;
-                    if (Math.Abs(totalAccountedFor - invoice.GrandTotal) > 0.01m)
+                    if (totalAccountedFor < invoice.GrandTotal - 0.01m)
                         throw new ArgumentException(
-                            $"Payment total ({totalAccountedFor:F2}) does not match the invoice total ({invoice.GrandTotal:F2}). " +
+                            $"Payment total ({totalAccountedFor:F2}) is less than the invoice total ({invoice.GrandTotal:F2}). " +
                             "Add payment line(s) — including a DUE line for any unpaid balance — that account for the full amount.");
+
+                    // Change can only be handed back in cash, so overpayment on a non-CASH rail (card,
+                    // mobile banking) or a DUE line must never exceed what's actually owed — otherwise
+                    // we'd overcharge the card/mobile-banking instrument (or record more DUE than owed)
+                    // while telling the cashier to hand back "change" that was never tendered in cash.
+                    var nonCashTendered = request.Payments?.Where(p => p.Amount > 0 && p.Method?.Trim().ToUpper() != "CASH" && p.Method != "DUE").Sum(p => p.Amount) ?? 0;
+                    var dueTendered = request.Payments?.Where(p => p.Amount > 0 && p.Method == "DUE").Sum(p => p.Amount) ?? 0;
+                    if (nonCashTendered + dueTendered + advancePaymentAmount > invoice.GrandTotal + 0.01m)
+                        throw new ArgumentException(
+                            "Card/mobile-banking/due payments cannot exceed the invoice total — change can only be given in cash. " +
+                            "Reduce the non-cash payment amount.");
+                    changeDue = Math.Max(0, totalAccountedFor - invoice.GrandTotal);
 
                     decimal manualPaymentAmount = 0;
                     decimal manualPaymentBaseAmount = 0;
+                    // Change is always returned in cash, so it is absorbed by (reduces) the tendered
+                    // cash payment(s) first — those cash receipts are recorded net of the amount handed
+                    // back, so they never over-credit the customer's balance or the invoice's paid amount.
+                    var remainingChange = changeDue;
                     if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
                     {
                         var customerForBalance = await _customerRepository.GetByIdAsync(request.CustomerId.Value, cancellationToken);
@@ -2721,9 +2863,21 @@ public class SalesOrderController : ControllerBase
                             {
                                 foreach (var payment in request.Payments.Where(p => p.Amount > 0 && p.Method != "DUE"))
                                 {
+                                    var paymentToApply = payment.Amount;
+                                    if (remainingChange > 0)
+                                    {
+                                        var absorbed = Math.Min(paymentToApply, remainingChange);
+                                        if (payment.Method?.Trim().ToUpper() == "CASH")
+                                        {
+                                            paymentToApply -= absorbed;
+                                            remainingChange -= absorbed;
+                                        }
+                                    }
+                                    if (paymentToApply <= 0) continue;
+
                                     var transactionNumber = $"TXN-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString()[..8].ToUpper()}";
                                     var customerPayment = CustomerPayment.Create(
-                                        request.CustomerId.Value, null, payment.Amount,
+                                        request.CustomerId.Value, null, paymentToApply,
                                         payment.Method ?? "CASH", transactionNumber, payment.Reference ?? "", DateTime.UtcNow,
                                         currency: salesOrder.Currency ?? "BDT");
                                     var paymentFx = await _currencyService.ConvertToBaseWithRateAsync(customerPayment.Amount, customerPayment.Currency, customerPayment.PaymentDate, cancellationToken);
@@ -2735,13 +2889,13 @@ public class SalesOrderController : ControllerBase
                                     {
                                         customerPayment.MarkAsCompleted();
                                         customerPayment.MarkAsSettled("System");
-                                        manualPaymentAmount += payment.Amount;
+                                        manualPaymentAmount += paymentToApply;
                                         manualPaymentBaseAmount += paymentFx.BaseAmount;
-                                        _logger.LogInformation("Completed CASH payment {TransactionNumber} for {Amount}", transactionNumber, payment.Amount);
+                                        _logger.LogInformation("Completed CASH payment {TransactionNumber} for {Amount}", transactionNumber, paymentToApply);
                                     }
                                     else
                                     {
-                                        _logger.LogInformation("Created PENDING payment {TransactionNumber} for {Amount} via {Method}", transactionNumber, payment.Amount, payment.Method);
+                                        _logger.LogInformation("Created PENDING payment {TransactionNumber} for {Amount} via {Method}", transactionNumber, paymentToApply, payment.Method);
                                     }
                                     await _customerPaymentRepository.AddAsync(customerPayment, cancellationToken);
                                 }
@@ -2828,6 +2982,9 @@ public class SalesOrderController : ControllerBase
                         }, cancellationToken);
                     }
 
+                    if (usedApproval)
+                        await _costFloorService.MarkApprovalConsumedAsync(costFloorContext.Approval!, salesOrder.SONumber, cancellationToken);
+
                     await _dbContext.SaveChangesAsync(cancellationToken);
                     await tx.CommitAsync(cancellationToken);
                 }
@@ -2881,7 +3038,8 @@ public class SalesOrderController : ControllerBase
                     IsQuotation = true,
                     CreatedAt = salesOrder.SODate,
                     AppliedPromoCode = salesOrder.AppliedPromoCode,
-                    CartDiscountRuleId = salesOrder.CartDiscountRuleId
+                    CartDiscountRuleId = salesOrder.CartDiscountRuleId,
+                    Lines = responseLines
                 });
             }
 
@@ -2904,12 +3062,19 @@ public class SalesOrderController : ControllerBase
                 GrandTotal = salesOrder.GrandTotal,
                 PaidAmount = savedInvoice?.AmountPaid ?? salesOrder.PaidAmount,
                 DueAmount = savedInvoice?.OutstandingAmount ?? (salesOrder.GrandTotal - salesOrder.PaidAmount),
+                ChangeDue = changeDue,
                 Status = "COMPLETED",
                 IsQuotation = false,
                 CreatedAt = DateTime.UtcNow,
                 AppliedPromoCode = salesOrder.AppliedPromoCode,
-                CartDiscountRuleId = salesOrder.CartDiscountRuleId
+                CartDiscountRuleId = salesOrder.CartDiscountRuleId,
+                Lines = responseLines
             });
+        }
+        catch (PriceOverrideRequiredException ex)
+        {
+            await _costFloorService.LogBlockedAttemptAsync(ex, _currentUserService.GetCurrentUsername(), cancellationToken);
+            return BadRequest(new { message = ex.Message, code = "PRICE_OVERRIDE_REQUIRED", limitType = ex.LimitType, partName = ex.PartName });
         }
         catch (ArgumentException ex)
         {

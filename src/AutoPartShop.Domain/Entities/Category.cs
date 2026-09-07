@@ -60,6 +60,13 @@ public class Category : AuditableEntity
     /// </summary>
     public int ChildCount { get; private set; } = 0;
 
+    /// <summary>
+    /// Minimum margin (%) a line's net price must stay above cost for parts in THIS category
+    /// specifically. Null = inherit the shop-wide SALES_MIN_MARGIN_PERCENT setting. Checked only
+    /// against the part's own category — not walked up to an ancestor category if unset.
+    /// </summary>
+    public decimal? MinMarginPercentOverride { get; private set; }
+
     // Private constructor for EF Core
     private Category() { }
 
@@ -132,6 +139,14 @@ public class Category : AuditableEntity
         Description = description?.Trim() ?? string.Empty;
         DisplayOrder = displayOrder >= 0 ? displayOrder : 0;
         IsActive = isActive;
+    }
+
+    /// <summary>
+    /// Set (or clear, with null) this category's own minimum-margin override.
+    /// </summary>
+    public void SetMinMarginPercentOverride(decimal? minMarginPercent)
+    {
+        MinMarginPercentOverride = minMarginPercent;
     }
 
     /// <summary>

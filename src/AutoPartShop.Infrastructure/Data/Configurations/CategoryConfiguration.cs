@@ -44,6 +44,10 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(c => c.DepthLevel)
             .IsRequired();
 
+        builder.Property(c => c.MinMarginPercentOverride)
+            .HasColumnType("decimal(18,2)")
+            .IsRequired(false);
+
         builder.HasIndex(c => c.IsActive);
         builder.HasIndex(c => c.Name);
 

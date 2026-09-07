@@ -1,0 +1,29 @@
+<header class="pos-header">
+    <div class="pos-logo">P</div>
+    <div class="pos-identity">
+        <div class="pos-store-name">{{ storeName() }}</div>
+        <div class="pos-store-sub">{{ 'pos.title' | translate }}</div>
+    </div>
+
+    <div class="pos-header-spacer"></div>
+
+    <button type="button" class="pos-search-trigger" (click)="openSearch.emit()">
+        <span class="pos-search-glyph"></span>
+        <span class="pos-search-text">{{ searchPlaceholder() }}</span>
+        <span class="pos-keycap">F2</span>
+    </button>
+
+    <button type="button" class="pos-header-icon-btn" (click)="toggleDarkMode.emit()" [attr.aria-label]="(isDarkMode() ? 'pos.switchToLight' : 'pos.switchToDark') | translate" [title]="(isDarkMode() ? 'pos.switchToLight' : 'pos.switchToDark') | translate">
+        <i [class]="isDarkMode() ? 'pi pi-sun' : 'pi pi-moon'"></i>
+    </button>
+    <a routerLink="/" class="pos-header-icon-btn" [attr.aria-label]="'pos.exitPos' | translate" [title]="'pos.backToDashboard' | translate">
+        <i class="pi pi-sign-out"></i>
+    </a>
+
+    <div class="pos-header-divider"></div>
+
+    <div class="pos-operator">
+        <div class="pos-operator-line">{{ operatorLabel() }}</div>
+        <div class="pos-operator-context">{{ contextLine() }}</div>
+    </div>
+</header>
