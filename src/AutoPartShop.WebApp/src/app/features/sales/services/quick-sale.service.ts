@@ -215,10 +215,12 @@ export class QuickSaleService {
     }
 
     /**
-     * Generate next invoice number
+     * Generate next invoice number. The backend's code-generate endpoints uniformly return
+     * `{ code: string }` (see CodeGenerateController) — map it to `invoiceNumber` here so this
+     * call site's shape stays self-describing without depending on the generic field name.
      */
     generateInvoiceNumber(): Observable<{ invoiceNumber: string }> {
-        return this.http.get<{ invoiceNumber: string }>(`${this.apiUrl}/v1/code-generate/invoice`);
+        return this.http.get<{ code: string }>(`${this.apiUrl}/v1/code-generate/invoice`).pipe(map((res) => ({ invoiceNumber: res.code })));
     }
 
     /**
