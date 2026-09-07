@@ -11,7 +11,7 @@
     <div class="pos-ticket-header">
         <div>
             <div class="pos-ticket-title">{{ 'pos.currentSale' | translate }}</div>
-            <div class="pos-ticket-sub">{{ ticketLabel() }}</div>
+            <div class="pos-ticket-sub">{{ ticketLabel() }}<span *ngIf="technicianLabel()"> · {{ technicianLabel() }}</span></div>
         </div>
         <div class="pos-clear-btn" (click)="clearCart.emit()">{{ 'pos.clear' | translate }}</div>
     </div>
@@ -24,11 +24,17 @@
             </div>
         } @else {
             <div class="pos-line" *ngFor="let line of lines(); let i = index; trackBy: trackLine">
-                <div class="pos-line-info">
+                <div class="pos-line-top">
                     <div class="pos-line-name">
                         {{ line.name }}
                         <small *ngIf="line.localName" class="pos-line-local">{{ line.localName }}</small>
                     </div>
+                    <div class="pos-line-remove" [attr.aria-label]="'pos.removeLine' | translate" (click)="removeLine.emit(i)">
+                        <i class="pi pi-trash"></i>
+                    </div>
+                </div>
+
+                <div class="pos-line-meta-row">
                     <div class="pos-line-unit">{{ line.unitLabel }}</div>
                     @if (line.unitOptions && line.unitOptions.length > 1) {
                         <select
@@ -48,14 +54,14 @@
                         <div class="pos-line-badge below-cost"><i class="pi pi-exclamation-triangle"></i> {{ line.belowCostBadge }}</div>
                     }
                 </div>
-                <div class="pos-stepper">
-                    <div class="pos-stepper-btn" (click)="decrementLine.emit(i)">−</div>
-                    <div class="pos-stepper-qty">{{ line.qty }}</div>
-                    <div class="pos-stepper-btn" (click)="incrementLine.emit(i)">+</div>
-                </div>
-                <div class="pos-line-total">{{ line.totalLabel }}</div>
-                <div class="pos-line-remove" [attr.aria-label]="'pos.removeLine' | translate" (click)="removeLine.emit(i)">
-                    <i class="pi pi-trash"></i>
+
+                <div class="pos-line-bottom">
+                    <div class="pos-stepper">
+                        <div class="pos-stepper-btn" (click)="decrementLine.emit(i)">−</div>
+                        <div class="pos-stepper-qty">{{ line.qty }}</div>
+                        <div class="pos-stepper-btn" (click)="incrementLine.emit(i)">+</div>
+                    </div>
+                    <div class="pos-line-total">{{ line.totalLabel }}</div>
                 </div>
             </div>
         }

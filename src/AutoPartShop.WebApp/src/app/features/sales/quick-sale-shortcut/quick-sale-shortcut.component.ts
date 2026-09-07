@@ -476,6 +476,11 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     });
 
     ticketLabel = computed(() => `${this.i18n.t('pos.ticketPrefix')} ${this.invoiceNumber()}`);
+    /** Only shown once a technician is actually assigned — no placeholder when there isn't one. */
+    technicianLabel = computed(() => {
+        const tech = this.selectedTechnician();
+        return tech ? `${this.i18n.t('pos.technician')}: ${tech.name}` : null;
+    });
 
     cartLines = computed<PosCartLine[]>(() =>
         this.cartItems().map((item) => {

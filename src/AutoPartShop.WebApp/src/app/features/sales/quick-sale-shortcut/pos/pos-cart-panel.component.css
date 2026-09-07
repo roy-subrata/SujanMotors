@@ -161,20 +161,26 @@
     line-height: 1.5;
 }
 
+/* Each line is now three stacked rows (name+remove / unit+badges / stepper+total) instead of one
+   wide row — a single row left too little width for the name once the stepper, price and remove
+   icon all shared it inside a 430px-wide panel, wrapping most part names to 2-3 lines. */
 .pos-line {
     padding: 13px 20px;
     border-bottom: 1px solid var(--pos-line-2);
     display: flex;
-    gap: 12px;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
 }
 
-.pos-line-info {
-    flex: 1;
-    min-width: 0;
+.pos-line-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .pos-line-name {
+    flex: 1;
+    min-width: 0;
     font-size: 15px;
     font-weight: 600;
     letter-spacing: -0.01em;
@@ -188,15 +194,26 @@
     font-weight: 400;
 }
 
+.pos-line-meta-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 .pos-line-unit {
     font-family: var(--pos-mono);
     font-size: 12px;
     color: var(--pos-muted);
-    margin-top: 4px;
+}
+
+.pos-line-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .pos-line-unit-select {
-    margin-top: 5px;
     height: 24px;
     font-size: 11px;
     font-family: inherit;
@@ -212,7 +229,6 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    margin-top: 5px;
     font-size: 11px;
     font-weight: 600;
     padding: 2px 7px;

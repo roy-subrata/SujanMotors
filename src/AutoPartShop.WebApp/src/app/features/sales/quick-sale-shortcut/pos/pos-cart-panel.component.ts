@@ -35,6 +35,8 @@ export class PosCartPanelComponent {
     customerMeta = input<string>('');
     customerInitials = input<string>('+');
     ticketLabel = input<string>('');
+    /** Shown appended to ticketLabel (" · Tech: <name>") only when a technician is assigned. */
+    technicianLabel = input<string | null>(null);
 
     lines = input<PosCartLine[]>([]);
 
