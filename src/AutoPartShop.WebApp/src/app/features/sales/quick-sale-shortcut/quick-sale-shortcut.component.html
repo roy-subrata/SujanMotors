@@ -385,8 +385,8 @@
         }
         <div class="pos-dialog-row" *ngFor="let order of customerPurchaseHistory()">
             <div class="pos-dialog-row-main">
-                <div class="pos-dialog-row-primary">{{ order.invoiceNumber }}</div>
-                <div class="pos-dialog-row-secondary">{{ order.createdAt | date: 'short' }}</div>
+                <div class="pos-dialog-row-primary">{{ order.soNumber }}</div>
+                <div class="pos-dialog-row-secondary">{{ order.orderDate | date: 'short' }}</div>
             </div>
             <div class="pos-dialog-row-right">
                 <div class="pos-dialog-row-value tone-ink">{{ formatCurrency(order.grandTotal) }}</div>

@@ -145,6 +145,15 @@ export interface QuickSaleResponse {
     }[];
 }
 
+/** Shape actually returned by GET /v1/salesorder/customer/{id} (a SalesOrderResponse, not a
+ *  QuickSaleResponse) — only the fields the Customer Purchase History dialog uses. */
+export interface CustomerOrderHistoryItem {
+    id: string;
+    soNumber: string;
+    orderDate: string;
+    grandTotal: number;
+}
+
 export interface StockCheckRequest {
     partId: string;
     variantId?: string | null;
@@ -490,10 +499,13 @@ export class QuickSaleService {
     }
 
     /**
-     * Get customer purchase history
+     * Get customer purchase history. The backend endpoint returns every sales order for the
+     * customer with no pagination support (SalesOrderController.GetByCustomer takes no limit
+     * param) — sliced client-side so this stays a bounded "recent history" list rather than
+     * silently rendering a customer's entire order history.
      */
-    getCustomerHistory(customerId: string, limit: number = 10): Observable<QuickSaleResponse[]> {
-        return this.http.get<QuickSaleResponse[]>(`${this.apiUrl}/v1/salesorder/customer/${customerId}`);
+    getCustomerHistory(customerId: string, limit: number = 10): Observable<CustomerOrderHistoryItem[]> {
+        return this.http.get<CustomerOrderHistoryItem[]>(`${this.apiUrl}/v1/salesorder/customer/${customerId}`).pipe(map((orders) => orders.slice(0, limit)));
     }
 
     // ===== QUOTE GENERATION =====

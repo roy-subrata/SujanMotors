@@ -12,7 +12,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 
 // Services
-import { QuickSaleService, QuickSaleLineItem, QuickSaleDraft, PaymentDetail, PaymentMethod, PaymentResponsibility } from '../services/quick-sale.service';
+import { QuickSaleService, QuickSaleLineItem, QuickSaleDraft, PaymentDetail, PaymentMethod, PaymentResponsibility, CustomerOrderHistoryItem } from '../services/quick-sale.service';
 import { PublicPartService, PublicPartResponse } from '../services/public-part.service';
 import { DiscountService, ResolveDiscountResult } from '../../inventory/services/discount.service';
 import { UnitService, UnitResponse } from '../../inventory/services/unit.service';
@@ -301,7 +301,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     // Dialog data (all now shown through the single `activeOverlay` state machine — see
     // openOverlay()/closeOverlay() below — instead of one boolean per dialog).
     heldSales = signal<any[]>([]);
-    customerPurchaseHistory = signal<any[]>([]);
+    customerPurchaseHistory = signal<CustomerOrderHistoryItem[]>([]);
     lastSale: any = null;
     returnInvoiceNumber = '';
     returnInvoice: any = null;
