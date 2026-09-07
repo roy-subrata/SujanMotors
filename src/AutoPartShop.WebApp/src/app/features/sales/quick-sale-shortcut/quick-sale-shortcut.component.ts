@@ -1708,12 +1708,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                         });
                     } else {
                         this.promoResult.set(null);
-                        this.promoError.set(this.i18n.t('pos.messages.promoInvalid'));
+                        this.promoError.set(this.i18n.t('pos.promoInvalid'));
                     }
                 },
                 error: () => {
                     this.promoResult.set(null);
-                    this.promoError.set(this.i18n.t('pos.messages.promoInvalid'));
+                    this.promoError.set(this.i18n.t('pos.promoInvalid'));
                 }
             });
     }
