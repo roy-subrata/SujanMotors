@@ -273,7 +273,7 @@
         <div class="pos-dialog-row" *ngFor="let sale of heldSales()" (click)="recallHeldSale(sale.draftId)">
             <div class="pos-dialog-row-main">
                 <div class="pos-dialog-row-primary">{{ sale.customerName || ('pos.walkInCustomer' | translate) }}</div>
-                <div class="pos-dialog-row-secondary">{{ 'pos.itemsCount' | translate: { count: sale.items.length } }} · {{ sale.timestamp | date: 'short' }}</div>
+                <div class="pos-dialog-row-secondary">{{ (sale.items.length === 1 ? 'pos.itemCountOne' : 'pos.itemsCount') | translate: { count: sale.items.length } }} · {{ sale.timestamp | date: 'short' }}</div>
             </div>
             <div class="pos-dialog-row-right">
                 <div class="pos-dialog-row-value tone-ink">{{ sale.total ? formatCurrency(sale.total) : '—' }}</div>

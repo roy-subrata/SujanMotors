@@ -6204,6 +6204,7 @@
         "useAdvanceBalance": "অগ্রিম ব্যালেন্স ব্যবহার করুন ({{amount}})",
         "applyLabel": "প্রয়োগ:",
         "walkInCustomer": "ওয়াক-ইন কাস্টমার",
+        "itemCountOne": "১টি পণ্য",
         "itemsCount": "{{count}}টি পণ্য",
         "printReceipt": "রসিদ প্রিন্ট করুন",
         "sending": "পাঠানো হচ্ছে…",

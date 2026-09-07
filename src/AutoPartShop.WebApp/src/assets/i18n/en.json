@@ -6245,6 +6245,7 @@
         "useAdvanceBalance": "Use advance balance ({{amount}})",
         "applyLabel": "Apply:",
         "walkInCustomer": "Walk-in Customer",
+        "itemCountOne": "1 item",
         "itemsCount": "{{count}} items",
         "printReceipt": "Print Receipt",
         "sending": "Sending…",
