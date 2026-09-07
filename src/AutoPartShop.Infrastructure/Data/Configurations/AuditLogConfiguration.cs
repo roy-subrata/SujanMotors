@@ -22,7 +22,7 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 
         builder.Property(x => x.Action)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(50);
 
         builder.Property(x => x.PropertyName)
             .IsRequired()

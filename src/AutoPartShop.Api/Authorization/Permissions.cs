@@ -37,6 +37,10 @@ public static class Permissions
     // granted to (opt-in gate — see SalesOrderController.CreateQuickSale and
     // TillSessionController.RequiresOpenSession).
     public const string SalesRequireTillSession = "sales.require-till-session";
+    // Eligible to approve an in-transaction price-override request (below-cost floor or above-MRP
+    // ceiling) via PricingController's request-override endpoint. Holding this permission does not
+    // itself bypass anything — approval always requires a live credential check at the moment of use.
+    public const string SalesApprovePriceOverride = "sales.approve-price-override";
 
     // Procurement (purchase orders, suppliers, supplier payments)
     public const string ProcurementView = "procurement.view";

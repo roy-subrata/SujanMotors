@@ -14,6 +14,12 @@ public class CreateQuotationRequest
     public decimal Discount { get; set; } = 0;  // percentage
     public decimal TaxAmount { get; set; } = 0;
     public List<CreateQuotationLineRequest> Lines { get; set; } = new();
+
+    /// <summary>
+    /// Token from PricingController's request-override endpoint, proving a manager approved this
+    /// specific quote going below the cost floor or above the MRP ceiling. Null for a normal quote.
+    /// </summary>
+    public Guid? PriceOverrideApprovalToken { get; set; }
 }
 
 public class CreateQuotationLineRequest
@@ -82,4 +88,11 @@ public class ConvertQuotationResponse
 public class ConvertQuotationRequest
 {
     public Guid WarehouseId { get; set; }
+
+    /// <summary>
+    /// Token from PricingController's request-override endpoint, proving a manager approved this
+    /// conversion going below the cost floor or above the MRP ceiling (cost/MRP may have moved
+    /// since the quote was created). Null for a normal conversion.
+    /// </summary>
+    public Guid? PriceOverrideApprovalToken { get; set; }
 }

@@ -37,6 +37,12 @@ public class QuickSaleRequest
     // Quotation Support
     public bool SaveAsQuotation { get; set; } = false;
     public string Channel { get; set; } = "POS";  // POS | MOBILE | API
+
+    /// <summary>
+    /// Token from PricingController's request-override endpoint, proving a manager approved this
+    /// specific sale going below the cost floor or above the MRP ceiling. Null for a normal sale.
+    /// </summary>
+    public Guid? PriceOverrideApprovalToken { get; set; }
 }
 
 public class QuickSaleLineItem
@@ -98,6 +104,8 @@ public class QuickSaleResponse
     public decimal GrandTotal { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal DueAmount { get; set; }
+    /// <summary>Cash-change due back to the customer when tendered exceeds the grand total.</summary>
+    public decimal ChangeDue { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsQuotation { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -119,4 +127,10 @@ public class QuickSaleResponseLine
     public string? PartLocalName { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    /// <summary>Per-base-unit cost used to judge below-cost pricing (FIFO lot cost, or catalogue fallback).</summary>
+    public decimal CostPrice { get; set; }
+    /// <summary>True when the net unit price after all discounts is below cost — surfaced as a warning only.</summary>
+    public bool IsBelowCost { get; set; }
+    /// <summary>Per-unit loss amount when selling below cost (0 when not below cost).</summary>
+    public decimal BelowCostLoss { get; set; }
 }

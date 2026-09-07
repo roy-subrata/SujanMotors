@@ -22,6 +22,8 @@ public class QuotesController : ControllerBase
     private readonly ICodeGenerateService _codeGenerateService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ICurrencyConversionService _currencyConversionService;
+    private readonly ICostResolutionService _costResolutionService;
+    private readonly ICostFloorEnforcementService _costFloorService;
     private readonly ILogger<QuotesController> _logger;
 
     public QuotesController(
@@ -30,6 +32,8 @@ public class QuotesController : ControllerBase
         ICodeGenerateService codeGenerateService,
         ICurrentUserService currentUserService,
         ICurrencyConversionService currencyConversionService,
+        ICostResolutionService costResolutionService,
+        ICostFloorEnforcementService costFloorService,
         ILogger<QuotesController> logger)
     {
         _salesOrderRepository = salesOrderRepository;
@@ -37,6 +41,8 @@ public class QuotesController : ControllerBase
         _codeGenerateService = codeGenerateService;
         _currentUserService = currentUserService;
         _currencyConversionService = currencyConversionService;
+        _costResolutionService = costResolutionService;
+        _costFloorService = costFloorService;
         _logger = logger;
     }
 
@@ -63,6 +69,12 @@ public class QuotesController : ControllerBase
                 string.Empty,
                 request.Notes);
 
+            var costFloorContext = await _costFloorService.PrepareContextAsync(
+                request.Items.Select(i => i.PartId), quote.Currency, quote.SODate, request.PriceOverrideApprovalToken, cancellationToken);
+            var costLookup = request.Items.Select(i => (i.PartId, i.ProductVariantId)).ToList();
+            var resolvedCosts = await _costResolutionService.ResolveCostsPerBaseUnitAsync(costLookup, cancellationToken);
+            var usedApproval = false;
+
             var lineNumber = 1;
             foreach (var item in request.Items)
             {
@@ -71,7 +83,19 @@ public class QuotesController : ControllerBase
                     return BadRequest(new { message = $"Part with ID {item.PartId} not found" });
 
                 var unitPrice = item.UnitPrice > 0 ? item.UnitPrice : part.SellingPrice;
+                if (_costFloorService.EnforceCeiling(part.Name, unitPrice, part.SellingPrice, costFloorContext.RateToBase, costFloorContext.Approval))
+                    usedApproval = true;
+
                 var discountPerUnit = (unitPrice * item.Discount) / 100;
+
+                // Cost-floor enforcement — no real unit conversion happens here (quantityInBaseUnit
+                // just mirrors the entered quantity, see below), so the net price is already in
+                // base-unit terms.
+                var costPerBaseUnit = resolvedCosts.TryGetValue((item.PartId, item.ProductVariantId), out var resolvedCost) ? resolvedCost : 0m;
+                var netUnitPrice = Math.Max(0, unitPrice - discountPerUnit);
+                var minMarginPercent = costFloorContext.MinMarginFor(item.PartId);
+                if (_costFloorService.EnforceLine(part.Name, netUnitPrice, costPerBaseUnit, minMarginPercent, costFloorContext.RateToBase, costFloorContext.Approval))
+                    usedApproval = true;
 
                 // Quotes don't move stock, so base-unit quantity is informational — mirror the entered quantity.
                 var line = SalesOrderLine.Create(
@@ -97,9 +121,17 @@ public class QuotesController : ControllerBase
 
             await _salesOrderRepository.AddAsync(quote, cancellationToken);
 
+            if (usedApproval)
+                await _costFloorService.MarkApprovalConsumedAsync(costFloorContext.Approval!, quote.SONumber, cancellationToken);
+
             _logger.LogInformation("Quote {QuoteNumber} created for {CustomerName}", quoteNumber, request.CustomerName);
 
             return Ok(new { quoteId = quote.Id, quoteNumber });
+        }
+        catch (PriceOverrideRequiredException ex)
+        {
+            await _costFloorService.LogBlockedAttemptAsync(ex, _currentUserService.GetCurrentUsername(), cancellationToken);
+            return BadRequest(new { message = ex.Message, code = "PRICE_OVERRIDE_REQUIRED", limitType = ex.LimitType, partName = ex.PartName });
         }
         catch (ArgumentException ex)
         {
