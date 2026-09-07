@@ -100,11 +100,14 @@ export class InvoicePdfService {
     /** Loaded once from DB; all print components read this signal. */
     readonly shopProfile = toSignal(this.appSettings.getShopProfile().pipe(shareReplay(1)), { initialValue: DEFAULT_PROFILE });
 
-    /** Backward-compatible accessor — returns current profile values. */
+    /** Backward-compatible accessor — returns current profile values. `name` (the shop's legal/
+     *  invoice display name) is a separate, often-unconfigured setting from `appName` (the app's
+     *  own display name, always set) — fall back to it so the POS header, receipts and invoices
+     *  never render a blank company identity just because nobody's filled in Settings yet. */
     getCompanyConfig() {
         const p = this.shopProfile();
         return {
-            companyName: p.name,
+            companyName: p.name || p.appName,
             companyAddress: p.address,
             companyPhone: p.phone,
             companyEmail: p.email,
