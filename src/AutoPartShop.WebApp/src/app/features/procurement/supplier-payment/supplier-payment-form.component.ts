@@ -215,7 +215,7 @@ export class SupplierPaymentFormComponent implements OnInit {
             pageSize: req.pageSize,
             search: req.search,
             supplierId: this.selectedSupplierId,
-            status: 'CONFIRMED,PARTIAL',
+            status: 'CONFIRMED,PARTIAL,DELIVERED',
             paymentStatus: 'PENDING,PARTIAL'
         }).pipe(
             map(
