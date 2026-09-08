@@ -180,6 +180,8 @@ public class ProductsController : ControllerBase
                 stockLevel = totalStock,
                 unitId = part.UnitId,
                 unitName = part.Unit?.Name,
+                baseUnitId = part.BaseUnitId,
+                baseUnitName = part.BaseUnit?.Name,
                 variantId = (Guid?)null,
                 variantName = (string?)null,
                 variantCode = (string?)null
@@ -207,6 +209,8 @@ public class ProductsController : ControllerBase
             stockLevel = variantTotalStock,
             unitId = variantPart.UnitId,
             unitName = variantPart.Unit?.Name,
+            baseUnitId = variantPart.BaseUnitId,
+            baseUnitName = variantPart.BaseUnit?.Name,
             variantId = variant.Id,
             variantName = variant.Name,
             variantCode = variant.Code

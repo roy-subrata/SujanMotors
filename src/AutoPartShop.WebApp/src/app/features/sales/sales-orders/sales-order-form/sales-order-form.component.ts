@@ -842,7 +842,10 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
     }
 
     private updateLineUnitPrice(line: FormGroup, part: PublicPartResponse, previousUnitId: string | null, nextUnitId: string | null): void {
-        const baseUnitId = part.unitId;
+        // The conversion hub is the stock unit (baseUnitId), NOT the display/sales unit (unitId) —
+        // they're only the same unit by convention, and unit conversions are configured against the
+        // stock unit. Falls back to unitId only when a part has no separate stock unit recorded.
+        const baseUnitId = part.baseUnitId || part.unitId;
         if (!baseUnitId) return;
 
         const fromUnitId = previousUnitId || baseUnitId;
@@ -1190,9 +1193,12 @@ export class SalesOrderFormComponent implements OnInit, OnDestroy {
 
     private ensureCompatibleUnitsForLine(part: PublicPartResponse, line: FormGroup | null, preservePrice: boolean): void {
         if (!line) return;
-        if (part.unitId) {
+        // Fetch relative to the stock unit (the conversion hub), not the display/sales unit —
+        // see updateLineUnitPrice(). The line itself still starts on the sales unit below.
+        const baseUnitId = part.baseUnitId || part.unitId;
+        if (baseUnitId) {
             this.unitService
-                .getCompatibleUnits(part.unitId)
+                .getCompatibleUnits(baseUnitId)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
                     next: (compatibleUnits) => {

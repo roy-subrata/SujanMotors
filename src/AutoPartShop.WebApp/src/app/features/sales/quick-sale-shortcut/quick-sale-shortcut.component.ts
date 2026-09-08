@@ -1069,8 +1069,14 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (part.unitId) {
-            this.unitService.getCompatibleUnits(part.unitId).subscribe({
+        // The conversion hub is the stock unit (BaseUnitId), NOT the display/sales unit (UnitId) —
+        // they're only the same unit by convention, and unit conversions (Units → Units Conversion)
+        // are configured against the stock unit. Falls back to unitId only when a part has no
+        // separate stock unit recorded.
+        const baseUnitId = part.baseUnitId || part.unitId || undefined;
+
+        if (baseUnitId) {
+            this.unitService.getCompatibleUnits(baseUnitId).subscribe({
                 next: (compatibleUnits) => {
                     this.compatibleUnitsMap.set(part.id, compatibleUnits);
                     this.pokeCartLines();
@@ -1090,7 +1096,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             partNumber: part.partNumber,
             sku: part.variantSKU || part.sku,
             unitId: part.unitId || undefined,
-            baseUnitId: part.unitId || undefined,
+            baseUnitId,
             quantity: 1,
             unitPrice: part.effectiveSellingPrice ?? part.sellingPrice,
             discount: 0
@@ -1098,8 +1104,30 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
         this.cartItems.update((items) => [...items, newItem]);
         this.fetchLineInfo(newItem);
+        // unitPrice above is quoted per unitId (the sales unit), which may not be baseUnitId —
+        // baseUnitFactor defaults to 1 (meaning "already priced per base unit"), so correct it
+        // before any later unit switch or below-cost check tries to compare against costPrice.
+        if (baseUnitId && part.unitId && part.unitId !== baseUnitId) {
+            this.applyInitialBaseUnitFactor(newItem.partId, newItem.productVariantId, part.unitId, baseUnitId);
+        }
 
         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.partAdded'), detail: this.i18n.t('pos.messages.partAddedDetail', { name: part.displayName || part.name }) });
+    }
+
+    /** Best-effort: resolves the conversion factor between a line's initial sale unit and its
+     *  stock base unit (only needed when they differ) and records it as baseUnitFactor. Matches
+     *  by partId/variantId rather than index, same as fetchLineInfo/resolveItemDiscount, since the
+     *  cart can be reordered while this request is in flight. */
+    private applyInitialBaseUnitFactor(partId: string, variantId: string | undefined, saleUnitId: string, baseUnitId: string): void {
+        this.unitConversionService.getConversion(saleUnitId, baseUnitId).subscribe({
+            next: (res) => {
+                this.cartItems.update((items) => items.map((existing) => (existing.partId === partId && (existing.productVariantId ?? null) === (variantId ?? null) ? { ...existing, baseUnitFactor: res.conversionFactor } : existing)));
+            },
+            error: () => {
+                // Leave baseUnitFactor at its default (1) — best-effort, never blocks the sale.
+                // A later unit switch may mis-scale, no worse than before this line was added.
+            }
+        });
     }
 
     // ===== CART ACTIONS =====
@@ -1555,6 +1583,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                         this.cartItems.update((items) => items.map((item) => (item.partId === result.partId && (item.productVariantId ?? null) === (result.variantId ?? null) ? { ...item, quantity: item.quantity + 1 } : item)));
                         this.messageService.add({ severity: 'info', summary: this.i18n.t('pos.messages.qtyUpdated'), detail: this.i18n.t('pos.messages.qtyUpdatedDetail', { name: displayName }) });
                     } else {
+                        const baseUnitId = result.baseUnitId || result.unitId || undefined;
                         const newItem: QuickSaleLineItem = {
                             partId: result.partId,
                             productVariantId: variantId,
@@ -1562,13 +1591,28 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                             partNumber: result.partNumber,
                             sku: result.variantCode ?? result.sku,
                             unitId: result.unitId || undefined,
-                            baseUnitId: result.unitId || undefined,
+                            baseUnitId,
                             quantity: 1,
                             unitPrice: result.sellingPrice,
                             discount: 0
                         };
                         this.cartItems.update((items) => [...items, newItem]);
                         this.fetchLineInfo(newItem);
+                        if (baseUnitId) {
+                            this.unitService.getCompatibleUnits(baseUnitId).subscribe({
+                                next: (compatibleUnits) => {
+                                    this.compatibleUnitsMap.set(result.partId, compatibleUnits);
+                                    this.pokeCartLines();
+                                },
+                                error: () => {
+                                    this.compatibleUnitsMap.set(result.partId, this.units());
+                                    this.pokeCartLines();
+                                }
+                            });
+                            if (result.unitId && result.unitId !== baseUnitId) {
+                                this.applyInitialBaseUnitFactor(newItem.partId, newItem.productVariantId, result.unitId, baseUnitId);
+                            }
+                        }
                         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.added'), detail: this.i18n.t('pos.messages.addedDetail', { name: displayName }) });
                     }
                 }
@@ -1793,7 +1837,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         (sale.items || []).forEach((item) => {
             if (!item.unitId) return;
             if (!this.compatibleUnitsMap.has(item.partId)) {
-                this.unitService.getCompatibleUnits(item.unitId).subscribe({
+                this.unitService.getCompatibleUnits(item.baseUnitId || item.unitId).subscribe({
                     next: (compatibleUnits) => {
                         this.compatibleUnitsMap.set(item.partId, compatibleUnits);
                         this.pokeCartLines();
