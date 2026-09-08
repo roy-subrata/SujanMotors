@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Subject } from 'rxjs';
-import { finalize } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { finalize, map } from 'rxjs/operators';
 
 // PrimeNG Imports
 import { ToastModule } from 'primeng/toast';
@@ -220,7 +220,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     units = signal<UnitResponse[]>([]);
     loadingUnits = signal(false);
     compatibleUnitsMap = new Map<string, UnitResponse[]>();
-    private cartUnitSelection = new Map<number, string | null>();
 
     // Payments
     payments = signal<PaymentDetail[]>([]);
@@ -506,12 +505,13 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         const { index, unitId } = event;
         const current = this.cartItems()[index];
         if (!current || current.unitId === unitId) return;
+        const previousUnitId = current.unitId;
         this.cartItems.update((items) => {
             const next = [...items];
             next[index] = { ...next[index], unitId };
             return next;
         });
-        this.onCartUnitChanged(this.cartItems()[index], index);
+        this.onCartUnitChanged(this.cartItems()[index], index, previousUnitId);
     }
 
     /** `compatibleUnitsMap` is a plain Map, not a signal, so writing into it doesn't by itself
@@ -1090,6 +1090,7 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
             partNumber: part.partNumber,
             sku: part.variantSKU || part.sku,
             unitId: part.unitId || undefined,
+            baseUnitId: part.unitId || undefined,
             quantity: 1,
             unitPrice: part.effectiveSellingPrice ?? part.sellingPrice,
             discount: 0
@@ -1097,9 +1098,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
 
         this.cartItems.update((items) => [...items, newItem]);
         this.fetchLineInfo(newItem);
-        if (part.unitId) {
-            this.cartUnitSelection.set(this.cartItems().length - 1, part.unitId);
-        }
 
         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.partAdded'), detail: this.i18n.t('pos.messages.partAddedDetail', { name: part.displayName || part.name }) });
     }
@@ -1247,30 +1245,49 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         });
     }
 
-    onCartUnitChanged(item: QuickSaleLineItem, index: number): void {
-        const previousUnitId = this.cartUnitSelection.get(index);
+    /** Converts through the part's base unit rather than asking for a direct next↔previous
+     *  conversion — unit conversions are only ever configured relative to the base unit (see
+     *  Units → Units Conversion), so e.g. Box→Dozen has no direct record and 404s. Mirrors
+     *  sales-order-form.component.ts's updateLineUnitPrice(), which hits the same constraint. */
+    onCartUnitChanged(item: QuickSaleLineItem, index: number, previousUnitId?: string): void {
         const nextUnitId = item.unitId;
-        if (!previousUnitId || !nextUnitId || previousUnitId === nextUnitId) return;
+        const baseUnitId = item.baseUnitId;
+        if (!nextUnitId || !baseUnitId) return;
 
         const currentPrice = Number(item.unitPrice || 0);
-        const previousBaseUnitFactor = item.baseUnitFactor || 1;
-        this.unitConversionService.getConversion(nextUnitId, previousUnitId).subscribe({
-            next: (res) => {
-                const newPrice = currentPrice * res.conversionFactor;
+        // item.baseUnitFactor already IS "base units per 1 unit the line was priced in a moment
+        // ago" (see its field doc) — no need to look up a from-conversion separately.
+        const fromFactor = item.baseUnitFactor || 1;
+        const toFactor$ = nextUnitId === baseUnitId ? of(1) : this.unitConversionService.getConversion(nextUnitId, baseUnitId).pipe(map((res) => res.conversionFactor));
+
+        toFactor$.subscribe({
+            next: (toFactor) => {
+                const basePrice = fromFactor > 0 ? currentPrice / fromFactor : currentPrice;
+                const newPrice = basePrice * toFactor;
                 // baseUnitFactor tracks the same rescaling as unitPrice so costPrice (always
                 // per-base-unit) stays comparable to unitPrice after the switch.
-                const newBaseUnitFactor = previousBaseUnitFactor * res.conversionFactor;
                 this.cartItems.update((items) => {
                     const newItems = [...items];
-                    newItems[index] = { ...newItems[index], unitPrice: Math.round(newPrice * 100) / 100, baseUnitFactor: newBaseUnitFactor };
+                    newItems[index] = { ...newItems[index], unitPrice: Math.round(newPrice * 100) / 100, baseUnitFactor: toFactor };
                     return newItems;
                 });
-                this.cartUnitSelection.set(index, nextUnitId);
                 // The per-unit auto discount depends on unit price, so re-resolve it against the new
                 // price — otherwise the displayed discount drifts from what the backend applies on
                 // submit. Manual % lines are untouched (manual wins).
                 const converted = this.cartItems()[index];
                 if (converted && converted.discount === 0) this.resolveItemDiscount(converted);
+            },
+            error: () => {
+                // Revert the dropdown to the still-current unit — the price was never touched, so
+                // leaving item.unitId on the failed selection would show a unit that doesn't match price.
+                if (previousUnitId) {
+                    this.cartItems.update((items) => {
+                        const newItems = [...items];
+                        newItems[index] = { ...newItems[index], unitId: previousUnitId };
+                        return newItems;
+                    });
+                }
+                this.messageService.add({ severity: 'error', summary: this.i18n.t('pos.messages.failed'), detail: this.i18n.t('pos.messages.unitConversionMissing') });
             }
         });
     }
@@ -1545,15 +1562,13 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
                             partNumber: result.partNumber,
                             sku: result.variantCode ?? result.sku,
                             unitId: result.unitId || undefined,
+                            baseUnitId: result.unitId || undefined,
                             quantity: 1,
                             unitPrice: result.sellingPrice,
                             discount: 0
                         };
                         this.cartItems.update((items) => [...items, newItem]);
                         this.fetchLineInfo(newItem);
-                        if (result.unitId) {
-                            this.cartUnitSelection.set(this.cartItems().length - 1, result.unitId);
-                        }
                         this.messageService.add({ severity: 'success', summary: this.i18n.t('pos.messages.added'), detail: this.i18n.t('pos.messages.addedDetail', { name: displayName }) });
                     }
                 }
@@ -1663,7 +1678,6 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.paymentReference = '';
         this.paymentNotes = '';
         this.pricingErrors.clear();
-        this.cartUnitSelection.clear();
         this.quickSaleService.clearDraft();
         this.keypadDigits.set('');
         this.appliedManualDiscountPercent.set(0);
@@ -1776,9 +1790,8 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.promoCode.set(sale.promoCode || '');
 
         // Rebuild per-line unit state so the unit dropdowns work after recall
-        (sale.items || []).forEach((item, index) => {
+        (sale.items || []).forEach((item) => {
             if (!item.unitId) return;
-            this.cartUnitSelection.set(index, item.unitId);
             if (!this.compatibleUnitsMap.has(item.partId)) {
                 this.unitService.getCompatibleUnits(item.unitId).subscribe({
                     next: (compatibleUnits) => {

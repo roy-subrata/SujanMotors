@@ -17,6 +17,10 @@ export interface QuickSaleLineItem {
     partNumber?: string;
     sku?: string;
     unitId?: string;
+    /** The part's stocking/base unit — fixed for the life of the line, unlike unitId (which
+     *  changes when the cashier switches sale unit). Lets onCartUnitChanged() always convert
+     *  through the base unit, since unit conversions are only ever configured relative to it. */
+    baseUnitId?: string;
     quantity: number;
     unitPrice: number;
     /** MRP / catalog selling price captured (fresh) when the line was added, used for local
@@ -281,6 +285,7 @@ export class QuickSaleService {
             technicianName: draft.technicianName,
             customerVehicleId: draft.customerVehicleId ?? null,
             manualDiscountAmount: draft.manualDiscountAmount || 0,
+            promoCode: draft.promoCode,
             total: draft.total,
             notes: draft.notes,
             timestamp: new Date()
