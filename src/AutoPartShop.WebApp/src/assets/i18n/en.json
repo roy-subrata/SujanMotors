@@ -6207,6 +6207,7 @@
             "customerRequiredQuotation": "Select a customer to save a quotation.",
             "quotationSaved": "Quotation Saved",
             "quotationFailed": "Could not save quotation.",
+            "unitConversionMissing": "No conversion is set up between these units. Configure it under Inventory → Units, or pick a different unit.",
             "downloadFailed": "Download Failed",
             "downloadFailedDetail": "Could not download PDF.",
             "nothingToReturn": "Nothing to Return",

@@ -6166,6 +6166,7 @@
             "customerRequiredQuotation": "কোটেশন সংরক্ষণ করতে একজন কাস্টমার নির্বাচন করুন।",
             "quotationSaved": "কোটেশন সংরক্ষিত",
             "quotationFailed": "কোটেশন সংরক্ষণ করা যায়নি।",
+            "unitConversionMissing": "এই ইউনিটগুলোর মধ্যে কোনো রূপান্তর সেট করা নেই। Inventory → Units থেকে কনফিগার করুন, অথবা অন্য ইউনিট বেছে নিন।",
             "downloadFailed": "ডাউনলোড ব্যর্থ",
             "downloadFailedDetail": "PDF ডাউনলোড করা যায়নি।",
             "nothingToReturn": "ফেরত দেওয়ার কিছু নেই",
