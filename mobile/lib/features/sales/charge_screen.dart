@@ -12,6 +12,7 @@ import '../../shared/format.dart';
 import '../../shared/models/customer.dart';
 import '../../shared/models/customer_vehicle.dart';
 import 'discounts_repository.dart';
+import 'price_override_dialog.dart';
 import 'quick_sale_providers.dart';
 
 /// Server-mirrored totals for the cart, resolved from `/discounts/resolve/*`.
@@ -91,6 +92,7 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
   int _resolveSeq = 0;
   bool _paidTouched = false;
   bool _suppressPaidTouch = false;
+  bool _priceOverrideDialogShowing = false;
   bool _presubmitting = false;
 
   /// Writes a default tendered amount without marking the field as
@@ -392,6 +394,31 @@ class _ChargeScreenState extends ConsumerState<ChargeScreen> {
       quickSaleControllerProvider.select((s) => s.result),
       (_, result) {
         if (result != null && mounted) Navigator.of(context).pop();
+      },
+    );
+
+    // Below-cost/above-MRP line hit the server's cost-floor gate — show the
+    // manager-approval sheet instead of the plain error banner. A successful
+    // approval closes the sheet and silently retries this exact sale; the
+    // normal isSubmitting/submitError wiring above already reflects the retry.
+    ref.listen(
+      quickSaleControllerProvider.select((s) => s.priceOverrideRequired),
+      (_, required) {
+        if (!required || _priceOverrideDialogShowing) return;
+        final st = ref.read(quickSaleControllerProvider);
+        final retry = st.retryWithApprovalToken;
+        if (retry == null) return;
+        _priceOverrideDialogShowing = true;
+        showPriceOverrideDialog(
+          context,
+          message: st.priceOverrideMessage ?? '',
+          retryWithApprovalToken: retry,
+        ).then((_) {
+          _priceOverrideDialogShowing = false;
+          if (mounted) {
+            ref.read(quickSaleControllerProvider.notifier).dismissPriceOverride();
+          }
+        });
       },
     );
 

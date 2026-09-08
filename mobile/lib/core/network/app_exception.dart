@@ -5,13 +5,32 @@ import 'package:dio/dio.dart';
 ///
 /// Mirrors the Angular web app which reads `error.error?.detail ?? error.error?.message`.
 class AppException implements Exception {
-  AppException(this.message, {this.statusCode, this.fieldErrors});
+  AppException(
+    this.message, {
+    this.statusCode,
+    this.fieldErrors,
+    this.code,
+    this.limitType,
+    this.partName,
+  });
 
   final String message;
   final int? statusCode;
 
   /// Field-level validation errors keyed by field name (from `ApiError.errors`).
   final Map<String, List<String>>? fieldErrors;
+
+  /// Machine-readable error code (e.g. `PRICE_OVERRIDE_REQUIRED`) some endpoints
+  /// return alongside `message` so callers can branch on behavior instead of
+  /// matching localized/free-text error strings. Null for ordinary errors.
+  final String? code;
+
+  /// Present only on `PRICE_OVERRIDE_REQUIRED` — which limit was breached
+  /// (e.g. "cost floor" or "MRP ceiling"), for display in the approval dialog.
+  final String? limitType;
+
+  /// Present only on `PRICE_OVERRIDE_REQUIRED` — the offending part's name.
+  final String? partName;
 
   factory AppException.fromDio(DioException e) {
     final response = e.response;
@@ -32,6 +51,9 @@ class AppException implements Exception {
             : _fallbackMessage(status),
         statusCode: status,
         fieldErrors: errors,
+        code: data['code'] as String?,
+        limitType: data['limitType'] as String?,
+        partName: data['partName'] as String?,
       );
     }
 
