@@ -15,6 +15,9 @@ class QuickSaleState {
     this.lookupError,
     this.submitError,
     this.result,
+    this.priceOverrideRequired = false,
+    this.priceOverrideMessage,
+    this.retryWithApprovalToken,
     // catalog
     this.catalogItems = const [],
     this.isCatalogLoading = false,
@@ -33,6 +36,20 @@ class QuickSaleState {
   final String? lookupError;
   final String? submitError;
   final QuickSaleResult? result;
+
+  /// True when the last [submit] attempt was rejected as below-cost/above-MRP
+  /// (`PRICE_OVERRIDE_REQUIRED`) — the checkout screen should show the manager
+  /// approval dialog instead of a plain error banner while this is true.
+  final bool priceOverrideRequired;
+
+  /// The backend's own message to show in the approval dialog (e.g. "Door
+  /// Glass RH is priced below cost — a manager must approve this sale.").
+  final String? priceOverrideMessage;
+
+  /// Re-submits the exact same sale with an approval token attached, once the
+  /// manager's credentials have been verified. Captures the original
+  /// checkout args via closure so the dialog only needs the token.
+  final Future<void> Function(String token)? retryWithApprovalToken;
 
   // ── Catalog ───────────────────────────────────────────────────────────────────
   final List<Product> catalogItems;
@@ -64,6 +81,9 @@ class QuickSaleState {
     Object? lookupError = _keep,
     Object? submitError = _keep,
     Object? result = _keep,
+    bool? priceOverrideRequired,
+    Object? priceOverrideMessage = _keep,
+    Object? retryWithApprovalToken = _keep,
     List<Product>? catalogItems,
     bool? isCatalogLoading,
     bool? catalogHasMore,
@@ -82,6 +102,14 @@ class QuickSaleState {
       submitError:
           submitError == _keep ? this.submitError : submitError as String?,
       result: result == _keep ? this.result : result as QuickSaleResult?,
+      priceOverrideRequired:
+          priceOverrideRequired ?? this.priceOverrideRequired,
+      priceOverrideMessage: priceOverrideMessage == _keep
+          ? this.priceOverrideMessage
+          : priceOverrideMessage as String?,
+      retryWithApprovalToken: retryWithApprovalToken == _keep
+          ? this.retryWithApprovalToken
+          : retryWithApprovalToken as Future<void> Function(String)?,
       catalogItems: catalogItems ?? this.catalogItems,
       isCatalogLoading: isCatalogLoading ?? this.isCatalogLoading,
       catalogHasMore: catalogHasMore ?? this.catalogHasMore,
@@ -320,9 +348,16 @@ class QuickSaleController extends Notifier<QuickSaleState> {
     String? customerPhone,
     String? vehicleId,
     String? promoCode,
+    String? priceOverrideApprovalToken,
   }) async {
     if (state.isSubmitting || state.items.isEmpty) return;
-    state = state.copyWith(isSubmitting: true, submitError: null);
+    state = state.copyWith(
+      isSubmitting: true,
+      submitError: null,
+      priceOverrideRequired: false,
+      priceOverrideMessage: null,
+      retryWithApprovalToken: null,
+    );
 
     final advance = advanceApplied.clamp(0.0, grandTotal);
     final coverable = (grandTotal - advance).clamp(0.0, grandTotal);
@@ -345,11 +380,47 @@ class QuickSaleController extends Notifier<QuickSaleState> {
             customerPhone: customerPhone,
             vehicleId: vehicleId,
             promoCode: promoCode,
+            priceOverrideApprovalToken: priceOverrideApprovalToken,
           );
       state = state.copyWith(isSubmitting: false, result: result);
     } on AppException catch (e) {
-      state = state.copyWith(isSubmitting: false, submitError: e.message);
+      if (e.code == 'PRICE_OVERRIDE_REQUIRED') {
+        state = state.copyWith(
+          isSubmitting: false,
+          priceOverrideRequired: true,
+          priceOverrideMessage: e.message,
+          // Closes over this exact call's args so the dialog only needs to
+          // supply the token — same "re-run the same submit" pattern as the
+          // web app's price-override approval flow.
+          retryWithApprovalToken: (token) => submit(
+            grandTotal: grandTotal,
+            paidNow: paidNow,
+            paymentMethod: paymentMethod,
+            discountAmount: discountAmount,
+            advanceApplied: advanceApplied,
+            paymentReference: paymentReference,
+            customerName: customerName,
+            customerId: customerId,
+            customerPhone: customerPhone,
+            vehicleId: vehicleId,
+            promoCode: promoCode,
+            priceOverrideApprovalToken: token,
+          ),
+        );
+      } else {
+        state = state.copyWith(isSubmitting: false, submitError: e.message);
+      }
     }
+  }
+
+  /// Dismisses the approval dialog without completing the sale (the cart is
+  /// left untouched so the cashier can adjust the price/qty and retry).
+  void dismissPriceOverride() {
+    state = state.copyWith(
+      priceOverrideRequired: false,
+      priceOverrideMessage: null,
+      retryWithApprovalToken: null,
+    );
   }
 
   void reset() {
@@ -362,6 +433,9 @@ class QuickSaleController extends Notifier<QuickSaleState> {
       lookupError: null,
       submitError: null,
       result: null,
+      priceOverrideRequired: false,
+      priceOverrideMessage: null,
+      retryWithApprovalToken: null,
     );
   }
 

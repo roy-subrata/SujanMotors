@@ -73,6 +73,11 @@ class SalesRepository {
     String? customerPhone,
     String? vehicleId,
     String? promoCode,
+    // Token from requestPriceOverride() — proves a manager approved this
+    // specific sale going below the cost floor or above the MRP ceiling.
+    // Null for an ordinary sale; the server ignores it unless a
+    // PRICE_OVERRIDE_REQUIRED condition actually applies.
+    String? priceOverrideApprovalToken,
   }) async {
     try {
       final promo = promoCode?.trim().toUpperCase() ?? '';
@@ -116,12 +121,49 @@ class SalesRepository {
                 })
             .toList(),
         'payments': payments,
+        if (priceOverrideApprovalToken != null)
+          'priceOverrideApprovalToken': priceOverrideApprovalToken,
       });
       return QuickSaleResult.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw AppException.fromDio(e);
     }
   }
+
+  /// Manager-credential approval for a sale that would otherwise be rejected
+  /// as below cost or above MRP (`PRICE_OVERRIDE_REQUIRED`). Verifies the
+  /// given credentials belong to an active user holding
+  /// `sales.approve-price-override` and returns a single-use, 5-minute token
+  /// to attach as [submitQuickSale]'s `priceOverrideApprovalToken`. The
+  /// backend returns one generic message for every failure mode (unknown
+  /// user, wrong password, lockout, valid credentials without the
+  /// permission) — surfaced via [AppException.message] as-is, matching the
+  /// web app's same "don't become an oracle" behavior.
+  Future<PriceOverrideApproval> requestPriceOverride({
+    required String username,
+    required String password,
+  }) async {
+    try {
+      final res = await _dio.post('/pricing/request-override', data: {
+        'username': username,
+        'password': password,
+      });
+      final data = res.data as Map<String, dynamic>;
+      return PriceOverrideApproval(
+        token: '${data['token']}',
+        expiresAt: DateTime.parse('${data['expiresAt']}'),
+      );
+    } on DioException catch (e) {
+      throw AppException.fromDio(e);
+    }
+  }
+}
+
+class PriceOverrideApproval {
+  const PriceOverrideApproval({required this.token, required this.expiresAt});
+
+  final String token;
+  final DateTime expiresAt;
 }
 
 final salesRepositoryProvider = Provider<SalesRepository>(

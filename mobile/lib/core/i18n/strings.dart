@@ -240,6 +240,18 @@ class S {
   String confirmPaid(String amount) =>
       _t('Confirm · $amount paid', 'নিশ্চিত করুন · $amount পরিশোধ');
   String get confirmSale => _t('Confirm Sale', 'বিক্রয় নিশ্চিত করুন');
+
+  // ── Price override approval ──────────────────────────────────────────────
+  String get priceOverrideTitle =>
+      _t('Manager approval required', 'ম্যানেজার অনুমোদন প্রয়োজন');
+  String get priceOverrideHint => _t(
+      'This sale needs a manager to approve it. Ask a manager to enter their username and password below.',
+      'এই বিক্রয়টি একজন ম্যানেজারের অনুমোদন প্রয়োজন। নিচে একজন ম্যানেজারকে তাদের ইউজারনেম ও পাসওয়ার্ড দিতে বলুন।');
+  String get managerUsername => _t('Manager username', 'ম্যানেজার ইউজারনেম');
+  String get managerPassword => _t('Manager password', 'ম্যানেজার পাসওয়ার্ড');
+  String get approveAndContinue =>
+      _t('Approve & continue', 'অনুমোদন করে এগিয়ে যান');
+
   String get cartTotal => _t('Cart Total', 'কার্ট মোট');
   String get grandTotalLabel => _t('Grand Total', 'সর্বমোট');
   String get promoCode => _t('Promo code', 'প্রোমো কোড');
