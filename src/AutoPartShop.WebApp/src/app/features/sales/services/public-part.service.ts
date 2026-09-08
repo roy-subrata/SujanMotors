@@ -20,6 +20,10 @@ export interface PublicPartResponse {
   brandName: string | null;
   unitId: string | null;
   unitName: string | null;
+  /** Stock/inventory tracking unit — the hub every unit conversion is configured against.
+   *  Distinct from unitId (the default display/sales unit), which may differ from it. */
+  baseUnitId?: string | null;
+  baseUnitName?: string | null;
   sellingPrice: number;
   effectiveSellingPrice: number;
   // Variant fields — populated when flattenVariants = true

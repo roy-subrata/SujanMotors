@@ -461,6 +461,7 @@ export class QuickSaleService {
         hasLotPrice: boolean;
         stockLevel: number;
         unitId: string | null;
+        baseUnitId?: string | null;
         variantId: string | null;
         variantName: string | null;
         variantCode: string | null;
