@@ -136,9 +136,22 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     dialogQuery = signal('');
     /** Raw keypad digit string for the tender dialog, cents-first (README §3). */
     keypadDigits = signal('');
-    /** Viewport-driven layout booleans (README "The layout is fluid" table). */
-    narrow = signal(typeof window !== 'undefined' && window.innerWidth < 780);
-    short = signal(typeof window !== 'undefined' && window.innerHeight < 660);
+    /** Viewport-driven layout booleans (README "The layout is fluid" table). Threshold is 900,
+     *  not a phone-sized number — this only decides whether the catalog and cart panel share a
+     *  row or stack; below 900 a side-by-side split leaves too little room for either (verified
+     *  against real tablet widths, e.g. an 800px-wide tablet squeezed the catalog to a single
+     *  column when this was 780). Phone-only chrome simplification (header 3-row stack, full-
+     *  bleed dialogs) uses a separate, lower `@media (max-width: 640px)` in each component's own
+     *  CSS — intentionally not tied to this signal. */
+    narrow = signal(typeof window !== 'undefined' && window.innerWidth < 900);
+    /** Trims header/customer-bar/ticket-header/footer/shortcut-bar chrome so more cart lines fit
+     *  without scrolling on a real laptop (innerHeight commonly ~650-800px after OS taskbar +
+     *  browser chrome — not a rare edge case). Chosen so a typical desktop/27" monitor (900px+)
+     *  never triggers this and renders exactly as before. */
+    compact = signal(typeof window !== 'undefined' && window.innerHeight < 900);
+    /** Extra footer squeeze for genuinely tiny windows. Kept well under the main laptop target
+     *  zone so that case doesn't have to rely on the most extreme footer treatment alone. */
+    veryCompact = signal(typeof window !== 'undefined' && window.innerHeight < 620);
 
     // Catalog (paginated, lazy-loaded on scroll — chip filtering stays client-side over whatever
     // pages have loaded so far, since the parts API has no server-side category filter)
@@ -346,7 +359,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         return [
             { label: this.i18n.t('pos.methods.CASH'), value: 'CASH' as const, icon: 'pi pi-money-bill' },
             { label: this.i18n.t('pos.methods.CARD'), value: 'CARD' as const, icon: 'pi pi-credit-card' },
-            { label: this.i18n.t('pos.methods.MOBILE_BANKING'), value: 'MOBILE_BANKING' as const, icon: 'pi pi-mobile' },
+            // bKash/Nagad are separate tender tiles for the cashier, but both settle as the same
+            // backend MOBILE_BANKING method — see mobileBankingProviderFor()/tenderFullBalance(),
+            // which normalize the tile id back to MOBILE_BANKING and stash the provider name in
+            // the payment's notes so it still shows up distinctly in the tender/receipt summary.
+            { label: this.i18n.t('pos.methods.BKASH'), value: 'MOBILE_BANKING_BKASH' as const, icon: 'pi pi-mobile' },
+            { label: this.i18n.t('pos.methods.NAGAD'), value: 'MOBILE_BANKING_NAGAD' as const, icon: 'pi pi-mobile' },
             { label: this.i18n.t('pos.methods.DUE'), value: 'DUE' as const, icon: 'pi pi-clock' }
         ];
     }
@@ -630,10 +648,11 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         this.activeOverlay.set('tender');
     }
 
-    tenderPayTypeNotes: Record<'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE', string> = {
+    tenderPayTypeNotes: Record<'CASH' | 'CARD' | 'MOBILE_BANKING_BKASH' | 'MOBILE_BANKING_NAGAD' | 'DUE', string> = {
         CASH: 'drawerOpens',
         CARD: 'chipOrTap',
-        MOBILE_BANKING: 'qrOrNfc',
+        MOBILE_BANKING_BKASH: 'qrOrNfc',
+        MOBILE_BANKING_NAGAD: 'qrOrNfc',
         DUE: 'onAccount'
     };
 
@@ -647,19 +666,37 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
         }));
     });
 
-    tenderRows = computed<PosTenderRow[]>(() => this.payments().map((p) => ({ label: this.getPaymentLabel(p.method), amountLabel: this.formatCurrency(p.amount) })));
+    tenderRows = computed<PosTenderRow[]>(() =>
+        this.payments().map((p) => ({
+            label: p.method === 'MOBILE_BANKING' && p.notes ? p.notes : this.getPaymentLabel(p.method),
+            amountLabel: this.formatCurrency(p.amount)
+        }))
+    );
 
     /** Tapping a payment-type tile tenders the *entire* remaining balance in that type (design
      *  §3) — additive to the existing manual-amount keypad flow, both funnel through addNewPayment().
      *  Whatever the cashier has already typed into the reference field (needed for CARD/MOBILE_BANKING
      *  reconciliation — see requiresReference()) is preserved, not cleared, since there's no separate
      *  "enter reference, then tender" step in this one-tap design. */
-    tenderFullBalance(method: 'CASH' | 'CARD' | 'MOBILE_BANKING' | 'DUE'): void {
+    tenderFullBalance(tileValue: 'CASH' | 'CARD' | 'MOBILE_BANKING_BKASH' | 'MOBILE_BANKING_NAGAD' | 'DUE'): void {
         const remaining = this.remainingBalance();
         if (remaining <= 0.01) return;
-        this.selectedPaymentMethod = method;
+        const provider = this.mobileBankingProviderFor(tileValue);
+        this.selectedPaymentMethod = provider ? 'MOBILE_BANKING' : (tileValue as 'CASH' | 'CARD' | 'DUE');
+        // The backend only supports a single generic MOBILE_BANKING method — tag which wallet was
+        // actually used in notes (unless the cashier already typed something) so tenderRows() can
+        // still show it distinctly instead of a generic "Mobile Banking" line.
+        if (provider && !this.paymentNotes.trim()) this.paymentNotes = provider;
         this.paymentInputAmount = remaining;
         this.addNewPayment();
+    }
+
+    /** Maps a tender tile id to its display provider name, or null for tiles that map straight
+     *  to a real backend PaymentMethod (CASH/CARD/DUE). */
+    private mobileBankingProviderFor(tileValue: string): string | null {
+        if (tileValue === 'MOBILE_BANKING_BKASH') return this.i18n.t('pos.methods.BKASH');
+        if (tileValue === 'MOBILE_BANKING_NAGAD') return this.i18n.t('pos.methods.NAGAD');
+        return null;
     }
 
     /** Cents-first keypad entry (README §3 "Entry is cents-first"): digits append to a string,
@@ -801,10 +838,12 @@ export class QuickSaleShortcutComponent implements OnInit, OnDestroy {
     // ===== POS SHELL: RESPONSIVE LAYOUT (README "The layout is fluid") =====
     @HostListener('window:resize')
     onWindowResize(): void {
-        const narrow = window.innerWidth < 780;
-        const short = window.innerHeight < 660;
+        const narrow = window.innerWidth < 900;
+        const compact = window.innerHeight < 900;
+        const veryCompact = window.innerHeight < 620;
         if (narrow !== this.narrow()) this.narrow.set(narrow);
-        if (short !== this.short()) this.short.set(short);
+        if (compact !== this.compact()) this.compact.set(compact);
+        if (veryCompact !== this.veryCompact()) this.veryCompact.set(veryCompact);
     }
 
     // ===== POS SHELL: KEYBOARD SHORTCUTS (README §1d "Keyboard") =====

@@ -18,9 +18,12 @@ export interface PosCartLine {
 
 /**
  * Cart panel (design_handoff_pos_sale §1c): customer bar, ticket header, the scrollable
- * line-item list with a stepper per row, the totals footer and the Charge button. This is the
- * only presentational child that has both a "standard" and "compact" (short viewport) footer
- * layout — driven entirely by the `short` input, per the README's compact-footer rule.
+ * line-item list with a stepper per row, the totals footer and the Charge button. The
+ * `compact`/`veryCompact` inputs trim the customer bar, ticket header and footer to reclaim
+ * vertical space for line items on a short (laptop-height) viewport — see
+ * quick-sale-shortcut.component.ts's `compact`/`veryCompact` signals for the threshold
+ * rationale (this used to be a footer-only `short` input; extended for laptop screens that
+ * otherwise only show ~1 line item before scrolling).
  */
 @Component({
     selector: 'app-pos-cart-panel',
@@ -51,7 +54,8 @@ export class PosCartPanelComponent {
     totalLabel = input<string>('');
 
     chargeEnabled = input<boolean>(false);
-    short = input<boolean>(false);
+    compact = input<boolean>(false);
+    veryCompact = input<boolean>(false);
 
     stockCheckDisabled = input<boolean>(false);
     priceCheckDisabled = input<boolean>(false);
