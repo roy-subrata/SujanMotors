@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-<div class="pos-root" [class.narrow]="narrow()" [class.short]="short()">
+<div class="pos-root" [class.narrow]="narrow()">
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
     <app-quick-customer-dialog (customerCreated)="onCustomerCreated($event)"></app-quick-customer-dialog>
@@ -17,6 +17,7 @@
         [operatorLabel]="operatorLabel()"
         [contextLine]="contextLine()"
         [isDarkMode]="isDarkMode()"
+        [compact]="compact()"
         (openSearch)="openSearchDialog()"
         (toggleDarkMode)="toggleDarkMode()"
     ></app-pos-header>
@@ -58,7 +59,8 @@
                 [vatAmountLabel]="formatCurrency(vatAmount())"
                 [totalLabel]="formatCurrency(grandTotal())"
                 [chargeEnabled]="cartItems().length > 0"
-                [short]="short()"
+                [compact]="compact()"
+                [veryCompact]="veryCompact()"
                 [quotationDisabled]="cartItems().length === 0 || saving()"
                 [draftDisabled]="cartItems().length === 0"
                 (openCustomer)="openCustomerDialog()"
@@ -96,6 +98,7 @@
         [extraActions]="shortcutExtraActions()"
         [statusLine]="statusLine()"
         [hideStatus]="narrow()"
+        [compact]="compact()"
         (shortcutClick)="onShortcutClick($event)"
         (extraActionClick)="onExtraActionClick($event)"
     ></app-pos-shortcut-bar>

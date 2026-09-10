@@ -99,6 +99,28 @@
     background: var(--pos-surface);
 }
 
+/* Short viewport (laptop-height) — see quick-sale-shortcut.component.ts's `compact` signal. */
+.pos-customer-bar.compact {
+    padding: 8px 16px;
+    gap: 10px;
+}
+
+.pos-customer-bar.compact .pos-customer-avatar {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    font-size: 12px;
+}
+
+.pos-customer-bar.compact .pos-customer-name {
+    font-size: 14px;
+}
+
+.pos-customer-bar.compact .pos-customer-meta {
+    font-size: 11px;
+    margin-top: 1px;
+}
+
 /* Ticket header */
 .pos-ticket-header {
     padding: 13px 20px 11px;
@@ -110,6 +132,10 @@
     flex: 0 0 auto;
 }
 
+.pos-ticket-header.compact {
+    padding: 8px 16px 7px;
+}
+
 .pos-ticket-title {
     font-size: 18px;
     font-weight: 700;
@@ -117,11 +143,20 @@
     color: var(--pos-ink);
 }
 
+.pos-ticket-header.compact .pos-ticket-title {
+    font-size: 15px;
+}
+
 .pos-ticket-sub {
     font-size: 12px;
     color: var(--pos-muted);
     font-family: var(--pos-mono);
     margin-top: 3px;
+}
+
+.pos-ticket-header.compact .pos-ticket-sub {
+    font-size: 11px;
+    margin-top: 2px;
 }
 
 .pos-clear-btn {
@@ -310,6 +345,33 @@
     color: var(--pos-red);
 }
 
+/* Short viewport (laptop-height) — see quick-sale-shortcut.component.ts's `compact` signal.
+   Cart lines previously had no compact variant at all; this closes that gap and further
+   helps the laptop line-item-density fix. */
+.pos-line.compact {
+    padding: 9px 16px;
+    gap: 4px;
+}
+
+.pos-line.compact .pos-line-name {
+    font-size: 14px;
+}
+
+.pos-line.compact .pos-stepper-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 17px;
+}
+
+.pos-line.compact .pos-line-remove {
+    width: 24px;
+    height: 24px;
+}
+
+.pos-line.compact .pos-line-total {
+    font-size: 14px;
+}
+
 /* Footer */
 .pos-footer {
     border-top: 1px solid var(--pos-line-2);
@@ -320,9 +382,14 @@
     gap: 8px;
 }
 
-.pos-footer.short {
-    padding: 10px 16px 12px;
+.pos-footer.compact {
+    padding: 9px 16px 10px;
     gap: 5px;
+}
+
+.pos-footer.veryCompact {
+    padding: 7px 14px 9px;
+    gap: 4px;
 }
 
 .pos-total-row {
@@ -363,8 +430,12 @@
     color: var(--pos-ink);
 }
 
-.pos-footer.short .pos-grand-value {
-    font-size: 23px;
+.pos-footer.compact .pos-grand-value {
+    font-size: 21px;
+}
+
+.pos-footer.veryCompact .pos-grand-value {
+    font-size: 19px;
 }
 
 .pos-secondary-grid {
@@ -374,7 +445,7 @@
     margin-top: 2px;
 }
 
-.pos-footer.short .pos-secondary-grid {
+.pos-footer.compact .pos-secondary-grid {
     display: flex;
     gap: 7px;
     overflow-x: auto;
@@ -394,11 +465,18 @@
     color: var(--pos-ink);
 }
 
-.pos-footer.short .pos-secondary-btn {
-    height: 40px;
+.pos-footer.compact .pos-secondary-btn {
+    height: 38px;
     flex: 0 0 auto;
-    padding: 0 14px;
+    padding: 0 13px;
     font-size: 13px;
+}
+
+.pos-footer.veryCompact .pos-secondary-btn {
+    height: 34px;
+    flex: 0 0 auto;
+    padding: 0 11px;
+    font-size: 12px;
 }
 
 .pos-secondary-btn:hover:not(:disabled) {
@@ -425,9 +503,14 @@
     cursor: pointer;
 }
 
-.pos-footer.short .pos-charge-btn {
-    height: 52px;
+.pos-footer.compact .pos-charge-btn {
+    height: 48px;
     margin-top: 1px;
+}
+
+.pos-footer.veryCompact .pos-charge-btn {
+    height: 44px;
+    margin-top: 0;
 }
 
 .pos-charge-btn:hover:not(.disabled) {
@@ -447,4 +530,45 @@
 .pos-charge-amount {
     font-size: 21px;
     font-weight: 700;
+}
+
+.pos-footer.compact .pos-charge-amount {
+    font-size: 19px;
+}
+
+.pos-footer.veryCompact .pos-charge-label {
+    font-size: 15px;
+}
+
+.pos-footer.veryCompact .pos-charge-amount {
+    font-size: 17px;
+}
+
+/* Touch-target floor for real touchscreens — the stepper/remove buttons are already under
+   the ~40-44px guideline even at base size, and `.compact`/`.veryCompact` (meant for a short
+   laptop screen used with a mouse) shrink buttons further; a coarse pointer (tablet, phone)
+   always gets at least 40-44px regardless of which size tier is otherwise active. Placed at
+   the end of the file, after every `.compact`/`.veryCompact` rule it needs to beat, so equal-
+   specificity source-order wins in its favor. 40px (not 44px) for the stepper/remove buttons
+   specifically, since they sit inside an already-dense three-row cart line next to the
+   name/price. */
+@media (pointer: coarse) {
+    .pos-stepper-btn,
+    .pos-line.compact .pos-stepper-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .pos-line-remove,
+    .pos-line.compact .pos-line-remove {
+        width: 40px;
+        height: 40px;
+    }
+
+    .pos-secondary-btn,
+    .pos-footer.compact .pos-secondary-btn,
+    .pos-footer.veryCompact .pos-secondary-btn {
+        height: 44px;
+    }
+    /* .pos-charge-btn is already >=44px in every mode (62/48/44px) — no override needed. */
 }

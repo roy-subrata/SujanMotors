@@ -21,6 +21,9 @@ export class PosHeaderComponent {
     operatorLabel = input<string>('');
     contextLine = input<string>('');
     isDarkMode = input<boolean>(false);
+    /** Trims the header's own height/font sizes on a short (laptop-height) viewport — see
+     *  quick-sale-shortcut.component.ts's `compact` signal for the threshold rationale. */
+    compact = input<boolean>(false);
 
     openSearch = output<void>();
     toggleDarkMode = output<void>();

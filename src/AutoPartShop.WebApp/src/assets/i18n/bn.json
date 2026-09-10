@@ -6038,6 +6038,8 @@
             "CASH": "নগদ",
             "CARD": "কার্ড",
             "MOBILE_BANKING": "মোবাইল",
+            "BKASH": "বিকাশ",
+            "NAGAD": "Nagad",
             "DUE": "বাকি"
         },
         "paymentNotesPlaceholder": "পেমেন্ট নোট (ঐচ্ছিক)...",

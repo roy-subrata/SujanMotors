@@ -1,4 +1,4 @@
-<nav class="pos-shortcut-bar">
+<nav class="pos-shortcut-bar" [class.compact]="compact()">
     <div class="pos-shortcut-key" *ngFor="let k of shortcuts()" [class.disabled]="k.disabled" (click)="!k.disabled && shortcutClick.emit(k.action)">
         <span class="pos-shortcut-cap">{{ k.key }}</span>{{ k.label }}
     </div>

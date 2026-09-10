@@ -63,3 +63,41 @@
 .pos-shortcut-status.hidden {
     display: none;
 }
+
+/* Short viewport (laptop-height) — see quick-sale-shortcut.component.ts's `compact` signal. */
+:host(.compact) {
+    height: 44px;
+    flex: 0 0 44px;
+}
+
+.pos-shortcut-bar.compact {
+    height: 44px;
+    padding: 0 14px;
+    gap: 5px;
+}
+
+.pos-shortcut-bar.compact .pos-shortcut-key {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+    gap: 6px;
+}
+
+.pos-shortcut-bar.compact .pos-shortcut-cap {
+    font-size: 10px;
+    padding: 1px 4px;
+}
+
+.pos-shortcut-bar.compact .pos-shortcut-status {
+    font-size: 11px;
+}
+
+/* Touch-target floor for real touchscreens — a tablet in `compact` landscape mode shouldn't
+   get shortcut keys smaller than a finger can reliably tap. Repeats the `.compact`-scoped
+   selector after it so it wins the cascade (equal specificity, later source order). */
+@media (pointer: coarse) {
+    .pos-shortcut-key,
+    .pos-shortcut-bar.compact .pos-shortcut-key {
+        height: 44px;
+    }
+}

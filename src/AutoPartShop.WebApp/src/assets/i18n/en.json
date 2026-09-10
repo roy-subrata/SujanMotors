@@ -6079,6 +6079,8 @@
             "CASH": "Cash",
             "CARD": "Card",
             "MOBILE_BANKING": "Mobile",
+            "BKASH": "bKash",
+            "NAGAD": "Nagad",
             "DUE": "Due"
         },
         "paymentNotesPlaceholder": "Payment notes (optional)...",

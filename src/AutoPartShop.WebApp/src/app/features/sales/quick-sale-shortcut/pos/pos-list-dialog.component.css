@@ -100,3 +100,37 @@
     gap: 10px;
     flex: 0 0 auto;
 }
+
+/* ---------- Phone layout (<=640px) ----------
+   `.pos-list-panel`'s own `max-width: 100%` already prevents overflow at every width (it
+   already sits close to full-bleed by 768-800px), so this is purely a comfort upgrade for
+   phones (edge-to-edge instead of a padded floating card) — not a bug fix, unlike the tender
+   dialog. 640px keeps tablets on their existing centered-card look, which was already fine.
+   `!important` is required to beat the component's own inline `[style.width.px]` binding —
+   an author-stylesheet `!important` rule outranks a non-important inline style. */
+@media (max-width: 640px) {
+    .pos-overlay-backdrop {
+        padding: 0;
+        align-items: stretch;
+    }
+
+    .pos-list-panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+    }
+
+    .pos-list-header {
+        padding: 16px 16px 12px;
+    }
+
+    .pos-list-filter {
+        padding: 12px 16px 0;
+    }
+
+    .pos-list-footer {
+        padding: 12px 16px;
+    }
+}

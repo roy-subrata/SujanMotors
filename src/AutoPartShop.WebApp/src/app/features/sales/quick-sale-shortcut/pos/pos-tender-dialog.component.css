@@ -436,3 +436,61 @@
     background: var(--pos-disabled);
     cursor: not-allowed;
 }
+
+/* ---------- Phone layout (<=640px) ----------
+   Below this, the dialog's two-pane rail+right layout has run out of room to stay
+   comfortable (verified: rail min-width 280 + right-pane min-width 300 = 580px stops fitting
+   once available width — backdrop width minus its own clamp(12px,3vw,40px) padding — drops
+   under ~617px, i.e. right around a 640-660px viewport). Force a full-bleed, single-column
+   mobile checkout instead of relying on flex-wrap fallback. 640px is phone-only, not the
+   shell's 900px `narrow` signal — a tablet (768px+) already renders this dialog comfortably
+   as-is (verified via the same arithmetic) and shouldn't be forced full-screen. */
+@media (max-width: 640px) {
+    .pos-overlay-backdrop {
+        padding: 0;
+        align-items: stretch;
+    }
+
+    .pos-tender-panel {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        flex-direction: column;
+        flex-wrap: nowrap;
+    }
+
+    .pos-tender-rail {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        padding: 20px;
+    }
+
+    .pos-tender-right {
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        padding: 20px;
+    }
+
+    .pos-tender-amount {
+        font-size: 38px;
+    }
+
+    .pos-manual-row {
+        flex-direction: column;
+    }
+
+    .pos-amount-col {
+        max-width: none;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .pos-quickcash-col {
+        min-width: 0;
+        width: 100%;
+    }
+}

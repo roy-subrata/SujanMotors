@@ -75,7 +75,7 @@
 }
 
 .pos-tile {
-    height: 134px;
+    min-height: 134px;
     background: var(--pos-surface);
     border: 1px solid var(--pos-line);
     border-radius: 15px;

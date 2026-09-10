@@ -149,3 +149,131 @@
     color: var(--pos-muted);
     font-family: var(--pos-mono);
 }
+
+/* ---------- Phone layout (<=640px) ----------
+   The base rules above rely on plain `flex-wrap: wrap` with no ordering, which — once the
+   search trigger, both icon buttons, the divider and the operator block can no longer share a
+   row with the logo/identity — wraps into a messy 3-4 line stack (and the un-ellipsized
+   `.pos-operator-line`/`.pos-operator-context` can overflow their own line since they're only
+   `white-space: nowrap`, no `text-overflow`). Force a clean, predictable 3-row layout instead:
+   [logo + store name + dark/exit icons] / [search trigger, full width] / [operator info, full
+   width, left-aligned] — done entirely with `order`/`flex-basis: 100%` so the DOM/markup stays
+   untouched. 640px (not the shell's 900px `narrow` width signal) is deliberately phone-only —
+   an iPad-class tablet (768px+) has plenty of room for the normal single-row header and
+   shouldn't be forced into this stack; verified the unshrunk row's fixed-width children sum to
+   ~565px, comfortably fitting above 640px. */
+@media (max-width: 640px) {
+    .pos-header {
+        padding: 8px 12px;
+        gap: 8px;
+        row-gap: 8px;
+    }
+
+    .pos-logo {
+        order: 1;
+    }
+
+    .pos-identity {
+        order: 2;
+        flex: 1 1 auto;
+    }
+
+    .pos-store-sub {
+        display: none;
+    }
+
+    .pos-header-spacer,
+    .pos-header-divider {
+        display: none;
+    }
+
+    .pos-header-icon-btn {
+        order: 3;
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+    }
+
+    .pos-search-trigger {
+        order: 5;
+        flex: 1 1 100%;
+        max-width: none;
+        min-width: 0;
+    }
+
+    .pos-keycap {
+        display: none;
+    }
+
+    .pos-operator {
+        order: 6;
+        flex: 1 1 100%;
+        text-align: left;
+    }
+
+    .pos-operator-line,
+    .pos-operator-context {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* ---------- Short viewport (laptop-height) — plain classes, independent of the width-based
+   @media block above, so both can apply at once without conflicting. See
+   quick-sale-shortcut.component.ts's `compact` signal for the threshold rationale. ---------- */
+.pos-header.compact {
+    min-height: 50px;
+    padding: 6px 16px;
+    gap: 10px;
+}
+
+.pos-header.compact .pos-logo {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    font-size: 14px;
+    border-radius: 9px;
+}
+
+.pos-header.compact .pos-store-name {
+    font-size: 14px;
+}
+
+.pos-header.compact .pos-store-sub {
+    font-size: 11px;
+}
+
+.pos-header.compact .pos-search-trigger {
+    height: 36px;
+}
+
+.pos-header.compact .pos-header-icon-btn {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+}
+
+.pos-header.compact .pos-header-divider {
+    height: 26px;
+}
+
+.pos-header.compact .pos-operator-line {
+    font-size: 13px;
+}
+
+.pos-header.compact .pos-operator-context {
+    font-size: 11px;
+}
+
+/* Touch-target floor for real touchscreens (tablets, phones) — independent of width/height,
+   so a tablet in `compact` (short-viewport) landscape mode never gets icon buttons smaller
+   than a finger can reliably tap. Must come after `.pos-header.compact` above and repeat its
+   selector so it wins the cascade (equal specificity, later source order). */
+@media (pointer: coarse) {
+    .pos-header-icon-btn,
+    .pos-header.compact .pos-header-icon-btn {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+    }
+}
